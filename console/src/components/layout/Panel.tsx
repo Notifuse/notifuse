@@ -15,7 +15,8 @@ export interface PanelProps {
 }
 
 /**
- * A card: 40px header, body and footer. An antd Table inside a flush Panel keeps its own theme
+ * A card: 40px header, body and footer. Without children there is no body (a header-only card, such
+ * as an optional section switched off). An antd Table inside a flush Panel keeps its own theme
  * and draws neither border nor radius; the panel clips it to its corners.
  */
 export function Panel({ title, icon, extra, flush, footer, tone, className, children }: PanelProps) {
@@ -42,9 +43,11 @@ export function Panel({ title, icon, extra, flush, footer, tone, className, chil
           {extra ? <div className="flex shrink-0 items-center gap-2">{extra}</div> : null}
         </div>
       ) : null}
-      <div data-panel-body className={flush ? undefined : 'px-3.5 py-3'}>
-        {children}
-      </div>
+      {children !== undefined && children !== null && children !== false ? (
+        <div data-panel-body className={flush ? undefined : 'px-3.5 py-3'}>
+          {children}
+        </div>
+      ) : null}
       {footer ? (
         <div
           data-panel-footer

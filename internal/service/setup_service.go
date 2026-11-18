@@ -10,6 +10,7 @@ import (
 	appconfig "github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 	"github.com/wneessen/go-mail"
 )
@@ -104,6 +105,11 @@ type EnvironmentConfig struct {
 	OIDCButtonLabel     string
 	OIDCAutoCreateUsers string
 	OIDCAllowedDomains  string
+
+	// Telemetry and CheckForUpdates are "true"/"false" when TELEMETRY /
+	// CHECK_FOR_UPDATES is set, "" when unset.
+	Telemetry       string
+	CheckForUpdates string
 }
 
 // NewSetupService creates a new setup service
@@ -259,16 +265,92 @@ func (s *SetupService) GetEnvOverrides() map[string]bool {
 		result["oidc_allowed_domains"] = true
 	}
 
+	if s.envConfig.Telemetry != "" {
+		result["telemetry_enabled"] = true
+	}
+	if s.envConfig.CheckForUpdates != "" {
+		result["check_for_updates"] = true
+	}
+
 	return result
+}
+
+// applyEnvValues replaces, in place, every field of config whose environment variable
+// is set, the way the runtime config does at boot (a non-empty env var wins, field by
+// field). The setup wizard leaves a field set by the environment out of its request, so
+// validation and storage must see the value the instance will actually run with. It is
+// idempotent. A group set entirely by the environment is taken from it in Initialize.
+func (s *SetupService) applyEnvValues(config *SetupConfig) {
+	env := s.envConfig
+	if env == nil {
+		return
+	}
+	str := func(field *string, value string) {
+		if value != "" {
+			*field = value
+		}
+	}
+	tri := func(field *bool, value string) {
+		if value != "" {
+			*field = value == "true"
+		}
+	}
+
+	str(&config.RootEmail, env.RootEmail)
+	str(&config.APIEndpoint, env.APIEndpoint)
+
+	str(&config.SMTPHost, env.SMTPHost)
+	if env.SMTPPort > 0 {
+		config.SMTPPort = env.SMTPPort
+	}
+	str(&config.SMTPUsername, env.SMTPUsername)
+	str(&config.SMTPPassword, env.SMTPPassword)
+	str(&config.SMTPFromEmail, env.SMTPFromEmail)
+	str(&config.SMTPFromName, env.SMTPFromName)
+	if env.SMTPUseTLS != "" {
+		config.SMTPUseTLS = env.SMTPUseTLS != "false"
+	}
+	str(&config.SMTPEHLOHostname, env.SMTPEHLOHostname)
+
+	tri(&config.SMTPBridgeEnabled, env.SMTPBridgeEnabled)
+	str(&config.SMTPBridgeDomain, env.SMTPBridgeDomain)
+	if env.SMTPBridgePort > 0 {
+		config.SMTPBridgePort = env.SMTPBridgePort
+	}
+	str(&config.SMTPBridgeTLSCertBase64, env.SMTPBridgeTLSCertBase64)
+	str(&config.SMTPBridgeTLSKeyBase64, env.SMTPBridgeTLSKeyBase64)
+
+	tri(&config.OIDCEnabled, env.OIDCEnabled)
+	str(&config.OIDCIssuerURL, env.OIDCIssuerURL)
+	str(&config.OIDCClientID, env.OIDCClientID)
+	str(&config.OIDCClientSecret, env.OIDCClientSecret)
+	str(&config.OIDCRedirectURI, env.OIDCRedirectURI)
+	str(&config.OIDCScopes, env.OIDCScopes)
+	str(&config.OIDCButtonLabel, env.OIDCButtonLabel)
+	tri(&config.OIDCAutoCreateUsers, env.OIDCAutoCreateUsers)
+	str(&config.OIDCAllowedDomains, env.OIDCAllowedDomains)
+
+	tri(&config.TelemetryEnabled, env.Telemetry)
+	tri(&config.CheckForUpdates, env.CheckForUpdates)
 }
 
 // ValidateSetupConfig validates the setup configuration, only checking user-provided fields
 func (s *SetupService) ValidateSetupConfig(config *SetupConfig) error {
+	s.applyEnvValues(config)
 	status := s.GetConfigurationStatus()
 
-	// Validate root_email if not configured via env
-	if !status.RootEmailConfigured && config.RootEmail == "" {
-		return fmt.Errorf("root_email is required")
+	// Validate root_email if not configured via env: one or more emails, separated as
+	// ROOT_EMAIL is (commas, semicolons or spaces).
+	if !status.RootEmailConfigured {
+		rootEmails := appconfig.ParseRootEmails(config.RootEmail)
+		if len(rootEmails) == 0 {
+			return fmt.Errorf("root_email is required")
+		}
+		for _, email := range rootEmails {
+			if !govalidator.IsEmail(email) {
+				return fmt.Errorf("root_email contains an invalid email: %s", email)
+			}
+		}
 	}
 
 	// Validate SMTP if not configured via env

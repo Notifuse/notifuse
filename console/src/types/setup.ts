@@ -34,6 +34,8 @@ export interface SetupStatus {
   root_email_configured: boolean
   smtp_bridge_configured: boolean
   oidc_configured: boolean
+  /** Before install only: the setting keys whose environment variable is set (names, never values). */
+  env_overrides?: string[]
 }
 
 export interface InitializeResponse {

@@ -783,6 +783,9 @@ func (a *App) InitServices() error {
 		OIDCButtonLabel:     a.config.EnvValues.OIDCButtonLabel,
 		OIDCAutoCreateUsers: a.config.EnvValues.OIDCAutoCreateUsers,
 		OIDCAllowedDomains:  a.config.EnvValues.OIDCAllowedDomains,
+
+		Telemetry:       a.config.EnvValues.Telemetry,
+		CheckForUpdates: a.config.EnvValues.CheckForUpdates,
 	}
 
 	a.setupService = service.NewSetupService(
