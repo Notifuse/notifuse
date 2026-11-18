@@ -661,16 +661,12 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Send a real test email through a chosen integration and sender; it also needs Templates read, cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read`,
         },
         {
-          endpoint: "/api/email.testProvider",
-          action: msg`Send a real test email through the workspace's stored provider credentials`,
-        },
-        {
           endpoint: "SMTP bridge (SMTP submission, not an HTTP route)",
           action: msg`Send a transactional notification by SMTP using the key's API email address as the username — the same gate as /api/transactional.send`,
         },
       ],
     },
-    caveat: msg`A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to "test" a provider.`,
+    caveat: msg`A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from two endpoints, /api/transactional.send and /api/transactional.testTemplate, as well as the SMTP bridge. Testing an email provider (/api/email.testProvider) is owner-only and consults no permission.`,
   },
 
   automations: {
@@ -1006,7 +1002,7 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
       ],
     },
-    caveat: msg`Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write.`,
+    caveat: msg`Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, creating, updating or deleting an integration, and testing an email provider, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write.`,
   },
 };
 
