@@ -1,8 +1,8 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import type { MJMLComponentType, MJSocialAttributes } from '../types'
+import type { EmailBlock, MJMLComponentType, MJSocialAttributes, MergedBlockAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
-import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { MJML_COMPONENT_DEFAULTS, MJ_SOCIAL_ELEMENT_DEFAULTS, SOCIAL_INHERITED_ATTRIBUTES } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { MjSocialElementBlock } from './MjSocialElementBlock'
 import InputLayout from '../ui/InputLayout'
@@ -13,23 +13,75 @@ import PanelLayout from '../panels/PanelLayout'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInstagram } from '@fortawesome/free-brands-svg-icons'
 import FontStyleInput from '../ui/FontStyleInput'
+import { SingleBorderInput } from '../ui/BorderInput'
+import { Col, Input, InputNumber, Row, Segmented } from 'antd'
+import BorderRadiusInput from '../ui/BorderRadiusInput'
+
+// A px length as a number, for the number fields
+const pixels = (value?: string): number | undefined => {
+  const match = value?.match(/^(\d+(?:\.\d+)?)px$/)
+  return match ? parseFloat(match[1]) : undefined
+}
+
+// mj-social has no text-transform nor letter-spacing attribute
+const SOCIAL_HIDDEN_FONT_FIELDS = ['textTransform', 'letterSpacing'] as const
+
+/**
+ * What mj-social passes to each of its elements (see SOCIAL_INHERITED_ATTRIBUTES): the attributes the block or the
+ * template's default mj-social attributes set, and its inner-padding as the elements' padding. MJML passes its own
+ * defaults for them too, which are the elements' defaults: the canvas leaves those to the elements.
+ */
+export function socialInheritedAttributes(
+  social: Record<string, unknown> | undefined,
+  socialDefaults: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  const set = { ...socialDefaults, ...social }
+  const isSet = (value: unknown) => value !== undefined && value !== null && value !== ''
+  const inherited: Record<string, unknown> = {}
+  if (isSet(set.innerPadding)) inherited.padding = set.innerPadding
+  for (const key of SOCIAL_INHERITED_ATTRIBUTES) {
+    if (isSet(set[key])) inherited[key] = set[key]
+  }
+  return inherited
+}
 
 // Functional component for settings panel with i18n support
 interface MjSocialSettingsPanelProps {
   currentAttributes: MJSocialAttributes
   blockDefaults: MJSocialAttributes
   onUpdate: OnUpdateAttributesFunction
+  /** What an icon shows for an inherited attribute the block does not set */
+  iconDefaults: Record<string, string | undefined>
+  importedFonts: Array<{ name: string; href: string }>
 }
 
 const MjSocialSettingsPanel: React.FC<MjSocialSettingsPanelProps> = ({
   currentAttributes,
   blockDefaults,
-  onUpdate
+  onUpdate,
+  iconDefaults,
+  importedFonts
 }) => {
   const { t } = useLingui()
+  // The layout the block takes without a mode of its own: the template's default mj-social mode, else a row
+  const defaultMode = blockDefaults.mode === 'vertical' ? 'vertical' : 'horizontal'
 
   return (
     <PanelLayout title={t`Social attributes`}>
+      <InputLayout label={t`Layout`}>
+        <Segmented
+          size="small"
+          value={currentAttributes.mode ?? defaultMode}
+          onChange={(value) =>
+            onUpdate({ mode: value === defaultMode ? undefined : (value as MJSocialAttributes['mode']) })
+          }
+          options={[
+            { label: t`In a row`, value: 'horizontal' },
+            { label: t`In a column`, value: 'vertical' }
+          ]}
+        />
+      </InputLayout>
+
       <InputLayout label={t`Container color`}>
         <ColorPickerWithPresets
           value={currentAttributes.containerBackgroundColor || undefined}
@@ -41,38 +93,173 @@ const MjSocialSettingsPanel: React.FC<MjSocialSettingsPanelProps> = ({
       <InputLayout label={t`Font Styling`} layout="vertical">
         <FontStyleInput
           value={{
-            fontFamily: undefined,
-            fontSize: undefined,
-            fontWeight: undefined,
-            fontStyle: undefined,
+            fontFamily: currentAttributes.fontFamily,
+            fontSize: currentAttributes.fontSize,
+            fontWeight: currentAttributes.fontWeight,
+            fontStyle: currentAttributes.fontStyle,
             textTransform: undefined,
-            textDecoration: undefined,
+            textDecoration: currentAttributes.textDecoration,
             lineHeight: currentAttributes.lineHeight,
             letterSpacing: undefined,
             textAlign: currentAttributes.align
           }}
           defaultValue={{
-            fontFamily: undefined,
-            fontSize: undefined,
-            fontWeight: undefined,
-            fontStyle: undefined,
+            // What the icons show when mj-social passes nothing
+            fontFamily: iconDefaults.fontFamily,
+            fontSize: iconDefaults.fontSize,
+            fontWeight: iconDefaults.fontWeight,
+            fontStyle: iconDefaults.fontStyle,
             textTransform: undefined,
-            textDecoration: undefined,
+            textDecoration: iconDefaults.textDecoration,
             lineHeight: blockDefaults.lineHeight,
             letterSpacing: undefined,
             textAlign: blockDefaults.align
           }}
           onChange={(values) => {
             onUpdate({
+              fontFamily: values.fontFamily,
+              fontSize: values.fontSize,
+              fontWeight: values.fontWeight,
+              fontStyle: values.fontStyle,
+              textDecoration: values.textDecoration,
               lineHeight: values.lineHeight,
-              align: values.textAlign
+              align: values.textAlign as MJSocialAttributes['align']
             })
           }}
-          importedFonts={[]}
+          importedFonts={importedFonts}
+          hiddenFields={SOCIAL_HIDDEN_FONT_FIELDS}
         />
       </InputLayout>
 
+      <InputLayout label={t`Icon border`} help={t`Applies to every icon; an icon's own border wins.`}>
+        <SingleBorderInput
+          value={currentAttributes.border}
+          onChange={(value) => onUpdate({ border: value })}
+        />
+      </InputLayout>
+
+      <InputLayout
+        label={t`Icons`}
+        help={t`Applies to every icon; an icon's own settings win.`}
+        layout="vertical"
+      >
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Size`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={pixels(currentAttributes.iconSize)}
+                  onChange={(value) => onUpdate({ iconSize: value ? `${value}px` : undefined })}
+                  placeholder="20"
+                  min={10}
+                  max={100}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Height`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={pixels(currentAttributes.iconHeight)}
+                  onChange={(value) => onUpdate({ iconHeight: value ? `${value}px` : undefined })}
+                  placeholder="20"
+                  min={10}
+                  max={100}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Border Radius`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <BorderRadiusInput
+                  value={currentAttributes.borderRadius}
+                  onChange={(value) => onUpdate({ borderRadius: value })}
+                  defaultValue={blockDefaults.borderRadius}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Text color`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.color || undefined}
+                  onChange={(color) => onUpdate({ color: color || undefined })}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Icon padding`}</span>
+              <Input
+                size="small"
+                value={currentAttributes.iconPadding || ''}
+                onChange={(e) => onUpdate({ iconPadding: e.target.value.trim() === '' ? undefined : e.target.value })}
+                placeholder="0px"
+                style={{ marginTop: '4px' }}
+              />
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Text padding`}</span>
+              <Input
+                size="small"
+                value={currentAttributes.textPadding || ''}
+                onChange={(e) => onUpdate({ textPadding: e.target.value.trim() === '' ? undefined : e.target.value })}
+                placeholder="4px 4px 4px 0"
+                style={{ marginTop: '4px' }}
+              />
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
       <InputLayout label={t`Padding`} layout="vertical">
+        <PaddingInput
+          value={{
+            top: currentAttributes.paddingTop,
+            right: currentAttributes.paddingRight,
+            bottom: currentAttributes.paddingBottom,
+            left: currentAttributes.paddingLeft
+          }}
+          defaultValue={{
+            top: blockDefaults.paddingTop,
+            right: blockDefaults.paddingRight,
+            bottom: blockDefaults.paddingBottom,
+            left: blockDefaults.paddingLeft
+          }}
+          onChange={(values: { top?: string; right?: string; bottom?: string; left?: string }) => {
+            onUpdate({
+              paddingTop: values.top,
+              paddingRight: values.right,
+              paddingBottom: values.bottom,
+              paddingLeft: values.left
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Icon spacing`} help={t`Padding around each icon`} layout="vertical">
         <PaddingInput
           value={currentAttributes.innerPadding}
           defaultValue={blockDefaults.innerPadding}
@@ -149,15 +336,42 @@ export class MjSocialBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the social block
    */
-  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
+  renderSettingsPanel(
+    onUpdate: OnUpdateAttributesFunction,
+    templateDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
+  ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSocialAttributes
-    const blockDefaults = this.getDefaults() as MJSocialAttributes
+    // The editor's defaults, then the template's default mj-social attributes
+    const blockDefaults = { ...this.getDefaults(), ...templateDefaults } as MJSocialAttributes
+
+    // What an icon shows when neither it nor the block sets an inherited attribute: the template's default
+    // mj-social-element attributes (they win over what mj-social passes), then mj-social's, then the element's
+    const attributeDefaults = emailTree ? EmailBlockClass.extractAttributeDefaults(emailTree) : {}
+    const iconDefaults: Record<string, string | undefined> = {}
+    for (const key of SOCIAL_INHERITED_ATTRIBUTES) {
+      const value =
+        attributeDefaults['mj-social-element']?.[key] ??
+        attributeDefaults['mj-social']?.[key] ??
+        (MJ_SOCIAL_ELEMENT_DEFAULTS as Record<string, unknown>)[key]
+      iconDefaults[key] = typeof value === 'string' ? value : undefined
+    }
+
+    const importedFonts: Array<{ name: string; href: string }> = []
+    if (emailTree) {
+      for (const fontBlock of EmailBlockClass.findAllBlocksByType(emailTree, 'mj-font')) {
+        const attrs = fontBlock.attributes as { name?: string; href?: string }
+        if (attrs?.name && attrs?.href) importedFonts.push({ name: attrs.name, href: attrs.href })
+      }
+    }
 
     return (
       <MjSocialSettingsPanel
         currentAttributes={currentAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
+        iconDefaults={iconDefaults}
+        importedFonts={importedFonts}
       />
     )
   }
@@ -220,6 +434,12 @@ export class MjSocialBlock extends BaseEmailBlock {
       wordBreak: 'break-word'
     }
 
+    // What the block passes to its elements, as in the email
+    const inherited = socialInheritedAttributes(
+      this.block.attributes as Record<string, unknown> | undefined,
+      attributeDefaults['mj-social']
+    )
+
     // Check if we have children to render
     const hasChildren = this.block.children && this.block.children.length > 0
 
@@ -245,7 +465,7 @@ export class MjSocialBlock extends BaseEmailBlock {
                     marginBottom: index < this.block.children!.length - 1 ? '4px' : '0'
                   }}
                 >
-                  {socialElementBlock.getEdit(props)}
+                  {socialElementBlock.getEdit(props, inherited)}
                 </div>
               )
             })}
@@ -260,7 +480,7 @@ export class MjSocialBlock extends BaseEmailBlock {
 
               return (
                 <React.Fragment key={child.id || index}>
-                  {socialElementBlock.getEdit(props)}
+                  {socialElementBlock.getEdit(props, inherited)}
                 </React.Fragment>
               )
             })}

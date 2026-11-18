@@ -9,6 +9,7 @@ import {
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { sectionChildWidth } from '../utils/sectionChildWidth'
+import { gutterCells, sectionGutterWidth } from '../utils/sectionGutter'
 import { EmailBlockClass } from '../EmailBlockClass'
 import PanelLayout from '../panels/PanelLayout'
 import InputLayout from '../ui/InputLayout'
@@ -18,6 +19,7 @@ import PaddingInput from '../ui/PaddingInput'
 import AlignSelector from '../ui/AlignSelector'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import BorderRadiusInput from '../ui/BorderRadiusInput'
+import WidthInput from '../ui/WidthInput'
 
 // Functional component for settings panel with i18n support
 interface MjSectionSettingsPanelProps {
@@ -117,6 +119,18 @@ const MjSectionSettingsPanel: React.FC<MjSectionSettingsPanelProps> = ({
                 paddingLeft: values.left
               })
             }}
+          />
+        </InputLayout>
+
+        <InputLayout
+          label={t`Column gap`}
+          help={t`Space between the columns, in pixels or percent. The outer edges of the section get none.`}
+        >
+          <WidthInput
+            value={currentAttributes.gutter}
+            onChange={(value) => handleAttributeChange('gutter', value)}
+            placeholder={blockDefaults.gutter || t`None`}
+            defaultUnit="px"
           />
         </InputLayout>
 
@@ -332,6 +346,17 @@ export class MjSectionBlock extends BaseEmailBlock {
       textAlign: (attrs.textAlign as 'left' | 'center' | 'right' | 'justify') || 'left'
     }
 
+    // The gutter MJML 5 puts between the columns: each column cell gets a narrower width and padding on the sides
+    // that face another child (see sectionGutter.ts)
+    const children = this.block.children ?? []
+    const gutters = gutterCells(
+      children,
+      attrs.gutter,
+      sectionGutterWidth(emailTree, this.block, attributeDefaults),
+      attrs.direction,
+      (child) => sectionChildWidth(child, this.block, attributeDefaults)
+    )
+
     // Check if section has no columns or groups
     const hasContent =
       this.block.children &&
@@ -352,17 +377,28 @@ export class MjSectionBlock extends BaseEmailBlock {
           >
             <tbody>
               <tr>
-                {this.block.children?.map((child) => {
+                {children.map((child, index) => {
                   // Columns and groups carry their width on their cell, as in the email
                   const columnWidth = sectionChildWidth(child, this.block, attributeDefaults)
+                  const gutter = gutters[index]
 
                   return (
                     <td
                       key={child.id}
-                      style={{
-                        verticalAlign: 'top',
-                        width: columnWidth
-                      }}
+                      style={
+                        gutter
+                          ? {
+                              verticalAlign: 'top',
+                              width: gutter.width,
+                              paddingLeft: gutter.paddingLeft,
+                              paddingRight: gutter.paddingRight,
+                              boxSizing: 'border-box'
+                            }
+                          : {
+                              verticalAlign: 'top',
+                              width: columnWidth
+                            }
+                      }
                     >
                       {EmailBlockClass.renderEmailBlock(
                         child,

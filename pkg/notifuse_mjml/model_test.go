@@ -1616,3 +1616,26 @@ func TestEmailBlockDisplayConditionRoundTrip(t *testing.T) {
 		assert.Nil(t, again.GetDisplayCondition())
 	})
 }
+
+// The attributes MJML 5 adds, as the console sends them, are read into the typed attributes.
+func TestMJML5AttributesDecode(t *testing.T) {
+	var section MJSectionAttributes
+	require.NoError(t, ConvertMapToTypedAttributes(map[string]interface{}{"gutter": "20px"}, &section))
+	require.NotNil(t, section.Gutter)
+	assert.Equal(t, "20px", *section.Gutter)
+
+	var social MJSocialAttributes
+	require.NoError(t, ConvertMapToTypedAttributes(map[string]interface{}{"border": "1px solid #000000"}, &social))
+	require.NotNil(t, social.Border)
+	assert.Equal(t, "1px solid #000000", *social.Border)
+
+	var element MJSocialElementAttributes
+	require.NoError(t, ConvertMapToTypedAttributes(map[string]interface{}{"border": "0"}, &element))
+	require.NotNil(t, element.Border)
+	assert.Equal(t, "0", *element.Border)
+
+	var body MJBodyAttributes
+	require.NoError(t, ConvertMapToTypedAttributes(map[string]interface{}{"id": "top"}, &body))
+	require.NotNil(t, body.ID)
+	assert.Equal(t, "top", *body.ID)
+}

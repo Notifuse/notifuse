@@ -368,3 +368,13 @@ describe('display conditions in the prompt', () => {
     expect(conditions).toMatch(/never on mj-column, mj-group or mj-liquid/)
   })
 })
+
+describe('EMAIL_AI_SYSTEM_PROMPT MJML 5 attributes', () => {
+  it('spaces columns with the section gutter rather than column padding', () => {
+    expect(section('## Best Practices')).toMatch(/"gutter" on the mj-section/)
+  })
+
+  it('names the border of social icons, on the icon and on the block', () => {
+    expect(section('## CRITICAL Attribute Rules')).toMatch(/"border" on mj-social-element[\s\S]*on mj-social/)
+  })
+})

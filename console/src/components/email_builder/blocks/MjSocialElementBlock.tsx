@@ -12,6 +12,7 @@ import AlignSelector from '../ui/AlignSelector'
 import PaddingInput from '../ui/PaddingInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import BorderRadiusInput from '../ui/BorderRadiusInput'
+import { SingleBorderInput } from '../ui/BorderInput'
 import PanelLayout from '../panels/PanelLayout'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -235,6 +236,16 @@ const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> 
             </div>
           </Col>
         </Row>
+        <div className="mb-2">
+          <span className="text-xs text-gray-500">{t`Border`}</span>
+          <div style={{ marginTop: '4px' }}>
+            <SingleBorderInput
+              value={currentAttributes.border}
+              onChange={(value) => onUpdate({ border: value })}
+              noneValue="none"
+            />
+          </div>
+        </div>
       </InputLayout>
 
       <InputLayout label={t`Text Settings`} layout="vertical">
@@ -488,6 +499,20 @@ const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> 
   )
 }
 
+// A CSS padding shorthand ("4px", "4px 8px", "1px 2px 3px", "1px 2px 3px 4px") with the sides given replacing
+// its own
+export function paddingShorthand(
+  shorthand: string,
+  sides: { top?: string; right?: string; bottom?: string; left?: string }
+): string {
+  const parts = shorthand.trim().split(/\s+/)
+  const top = parts[0]
+  const right = parts[1] ?? top
+  const bottom = parts[2] ?? top
+  const left = parts[3] ?? right
+  return [sides.top || top, sides.right || right, sides.bottom || bottom, sides.left || left].join(' ')
+}
+
 /**
  * Implementation for mj-social-element blocks
  */
@@ -660,7 +685,12 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     )
   }
 
-  getEdit(props: PreviewProps): React.ReactNode {
+  /**
+   * @param inherited the attributes the parent mj-social passes to its elements (see MjSocialBlock). As in MJML,
+   * they win over the element's defaults and lose to the template's default mj-social-element attributes, which
+   * mjml-core writes into the element's attributes when it parses the template, and to the element's own
+   */
+  getEdit(props: PreviewProps, inherited: Record<string, unknown> = {}): React.ReactNode {
     const { selectedBlockId, onSelectBlock, attributeDefaults } = props
 
     const key = this.block.id
@@ -681,7 +711,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-social-element',
       this.block.attributes as Record<string, unknown>,
-      attributeDefaults
+      { ...attributeDefaults, 'mj-social-element': { ...inherited, ...attributeDefaults['mj-social-element'] } }
     )
 
     // Get content (text label) if available
@@ -696,10 +726,15 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     const iconHeight = this.parsePixelValue(attrs.iconHeight) || 20
 
     // Table cell padding style (outer wrapper)
+    // The padding shorthand (mj-social's inner-padding reaches the elements as it), each side set replacing its
+    // part, written as one shorthand: React does not put a shorthand back when a longhand beside it goes away
     const cellPaddingStyle: React.CSSProperties = {
-      padding: `${attrs.paddingTop || '4px'} ${attrs.paddingRight || '4px'} ${
-        attrs.paddingBottom || '4px'
-      } ${attrs.paddingLeft || '4px'}`,
+      padding: paddingShorthand(attrs.padding || '4px', {
+        top: attrs.paddingTop,
+        right: attrs.paddingRight,
+        bottom: attrs.paddingBottom,
+        left: attrs.paddingLeft
+      }),
       verticalAlign: attrs.verticalAlign || 'middle'
     }
 
@@ -724,6 +759,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
 
     // Image style for all icons (both custom and CDN)
     const imageStyle: React.CSSProperties = {
+      border: attrs.border || '0',
       borderRadius: attrs.borderRadius || '3px',
       display: 'block',
       width: `${iconWidth}px`,

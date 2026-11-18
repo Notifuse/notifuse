@@ -32,6 +32,8 @@ interface BorderInputProps {
     style?: string
   }
   className?: string
+  /** One border for the whole element: no side switch, no side label */
+  oneSide?: boolean
 }
 
 // Moved inside component to use translation
@@ -46,7 +48,8 @@ const BorderInput: React.FC<BorderInputProps> = ({
   value = {},
   onChange,
   placeholder = { color: 'transparent', width: '0px', style: 'none' },
-  className
+  className,
+  oneSide = false
 }) => {
   const { t } = useLingui()
   const [mode, setMode] = useState<'all' | 'separate'>('all')
@@ -158,13 +161,15 @@ const BorderInput: React.FC<BorderInputProps> = ({
   // Auto-detect mode based on current values (only if user hasn't manually set mode)
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
-    if (!manualModeSet && internalValue && Object.keys(internalValue).length > 0) {
+    if (oneSide) {
+      setMode('all')
+    } else if (!manualModeSet && internalValue && Object.keys(internalValue).length > 0) {
       setMode(bordersAreEqual(internalValue) ? 'all' : 'separate')
     } else if (!manualModeSet) {
       setMode('all')
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [internalValue, bordersAreEqual, manualModeSet])
+  }, [internalValue, bordersAreEqual, manualModeSet, oneSide])
 
   // Get unified border value (from first available border)
   const getUnifiedBorder = (): BorderValue => {
@@ -337,6 +342,10 @@ const BorderInput: React.FC<BorderInputProps> = ({
 
   const unifiedBorder = getUnifiedBorder()
 
+  if (oneSide) {
+    return <div className={className}>{renderBorderControls(unifiedBorder, updateAllBorders)}</div>
+  }
+
   return (
     <div className={className}>
       {/* Mode Toggle */}
@@ -384,5 +393,24 @@ const BorderInput: React.FC<BorderInputProps> = ({
     </div>
   )
 }
+
+interface SingleBorderInputProps {
+  /** A CSS border shorthand, such as "2px solid #000000" */
+  value?: string
+  onChange: (value: string | undefined) => void
+  className?: string
+  /** Written when the border is set to none or 0, rather than removing it (to override an inherited border) */
+  noneValue?: string
+}
+
+/** One CSS border shorthand, as MJML's `border` on mj-social and mj-social-element takes it */
+export const SingleBorderInput: React.FC<SingleBorderInputProps> = ({ value, onChange, className, noneValue }) => (
+  <BorderInput
+    oneSide
+    className={className}
+    value={{ borderTop: value, borderRight: value, borderBottom: value, borderLeft: value }}
+    onChange={(borders) => onChange(borders.borderTop ?? noneValue)}
+  />
+)
 
 export default BorderInput

@@ -28,7 +28,7 @@ export const UPDATE_BLOCK_TOOL: LLMTool = {
           attributes: {
             type: 'object',
             description:
-              'Styling attributes like backgroundColor, color, fontSize, align, paddingTop, paddingRight, paddingBottom, paddingLeft, borderRadius, width, href, src, alt, etc.'
+              'Styling attributes like backgroundColor, color, fontSize, align, paddingTop, paddingRight, paddingBottom, paddingLeft, borderRadius, width, href, src, alt, gutter (space between the columns of an mj-section), border (of social icons), etc.'
           },
           content: {
             type: 'string',

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MjSectionBlock } from './MjSectionBlock'
 import type { EmailBlock } from '../types'
 import type { PreviewProps } from './BaseEmailBlock'
@@ -63,5 +63,83 @@ describe('section canvas widths', () => {
 
     expect(cellOf(container, 'g').style.width).toBe('70%')
     expect(cellOf(container, 'c').style.width).toBe('50%')
+  })
+})
+
+describe('section gutter', () => {
+  const sectionWithGutter = (gutter: string | undefined, ...children: unknown[]) =>
+    ({
+      id: 'sec',
+      type: 'mj-section',
+      attributes: gutter === undefined ? {} : { gutter },
+      children
+    }) as unknown as EmailBlock
+
+  const treeOf = (section: EmailBlock) =>
+    ({ id: 'body', type: 'mj-body', attributes: {}, children: [section] }) as unknown as EmailBlock
+
+  const renderSection = (section: EmailBlock) =>
+    render(<>{new MjSectionBlock(section).getEdit({ ...previewProps(), emailTree: treeOf(section) })}</>)
+
+  it('narrows the column cells and pads the sides that face another column', () => {
+    // safe-mjml 1.1.0: .mj-column-per-48-333333, padding 0 1.666667% / 0 0 0 1.666667%
+    const { container } = renderSection(sectionWithGutter('20px', column('a'), column('b')))
+
+    const first = cellOf(container, 'a')
+    const second = cellOf(container, 'b')
+    expect([first.style.width, first.style.paddingLeft, first.style.paddingRight]).toEqual(['50%', '0%', '1.666667%'])
+    expect([second.style.width, second.style.paddingLeft, second.style.paddingRight]).toEqual([
+      '50%',
+      '1.666667%',
+      '0%'
+    ])
+    expect(first.style.boxSizing).toBe('border-box')
+  })
+
+  it('takes the gutter of the default section attributes', () => {
+    const section = sectionWithGutter(undefined, column('a'), column('b'))
+    const { container } = render(
+      <>
+        {new MjSectionBlock(section).getEdit({
+          ...previewProps({ 'mj-section': { gutter: '20px' } }),
+          emailTree: treeOf(section)
+        })}
+      </>
+    )
+    expect(cellOf(container, 'a').style.paddingRight).toBe('1.666667%')
+  })
+
+  it('leaves the cells as they were without a gutter', () => {
+    const { container } = renderSection(sectionWithGutter(undefined, column('a'), column('b')))
+    const first = cellOf(container, 'a')
+    expect(first.style.width).toBe('50%')
+    expect(first.style.paddingLeft).toBe('')
+    expect(first.style.paddingRight).toBe('')
+  })
+
+  it('pads the columns of a group, not the group', () => {
+    // safe-mjml 1.1.0, 600px body: the group stays 50%, its columns get padding 3.333333% on their inner side
+    const section = sectionWithGutter('20px', group(), column('c'))
+    const { container } = renderSection(section)
+
+    expect(cellOf(container, 'g').style.paddingLeft).toBe('')
+    expect(cellOf(container, 'c').style.paddingLeft).toBe('1.666667%')
+    const groupColumns = Array.from(container.querySelectorAll<HTMLElement>('[data-group-column-width]'))
+    expect(groupColumns.map((cell) => [cell.style.paddingLeft, cell.style.paddingRight])).toEqual([
+      ['0%', '3.333333%'],
+      ['3.333333%', '0%']
+    ])
+  })
+
+  it('writes the gap the settings field gets, in px by default, and removes it when cleared', () => {
+    const onUpdate = vi.fn()
+    const section = sectionWithGutter(undefined, column('a'))
+    render(<>{new MjSectionBlock(section).renderSettingsPanel(onUpdate)}</>)
+
+    const input = screen.getByPlaceholderText('None')
+    fireEvent.change(input, { target: { value: '20' } })
+    expect(onUpdate).toHaveBeenLastCalledWith({ gutter: '20px' })
+    fireEvent.change(input, { target: { value: '' } })
+    expect(onUpdate).toHaveBeenLastCalledWith({ gutter: undefined })
   })
 })
