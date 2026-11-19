@@ -83,6 +83,14 @@ export function AnalyticsPage() {
             <span className="bg-[#e8efff] text-[#2457d6] text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-semibold border border-[#c7d2e8]">
               Live Monitor
             </span>
+            {isAdmin ? (
+              <span
+                className="bg-[#ecfdf3] text-[#067647] text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-semibold border border-[#abefc6]"
+                title={user?.email || 'ROOT_EMAIL'}
+              >
+                Admin
+              </span>
+            ) : null}
           </div>
           <p className="text-xs sm:text-sm text-[#5e6b8c] mt-1 mb-0">
             {isAdmin

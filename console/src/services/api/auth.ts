@@ -30,14 +30,28 @@ export interface GetCurrentUserResponse {
   workspaces: Workspace[]
 }
 
+/** Split ROOT_EMAIL / admin allowlist (comma, semicolon, or whitespace). */
+function parseEmailAllowlist(raw: string | undefined | null): string[] {
+  if (!raw) return []
+  return String(raw)
+    .split(/[,;\s]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.includes('@'))
+}
+
 /**
- * Check if the current user is the root user
+ * Check if the current user is the root / Mail Studio super admin.
+ * ROOT_EMAIL may be a single address or a comma-separated list.
+ * Matching is case-insensitive so portal SSO emails still unlock full chrome.
  */
 export function isRootUser(userEmail?: string): boolean {
-  if (!userEmail || !window.ROOT_EMAIL) {
-    return false
-  }
-  return userEmail === window.ROOT_EMAIL
+  if (!userEmail) return false
+  const email = userEmail.trim().toLowerCase()
+  if (!email.includes('@')) return false
+  const roots = parseEmailAllowlist(window.ROOT_EMAIL)
+  if (roots.includes(email)) return true
+  const extras = parseEmailAllowlist(window.MAIL_STUDIO_ADMIN_EMAILS)
+  return extras.includes(email)
 }
 
 export interface LogoutResponse {

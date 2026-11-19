@@ -517,6 +517,14 @@ export function WorkspaceLayout() {
                       <span className="bg-[#e8efff] text-[#2457d6] text-[10px] px-1.5 py-0.5 rounded font-semibold border border-[#c7d2e8] uppercase tracking-wider">
                         PRO
                       </span>
+                      {isAdmin ? (
+                        <span
+                          className="bg-[#ecfdf3] text-[#067647] text-[10px] px-1.5 py-0.5 rounded font-semibold border border-[#abefc6] uppercase tracking-wider"
+                          title={user?.email || 'ROOT_EMAIL'}
+                        >
+                          Admin
+                        </span>
+                      ) : null}
                     </div>
                     <span className="text-[11px] text-[#5e6b8c] font-medium leading-tight block mt-0.5">Automated Dispatch</span>
                   </div>
