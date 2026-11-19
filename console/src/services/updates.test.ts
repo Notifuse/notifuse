@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { browserTimeZone, checkForUpdates, normalizeUpdateCheck, safeHttpsUrl, UPDATES_ENDPOINT } from './updates'
+import { browserLocale, browserTimeZone, checkForUpdates, normalizeUpdateCheck, safeHttpsUrl, UPDATES_ENDPOINT } from './updates'
 import type { Entitlements } from '../types/license'
 
 const entitlements: Entitlements = {
@@ -74,6 +74,29 @@ describe('checkForUpdates', () => {
   it('rejects on an error status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })))
     await expect(checkForUpdates({ version: '42.0', locale: 'en', timezone: '', entitlements: null })).rejects.toThrow('500')
+  })
+})
+
+describe('browserLocale', () => {
+  it("takes the first of the browser's languages the console speaks", () => {
+    expect(browserLocale(['de-AT', 'fr'])).toBe('de')
+    expect(browserLocale(['zh-CN', 'ja-JP', 'en'])).toBe('ja')
+  })
+
+  it('matches pt-BR exactly and sends any other Portuguese to pt-BR', () => {
+    expect(browserLocale(['pt-br'])).toBe('pt-BR')
+    expect(browserLocale(['pt-PT'])).toBe('pt-BR')
+  })
+
+  it('falls back to English when the browser speaks nothing the console does', () => {
+    expect(browserLocale(['zh-CN', 'ko'])).toBe('en')
+    expect(browserLocale([])).toBe('en')
+  })
+
+  it("reads navigator.languages when given nothing", () => {
+    vi.stubGlobal('navigator', { languages: ['es-MX', 'en'], language: 'es-MX' })
+    expect(browserLocale()).toBe('es')
+    vi.unstubAllGlobals()
   })
 })
 

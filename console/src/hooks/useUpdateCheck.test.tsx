@@ -12,10 +12,10 @@ const state = vi.hoisted(() => ({
 }))
 
 vi.mock('../contexts/AuthContext', () => ({ useAuth: () => state.auth }))
-vi.mock('@lingui/react', () => ({ useLingui: () => ({ i18n: { locale: state.locale } }) }))
 vi.mock('../services/updates', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/updates')>()),
   checkForUpdates: state.check,
+  browserLocale: () => state.locale,
   browserTimeZone: () => state.timezone
 }))
 

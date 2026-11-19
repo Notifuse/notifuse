@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
-import { useLingui } from '@lingui/react'
-import { browserTimeZone, checkForUpdates, normalizeUpdateCheck, type UpdateCheckResponse } from '../services/updates'
+import { browserLocale, browserTimeZone, checkForUpdates, normalizeUpdateCheck, type UpdateCheckResponse } from '../services/updates'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 // A failed check (no network to the update service, a firewall, a timeout) waits this long before
@@ -77,9 +76,9 @@ export interface UpdateCheckState {
  */
 export function useUpdateCheck(): UpdateCheckState {
   const { checkForUpdates: enabled, serverVersion, licenseEntitlements } = useAuth()
-  // The active catalogue's language, which LocaleProvider switches; read from Lingui so the
-  // hook needs no provider beyond the I18nProvider every page already has.
-  const locale = useLingui().i18n.locale
+  // The browser's language rather than the console's: the notes are in the language the reader
+  // reads, English when the console does not speak it.
+  const locale = browserLocale()
   const [ignoredVersion, setIgnoredVersion] = useState<string | null>(readIgnored)
 
   const query = useQuery({
