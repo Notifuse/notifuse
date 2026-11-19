@@ -39,11 +39,7 @@ export const injectTiptapStyles = () => {
       }
       
       /* Emoji Popover Styles */
-      .tiptap-emoji-popover .ant-popover-content {
-        z-index: 99999 !important;
-      }
-      
-      .tiptap-emoji-popover .ant-popover-inner {
+      .tiptap-emoji-popover .ant-popover-container {
         padding: 8px !important;
         border-radius: 8px !important;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
@@ -60,12 +56,7 @@ export const injectTiptapStyles = () => {
       }
       
       /* Link popover styles */
-      .tiptap-link-popover .ant-popover-content {
-        z-index: 99999 !important;
-        position: fixed !important;
-      }
-      
-      .tiptap-link-popover .ant-popover-inner {
+      .tiptap-link-popover .ant-popover-container {
         padding: 8px !important;
         border-radius: 8px !important;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
