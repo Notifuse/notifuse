@@ -6,7 +6,8 @@ import { i18n } from '@lingui/core'
 import { ImportExportButton } from './ImportExportButton'
 import type { EmailBlock } from '../email_builder/types'
 
-vi.mock('../../services/api/template', () => ({ templatesApi: {} }))
+const { compile } = vi.hoisted(() => ({ compile: vi.fn() }))
+vi.mock('../../services/api/template', () => ({ templatesApi: { compile } }))
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -36,23 +37,21 @@ function importMjml(content: string) {
   return onImport
 }
 
-// An export of a template with conditions round-trips to the visual editor without them,
-// which would send the blocks to everyone: the import has to say so.
+// Liquid written between blocks, without the export marks, is kept in Liquid blocks, which are
+// edited as code: the import has to say so.
 describe('ImportExportButton MJML import', () => {
-  it('warns that display conditions are not imported', async () => {
+  it('says when Liquid between blocks became Liquid blocks', async () => {
     const onImport = importMjml(
       mjml('{% assign __dc_s1 = true %}{% if contact.vip == true %}{% endif %}{% if __dc_s1 %}')
     )
     await waitFor(() => expect(onImport).toHaveBeenCalledTimes(1))
-    expect((await screen.findAllByText('Display conditions not imported')).length).toBeGreaterThan(
-      0
-    )
+    expect((await screen.findAllByText('Liquid kept in Liquid blocks')).length).toBeGreaterThan(0)
   })
 
-  it('shows no warning for MJML without display conditions', async () => {
+  it('shows no warning for MJML without Liquid between blocks', async () => {
     const onImport = importMjml(mjml(''))
     await waitFor(() => expect(onImport).toHaveBeenCalledTimes(1))
-    expect(screen.queryByText('Display conditions not imported')).not.toBeInTheDocument()
+    expect(screen.queryByText('Liquid kept in Liquid blocks')).not.toBeInTheDocument()
   })
 
   // A tree from a JSON file reaches the editor as is: a malformed or misplaced
@@ -103,5 +102,31 @@ describe('ImportExportButton MJML import', () => {
       await screen.findByText(/col-1 \(mj-column\) cannot have a display condition/)
     ).toBeInTheDocument()
     expect(onImport).not.toHaveBeenCalled()
+  })
+})
+
+// The MJML export marks Liquid blocks and display conditions, so its import gives them back.
+describe('ImportExportButton MJML export', () => {
+  it('asks the server for the Liquid kept and marked', async () => {
+    compile.mockResolvedValue({ mjml: '<mjml></mjml>' })
+    const createObjectURL = vi.fn(() => 'blob:x')
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() })
+    render(
+      <I18nProvider i18n={i18n}>
+        <App>
+          <ImportExportButton onImport={vi.fn()} tree={tree} workspaceId="ws1" />
+        </App>
+      </I18nProvider>
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Import \/ Export/ }))
+    fireEvent.click(await screen.findByText('MJML with Liquid kept'))
+    await waitFor(() => expect(compile).toHaveBeenCalledTimes(1))
+    expect(compile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        visual_editor_tree: tree,
+        preserve_liquid: true,
+        liquid_markers: true
+      })
+    )
   })
 })

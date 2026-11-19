@@ -1,0 +1,118 @@
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-text font-family="&#39;Helvetica Neue&#39;, Helvetica, Arial, sans-serif" font-size="15px" line-height="1.6" color="#2b2620" padding-top="0px" padding-right="32px" padding-bottom="0px" padding-left="32px" />
+      <mj-button background-color="#2f4f43" color="#ffffff" font-family="&#39;Helvetica Neue&#39;, Helvetica, Arial, sans-serif" font-size="16px" font-weight="bold" border-radius="6px" inner-padding="16px 32px" padding-top="8px" padding-right="32px" padding-bottom="8px" padding-left="32px" />
+      <mj-section padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
+    </mj-attributes>
+    <mj-style inline="inline">/* notifuse:headings {"1":{"fontFamily":"Georgia, 'Times New Roman', serif","fontSize":"30px","fontWeight":"normal","lineHeight":"1.25","color":"#2b2620","marginTop":"0px","marginBottom":"12px"},"2":{"fontFamily":"Georgia, 'Times New Roman', serif","fontSize":"21px","fontWeight":"normal","lineHeight":"1.3","color":"#2b2620","marginTop":"0px","marginBottom":"0px"},"3":{"fontFamily":"Georgia, 'Times New Roman', serif","fontSize":"18px","fontWeight":"bold","lineHeight":"1.3","color":"#2b2620","marginTop":"0px","marginBottom":"8px"},"4":{"fontFamily":"Georgia, 'Times New Roman', serif","fontSize":"16px","fontWeight":"bold","lineHeight":"1.3","color":"#2b2620","marginTop":"0px","marginBottom":"8px"},"5":{"fontFamily":"Georgia, 'Times New Roman', serif","fontSize":"14px","fontWeight":"bold","lineHeight":"1.3","color":"#2b2620","marginTop":"0px","marginBottom":"8px"},"6":{"fontFamily":"Georgia, 'Times New Roman', serif","fontSize":"13px","fontWeight":"bold","lineHeight":"1.3","color":"#2b2620","marginTop":"0px","marginBottom":"8px"}} */
+h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; font-weight: normal; line-height: 1.25; color: #2b2620; margin: 0px 0 12px }
+h2 { font-family: Georgia, 'Times New Roman', serif; font-size: 21px; font-weight: normal; line-height: 1.3; color: #2b2620; margin: 0px 0 0px }
+h3 { font-family: Georgia, 'Times New Roman', serif; font-size: 18px; font-weight: bold; line-height: 1.3; color: #2b2620; margin: 0px 0 8px }
+h4 { font-family: Georgia, 'Times New Roman', serif; font-size: 16px; font-weight: bold; line-height: 1.3; color: #2b2620; margin: 0px 0 8px }
+h5 { font-family: Georgia, 'Times New Roman', serif; font-size: 14px; font-weight: bold; line-height: 1.3; color: #2b2620; margin: 0px 0 8px }
+h6 { font-family: Georgia, 'Times New Roman', serif; font-size: 13px; font-weight: bold; line-height: 1.3; color: #2b2620; margin: 0px 0 8px }</mj-style>
+    <mj-preview>{{ contact.first_name | default: 'Hi' }}, we saved your cart until {{ cart.expires_at | date: '%A' }}. Pick up right where you left off.</mj-preview>
+  </mj-head>
+  <mj-body width="600px" background-color="#f3eee6">
+    <mj-section padding-top="20px" padding-bottom="12px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#6e655b"><p><a href="{{ view_in_browser_url }}" style="color:#6e655b;text-decoration:underline">View this email in your browser</a></p></mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-wrapper background-color="#ffffff" border-radius="12px" padding-top="0px" padding-bottom="0px">
+      <mj-section padding-top="28px" padding-bottom="22px">
+        <mj-column>
+          <mj-text align="center" font-family="Georgia, &#39;Times New Roman&#39;, serif" font-size="22px" letter-spacing="6px" line-height="1.2"><p>ALDER &amp; CO.</p></mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section>
+        <mj-column>
+          <mj-image src="https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=1200&amp;h=480&amp;fit=crop&amp;auto=format&amp;q=80" alt="A sunlit living room with a soft brown sofa and a dried-flower vase" href="https://alder.example.com" fluid-on-mobile="true" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
+        </mj-column>
+      </mj-section>
+      <mj-section padding-top="36px" padding-bottom="20px">
+        <mj-column>
+          <mj-text font-size="12px" font-weight="bold" letter-spacing="2px" color="#a5532f" padding-bottom="4px"><p>YOUR CART IS SAVED</p></mj-text>
+          <mj-text><h1>Still thinking it over, {{ contact.first_name | default: 'there' }}?</h1></mj-text>
+          <mj-text color="#6e655b" padding-bottom="8px"><p>Good things are worth a second look. We've set aside the {{ cart.items.size }} pieces you picked, but they're popular this season, so we can only hold them until <strong>{{ cart.expires_at | date: '%A, %B %-d' }}</strong>.</p></mj-text>
+          <mj-button href="{{ cart.url }}" align="left">Return to your cart</mj-button>
+        </mj-column>
+      </mj-section>
+      {% assign __dc_cart_discount = true %}{% assign __dc_ok_cart_discount = false %}{% if cart.discount_code != blank and cart.discount_code != empty %}{% assign __dc_ok_cart_discount = true %}{% endif %}{% unless __dc_ok_cart_discount %}{% assign __dc_cart_discount = false %}{% endunless %}{% if __dc_cart_discount %}
+      <mj-section padding-top="8px" padding-right="32px" padding-bottom="12px" padding-left="32px">
+        <mj-column background-color="#faf6ef" border-top="1px dashed #c9a97a" border-right="1px dashed #c9a97a" border-bottom="1px dashed #c9a97a" border-left="1px dashed #c9a97a" border-radius="10px" padding-top="20px" padding-bottom="20px">
+          <mj-text align="center" font-size="11px" font-weight="bold" letter-spacing="2px" color="#6e655b" padding-right="20px" padding-left="20px"><p>A LITTLE NUDGE</p></mj-text>
+          <mj-text align="center" font-size="16px" padding-right="20px" padding-left="20px"><p>Take <strong>{{ cart.discount_percent }}% off</strong> your order with the code</p></mj-text>
+          <mj-text align="center" font-family="&#39;Courier New&#39;, Courier, monospace" font-size="26px" font-weight="bold" letter-spacing="4px" color="#a5532f" line-height="1.3" padding-right="20px" padding-left="20px"><p>{{ cart.discount_code | upcase }}</p></mj-text>
+          <mj-text align="center" font-size="13px" color="#6e655b" padding-right="20px" padding-left="20px"><p>Enter it at checkout before {{ cart.expires_at | date: '%B %-d' }}.</p></mj-text>
+        </mj-column>
+      </mj-section>
+      {% endif %}
+      <mj-section padding-top="28px" padding-bottom="14px">
+        <mj-column>
+          <mj-text><h2>In your cart</h2></mj-text>
+        </mj-column>
+      </mj-section>
+{% assign subtotal_cents = 0 %}
+{% for item in cart.items %}
+{% assign price_cents = item.price | times: 100 | round %}
+{% assign line_cents = price_cents | times: item.quantity %}
+{% assign subtotal_cents = subtotal_cents | plus: line_cents %}
+<mj-section padding-top="0px" padding-right="32px" padding-bottom="0px" padding-left="32px">
+  <mj-group>
+    <mj-column width="22%" border-top="1px solid #e8e1d6" padding-top="18px" padding-bottom="18px">
+      <mj-image src="{{ item.image_url }}" alt="{{ item.name }}" href="{{ item.url }}" width="80px" border-radius="8px" align="left" padding="0px" />
+    </mj-column>
+    <mj-column width="48%" border-top="1px solid #e8e1d6" padding-top="18px" padding-bottom="18px">
+      <mj-text padding-left="12px" padding-right="8px" font-size="16px" line-height="1.5"><span style="font-family:Georgia, 'Times New Roman', serif;color:#2b2620">{{ item.name }}</span><br /><span style="font-size:13px;color:#6e655b">{{ item.variant }}</span><br /><span style="font-size:13px;color:#6e655b">Qty {{ item.quantity }}</span></mj-text>
+    </mj-column>
+    <mj-column width="30%" border-top="1px solid #e8e1d6" padding-top="18px" padding-bottom="18px">
+      <mj-text padding-left="0px" padding-right="0px" align="right" font-size="16px" font-weight="bold" line-height="1.5">${{ line_cents | divided_by: 100 | floor }}.{{ line_cents | modulo: 100 | plus: 100 | append: '' | slice: 1, 2 }}{% if item.quantity > 1 %}<br /><span style="font-size:13px;font-weight:normal;color:#6e655b">${{ price_cents | divided_by: 100 | floor }}.{{ price_cents | modulo: 100 | plus: 100 | append: '' | slice: 1, 2 }} each</span>{% endif %}</mj-text>
+    </mj-column>
+  </mj-group>
+</mj-section>
+{% endfor %}
+{% assign discount_cents = 0 %}
+{% if cart.discount_code and cart.discount_percent > 0 %}
+{% assign discount_cents = subtotal_cents | times: cart.discount_percent | divided_by: 100 | round %}
+{% endif %}
+{% assign total_cents = subtotal_cents | minus: discount_cents %}
+<mj-section padding-top="0px" padding-right="32px" padding-bottom="8px" padding-left="32px">
+  <mj-column border-top="1px solid #e8e1d6" padding-top="12px">
+    <mj-text padding-left="0px" padding-right="0px" font-size="15px" line-height="1.5" color="#6e655b">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:4px 0">Subtotal</td><td align="right" style="padding:4px 0;color:#2b2620">${{ subtotal_cents | divided_by: 100 | floor }}.{{ subtotal_cents | modulo: 100 | plus: 100 | append: '' | slice: 1, 2 }}</td></tr>
+        <tr><td style="padding:4px 0">Shipping</td><td align="right" style="padding:4px 0;color:#2b2620">{% if subtotal_cents >= 7500 %}Free{% else %}Calculated at checkout{% endif %}</td></tr>
+        {% if discount_cents > 0 %}<tr><td style="padding:4px 0">Code {{ cart.discount_code | upcase }} (&minus;{{ cart.discount_percent }}%)</td><td align="right" style="padding:4px 0;color:#2f4f43">&minus;${{ discount_cents | divided_by: 100 | floor }}.{{ discount_cents | modulo: 100 | plus: 100 | append: '' | slice: 1, 2 }}</td></tr>{% endif %}
+        <tr><td style="padding:14px 0 4px;border-top:1px solid #e8e1d6;font-family:Georgia, 'Times New Roman', serif;font-size:19px;color:#2b2620">Total</td><td align="right" style="padding:14px 0 4px;border-top:1px solid #e8e1d6;font-size:19px;font-weight:bold;color:#2b2620">${{ total_cents | divided_by: 100 | floor }}.{{ total_cents | modulo: 100 | plus: 100 | append: '' | slice: 1, 2 }}</td></tr>
+      </table>
+    </mj-text>
+  </mj-column>
+</mj-section>
+      <mj-section padding-top="16px" padding-bottom="32px">
+        <mj-column>
+          <mj-button href="{{ cart.url }}" width="100%">Complete your order</mj-button>
+          <mj-text align="center" font-size="13px" color="#6e655b" padding-top="4px"><p>Secure checkout · Free returns within 30 days</p></mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section background-color="#faf6ef" border-top="1px solid #e8e1d6" padding-top="10px" padding-bottom="10px" padding-left="8px" padding-right="8px">
+        <mj-column width="33.33%" vertical-align="top">
+          <mj-text align="center" font-size="13px" line-height="1.5" color="#6e655b" padding-right="12px" padding-left="12px"><p><strong>Free shipping</strong><br>On every order over $75</p></mj-text>
+        </mj-column>
+        <mj-column width="33.33%" vertical-align="top">
+          <mj-text align="center" font-size="13px" line-height="1.5" color="#6e655b" padding-right="12px" padding-left="12px"><p><strong>30-day returns</strong><br>Free and easy, no questions</p></mj-text>
+        </mj-column>
+        <mj-column width="33.33%" vertical-align="top">
+          <mj-text align="center" font-size="13px" line-height="1.5" color="#6e655b" padding-right="12px" padding-left="12px"><p><strong>Here to help</strong><br>Real people, six days a week</p></mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+    <mj-section padding-top="28px" padding-bottom="36px">
+      <mj-column>
+        <mj-text align="center" font-family="Georgia, &#39;Times New Roman&#39;, serif" font-size="14px" letter-spacing="4px" color="#6e655b"><p>ALDER &amp; CO.</p></mj-text>
+        <mj-text align="center" font-size="12px" line-height="1.6" color="#6e655b"><p>You're receiving this email because you left items in your cart at alder.example.com.<br>© {{ 'now' | date: '%Y' }} Alder &amp; Co. · 48 Orchard Road · Portland, OR 97205</p><p><a href="{{ notification_center_url }}" style="color:#6e655b;text-decoration:underline">Email preferences</a> · <a href="{{ unsubscribe_url }}" style="color:#6e655b;text-decoration:underline">Unsubscribe</a> · <a href="https://alder.example.com/help" style="color:#6e655b;text-decoration:underline">Help center</a></p></mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

@@ -155,7 +155,10 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         message_id: 'export',
         visual_editor_tree: tree as EmailBlock,
         test_data: testData || {},
-        preserve_liquid: true // Preserve Liquid syntax like {{contact.external_id}} in MJML export
+        // Keep Liquid as written, and mark Liquid blocks and display conditions so that an MJML
+        // import gives them back
+        preserve_liquid: true,
+        liquid_markers: true
       })
 
       if (response.error) {
@@ -207,7 +210,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           label: (
             <div className="flex flex-col">
               <span className="font-medium">{t`JSON`}</span>
-              <span className="text-xs text-gray-500">{t`Load saved template`}</span>
+              <span className="text-xs text-ink-3">{t`Load saved template`}</span>
             </div>
           ),
           onClick: handleImportJSON
@@ -217,7 +220,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           label: (
             <div className="flex flex-col">
               <span className="font-medium">{t`MJML`}</span>
-              <span className="text-xs text-gray-500">{t`Import MJML markup`}</span>
+              <span className="text-xs text-ink-3">{t`Import MJML markup`}</span>
             </div>
           ),
           onClick: handleImportMJML
@@ -236,7 +239,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           label: (
             <div className="flex flex-col">
               <span className="font-medium">{t`HTML`}</span>
-              <span className="text-xs text-gray-500">{t`Ready to send`}</span>
+              <span className="text-xs text-ink-3">{t`Ready to send`}</span>
             </div>
           ),
           onClick: handleExportHTML
@@ -246,7 +249,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           label: (
             <div className="flex flex-col">
               <span className="font-medium">{t`MJML`}</span>
-              <span className="text-xs text-gray-500">{t`Editable markup`}</span>
+              <span className="text-xs text-ink-3">{t`MJML with Liquid kept`}</span>
             </div>
           ),
           onClick: handleExportMJML
@@ -256,7 +259,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           label: (
             <div className="flex flex-col">
               <span className="font-medium">{t`JSON`}</span>
-              <span className="text-xs text-gray-500">{t`Save for later import`}</span>
+              <span className="text-xs text-ink-3">{t`Save for later import`}</span>
             </div>
           ),
           onClick: handleExportJSON

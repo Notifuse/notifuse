@@ -94,22 +94,52 @@ describe('importTemplateFile, MJML', () => {
     expect(result.warnings).toEqual([])
   })
 
-  it('warns that display conditions are not imported', async () => {
+  it('keeps Liquid written between blocks, and says how many passages became Liquid blocks', async () => {
     const result = await importTemplateFile(
-      file(
-        mjml(
-          '{% assign __dc_s1 = true %}{% if contact.vip == true %}{% endif %}{% if __dc_s1 %}',
-          '{% endif %}'
-        ),
-        'export.mjml'
-      ),
+      file(mjml('{% if contact.vip %}', '{% endif %}{{ footer }}'), 'export.mjml'),
       'mjml',
       i18n
     )
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0].title).toBe('Display conditions not imported')
+    const body = result.tree.children?.[0]
+    expect(body?.children?.map((child) => child.type)).toEqual(['mj-liquid'])
+    expect(result.warnings).toEqual([
+      {
+        title: 'Liquid kept in Liquid blocks',
+        content:
+          '1 passage written between blocks was kept as a Liquid block: its Liquid is unchanged and it is edited as code.'
+      }
+    ])
+  })
+
+  it('names the count of passages in the plural', async () => {
+    const result = await importTemplateFile(
+      file(mjml('{% if a %}', '{% endif %}<mj-section><mj-column /></mj-section>{{ footer }}'), 'export.mjml'),
+      'mjml',
+      i18n
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.warnings[0].content).toBe(
+      '2 passages written between blocks were kept as Liquid blocks: their Liquid is unchanged and they are edited as code.'
+    )
+  })
+
+  it('gives back the blocks and display conditions the export marked, with no warning', async () => {
+    const condition = '{"match":"all","rules":[{"variable":"contact.vip","operator":"is_true"}]}'
+    const marked =
+      '<mjml><mj-body><mj-section><mj-column>' +
+      `{% comment %}notifuse:condition ${condition}{% endcomment %}{% assign __dc_t = true %}{% if __dc_t %}<mj-text>VIP</mj-text>{% endif %}{% comment %}/notifuse:condition{% endcomment %}` +
+      '{% comment %}notifuse:liquid{% endcomment %}{% if a %}<mj-text>A</mj-text>{% endif %}{% comment %}/notifuse:liquid{% endcomment %}' +
+      '</mj-column></mj-section></mj-body></mjml>'
+    const result = await importTemplateFile(file(marked, 'export.mjml'), 'mjml', i18n)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const column = result.tree.children?.[0]?.children?.[0]?.children?.[0]
+    expect(column?.children?.map((child) => child.type)).toEqual(['mj-text', 'mj-liquid'])
+    expect((column?.children?.[0] as { display_condition?: unknown }).display_condition).toEqual(JSON.parse(condition))
+    expect(result.warnings).toEqual([])
   })
 
   it('refuses markup that is not MJML', async () => {
@@ -137,8 +167,26 @@ describe('importTemplateFile, MJML', () => {
     if (result.ok) return
     expect(result.title).toBe('MJML Syntax Error')
     expect(result.source).toBe(broken)
-    // The parser names the line where </mj-column> closes the unclosed <mj-text>
-    expect(result.line).toBe(6)
+    // The line where the unclosed <mj-text> opens
+    expect(result.line).toBe(5)
+    expect(result.errors).toEqual(['<mj-text> is not closed.'])
+  })
+})
+
+describe('importTemplateFile, MJML import errors', () => {
+  it.each([
+    ['<mjml><mj-body><mj-section {% if a %}x="1"{% endif %}></mj-section></mj-body></mjml>', 'Liquid inside a tag cannot be imported into the visual editor.'],
+    ['<mjml><mj-body></mj-column></mj-body></mjml>', '</mj-column> closes no open tag.'],
+    ['{% assign a = 1 %}<mjml><mj-body></mj-body></mjml>', 'Liquid or markup outside <mjml> cannot be imported.'],
+    ['<mjml><mj-head>{% if a %}<mj-title>T</mj-title>{% endif %}</mj-head><mj-body></mj-body></mjml>', 'Liquid between the blocks of <mj-head> cannot be imported into the visual editor.'],
+    ['<mjml><mj-body>{% comment %}notifuse:liquid{% endcomment %}{% if a %}</mj-body></mjml>', 'This notifuse:liquid mark of a Notifuse export is not closed.']
+  ])('says what is wrong with %s, on its line', async (content, message) => {
+    const result = await importTemplateFile(file(content, 'x.mjml'), 'mjml', i18n)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.title).toBe('MJML Syntax Error')
+    expect(result.errors).toEqual([message])
+    expect(result.line).toBe(1)
   })
 })
 

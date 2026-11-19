@@ -31,7 +31,13 @@ func ConvertJSONToMJML(tree EmailBlock) string {
 // ConvertJSONToMJMLRaw converts an EmailBlock JSON tree to MJML string
 // without processing Liquid templates - preserving raw template syntax
 func ConvertJSONToMJMLRaw(tree EmailBlock) string {
-	return convertBlockToMJMLRaw(tree, 0)
+	return convertBlockToMJMLRaw(tree, 0, false)
+}
+
+// ConvertJSONToMJMLRawWithMarkers is ConvertJSONToMJMLRaw with the marks the visual
+// editor's MJML import reads back (see liquid_markers.go): the MJML export.
+func ConvertJSONToMJMLRawWithMarkers(tree EmailBlock) string {
+	return convertBlockToMJMLRaw(tree, 0, true)
 }
 
 // ConvertJSONToMJMLWithData converts an EmailBlock JSON tree to MJML string with template data
@@ -254,7 +260,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 
 // convertBlockToMJMLRaw recursively converts a single EmailBlock to MJML string
 // without any Liquid template processing - preserving raw template syntax
-func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
+func convertBlockToMJMLRaw(block EmailBlock, indentLevel int, markers bool) string {
 	// Defensive check: ensure the block has a valid BaseBlock pointer
 	if isNilBlock(block) {
 		return ""
@@ -268,6 +274,9 @@ func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
 
 	if blockType == MJMLComponentMjLiquid {
 		content := getBlockContent(block)
+		if markers {
+			return LiquidBlockMarkerOpen + content + LiquidBlockMarkerClose
+		}
 		return content
 	}
 
@@ -311,9 +320,16 @@ func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
 		if isNilBlock(child) {
 			continue
 		}
-		childMJML := convertBlockToMJMLRaw(child, indentLevel+1)
+		childMJML := convertBlockToMJMLRaw(child, indentLevel+1, markers)
 		// the export keeps the condition as the Liquid that sending evaluates
 		if open, close := child.GetDisplayCondition().ToLiquid(child.GetID()); open != "" {
+			if markers {
+				// a condition that cannot be written as a mark is exported unmarked, both ends
+				if mark := conditionMarkerOpen(child.GetDisplayCondition()); mark != "" {
+					open = mark + open
+					close += ConditionMarkerClose
+				}
+			}
 			childIndent := strings.Repeat("  ", indentLevel+1)
 			childMJML = childIndent + open + "\n" + childMJML + "\n" + childIndent + close
 		}

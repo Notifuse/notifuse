@@ -452,10 +452,10 @@ describe('TemplateSelectorModal', () => {
       expect(onStartModel).toHaveBeenCalledWith('confirm')
     })
 
-    it('shows Blank under the imposed category, not a category to choose', async () => {
+    it('shows Simple under the imposed category, not a category to choose', async () => {
       renderModal({ category: 'opt_in' })
       const models = await screen.findByRole('list', { name: 'Models' })
-      const blank = within(models).getByRole('button', { name: /Blank/ })
+      const blank = within(models).getByRole('button', { name: /Simple/ })
       expect(within(blank).getByText('Opt-in')).toBeInTheDocument()
       expect(within(models).queryByText('Category to choose')).toBeNull()
     })

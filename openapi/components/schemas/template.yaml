@@ -412,6 +412,14 @@ CompileTemplateRequest:
       description: >-
         When true, Liquid is not rendered: the body, `subject`, `subject_preview` and
         `text` are returned with their Liquid tags as written.
+    liquid_markers:
+      type: boolean
+      default: false
+      description: >-
+        With `preserve_liquid`, the returned `mjml` marks each `mj-liquid` block and each
+        block's display condition with Liquid comments (`{% comment %}notifuse:liquid{% endcomment %}`,
+        `{% comment %}notifuse:condition {...}{% endcomment %}`), so that an MJML import into the
+        visual editor rebuilds them. The comments render to nothing. Ignored without `preserve_liquid`.
     subject_only:
       type: boolean
       default: false

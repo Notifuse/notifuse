@@ -5,7 +5,7 @@ import type { GalleryModel, GalleryModelId, GalleryUseCase } from './types'
 // The console's own words for the models: the gallery shows them in the member's language,
 // while the emails are written in the workspace's.
 export const MODEL_LABELS: Record<GalleryModelId, { name: MessageDescriptor; description: MessageDescriptor }> = {
-  blank: { name: msg`Blank`, description: msg`A logo, a paragraph and the footer, to write your own email.` },
+  blank: { name: msg`Simple`, description: msg`A logo, a paragraph and the footer, to write your own email.` },
   verify: { name: msg`Verification code`, description: msg`A one-time code to sign in or confirm an action.` },
   reset: { name: msg`Password reset`, description: msg`A reset link, with the link in plain text under the button.` },
   confirm: { name: msg`Subscription confirmation`, description: msg`The double opt-in email: one confirmation button.` },
