@@ -17,7 +17,7 @@ import (
 // row on each run (SegmentBuildProcessor.rescheduleRecompute keeps the mark for the next build).
 var segmentSelect = `SELECT id, tree, generated_sql, generated_args FROM segments\s+WHERE status <> 'deleted'\s+ORDER BY id`
 var segmentUpdate = regexp.QuoteMeta(`UPDATE segments`) +
-	`\s+SET generated_sql = \$1, generated_args = \$2, recompute_after = NOW\(\), db_updated_at = NOW\(\)\s+WHERE id = \$3 AND generated_sql IS NOT DISTINCT FROM \$4`
+	`\s+SET generated_sql = \$1, generated_args = \$2, recompute_after = NOW\(\), db_updated_at = NOW\(\)\s+WHERE id = \$3 AND status <> 'deleted' AND generated_sql IS NOT DISTINCT FROM \$4\s+AND tree = \$5::jsonb AND generated_args IS NOT DISTINCT FROM \$6::jsonb`
 
 func jsonEqualsTree(t *testing.T, value string) ([]byte, string, []byte) {
 	t.Helper()
@@ -56,7 +56,7 @@ func TestRegenerateSegmentSQL(t *testing.T) {
 			sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).
 				AddRow("seg1", treeJSON, old, argsJSON))
 		mock.ExpectExec(segmentUpdate).
-			WithArgs(current, sqlmock.AnyArg(), "seg1", old).
+			WithArgs(current, sqlmock.AnyArg(), "seg1", old, string(treeJSON), string(argsJSON)).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		result, err := RegenerateSegmentSQL(context.Background(), db)
@@ -64,6 +64,76 @@ func TestRegenerateSegmentSQL(t *testing.T) {
 		assert.Equal(t, 1, result.Recompiled)
 		assert.Empty(t, result.Skipped)
 		assert.Contains(t, current, "#>> '{}'")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a segment saved while it is recompiled is read again and recompiled from what was saved", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		goldTree, _, goldArgs := jsonEqualsTree(t, "gold")
+		silverTree, current, silverArgs := jsonEqualsTree(t, "silver")
+		old := "SELECT email FROM contacts WHERE custom_json_1['plan']::text = $1"
+		mock.ExpectQuery(segmentSelect).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).
+				AddRow("seg1", goldTree, old, goldArgs))
+		// The guard matches nothing: a live instance saved "silver" meanwhile.
+		mock.ExpectExec(segmentUpdate).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "seg1", old, string(goldTree), string(goldArgs)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`SELECT tree, generated_sql, generated_args FROM segments WHERE id = \$1 AND status <> 'deleted'`).
+			WithArgs("seg1").
+			WillReturnRows(sqlmock.NewRows([]string{"tree", "generated_sql", "generated_args"}).AddRow(silverTree, old, silverArgs))
+		mock.ExpectExec(segmentUpdate).WithArgs(current, sqlmock.AnyArg(), "seg1", old, string(silverTree), string(silverArgs)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		result, err := RegenerateSegmentSQL(context.Background(), db)
+		require.NoError(t, err)
+		assert.Equal(t, 1, result.Recompiled)
+		assert.Empty(t, result.Skipped)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a segment deleted while it is recompiled is reported", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		treeJSON, _, argsJSON := jsonEqualsTree(t, "gold")
+		old := "SELECT email FROM contacts WHERE custom_json_1['plan']::text = $1"
+		mock.ExpectQuery(segmentSelect).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).AddRow("seg1", treeJSON, old, argsJSON))
+		mock.ExpectExec(segmentUpdate).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`SELECT tree, generated_sql, generated_args FROM segments`).WithArgs("seg1").
+			WillReturnRows(sqlmock.NewRows([]string{"tree", "generated_sql", "generated_args"}))
+
+		result, err := RegenerateSegmentSQL(context.Background(), db)
+		require.NoError(t, err)
+		assert.Equal(t, 0, result.Recompiled)
+		assert.Equal(t, "deleted while it was recompiled", result.Skipped["seg1"])
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a segment saved again at every attempt fails the run", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		treeJSON, _, argsJSON := jsonEqualsTree(t, "gold")
+		old := "SELECT email FROM contacts WHERE custom_json_1['plan']::text = $1"
+		mock.ExpectQuery(segmentSelect).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).AddRow("seg1", treeJSON, old, argsJSON))
+		for i := 1; i <= segmentRegenAttempts; i++ {
+			mock.ExpectExec(segmentUpdate).WillReturnResult(sqlmock.NewResult(0, 0))
+			if i < segmentRegenAttempts {
+				mock.ExpectQuery(`SELECT tree, generated_sql, generated_args FROM segments`).WithArgs("seg1").
+					WillReturnRows(sqlmock.NewRows([]string{"tree", "generated_sql", "generated_args"}).AddRow(treeJSON, old, argsJSON))
+			}
+		}
+
+		_, err = RegenerateSegmentSQL(context.Background(), db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "seg1")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -138,7 +208,7 @@ func TestRegenerateSegmentSQL(t *testing.T) {
 		mock.ExpectQuery(segmentSelect).WillReturnRows(
 			sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).
 				AddRow("seg1", treeJSON, nil, nil))
-		mock.ExpectExec(segmentUpdate).WithArgs(current, sqlmock.AnyArg(), "seg1", nil).
+		mock.ExpectExec(segmentUpdate).WithArgs(current, sqlmock.AnyArg(), "seg1", nil, string(treeJSON), nil).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		result, err := RegenerateSegmentSQL(context.Background(), db)

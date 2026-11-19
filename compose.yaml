@@ -243,8 +243,10 @@ configs:
       backup=/backup
       restored=
       # An upgrade that stopped half-way leaves its lock, with the old data moved
-      # where pgautoupgrade no longer finds it: start again from the copy.
-      if [ -e "$$data/18/docker/upgrade_in_progress.lock" ]; then
+      # where pgautoupgrade no longer finds it: start again from the copy. A putting
+      # back that stopped half-way leaves its own mark, in the backup volume, since
+      # it empties the data volume lock included: start it again too.
+      if [ -e "$$data/18/docker/upgrade_in_progress.lock" ] || [ -e "$$backup/restore_in_progress" ]; then
         copy=
         for dir in "$$backup"/pg*; do
           case "$$dir" in *.partial) continue ;; esac
@@ -255,8 +257,10 @@ configs:
           exit 1
         fi
         echo "A previous upgrade to PostgreSQL 18 did not finish: putting back the data copied before it ($$copy), then upgrading again."
+        touch "$$backup/restore_in_progress"
         find "$$data" -mindepth 1 -delete
         cp -a "$$copy/." "$$data/"
+        rm "$$backup/restore_in_progress"
         restored=1
       fi
       # Data from an older PostgreSQL sits at the root of the volume; 18 keeps its

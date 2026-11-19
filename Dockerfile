@@ -16,8 +16,9 @@ RUN npm config set fetch-retries 5 && \
 # Copy frontend source code
 COPY console/ ./
 
-# Build frontend in production mode
-RUN npm run build
+# Build frontend in production mode. Node's default heap is about 2 GB on a host with less
+# than 16 GB of memory, which the console's type check and bundle outgrow: give it 4 GB.
+RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
 
 # Stage 2: Build the notification center frontend
 FROM node:22-alpine AS notification-center-builder

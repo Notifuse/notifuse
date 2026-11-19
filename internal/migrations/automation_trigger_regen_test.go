@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,6 +47,25 @@ func TestRegenerateAutomationTriggerBodies(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, result.Replaced)
 		assert.Equal(t, map[string]string{"cartauto": "function pg_input_is_valid(text, unknown) does not exist"}, result.Skipped)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a lock timeout fails the run instead of skipping the automation", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows().AddRow("cartauto", "node1", v44CustomEventTriggerConfig(t), v38InstalledDef))
+		mock.ExpectExec("^SAVEPOINT regen_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("^CREATE OR REPLACE FUNCTION automation_trigger_cartauto").
+			WillReturnError(&pq.Error{Code: "55P03", Message: "canceling statement due to lock timeout"})
+
+		result, err := RegenerateAutomationTriggerBodies(context.Background(), db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "automation cartauto")
+		assert.Contains(t, err.Error(), "lock timeout")
+		assert.Equal(t, 0, result.Replaced)
+		assert.Empty(t, result.Skipped, "a valid automation is not reported as left behind")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 

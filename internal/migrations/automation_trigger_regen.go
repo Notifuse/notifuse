@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/lib/pq"
 )
 
 // regenerateAutomationTriggers rebuilds the installed trigger of every live automation with
@@ -24,7 +26,9 @@ import (
 //
 // Repair-only: an automation with no installed trigger is skipped rather than armed, and a
 // trigger is never traded for a broader one. Each automation gets its own savepoint, so a
-// failure rolls back just that automation and leaves its existing trigger in place. prefix
+// failure rolls back just that automation and leaves its existing trigger in place, except a
+// failure that says nothing about the automation (a lock timeout, a deadlock), which fails the
+// whole run so that the migration is not recorded and runs again (isTransientRegenError). prefix
 // starts the error messages ("v38"), and savepoint names the savepoint. generator builds the
 // trigger bodies: each migration passes the one matching the enrolment functions it installed.
 //
@@ -128,7 +132,10 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		// One savepoint per automation, so a failure rolls back just this automation and
 		// leaves its existing trigger in place. Failing hard instead would abort the whole
 		// workspace migration, never record the version, and re-fail on every restart —
-		// and here the fallback is merely the status quo, an over-enrolling trigger.
+		// and here the fallback is merely the status quo, an over-enrolling trigger. The
+		// exception is a lock or a deadlock behind a concurrent transaction
+		// (isTransientRegenError): it says nothing about the automation and passes, so the
+		// run fails and the next start tries again.
 		if _, err := db.ExecContext(ctx, "SAVEPOINT "+savepoint); err != nil {
 			return result(), fmt.Errorf("%s: failed to create savepoint: %w", prefix, err)
 		}
@@ -152,6 +159,9 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		}
 		for _, stmt := range statements {
 			if _, execErr := db.ExecContext(ctx, stmt); execErr != nil {
+				if isTransientRegenError(execErr) {
+					return result(), fmt.Errorf("%s: automation %s: %w (the trigger is left as it was; the migration runs again at the next start)", prefix, a.id, execErr)
+				}
 				regenFailed = true
 				skipped[a.id] = execErr.Error()
 				break
@@ -164,6 +174,9 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		// for a workspace that was working before it started.
 		if !regenFailed && triggerSQL.ValidationQuery != "" {
 			probeRows, probeErr := db.QueryContext(ctx, triggerSQL.ValidationQuery)
+			if probeErr != nil && isTransientRegenError(probeErr) {
+				return result(), fmt.Errorf("%s: automation %s: %w (the trigger is left as it was; the migration runs again at the next start)", prefix, a.id, probeErr)
+			}
 			if probeErr != nil {
 				regenFailed = true
 				skipped[a.id] = probeErr.Error()
@@ -171,6 +184,11 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 				// An error surfacing while the rows stream counts as a failed probe too:
 				// treating it as success would keep a trigger nothing validated.
 				closeErr := probeRows.Close()
+				for _, streamErr := range []error{probeRows.Err(), closeErr} {
+					if streamErr != nil && isTransientRegenError(streamErr) {
+						return result(), fmt.Errorf("%s: automation %s: %w (the trigger is left as it was; the migration runs again at the next start)", prefix, a.id, streamErr)
+					}
+				}
 				if probeRows.Err() != nil || closeErr != nil {
 					regenFailed = true
 					skipped[a.id] = "the trigger's conditions could not be checked against this workspace"
@@ -192,6 +210,24 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 	}
 
 	return result(), nil
+}
+
+// isTransientRegenError reports a failure that says nothing about the automation itself: a lock
+// not obtained within lock_timeout, a deadlock or a serialization failure, behind a concurrent
+// transaction. A statement cancelled by statement_timeout (57014) is not one: on a role that sets
+// it, the same statement would time out again at every start, which would keep the server down. Skipping the automation then would leave a valid one on its old
+// trigger body for good, once the migration records its version; failing lets the next start run
+// the migration again.
+func isTransientRegenError(err error) bool {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+	switch pqErr.Code {
+	case "55P03", "40P01", "40001":
+		return true
+	}
+	return false
 }
 
 // AutomationTriggerResult says what a trigger regeneration did: the triggers replaced, and the

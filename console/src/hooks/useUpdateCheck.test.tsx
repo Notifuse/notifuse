@@ -7,6 +7,7 @@ import type { UpdateCheckResponse } from '../services/updates'
 const state = vi.hoisted(() => ({
   auth: { checkForUpdates: true, serverVersion: '42.0' as string | null, licenseEntitlements: null },
   locale: 'en',
+  timezone: 'Europe/Paris',
   check: vi.fn()
 }))
 
@@ -14,7 +15,8 @@ vi.mock('../contexts/AuthContext', () => ({ useAuth: () => state.auth }))
 vi.mock('@lingui/react', () => ({ useLingui: () => ({ i18n: { locale: state.locale } }) }))
 vi.mock('../services/updates', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/updates')>()),
-  checkForUpdates: state.check
+  checkForUpdates: state.check,
+  browserTimeZone: () => state.timezone
 }))
 
 import { useUpdateCheck, UPDATE_CHECK_CACHE_KEY, UPDATE_CHECK_IGNORED_KEY } from './useUpdateCheck'
@@ -82,11 +84,16 @@ describe('useUpdateCheck', () => {
     expect(state.check).not.toHaveBeenCalled()
   })
 
-  it('asks with the server version, the locale and the entitlements, then caches the answer', async () => {
+  it('asks with the server version, the locale, the time zone and the entitlements, then caches the answer', async () => {
     state.locale = 'fr'
     const { result } = renderHook(() => useUpdateCheck(), { wrapper })
     await waitFor(() => expect(result.current.available).toBe(true))
-    expect(state.check).toHaveBeenCalledWith({ version: '42.0', locale: 'fr', entitlements: null })
+    expect(state.check).toHaveBeenCalledWith({
+      version: '42.0',
+      locale: 'fr',
+      timezone: 'Europe/Paris',
+      entitlements: null
+    })
     const stored = JSON.parse(localStorage.getItem(UPDATE_CHECK_CACHE_KEY) as string)
     expect(stored).toMatchObject({ version: '42.0', locale: 'fr' })
   })
