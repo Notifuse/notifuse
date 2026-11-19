@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams } from '@tanstack/react-router'
-import { Segmented, Select, Space } from 'antd'
+import { Segmented, Select } from 'antd'
 import dayjs from 'dayjs'
 import { useAuth } from '../contexts/AuthContext'
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard'
 import { TIMEZONE_OPTIONS } from '../lib/timezones'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
+import { isMailStudioAdmin } from '../lib/hidden-mail-studio-nav'
 import { useLingui } from '@lingui/react/macro'
 
 type TimePeriod = '7D' | '14D' | '30D' | '90D'
@@ -13,7 +14,8 @@ type TimePeriod = '7D' | '14D' | '30D' | '90D'
 export function AnalyticsPage() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
-  const { workspaces } = useAuth()
+  const { workspaces, user } = useAuth()
+  const isAdmin = isMailStudioAdmin(user?.email)
 
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('14D')
   const [selectedTimezone, setSelectedTimezone] = useState<string>('')
@@ -83,28 +85,32 @@ export function AnalyticsPage() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#5e6b8c] mt-1 mb-0">
-            {t`Real-time dispatch performance, audience metrics, and email provider health.`}
+            {isAdmin
+              ? t`Real-time dispatch performance, audience metrics, and email provider health.`
+              : t`Real-time email send performance for this workspace.`}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
-          <div className="flex items-center justify-between sm:justify-start gap-2 bg-white backdrop-blur-sm p-1 rounded-xl border border-[#e6ecf8] shadow-sm">
-            <span className="text-xs text-[#5e6b8c] font-medium pl-2.5">{t`TZ:`}</span>
-            <Select
-              value={selectedTimezone}
-              onChange={handleTimezoneChange}
-              options={TIMEZONE_OPTIONS}
-              optionFilterProp="label"
-              variant="borderless"
-              style={{ width: 145 }}
-              placeholder={t`Select timezone`}
-              className="text-xs font-medium text-[#0b1433]"
-              showSearch
-              filterOption={(input, option) =>
-                (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
-              }
-            />
-          </div>
+          {isAdmin ? (
+            <div className="flex items-center justify-between sm:justify-start gap-2 bg-white backdrop-blur-sm p-1 rounded-xl border border-[#e6ecf8] shadow-sm">
+              <span className="text-xs text-[#5e6b8c] font-medium pl-2.5">{t`TZ:`}</span>
+              <Select
+                value={selectedTimezone}
+                onChange={handleTimezoneChange}
+                options={TIMEZONE_OPTIONS}
+                optionFilterProp="label"
+                variant="borderless"
+                style={{ width: 145 }}
+                placeholder={t`Select timezone`}
+                className="text-xs font-medium text-[#0b1433]"
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            </div>
+          ) : null}
 
           <div className="bg-white backdrop-blur-sm p-1 rounded-xl border border-[#e6ecf8] shadow-sm flex justify-center">
             <Segmented
