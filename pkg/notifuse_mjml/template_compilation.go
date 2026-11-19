@@ -497,6 +497,7 @@ type CompileTemplateRequest struct {
 	TrackingSettings       TrackingSettings `json:"tracking_settings,omitempty"`
 	Channel                string           `json:"channel,omitempty"`                  // "email" or "web"
 	PreserveLiquid         bool             `json:"preserve_liquid,omitempty"`          // When true, skip Liquid template processing and preserve raw syntax
+	LiquidMarkers          bool             `json:"liquid_markers,omitempty"`           // With PreserveLiquid, marks mj-liquid blocks and display conditions for the MJML import
 	SubjectPreviewOverride *string          `json:"subject_preview_override,omitempty"` // Override mj-preview content before compilation
 	Text                   *string          `json:"text,omitempty"`                     // Source of a custom plain-text version, with Liquid; nil for the automatic version
 	// SubjectOnly renders the subject and the preview text alone, without the body: a caller
@@ -869,7 +870,9 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 
 		// If PreserveLiquid is true, skip all Liquid processing and return raw MJML
 		// This is used for MJML export where we want to preserve Liquid syntax like {{contact.external_id}}
-		if req.PreserveLiquid {
+		if req.PreserveLiquid && req.LiquidMarkers {
+			mjmlString = ConvertJSONToMJMLRawWithMarkers(tree)
+		} else if req.PreserveLiquid {
 			mjmlString = ConvertJSONToMJMLRaw(tree)
 		} else {
 			// Prepare template data JSON string

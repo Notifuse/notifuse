@@ -206,6 +206,7 @@ export interface CompileTemplateRequest {
   tracking_settings?: TrackingSettings
   channel?: string // "email" or "web"
   preserve_liquid?: boolean // When true, skip Liquid template processing and preserve raw syntax
+  liquid_markers?: boolean // With preserve_liquid, mark mj-liquid blocks and display conditions for the MJML import
   text?: string // Source of a custom plain-text version; returned rendered as `text`
   subject_only?: boolean // Render only subject and subject_preview: no body needed, none compiled
 }

@@ -480,8 +480,9 @@ describe('TemplatesPage', () => {
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('MJML Syntax Error')).toBeInTheDocument()
+    // The line where the unclosed <mj-text> opens
     expect(within(dialog).getByTestId('import-excerpt').querySelector('[data-faulty]')?.textContent).toBe(
-      '6      </mj-column>'
+      '5        <mj-text>Hi'
     )
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Retry with a corrected file' }))

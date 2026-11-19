@@ -128,7 +128,7 @@ msgstr "(original: {original})"
 msgid "(unknown)"
 msgstr "(desconocido)"
 
-#: src/components/settings/WorkspaceMembers.tsx:258
+#: src/components/settings/WorkspaceMembers.tsx:257
 msgid "(you)"
 msgstr "(tú)"
 
@@ -210,7 +210,7 @@ msgid "{0, plural, one {# contact} other {# contacts}}"
 msgstr "{0, plural, one {# contacto} other {# contactos}}"
 
 #. placeholder {0}: freeOf('Datetime')
-#: src/components/settings/CustomFieldsConfiguration.tsx:242
+#: src/components/settings/CustomFieldsConfiguration.tsx:241
 msgid "{0, plural, one {# date} other {# date}}"
 msgstr "{0, plural, one {# fecha} other {# fechas}}"
 
@@ -246,7 +246,7 @@ msgid "{0, plural, one {# journey} other {# journeys}}"
 msgstr "{0, plural, one {# recorrido} other {# recorridos}}"
 
 #. placeholder {0}: freeOf('JSON')
-#: src/components/settings/CustomFieldsConfiguration.tsx:246
+#: src/components/settings/CustomFieldsConfiguration.tsx:245
 msgid "{0, plural, one {# JSON} other {# JSON}}"
 msgstr "{0, plural, one {# JSON} other {# JSON}}"
 
@@ -256,7 +256,7 @@ msgid "{0, plural, one {# not sent} other {# not sent}}"
 msgstr "{0, plural, one {# no enviado} other {# no enviados}}"
 
 #. placeholder {0}: freeOf('Number')
-#: src/components/settings/CustomFieldsConfiguration.tsx:238
+#: src/components/settings/CustomFieldsConfiguration.tsx:237
 msgid "{0, plural, one {# number} other {# number}}"
 msgstr "{0, plural, one {# número} other {# números}}"
 
@@ -333,7 +333,7 @@ msgid "{0, plural, one {# skipped} other {# skipped}}"
 msgstr "{0, plural, one {# omitido} other {# omitidos}}"
 
 #. placeholder {0}: freeOf('String')
-#: src/components/settings/CustomFieldsConfiguration.tsx:237
+#: src/components/settings/CustomFieldsConfiguration.tsx:236
 msgid "{0, plural, one {# text} other {# text}}"
 msgstr "{0, plural, one {# texto} other {# textos}}"
 
@@ -795,6 +795,10 @@ msgstr "{count, plural, one {# lista} other {# listas}}"
 msgid "{count, plural, one {# notification} other {# notifications}}"
 msgstr "{count, plural, one {# notificación} other {# notificaciones}}"
 
+#: src/components/templates/importTemplateFile.ts:176
+msgid "{count, plural, one {# passage written between blocks was kept as a Liquid block: its Liquid is unchanged and it is edited as code.} other {# passages written between blocks were kept as Liquid blocks: their Liquid is unchanged and they are edited as code.}}"
+msgstr "{count, plural, one {# fragmento escrito entre bloques se conservó como bloque Liquid: su Liquid no cambia y se edita como código.} other {# fragmentos escritos entre bloques se conservaron como bloques Liquid: su Liquid no cambia y se editan como código.}}"
+
 #: src/components/broadcasts/compose/AudienceCard.tsx:57
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:163
 msgid "{count, plural, one {# recipient} other {# recipients}}"
@@ -861,7 +865,7 @@ msgstr "{days, plural, one {+{0} en # d} other {+{1} en # d}}"
 msgid "{days, plural, one {Added in the last # day, today included} other {Added in the last # days, today included}}"
 msgstr "{days, plural, one {Añadidos en el último # día, hoy incluido} other {Añadidos en los últimos # días, hoy incluido}}"
 
-#: src/components/settings/WorkspaceMembers.tsx:241
+#: src/components/settings/WorkspaceMembers.tsx:240
 msgid "{days, plural, one {expires in # day} other {expires in # days}}"
 msgstr "{days, plural, one {caduca en # día} other {caduca en # días}}"
 
@@ -1098,7 +1102,7 @@ msgstr "{label}: {value}, ver en el registro de mensajes"
 msgid "{label}: no data, view in the message log"
 msgstr "{label}: sin datos, ver en el registro de mensajes"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1060
+#: src/components/templates/CreateTemplateDrawer.tsx:1061
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr "A la traducción {langName} le faltan campos obligatorios (asunto y vista previa)"
 
@@ -1230,7 +1234,7 @@ msgstr "{name} no se soltó sobre el email."
 msgid "{name} was not inserted: {reason}."
 msgstr "{name} no se ha insertado: {reason}."
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:283
+#: src/components/settings/CustomFieldsConfiguration.tsx:282
 msgid "{named} of {total} slots named"
 msgstr "{named} de {total} espacios con nombre"
 
@@ -1396,7 +1400,7 @@ msgstr "{shown, plural, one {{0} entrada} other {{1} entradas}}"
 msgid "{shown, plural, one {# contact} other {# contacts}}"
 msgstr "{shown, plural, one {# contacto} other {# contactos}}"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:328
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:327
 msgid "{shown, plural, one {# message} other {# messages}}"
 msgstr "{shown, plural, one {# mensaje} other {# mensajes}}"
 
@@ -1428,7 +1432,7 @@ msgstr "{subject}: {aggregate} entre {value} y {second}"
 msgid "{teammates, plural, one {# teammate} other {# teammates}}"
 msgstr "{teammates, plural, one {# miembro} other {# miembros}}"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:269
+#: src/components/settings/CustomFieldsConfiguration.tsx:268
 msgid "{textFree}, {numberFree}, {dateFree}, {jsonFree} free"
 msgstr "Libres: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 
@@ -1443,7 +1447,7 @@ msgstr "{toCheck, plural, one {# por revisar} other {# por revisar}}"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:327
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:326
 msgid "{total, plural, one {{0} of # message} other {{1} of # messages}}"
 msgstr "{total, plural, one {{0} de # mensaje} other {{1} de # mensajes}}"
 
@@ -1463,7 +1467,7 @@ msgstr "{total, plural, one {{shown} de # entrega} other {{shown} de # entregas}
 msgid "{total, plural, one {{shown} of # message} other {{shown} of # messages}}"
 msgstr "{total, plural, one {{shown} de # mensaje} other {{shown} de # mensajes}}"
 
-#: src/components/blog/PostsTable.tsx:491
+#: src/components/blog/PostsTable.tsx:490
 msgid "{total, plural, one {{shown} of # post} other {{shown} of # posts}}"
 msgstr "{total, plural, one {{shown} de # artículo} other {{shown} de # artículos}}"
 
@@ -1645,6 +1649,14 @@ msgstr "+{count}"
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:157
 #~ msgid "+{hiddenCount} more"
 #~ msgstr "+{hiddenCount} más"
+
+#: src/components/templates/importTemplateFile.ts:145
+msgid "<{tag}> is not closed."
+msgstr "<{tag}> no está cerrado."
+
+#: src/components/templates/importTemplateFile.ts:146
+msgid "</{tag}> closes no open tag."
+msgstr "</{tag}> no cierra ninguna etiqueta abierta."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:967
 #: src/components/settings/integrations/providerDetails.ts:170
@@ -1991,7 +2003,7 @@ msgstr "Un número (1.3) o píxeles hasta 200px."
 msgid "A one-time code to sign in or confirm an action."
 msgstr "Un código de un solo uso para iniciar sesión o confirmar una acción."
 
-#: src/components/settings/WorkspaceMembers.tsx:280
+#: src/components/settings/WorkspaceMembers.tsx:279
 msgid "A platform admin reaches every workspace without joining it"
 msgstr "Un administrador de la plataforma accede a todos los espacios de trabajo sin unirse a ellos"
 
@@ -2211,8 +2223,8 @@ msgstr "Aceptar invitación"
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Aceptó la invitación <0>{target}</0>"
 
-#: src/components/settings/WorkspaceMembers.tsx:272
-#: src/components/settings/WorkspaceMembers.tsx:303
+#: src/components/settings/WorkspaceMembers.tsx:271
+#: src/components/settings/WorkspaceMembers.tsx:302
 msgid "Access"
 msgstr "Acceso"
 
@@ -2251,8 +2263,8 @@ msgstr "Acción"
 
 #: src/components/automations/nodeTypes.ts:42
 #: src/components/blog/RecentThemesTable.tsx:173
-#: src/components/settings/CustomFieldsConfiguration.tsx:226
-#: src/components/settings/WorkspaceMembers.tsx:228
+#: src/components/settings/CustomFieldsConfiguration.tsx:225
+#: src/components/settings/WorkspaceMembers.tsx:227
 #: src/components/transactional/TransactionalTable.tsx:274
 msgid "Actions"
 msgstr "Acciones"
@@ -2260,10 +2272,10 @@ msgstr "Acciones"
 #. placeholder {0}: contact.email
 #. placeholder {0}: item.name
 #. placeholder {0}: listName(subscription.list_id)
-#: src/components/contacts/ContactsTable.tsx:116
+#: src/components/contacts/ContactsTable.tsx:115
 #: src/components/contacts/sheet/ContactListsCard.tsx:173
 #: src/components/file_manager/FileGrid.tsx:114
-#: src/components/file_manager/FileTable.tsx:148
+#: src/components/file_manager/FileTable.tsx:147
 #: src/components/file_manager/FolderTree.tsx:109
 msgid "Actions for {0}"
 msgstr "Acciones para {0}"
@@ -2276,8 +2288,8 @@ msgstr "Acciones para {name}"
 msgid "Activate"
 msgstr "Activar"
 
-#: src/components/automations/list/AutomationsTable.tsx:286
-#: src/components/automations/list/AutomationsTable.tsx:290
+#: src/components/automations/list/AutomationsTable.tsx:285
+#: src/components/automations/list/AutomationsTable.tsx:288
 msgid "Activate automation"
 msgstr "Activar automatización"
 
@@ -2645,7 +2657,7 @@ msgstr "Añadir variante"
 msgid "Add your contacts"
 msgstr "Añade tus contactos"
 
-#: src/components/contacts/ContactsTable.tsx:342
+#: src/components/contacts/ContactsTable.tsx:341
 msgid "Added"
 msgstr "Añadido"
 
@@ -2692,7 +2704,7 @@ msgstr "Contexto adicional sobre este evento"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:105
 #: src/components/contacts/contactColumns.ts:69
-#: src/components/contacts/ContactsTable.tsx:327
+#: src/components/contacts/ContactsTable.tsx:326
 msgid "Address"
 msgstr "Dirección"
 
@@ -2856,7 +2868,7 @@ msgstr "Alineación"
 msgid "all"
 msgstr "todas las"
 
-#: src/components/blog/PostsTable.tsx:433
+#: src/components/blog/PostsTable.tsx:432
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
 #: src/components/contacts/BulkUpdateDrawer.tsx:599
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
@@ -2898,7 +2910,7 @@ msgstr "TODOS"
 #~ msgid "All {0} emails have been processed."
 #~ msgstr "Se han procesado los {0} correos."
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:253
+#: src/components/settings/CustomFieldsConfiguration.tsx:252
 msgid "All {total} slots are named"
 msgstr "Los {total} espacios tienen nombre"
 
@@ -2954,7 +2966,7 @@ msgid "All must match"
 msgstr "Todas deben coincidir"
 
 #: src/components/blog/BlogSidebar.tsx:66
-#: src/components/blog/PostsTable.tsx:507
+#: src/components/blog/PostsTable.tsx:506
 msgid "All posts"
 msgstr "Todos los artículos"
 
@@ -3304,7 +3316,7 @@ msgstr "Llamada a la API"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:202
 #: src/components/transactional/TransactionalTable.tsx:337
-#: src/components/transactional/TransactionalTable.tsx:341
+#: src/components/transactional/TransactionalTable.tsx:340
 msgid "API command"
 msgstr "Comando API"
 
@@ -3384,11 +3396,11 @@ msgstr "Dirección de la clave API"
 msgid "API key created"
 msgstr "Clave API creada"
 
-#: src/components/settings/WorkspaceMembers.tsx:362
+#: src/components/settings/WorkspaceMembers.tsx:361
 msgid "API key created successfully"
 msgstr "Clave API creada exitosamente"
 
-#: src/components/settings/WorkspaceMembers.tsx:673
+#: src/components/settings/WorkspaceMembers.tsx:672
 msgid "API Key Created Successfully"
 msgstr "Clave API creada exitosamente"
 
@@ -3396,7 +3408,7 @@ msgstr "Clave API creada exitosamente"
 #~ msgid "API key name"
 #~ msgstr "Nombre de la clave API"
 
-#: src/components/settings/WorkspaceMembers.tsx:637
+#: src/components/settings/WorkspaceMembers.tsx:636
 msgid "API Key Name"
 msgstr "Nombre de clave API"
 
@@ -3409,11 +3421,11 @@ msgid "API key, US or EU"
 msgstr "Clave API, US o EU"
 
 #: src/components/logs/labels.ts:11
-#: src/components/settings/WorkspaceMembers.tsx:518
+#: src/components/settings/WorkspaceMembers.tsx:517
 msgid "API keys"
 msgstr "Claves API"
 
-#: src/components/settings/WorkspaceMembers.tsx:680
+#: src/components/settings/WorkspaceMembers.tsx:679
 msgid "API Token"
 msgstr "Token API"
 
@@ -4303,8 +4315,8 @@ msgid "Billing"
 msgstr "Facturación"
 
 #: src/components/templates/gallery/labels.ts:8
-msgid "Blank"
-msgstr "En blanco"
+#~ msgid "Blank"
+#~ msgstr "En blanco"
 
 #: src/components/integrations/SupabaseIntegration.tsx:153
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:361
@@ -4316,7 +4328,7 @@ msgstr "Déjalo vacío para conservar el valor actual."
 #~ msgid "Block \"{0}\" updated"
 #~ msgstr "Bloque \"{0}\" actualizado"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:883
+#: src/components/templates/CreateTemplateDrawer.tsx:884
 msgid "Block \"{name}\" deleted"
 msgstr "Bloque \"{name}\" eliminado"
 
@@ -4328,7 +4340,7 @@ msgstr "Bloque \"{name}\" insertado"
 msgid "Block deleted"
 msgstr "Bloque eliminado"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:884
+#: src/components/templates/CreateTemplateDrawer.tsx:885
 msgid "Block deleted. Reload the page to update your saved blocks."
 msgstr "Bloque eliminado. Recarga la página para actualizar tus bloques guardados."
 
@@ -4352,15 +4364,15 @@ msgstr "Nombre del bloque"
 msgid "Block path"
 msgstr "Ruta del bloque"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:868
+#: src/components/templates/CreateTemplateDrawer.tsx:869
 msgid "Block renamed to \"{name}\""
 msgstr "Bloque renombrado a \"{name}\""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:869
+#: src/components/templates/CreateTemplateDrawer.tsx:870
 msgid "Block renamed. Reload the page to update your saved blocks."
 msgstr "Bloque renombrado. Recarga la página para actualizar tus bloques guardados."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:823
+#: src/components/templates/CreateTemplateDrawer.tsx:824
 msgid "Block replaced. Reload the page to see its new content in your saved blocks."
 msgstr "Bloque reemplazado. Recarga la página para ver su nuevo contenido en tus bloques guardados."
 
@@ -4369,11 +4381,11 @@ msgstr "Bloque reemplazado. Recarga la página para ver su nuevo contenido en tu
 #~ msgid "Block saved as \"{0}\""
 #~ msgstr "Bloque guardado como \"{0}\""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:822
+#: src/components/templates/CreateTemplateDrawer.tsx:823
 msgid "Block saved. Reload the page to see it in your saved blocks."
 msgstr "Bloque guardado. Recarga la página para verlo en tus bloques guardados."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1499
+#: src/components/templates/CreateTemplateDrawer.tsx:1500
 msgid "Block Settings Panel"
 msgstr "Panel de configuración del bloque"
 
@@ -4429,7 +4441,7 @@ msgstr "La URL personalizada del blog no está configurada"
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
 msgstr "Blog habilitado pero falló la creación del tema. Por favor crea un tema manualmente."
 
-#: src/components/blog/PostsTable.tsx:513
+#: src/components/blog/PostsTable.tsx:512
 msgid "Blog published on"
 msgstr "Blog publicado en"
 
@@ -4771,7 +4783,7 @@ msgstr "envío masivo"
 #: src/components/segment/form_leaf.tsx:591
 #: src/components/templates/TemplateSelectorModal.tsx:707
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:64
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:121
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:120
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 msgid "Broadcast"
 msgstr "Envío masivo"
@@ -5163,7 +5175,7 @@ msgstr "No se puede probar en el navegador"
 #: src/components/segment/SegmentDrawer.tsx:296
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
-#: src/components/settings/CustomFieldsConfiguration.tsx:387
+#: src/components/settings/CustomFieldsConfiguration.tsx:386
 #: src/components/settings/EditPermissionsDrawer.tsx:101
 #: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
@@ -5177,9 +5189,9 @@ msgstr "No se puede probar en el navegador"
 #: src/components/settings/WebhooksSettings.tsx:510
 #: src/components/settings/WorkspaceMembers.tsx:192
 #: src/components/settings/WorkspaceMembers.tsx:204
-#: src/components/settings/WorkspaceMembers.tsx:558
-#: src/components/settings/WorkspaceMembers.tsx:620
-#: src/components/templates/CreateTemplateDrawer.tsx:927
+#: src/components/settings/WorkspaceMembers.tsx:557
+#: src/components/settings/WorkspaceMembers.tsx:619
+#: src/components/templates/CreateTemplateDrawer.tsx:928
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:319
 #: src/components/templates/TemplateSelectorModal.tsx:218
@@ -5192,7 +5204,7 @@ msgstr "No se puede probar en el navegador"
 #: src/components/web_analytics/filters/BackfillStatus.tsx:103
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:120
 #: src/components/web_analytics/filters/FilterTable.tsx:176
-#: src/components/web_analytics/filters/FilterTable.tsx:357
+#: src/components/web_analytics/filters/FilterTable.tsx:356
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
 msgid "Cancel"
@@ -5616,7 +5628,7 @@ msgstr "Elegir acciones"
 msgid "Choose an image"
 msgstr "Elegir una imagen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:719
+#: src/components/templates/CreateTemplateDrawer.tsx:720
 msgid "Choose another"
 msgstr "Elegir otro"
 
@@ -5975,7 +5987,7 @@ msgstr "Clonar bloque"
 #~ msgid "Clone email template"
 #~ msgstr "Clonar plantilla de correo"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:961
+#: src/components/templates/CreateTemplateDrawer.tsx:962
 msgid "Clone template"
 msgstr "Clonar plantilla"
 
@@ -5994,7 +6006,7 @@ msgstr "Clonar plantilla"
 #: src/components/logs/MessageDetail.tsx:96
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:835
 #: src/components/settings/WebhookDetail.tsx:592
-#: src/components/settings/WorkspaceMembers.tsx:616
+#: src/components/settings/WorkspaceMembers.tsx:615
 #: src/components/templates/ImportErrorsModal.tsx:36
 #: src/components/transactional/ApiCommandDrawer.tsx:212
 #: src/components/updates/UpdateDrawer.tsx:31
@@ -6530,7 +6542,7 @@ msgid "Console"
 msgstr "Consola"
 
 #: src/components/automations/describeTrigger.ts:23
-#: src/components/contacts/ContactsTable.tsx:177
+#: src/components/contacts/ContactsTable.tsx:176
 msgid "Contact"
 msgstr "Contacto"
 
@@ -6757,7 +6769,7 @@ msgstr "Contenido › Plantillas"
 msgid "Content quality by traffic source"
 msgstr "Calidad del contenido por fuente de tráfico"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1485
+#: src/components/templates/CreateTemplateDrawer.tsx:1486
 msgid "Content Structure Tree"
 msgstr "Árbol de estructura de contenido"
 
@@ -6838,7 +6850,7 @@ msgstr "Copiar ID externo"
 
 #: src/components/automations/AutomationEditor.tsx:425
 #: src/components/transactional/TransactionalDetail.tsx:324
-#: src/components/transactional/TransactionalTable.tsx:296
+#: src/components/transactional/TransactionalTable.tsx:297
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:431
 #: src/pages/TemplatesPage.tsx:326
 msgid "Copy ID"
@@ -6933,7 +6945,7 @@ msgid "Could not load the goals"
 msgstr "No se pudieron cargar los objetivos"
 
 #: src/components/blog/PostDrawer.tsx:398
-#: src/components/templates/CreateTemplateDrawer.tsx:508
+#: src/components/templates/CreateTemplateDrawer.tsx:509
 msgid "Could not load the latest version. Please try again."
 msgstr "No se pudo cargar la última versión. Inténtalo de nuevo."
 
@@ -7002,7 +7014,7 @@ msgstr "No se pudieron cargar las entregas"
 msgid "Couldn't load the files"
 msgstr "No se pudieron cargar los archivos"
 
-#: src/components/settings/WorkspaceMembers.tsx:496
+#: src/components/settings/WorkspaceMembers.tsx:495
 msgid "Couldn't load the members"
 msgstr "No se pudieron cargar los miembros"
 
@@ -7018,7 +7030,7 @@ msgstr "No se pudieron cargar los mensajes"
 msgid "Couldn't load the notifications"
 msgstr "No se pudieron cargar las notificaciones"
 
-#: src/components/blog/PostsTable.tsx:460
+#: src/components/blog/PostsTable.tsx:459
 msgid "Couldn't load the posts"
 msgstr "No se pudieron cargar los artículos"
 
@@ -7125,7 +7137,7 @@ msgstr "Países"
 #: src/components/automations/config/TriggerConfigForm.tsx:109
 #: src/components/contacts/contactColumns.ts:66
 #: src/components/contacts/contactFilterFields.ts:32
-#: src/components/contacts/ContactsTable.tsx:315
+#: src/components/contacts/ContactsTable.tsx:314
 #: src/components/contacts/csv-import/contactFields.ts:30
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
@@ -7240,7 +7252,7 @@ msgstr "Crear una notificación transaccional (elegir su plantilla también nece
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Crear una automatización, incluidos nodos de webhook, de correo y de lista"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:969
+#: src/components/templates/CreateTemplateDrawer.tsx:970
 msgid "Create an email template"
 msgstr "Crear una plantilla de correo"
 
@@ -7252,8 +7264,8 @@ msgstr "¿Crear un tenant SES para esta integración?"
 #~ msgid "Create and manage your blog content"
 #~ msgstr "Crear y administrar el contenido de tu blog"
 
-#: src/components/settings/WorkspaceMembers.tsx:603
-#: src/components/settings/WorkspaceMembers.tsx:627
+#: src/components/settings/WorkspaceMembers.tsx:602
+#: src/components/settings/WorkspaceMembers.tsx:626
 msgid "Create API Key"
 msgstr "Crear clave API"
 
@@ -7273,7 +7285,7 @@ msgstr "Crear clave API"
 msgid "Create category"
 msgstr "Crear categoría"
 
-#: src/components/blog/RecentThemesTable.tsx:228
+#: src/components/blog/RecentThemesTable.tsx:226
 msgid "Create First Theme"
 msgstr "Crear primer tema"
 
@@ -7340,7 +7352,7 @@ msgstr "Crear artículo"
 msgid "Create rule"
 msgstr "Crear regla"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:961
+#: src/components/templates/CreateTemplateDrawer.tsx:962
 #: src/components/templates/TemplateDrawerBar.tsx:122
 msgid "Create template"
 msgstr "Crear plantilla"
@@ -7353,7 +7365,7 @@ msgstr "Crear plantilla"
 msgid "Create tenant"
 msgstr "Crear tenant"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:905
+#: src/components/templates/CreateTemplateDrawer.tsx:906
 msgid "Create the template to send it as a test"
 msgstr "Crea la plantilla para enviarla como prueba"
 
@@ -7435,7 +7447,7 @@ msgstr "Crea tu primera plantilla para comenzar"
 #: src/components/logs/MessagesTab.tsx:476
 #: src/components/logs/OutgoingWebhooksTab.tsx:408
 #: src/components/settings/WebhookDetail.tsx:503
-#: src/components/settings/WorkspaceMembers.tsx:305
+#: src/components/settings/WorkspaceMembers.tsx:304
 #: src/components/transactional/TransactionalDetail.tsx:431
 msgid "Created"
 msgstr "Creado"
@@ -7453,7 +7465,7 @@ msgid "Created {0} · Updated {1} in {2}"
 msgstr "Creada {0} · Actualizada {1} en {2}"
 
 #: src/components/contacts/contactColumns.ts:71
-#: src/components/contacts/ContactsTable.tsx:335
+#: src/components/contacts/ContactsTable.tsx:334
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:293
 #: src/components/messages/MessageHistoryTable.tsx:161
 #: src/components/messages/MessageHistoryTable.tsx:410
@@ -7726,7 +7738,7 @@ msgstr "Etiqueta de campo personalizado guardada exitosamente"
 #: src/components/contacts/csv-import/ColumnsStep.tsx:89
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
 #: src/components/segment/segmentLabels.ts:204
-#: src/components/settings/CustomFieldsConfiguration.tsx:276
+#: src/components/settings/CustomFieldsConfiguration.tsx:275
 #: src/components/settings/SettingsSidebar.tsx:66
 msgid "Custom fields"
 msgstr "Campos personalizados"
@@ -8174,16 +8186,16 @@ msgstr "Retraso"
 #: src/components/settings/WorkspaceMembers.tsx:191
 #: src/components/settings/WorkspaceMembers.tsx:203
 #: src/components/transactional/TransactionalDetail.tsx:333
-#: src/components/transactional/TransactionalTable.tsx:305
+#: src/components/transactional/TransactionalTable.tsx:306
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:84
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:87
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:139
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:143
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:138
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:142
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:118
 #: src/components/web_analytics/filters/FilterTable.tsx:165
 #: src/components/web_analytics/filters/FilterTable.tsx:174
 #: src/components/web_analytics/filters/FilterTable.tsx:179
-#: src/components/web_analytics/filters/FilterTable.tsx:355
+#: src/components/web_analytics/filters/FilterTable.tsx:354
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:120
 #: src/pages/TemplatesPage.tsx:336
 #: src/pages/TemplatesPage.tsx:339
@@ -8268,7 +8280,7 @@ msgid "Delete an integration sync task"
 msgstr "Eliminar una tarea de sincronización de integración"
 
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:81
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:136
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:135
 msgid "Delete annotation?"
 msgstr "¿Eliminar la anotación?"
 
@@ -8401,9 +8413,9 @@ msgid "Delete Post"
 msgstr "Eliminar publicación"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:161
-#: src/components/web_analytics/filters/FilterTable.tsx:344
-#: src/components/web_analytics/filters/FilterTable.tsx:351
-#: src/components/web_analytics/filters/FilterTable.tsx:362
+#: src/components/web_analytics/filters/FilterTable.tsx:343
+#: src/components/web_analytics/filters/FilterTable.tsx:350
+#: src/components/web_analytics/filters/FilterTable.tsx:360
 msgid "Delete rule"
 msgstr "Eliminar regla"
 
@@ -8462,7 +8474,7 @@ msgid "Delete this operation?"
 msgstr "¿Eliminar esta operación?"
 
 #: src/components/web_analytics/filters/FilterTable.tsx:171
-#: src/components/web_analytics/filters/FilterTable.tsx:352
+#: src/components/web_analytics/filters/FilterTable.tsx:351
 msgid "Delete this rule?"
 msgstr "¿Eliminar esta regla?"
 
@@ -8837,7 +8849,7 @@ msgstr "Reglas deshabilitadas"
 #: src/components/layout/SaveBar.tsx:101
 #: src/components/lists/ListDrawer.tsx:214
 #: src/components/segment/SegmentDrawer.tsx:172
-#: src/components/templates/CreateTemplateDrawer.tsx:896
+#: src/components/templates/CreateTemplateDrawer.tsx:897
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:111
@@ -8859,7 +8871,7 @@ msgstr "¿Descartar los cambios sin guardar?"
 
 #: src/components/lists/ListDrawer.tsx:212
 #: src/components/segment/SegmentDrawer.tsx:168
-#: src/components/templates/CreateTemplateDrawer.tsx:894
+#: src/components/templates/CreateTemplateDrawer.tsx:895
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Discard your changes?"
@@ -8879,8 +8891,8 @@ msgid "Display condition"
 msgstr "Condición de visualización"
 
 #: src/components/templates/importTemplateFile.ts:149
-msgid "Display conditions not imported"
-msgstr "Condiciones de visualización no importadas"
+#~ msgid "Display conditions not imported"
+#~ msgstr "Condiciones de visualización no importadas"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:248
 msgid "Display conditions, and conditions and loops placed between blocks, are not carried over. Check the text before saving."
@@ -9122,7 +9134,7 @@ msgstr "Borrador"
 msgid "Draft restored from local storage"
 msgstr "Borrador restaurado del almacenamiento local"
 
-#: src/components/blog/PostsTable.tsx:436
+#: src/components/blog/PostsTable.tsx:435
 #: src/pages/AutomationsPage.tsx:140
 #: src/pages/BroadcastsPage.tsx:186
 msgid "Drafts"
@@ -9256,7 +9268,7 @@ msgstr "ej. welcome_series"
 #~ msgid "e.g., Active users only"
 #~ msgstr "ej., Solo usuarios activos"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:382
+#: src/components/settings/CustomFieldsConfiguration.tsx:381
 msgid "e.g., Company Name, Industry, etc."
 msgstr "ej., Nombre de empresa, Industria, etc."
 
@@ -9339,7 +9351,7 @@ msgstr "Cada variación conserva el remitente de su plantilla, salvo que elijas 
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:91
-#: src/components/email_builder/EmailBuilder.tsx:1113
+#: src/components/email_builder/EmailBuilder.tsx:1128
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
 #: src/components/segment/input.tsx:389
 #: src/components/segment/input.tsx:393
@@ -9350,9 +9362,9 @@ msgstr "Cada variación conserva el remitente de su plantilla, salvo que elijas 
 #: src/components/transactional/NotificationChecks.tsx:97
 #: src/components/transactional/NotificationChecks.tsx:105
 #: src/components/transactional/TransactionalDetail.tsx:359
-#: src/components/transactional/TransactionalTable.tsx:288
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:92
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:152
+#: src/components/transactional/TransactionalTable.tsx:289
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:91
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:151
 #: src/components/web_analytics/filters/FilterTable.tsx:184
 #: src/pages/TemplatesPage.tsx:308
 msgid "Edit"
@@ -9459,7 +9471,7 @@ msgstr "Editar CSS"
 #~ msgid "Edit Custom Field Label"
 #~ msgstr "Editar etiqueta de campo personalizado"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:969
+#: src/components/templates/CreateTemplateDrawer.tsx:970
 msgid "Edit email template"
 msgstr "Editar plantilla de correo"
 
@@ -9518,8 +9530,8 @@ msgstr "Editar artículo"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:169
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
-#: src/components/web_analytics/filters/FilterTable.tsx:368
-#: src/components/web_analytics/filters/FilterTable.tsx:372
+#: src/components/web_analytics/filters/FilterTable.tsx:366
+#: src/components/web_analytics/filters/FilterTable.tsx:369
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:426
 msgid "Edit rule"
 msgstr "Editar regla"
@@ -9543,7 +9555,7 @@ msgid "Edit sender {0}"
 msgstr "Editar remitente {0}"
 
 #: src/components/lists/ListHeader.tsx:126
-#: src/components/templates/CreateTemplateDrawer.tsx:961
+#: src/components/templates/CreateTemplateDrawer.tsx:962
 msgid "Edit template"
 msgstr "Editar plantilla"
 
@@ -9611,8 +9623,8 @@ msgid "Edit Zapier connection"
 msgstr "Editar conexión de Zapier"
 
 #: src/components/templates/ImportExportButton.tsx:249
-msgid "Editable markup"
-msgstr "Marcado editable"
+#~ msgid "Editable markup"
+#~ msgstr "Marcado editable"
 
 #. placeholder {0}: relative(post.updated_at)
 #: src/components/blog/PostDrawer.tsx:763
@@ -9685,7 +9697,7 @@ msgstr "Correo electrónico"
 #~ msgid "Email (Required)"
 #~ msgstr "Correo electrónico (Requerido)"
 
-#: src/components/settings/WorkspaceMembers.tsx:573
+#: src/components/settings/WorkspaceMembers.tsx:572
 msgid "Email address"
 msgstr "Dirección de correo electrónico"
 
@@ -10283,7 +10295,7 @@ msgid "Enter duration"
 msgstr "Introduce la duración"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:541
-#: src/components/settings/WorkspaceMembers.tsx:578
+#: src/components/settings/WorkspaceMembers.tsx:577
 msgid "Enter email address"
 msgstr "Introduce dirección de correo"
 
@@ -10487,8 +10499,8 @@ msgstr "Error"
 msgid "Error loading preview"
 msgstr "Error al cargar vista previa"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:290
-#: src/components/templates/CreateTemplateDrawer.tsx:553
+#: src/components/templates/CreateTemplateDrawer.tsx:291
+#: src/components/templates/CreateTemplateDrawer.tsx:554
 msgid "Error loading template: Invalid template data"
 msgstr "Error al cargar plantilla: Datos de plantilla inválidos"
 
@@ -10648,7 +10660,7 @@ msgid "Every member keeps the access they have, and any member can still be give
 msgstr ""
 
 #. placeholder {0}: context.minSessions
-#: src/components/web_analytics/explore/ExploreTable.tsx:234
+#: src/components/web_analytics/explore/ExploreTable.tsx:233
 msgid "Every sub-item has fewer than {0} sessions. Lower the threshold to see them."
 msgstr "Todos los subelementos tienen menos de {0} sesiones. Baja el umbral para verlos."
 
@@ -10806,7 +10818,7 @@ msgstr "Explorar"
 #: src/components/contacts/ExportContactsModal.tsx:367
 #: src/components/email_builder/MjmlCodeEditor.tsx:644
 #: src/components/logs/AuditLogTab.tsx:455
-#: src/components/templates/ImportExportButton.tsx:232
+#: src/components/templates/ImportExportButton.tsx:235
 msgid "Export"
 msgstr "Exportar"
 
@@ -11004,7 +11016,7 @@ msgstr "Error al conectar Zapier"
 msgid "Failed to copy to clipboard"
 msgstr "Error al copiar al portapapeles"
 
-#: src/components/settings/WorkspaceMembers.tsx:368
+#: src/components/settings/WorkspaceMembers.tsx:367
 msgid "Failed to create API key"
 msgstr "Error al crear clave API"
 
@@ -11046,7 +11058,7 @@ msgid "Failed to create segment"
 msgstr "Error al crear segmento"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:406
+#: src/components/templates/CreateTemplateDrawer.tsx:407
 msgid "Failed to create template: {0}"
 msgstr "Error al crear plantilla: {0}"
 
@@ -11086,7 +11098,7 @@ msgstr "No se pudo eliminar la carpeta: "
 msgid "Failed to delete integration"
 msgstr "Error al eliminar integración"
 
-#: src/components/settings/WorkspaceMembers.tsx:419
+#: src/components/settings/WorkspaceMembers.tsx:418
 msgid "Failed to delete invitation"
 msgstr "Error al eliminar invitación"
 
@@ -11111,7 +11123,7 @@ msgstr "Error al eliminar segmento"
 msgid "Failed to delete template: {errorMsg}"
 msgstr "Error al eliminar plantilla: {errorMsg}"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:879
+#: src/components/templates/CreateTemplateDrawer.tsx:880
 msgid "Failed to delete the block"
 msgstr "No se pudo eliminar el bloque"
 
@@ -11144,11 +11156,11 @@ msgstr "Error al habilitar el aislamiento de reputación"
 msgid "Failed to export HTML"
 msgstr "Error al exportar HTML"
 
-#: src/components/templates/ImportExportButton.tsx:195
+#: src/components/templates/ImportExportButton.tsx:198
 msgid "Failed to export JSON"
 msgstr "Error al exportar JSON"
 
-#: src/components/templates/ImportExportButton.tsx:175
+#: src/components/templates/ImportExportButton.tsx:178
 msgid "Failed to export MJML"
 msgstr "Error al exportar MJML"
 
@@ -11181,11 +11193,11 @@ msgstr "Error al obtener estado de configuración"
 msgid "Failed to fetch workspace members"
 msgstr "Error al obtener miembros del espacio de trabajo"
 
-#: src/components/templates/importTemplateFile.ts:162
+#: src/components/templates/importTemplateFile.ts:200
 msgid "Failed to import MJML template. Please check the MJML syntax."
 msgstr "Error al importar plantilla MJML. Por favor verifica la sintaxis MJML."
 
-#: src/components/templates/importTemplateFile.ts:120
+#: src/components/templates/importTemplateFile.ts:121
 msgid "Failed to import template. Please check the file format."
 msgstr "Error al importar plantilla. Por favor verifica el formato del archivo."
 
@@ -11193,7 +11205,7 @@ msgstr "Error al importar plantilla. Por favor verifica el formato del archivo."
 msgid "Failed to install the licence key"
 msgstr ""
 
-#: src/components/settings/WorkspaceMembers.tsx:338
+#: src/components/settings/WorkspaceMembers.tsx:337
 msgid "Failed to invite member"
 msgstr "Error al invitar miembro"
 
@@ -11248,7 +11260,7 @@ msgid "Failed to publish theme"
 msgstr "Error al publicar tema"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:570
-#: src/components/templates/importTemplateFile.ts:207
+#: src/components/templates/importTemplateFile.ts:245
 msgid "Failed to read the file"
 msgstr "Error al leer el archivo"
 
@@ -11273,11 +11285,11 @@ msgstr "Error al registrar webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Error al eliminar etiqueta de campo personalizado"
 
-#: src/components/settings/WorkspaceMembers.tsx:400
+#: src/components/settings/WorkspaceMembers.tsx:399
 msgid "Failed to remove member"
 msgstr "Error al eliminar miembro"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:861
+#: src/components/templates/CreateTemplateDrawer.tsx:862
 msgid "Failed to rename the block"
 msgstr "No se pudo renombrar el bloque"
 
@@ -11285,7 +11297,7 @@ msgstr "No se pudo renombrar el bloque"
 msgid "Failed to render preview"
 msgstr "Error al renderizar vista previa"
 
-#: src/components/settings/WorkspaceMembers.tsx:452
+#: src/components/settings/WorkspaceMembers.tsx:451
 msgid "Failed to resend invitation"
 msgstr "Error al reenviar invitación"
 
@@ -11334,7 +11346,7 @@ msgstr "Error al guardar la configuración"
 msgid "Failed to save Supabase integration"
 msgstr "Error al guardar integración de Supabase"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:810
+#: src/components/templates/CreateTemplateDrawer.tsx:811
 msgid "Failed to save template block"
 msgstr "Error al guardar bloque de plantilla"
 
@@ -11483,7 +11495,7 @@ msgstr "Error al actualizar el estado: {0}"
 #~ msgstr "Error al actualizar estado: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:406
+#: src/components/templates/CreateTemplateDrawer.tsx:407
 msgid "Failed to update template: {0}"
 msgstr "Error al actualizar plantilla: {0}"
 
@@ -11579,7 +11591,7 @@ msgstr "Obteniendo: {0}"
 
 #: src/components/logs/AuditEntryDetail.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:184
-#: src/components/settings/CustomFieldsConfiguration.tsx:326
+#: src/components/settings/CustomFieldsConfiguration.tsx:325
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:74
 msgid "Field"
 msgstr "Campo"
@@ -11790,7 +11802,7 @@ msgstr "Primera línea de la dirección del contacto"
 #: src/components/automations/config/TriggerConfigForm.tsx:96
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
-#: src/components/contacts/ContactsTable.tsx:311
+#: src/components/contacts/ContactsTable.tsx:310
 #: src/components/contacts/csv-import/contactFields.ts:27
 #: src/components/contacts/ExportContactsModal.tsx:69
 #: src/components/contacts/sheet/contactFieldLabels.ts:24
@@ -11972,7 +11984,7 @@ msgid "Font weight"
 msgstr "Peso de la fuente"
 
 #. placeholder {0}: dayjs(subscription.created_at).fromNow(true)
-#: src/components/contacts/ContactsTable.tsx:213
+#: src/components/contacts/ContactsTable.tsx:212
 msgid "for {0}"
 msgstr "desde hace {0}"
 
@@ -12152,7 +12164,7 @@ msgstr "Registro de cambios completo"
 
 #: src/components/contacts/contactColumns.ts:64
 #: src/components/contacts/contactFilterFields.ts:26
-#: src/components/contacts/ContactsTable.tsx:313
+#: src/components/contacts/ContactsTable.tsx:312
 #: src/components/contacts/ExportContactsModal.tsx:75
 #: src/components/contacts/sheet/contactFieldLabels.ts:26
 #: src/components/segment/segmentLabels.ts:21
@@ -12200,7 +12212,7 @@ msgstr "Posición de desplazamiento más lejana alcanzada, en porcentaje"
 msgid "Gallery"
 msgstr "Galería"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:697
+#: src/components/templates/CreateTemplateDrawer.tsx:698
 msgid "Gallery · {languages}"
 msgstr "Galería · {languages}"
 
@@ -12650,14 +12662,14 @@ msgid "Height"
 msgstr "Alto"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:732
-#: src/components/templates/CreateTemplateDrawer.tsx:138
+#: src/components/templates/CreateTemplateDrawer.tsx:139
 #: src/layouts/app-shell/HelpMenu.tsx:25
 #: src/layouts/app-shell/HelpMenu.tsx:31
 #: src/layouts/app-shell/HelpMenu.tsx:71
 msgid "Help"
 msgstr "Ayuda"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:137
+#: src/components/templates/CreateTemplateDrawer.tsx:138
 msgid "Help & Support"
 msgstr "Ayuda y soporte"
 
@@ -12802,7 +12814,7 @@ msgstr "Cómo actualizar"
 #: src/components/email_builder/blocks/MjRawBlock.tsx:304
 #: src/components/email_builder/panels/Preview.tsx:400
 #: src/components/logs/MessageDetail.tsx:806
-#: src/components/templates/ImportExportButton.tsx:238
+#: src/components/templates/ImportExportButton.tsx:241
 msgid "HTML"
 msgstr "HTML"
 
@@ -13157,18 +13169,18 @@ msgstr "TLS implícito en 465"
 #: src/components/contacts/TrackingConsent.tsx:48
 #: src/components/email_builder/MjmlCodeEditor.tsx:632
 #: src/components/segment/segmentLabels.ts:252
-#: src/components/templates/ImportExportButton.tsx:203
+#: src/components/templates/ImportExportButton.tsx:206
 #: src/pages/ContactsPage.tsx:551
 #: src/pages/TemplatesPage.tsx:599
 msgid "Import"
 msgstr "Importar"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:728
-#: src/components/templates/ImportExportButton.tsx:272
+#: src/components/templates/ImportExportButton.tsx:275
 msgid "Import / Export"
 msgstr "Importar / Exportar"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1528
+#: src/components/templates/CreateTemplateDrawer.tsx:1529
 msgid "Import & Export Templates"
 msgstr "Importar y exportar plantillas"
 
@@ -13222,7 +13234,7 @@ msgstr "Importar desde CSV"
 msgid "Import MJML"
 msgstr "Importar MJML"
 
-#: src/components/templates/ImportExportButton.tsx:220
+#: src/components/templates/ImportExportButton.tsx:223
 msgid "Import MJML markup"
 msgstr "Importar marcado MJML"
 
@@ -13235,8 +13247,8 @@ msgstr "Pasos de la importación"
 msgid "Import to list"
 msgstr "Importar a la lista"
 
-#: src/components/templates/importTemplateFile.ts:112
-#: src/components/templates/importTemplateFile.ts:117
+#: src/components/templates/importTemplateFile.ts:113
+#: src/components/templates/importTemplateFile.ts:118
 msgid "Import Validation Failed"
 msgstr "Error en la validación de importación"
 
@@ -13634,20 +13646,20 @@ msgstr "Datos de estructura de plantilla inválidos."
 msgid "Invalid tree structure"
 msgstr "Estructura de árbol no válida"
 
-#: src/components/templates/importTemplateFile.ts:58
+#: src/components/templates/importTemplateFile.ts:59
 msgid "Invalid tree structure: children must be an array"
 msgstr "Estructura de árbol inválida: los hijos deben ser un arreglo"
 
-#: src/components/templates/importTemplateFile.ts:48
-#: src/components/templates/importTemplateFile.ts:52
+#: src/components/templates/importTemplateFile.ts:49
+#: src/components/templates/importTemplateFile.ts:53
 msgid "Invalid tree structure: missing id or type"
 msgstr "Estructura de árbol inválida: falta id o tipo"
 
-#: src/components/templates/importTemplateFile.ts:45
+#: src/components/templates/importTemplateFile.ts:46
 msgid "Invalid tree structure: not an object"
 msgstr "Estructura de árbol inválida: no es un objeto"
 
-#: src/components/templates/importTemplateFile.ts:55
+#: src/components/templates/importTemplateFile.ts:56
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Estructura de árbol inválida: la raíz debe ser de tipo mjml"
 
@@ -13678,15 +13690,15 @@ msgstr "URL de YouTube inválida"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "¡Invitación aceptada exitosamente! Bienvenido al espacio de trabajo."
 
-#: src/components/settings/WorkspaceMembers.tsx:415
+#: src/components/settings/WorkspaceMembers.tsx:414
 msgid "Invitation deleted successfully"
 msgstr "Invitación eliminada exitosamente"
 
-#: src/components/settings/WorkspaceMembers.tsx:238
+#: src/components/settings/WorkspaceMembers.tsx:237
 msgid "Invitation expired"
 msgstr "Invitación caducada"
 
-#: src/components/settings/WorkspaceMembers.tsx:445
+#: src/components/settings/WorkspaceMembers.tsx:444
 msgid "Invitation resent to {email}"
 msgstr "Invitación reenviada a {email}"
 
@@ -13694,19 +13706,19 @@ msgstr "Invitación reenviada a {email}"
 #~ msgid "Invitation sent"
 #~ msgstr "Invitación enviada"
 
-#: src/components/settings/WorkspaceMembers.tsx:242
+#: src/components/settings/WorkspaceMembers.tsx:241
 msgid "Invitation sent {sent}, {expires}"
 msgstr "Invitación enviada {sent}, {expires}"
 
-#: src/components/settings/WorkspaceMembers.tsx:328
+#: src/components/settings/WorkspaceMembers.tsx:327
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitación enviada a {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:488
+#: src/components/settings/WorkspaceMembers.tsx:487
 msgid "Invite"
 msgstr "Invitar"
 
-#: src/components/settings/WorkspaceMembers.tsx:549
+#: src/components/settings/WorkspaceMembers.tsx:548
 msgid "Invite member"
 msgstr "Invitar miembro"
 
@@ -13917,7 +13929,7 @@ msgid "Its subscriptions are deleted with it; the contacts stay in the workspace
 msgstr "Sus suscripciones se eliminan con ella; los contactos permanecen en el espacio de trabajo."
 
 #: src/components/contacts/contactColumns.ts:70
-#: src/components/contacts/ContactsTable.tsx:333
+#: src/components/contacts/ContactsTable.tsx:332
 #: src/components/contacts/csv-import/contactFields.ts:37
 #: src/components/contacts/sheet/contactFieldLabels.ts:33
 #: src/components/segment/segmentLabels.ts:30
@@ -13933,7 +13945,7 @@ msgstr "Unirse"
 #~ msgstr "unido"
 
 #: src/components/automations/describeTrigger.ts:48
-#: src/components/settings/WorkspaceMembers.tsx:274
+#: src/components/settings/WorkspaceMembers.tsx:273
 msgid "Joined"
 msgstr "Unido"
 
@@ -13963,12 +13975,12 @@ msgid "Journeys since creation · open rate last 30 days"
 msgstr "Recorridos desde la creación · tasa de apertura de los últimos 30 días"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:61
-#: src/components/templates/ImportExportButton.tsx:209
-#: src/components/templates/ImportExportButton.tsx:258
+#: src/components/templates/ImportExportButton.tsx:212
+#: src/components/templates/ImportExportButton.tsx:261
 msgid "JSON"
 msgstr "JSON"
 
-#: src/components/templates/ImportExportButton.tsx:192
+#: src/components/templates/ImportExportButton.tsx:195
 msgid "JSON exported successfully"
 msgstr "JSON exportado exitosamente"
 
@@ -13991,8 +14003,8 @@ msgstr "Justificar"
 #: src/components/lists/ListDrawer.tsx:215
 #: src/components/segment/SegmentDrawer.tsx:173
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
-#: src/components/templates/CreateTemplateDrawer.tsx:720
-#: src/components/templates/CreateTemplateDrawer.tsx:898
+#: src/components/templates/CreateTemplateDrawer.tsx:721
+#: src/components/templates/CreateTemplateDrawer.tsx:899
 #: src/components/templates/useTemplateConflictModal.tsx:43
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:227
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:113
@@ -14065,12 +14077,12 @@ msgstr "Palabras clave"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:239
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:245
 #: src/components/settings/CustomFieldsConfiguration.tsx:179
-#: src/components/settings/CustomFieldsConfiguration.tsx:376
+#: src/components/settings/CustomFieldsConfiguration.tsx:375
 #: src/components/settings/ZapierSettings.tsx:152
 msgid "Label"
 msgstr "Etiqueta"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:379
+#: src/components/settings/CustomFieldsConfiguration.tsx:378
 msgid "Label must be at most 100 characters"
 msgstr "La etiqueta debe tener como máximo 100 caracteres"
 
@@ -14098,7 +14110,7 @@ msgstr "URL de destino"
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/contactColumns.ts:67
 #: src/components/contacts/contactFilterFields.ts:28
-#: src/components/contacts/ContactsTable.tsx:316
+#: src/components/contacts/ContactsTable.tsx:315
 #: src/components/contacts/csv-import/contactFields.ts:32
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
@@ -14211,7 +14223,7 @@ msgstr "Última hora"
 #: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/contacts/contactColumns.ts:63
 #: src/components/contacts/contactFilterFields.ts:25
-#: src/components/contacts/ContactsTable.tsx:312
+#: src/components/contacts/ContactsTable.tsx:311
 #: src/components/contacts/csv-import/contactFields.ts:28
 #: src/components/contacts/ExportContactsModal.tsx:72
 #: src/components/contacts/sheet/contactFieldLabels.ts:25
@@ -14371,7 +14383,7 @@ msgstr "menor o igual que"
 #~ msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 #~ msgstr "Permite que los usuarios inicien sesión con un proveedor de identidad externo (Google Workspace, Keycloak, Okta, …) además de con códigos mágicos."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1481
+#: src/components/templates/CreateTemplateDrawer.tsx:1482
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "Hagamos un tour rápido para ayudarte a comenzar a construir correos hermosos usando MJML."
 
@@ -14399,7 +14411,7 @@ msgstr "Solo letras, dígitos, espacios, comillas, comas y guiones."
 msgid "Level"
 msgstr "Nivel"
 
-#: src/components/email_builder/EmailBuilder.tsx:1185
+#: src/components/email_builder/EmailBuilder.tsx:1200
 msgid "Library"
 msgstr "Biblioteca"
 
@@ -14596,6 +14608,10 @@ msgstr "Se admite Liquid"
 msgid "Liquid accepted, for example"
 msgstr "Se admite Liquid, por ejemplo"
 
+#: src/components/templates/importTemplateFile.ts:149
+msgid "Liquid between the blocks of <{tag}> cannot be imported into the visual editor."
+msgstr "El Liquid entre los bloques de <{tag}> no se puede importar al editor visual."
+
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:29
 #~ msgid "Liquid Block"
 #~ msgstr "Bloque Liquid"
@@ -14603,6 +14619,18 @@ msgstr "Se admite Liquid, por ejemplo"
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:59
 msgid "Liquid block - Click to add MJML + Liquid content"
 msgstr "Bloque Liquid - Haz clic para añadir contenido MJML + Liquid"
+
+#: src/components/templates/importTemplateFile.ts:147
+msgid "Liquid inside a tag cannot be imported into the visual editor."
+msgstr "El Liquid dentro de una etiqueta no se puede importar al editor visual."
+
+#: src/components/templates/importTemplateFile.ts:174
+msgid "Liquid kept in Liquid blocks"
+msgstr "Liquid conservado en bloques Liquid"
+
+#: src/components/templates/importTemplateFile.ts:150
+msgid "Liquid or markup outside <mjml> cannot be imported."
+msgstr "El Liquid o el marcado fuera de <mjml> no se puede importar."
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:255
 msgid "Liquid placed between the blocks of a section or a column may not land where it applies. Check the text before saving."
@@ -14792,7 +14820,7 @@ msgstr "Lista actualizada"
 
 #: src/components/contacts/contactColumns.ts:60
 #: src/components/contacts/ContactsRail.tsx:75
-#: src/components/contacts/ContactsTable.tsx:221
+#: src/components/contacts/ContactsTable.tsx:220
 #: src/components/contacts/csv-import/ColumnsStep.tsx:221
 #: src/components/contacts/sheet/ContactListsCard.tsx:126
 #: src/components/logs/labels.ts:17
@@ -14841,8 +14869,8 @@ msgstr "Cargar {CONTACTS_PAGE_SIZE} más"
 msgid "Load {PAGE_SIZE} more"
 msgstr "Cargar {PAGE_SIZE} más"
 
-#: src/components/blog/PostsTable.tsx:498
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:371
+#: src/components/blog/PostsTable.tsx:497
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:370
 #: src/components/contacts/visits/ContactWebVisits.tsx:371
 #: src/components/logs/AuditLogTab.tsx:632
 #: src/components/logs/InboundWebhooksTab.tsx:348
@@ -14863,7 +14891,7 @@ msgstr "Cargar más actividad"
 #~ msgid "Load More Events"
 #~ msgstr "Cargar más eventos"
 
-#: src/components/templates/ImportExportButton.tsx:210
+#: src/components/templates/ImportExportButton.tsx:213
 msgid "Load saved template"
 msgstr "Cargar plantilla guardada"
 
@@ -14872,7 +14900,7 @@ msgid "Load the workspace record, which read or write both admit"
 msgstr "Cargar el registro del espacio de trabajo, al que dan acceso tanto la lectura como la escritura"
 
 #. placeholder {0}: latest.version
-#: src/components/templates/CreateTemplateDrawer.tsx:500
+#: src/components/templates/CreateTemplateDrawer.tsx:501
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "Se ha cargado la última versión de esta plantilla (v{0})."
 
@@ -14917,7 +14945,7 @@ msgstr "Cargando plantilla..."
 #~ msgstr "Cargando estado del webhook..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
-#: src/components/templates/CreateTemplateDrawer.tsx:1012
+#: src/components/templates/CreateTemplateDrawer.tsx:1013
 #: src/components/templates/TemplateSelectorInput.tsx:162
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:461
@@ -15233,7 +15261,7 @@ msgstr "Aceptar cualquier plantilla"
 msgid "Matched"
 msgstr "Coincidió"
 
-#: src/components/contacts/ContactsTable.tsx:283
+#: src/components/contacts/ContactsTable.tsx:282
 msgid "Matched on:"
 msgstr "Coincidió en:"
 
@@ -15350,17 +15378,17 @@ msgid "Mediums"
 msgstr "Medios"
 
 #: src/components/logs/auditDisplay.ts:20
-#: src/components/settings/WorkspaceMembers.tsx:247
+#: src/components/settings/WorkspaceMembers.tsx:246
 #: src/layouts/app-shell/AccountMenu.tsx:77
 msgid "Member"
 msgstr "Miembro"
 
-#: src/components/settings/WorkspaceMembers.tsx:396
+#: src/components/settings/WorkspaceMembers.tsx:395
 msgid "Member removed successfully"
 msgstr "Miembro eliminado exitosamente"
 
 #: src/components/logs/labels.ts:10
-#: src/components/settings/WorkspaceMembers.tsx:479
+#: src/components/settings/WorkspaceMembers.tsx:478
 msgid "Members"
 msgstr "Miembros"
 
@@ -15514,8 +15542,8 @@ msgstr "Falta ID del espacio de trabajo o datos de plantilla."
 
 #: src/components/email_builder/panels/Preview.tsx:382
 #: src/components/logs/MessageDetail.tsx:825
-#: src/components/templates/ImportExportButton.tsx:219
-#: src/components/templates/ImportExportButton.tsx:248
+#: src/components/templates/ImportExportButton.tsx:222
+#: src/components/templates/ImportExportButton.tsx:251
 msgid "MJML"
 msgstr "MJML"
 
@@ -15548,11 +15576,11 @@ msgstr "Advertencias de compilación MJML"
 msgid "MJML Documentation"
 msgstr "Documentación de MJML"
 
-#: src/components/templates/ImportExportButton.tsx:162
+#: src/components/templates/ImportExportButton.tsx:165
 msgid "MJML Export Failed"
 msgstr "Error en la exportación MJML"
 
-#: src/components/templates/ImportExportButton.tsx:169
+#: src/components/templates/ImportExportButton.tsx:172
 msgid "MJML exported successfully"
 msgstr "MJML exportado exitosamente"
 
@@ -15564,11 +15592,11 @@ msgstr "Archivo MJML (.mjml)"
 msgid "MJML file imported"
 msgstr "Archivo MJML importado"
 
-#: src/components/templates/importTemplateFile.ts:179
+#: src/components/templates/importTemplateFile.ts:217
 msgid "MJML Import Error"
 msgstr "Error de importación MJML"
 
-#: src/components/templates/importTemplateFile.ts:145
+#: src/components/templates/importTemplateFile.ts:167
 msgid "MJML Import Validation Failed"
 msgstr "Error en la validación de importación MJML"
 
@@ -15577,7 +15605,8 @@ msgstr "Error en la validación de importación MJML"
 msgid "MJML Source"
 msgstr "Fuente MJML"
 
-#: src/components/templates/importTemplateFile.ts:171
+#: src/components/templates/importTemplateFile.ts:191
+#: src/components/templates/importTemplateFile.ts:209
 msgid "MJML Syntax Error"
 msgstr "Error de sintaxis MJML"
 
@@ -15585,9 +15614,13 @@ msgstr "Error de sintaxis MJML"
 msgid "MJML template imported and converted successfully"
 msgstr "Plantilla MJML importada y convertida exitosamente"
 
-#: src/components/templates/importTemplateFile.ts:178
+#: src/components/templates/importTemplateFile.ts:216
 msgid "MJML Validation Failed"
 msgstr "Error en la validación MJML"
+
+#: src/components/templates/ImportExportButton.tsx:252
+msgid "MJML with Liquid kept"
+msgstr "MJML con el Liquid conservado"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:431
 #: src/components/broadcasts/compose/PreviewPanel.tsx:66
@@ -15601,7 +15634,7 @@ msgstr "Error en la validación MJML"
 msgid "Mobile"
 msgstr "Móvil"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1513
+#: src/components/templates/CreateTemplateDrawer.tsx:1514
 msgid "Mobile & Desktop Preview"
 msgstr "Vista previa móvil y escritorio"
 
@@ -15664,10 +15697,10 @@ msgstr "Mensual"
 #~ msgstr ""
 
 #: src/components/automations/AutomationEditor.tsx:519
-#: src/components/automations/list/AutomationsTable.tsx:298
+#: src/components/automations/list/AutomationsTable.tsx:296
 #: src/components/blog/CategoryDrawer.tsx:199
-#: src/components/blog/PostsTable.tsx:421
-#: src/components/broadcasts/BroadcastsTable.tsx:475
+#: src/components/blog/PostsTable.tsx:420
+#: src/components/broadcasts/BroadcastsTable.tsx:473
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:346
 #: src/components/contacts/ContactsViewHeader.tsx:134
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
@@ -15675,7 +15708,7 @@ msgstr "Mensual"
 #: src/components/settings/Integrations.tsx:282
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
-#: src/components/transactional/TransactionalTable.tsx:350
+#: src/components/transactional/TransactionalTable.tsx:348
 #: src/pages/TemplatesPage.tsx:491
 msgid "More actions"
 msgstr "Más acciones"
@@ -15756,7 +15789,7 @@ msgstr "N/D"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:870
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1006
 #: src/components/settings/WebhooksSettings.tsx:531
-#: src/components/settings/WorkspaceMembers.tsx:294
+#: src/components/settings/WorkspaceMembers.tsx:293
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:204
@@ -15764,12 +15797,12 @@ msgstr "N/D"
 msgid "Name"
 msgstr "Nombre"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:265
+#: src/components/settings/CustomFieldsConfiguration.tsx:264
 msgid "Name a free slot"
 msgstr "Nombrar un espacio libre"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:294
-#: src/components/settings/CustomFieldsConfiguration.tsx:315
+#: src/components/settings/CustomFieldsConfiguration.tsx:293
+#: src/components/settings/CustomFieldsConfiguration.tsx:314
 msgid "Name a slot"
 msgstr "Nombrar un espacio"
 
@@ -15810,7 +15843,7 @@ msgstr "Nombre o asunto"
 msgid "Name or subject contains “{typed}”"
 msgstr "Nombre o asunto contiene «{typed}»"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:277
+#: src/components/settings/CustomFieldsConfiguration.tsx:276
 msgid "Name the free fields of your contacts"
 msgstr "Pon nombre a los campos libres de tus contactos"
 
@@ -15819,7 +15852,7 @@ msgstr "Pon nombre a los campos libres de tus contactos"
 #~ msgstr "Nombre:"
 
 #. placeholder {0}: customFieldLabels[fieldKey]
-#: src/components/settings/CustomFieldsConfiguration.tsx:357
+#: src/components/settings/CustomFieldsConfiguration.tsx:356
 msgid "Named {0}"
 msgstr "Llamado {0}"
 
@@ -15924,7 +15957,7 @@ msgstr "Nueva carpeta"
 msgid "New folder (Read-only mode)"
 msgstr "Nueva carpeta (modo de solo lectura)"
 
-#: src/components/settings/WorkspaceMembers.tsx:522
+#: src/components/settings/WorkspaceMembers.tsx:521
 msgid "New key"
 msgstr "Nueva clave"
 
@@ -15952,7 +15985,7 @@ msgstr "Nueva notificación"
 
 #: src/components/blog/PostDrawer.tsx:749
 #: src/components/blog/PostDrawer.tsx:841
-#: src/components/blog/PostsTable.tsx:548
+#: src/components/blog/PostsTable.tsx:547
 msgid "New post"
 msgstr "Nuevo artículo"
 
@@ -15997,7 +16030,7 @@ msgstr "Pestaña nueva"
 msgid "New template"
 msgstr "Nueva plantilla"
 
-#: src/components/blog/RecentThemesTable.tsx:213
+#: src/components/blog/RecentThemesTable.tsx:211
 #: src/components/blog/ThemeEditorDrawer.tsx:466
 #: src/components/blog/ThemeEditorDrawer.tsx:501
 msgid "New theme"
@@ -16008,7 +16041,7 @@ msgstr "Nuevo tema"
 #~ msgstr "Nuevo tema"
 
 #: src/components/web_analytics/filters/FilterTable.tsx:172
-#: src/components/web_analytics/filters/FilterTable.tsx:353
+#: src/components/web_analytics/filters/FilterTable.tsx:352
 msgid "New visits are no longer rewritten by it. Past ones keep its values until the next backfill."
 msgstr "Las nuevas visitas ya no se reescriben con este filtro. Las anteriores conservan sus valores hasta el próximo relleno retroactivo."
 
@@ -16112,8 +16145,8 @@ msgstr "Ninguna actividad de este tipo"
 msgid "No activity yet"
 msgstr "Aún no hay actividad"
 
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:107
-#: src/components/web_analytics/annotations/AnnotationTable.tsx:170
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:106
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:169
 msgid "No annotations yet"
 msgstr "Aún no hay anotaciones"
 
@@ -16126,7 +16159,7 @@ msgstr "No se devolvió ninguna respuesta. Inténtalo de nuevo."
 msgid "No API key"
 msgstr "Sin clave API"
 
-#: src/components/settings/WorkspaceMembers.tsx:533
+#: src/components/settings/WorkspaceMembers.tsx:532
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "Aún no hay claves API. Crea una para llamar a la API o conectar Zapier."
 
@@ -16259,7 +16292,7 @@ msgstr "Sin datos de países"
 #~ msgid "No CSV data available"
 #~ msgstr "No hay datos CSV disponibles"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:289
+#: src/components/settings/CustomFieldsConfiguration.tsx:288
 msgid "No custom field is named yet"
 msgstr "Aún no hay ningún campo personalizado con nombre"
 
@@ -16277,7 +16310,7 @@ msgstr "No hay datos disponibles"
 msgid "No data for this period"
 msgstr "Sin datos para este periodo"
 
-#: src/components/web_analytics/explore/ExploreTable.tsx:208
+#: src/components/web_analytics/explore/ExploreTable.tsx:207
 msgid "No data found"
 msgstr "No se encontraron datos"
 
@@ -16307,7 +16340,7 @@ msgstr "Sin datos de dispositivos"
 msgid "No dimensions found"
 msgstr "No se encontraron dimensiones"
 
-#: src/components/blog/PostsTable.tsx:441
+#: src/components/blog/PostsTable.tsx:440
 msgid "No draft posts"
 msgstr "Sin publicaciones en borrador"
 
@@ -16468,11 +16501,11 @@ msgstr "Ningún proveedor de correo de marketing"
 msgid "No match"
 msgstr "Sin coincidencia"
 
-#: src/components/settings/WorkspaceMembers.tsx:511
+#: src/components/settings/WorkspaceMembers.tsx:510
 msgid "No members found"
 msgstr "No se encontraron miembros"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:342
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:341
 msgid "No message sent to this contact yet"
 msgstr "Aún no se ha enviado ningún mensaje a este contacto"
 
@@ -16492,7 +16525,7 @@ msgstr "Sin meta descripción"
 msgid "No meta title"
 msgstr "Sin meta título"
 
-#: src/components/templates/ImportExportButton.tsx:171
+#: src/components/templates/ImportExportButton.tsx:174
 msgid "No MJML content to export"
 msgstr "No hay contenido MJML para exportar"
 
@@ -16549,15 +16582,15 @@ msgstr "Sin páginas"
 msgid "No path"
 msgstr "Ninguna ruta"
 
-#: src/components/blog/PostsTable.tsx:444
+#: src/components/blog/PostsTable.tsx:443
 msgid "No posts in this category"
 msgstr "Sin publicaciones en esta categoría"
 
-#: src/components/blog/PostsTable.tsx:440
+#: src/components/blog/PostsTable.tsx:439
 msgid "No posts match your search"
 msgstr "Ningún artículo coincide con tu búsqueda"
 
-#: src/components/blog/PostsTable.tsx:445
+#: src/components/blog/PostsTable.tsx:444
 msgid "No posts yet"
 msgstr "Sin publicaciones aún"
 
@@ -16577,7 +16610,7 @@ msgstr "No hay vista previa disponible o la plantilla está vacía."
 #~ msgid "No provider configured for testing"
 #~ msgstr "No hay proveedor configurado para pruebas"
 
-#: src/components/blog/PostsTable.tsx:442
+#: src/components/blog/PostsTable.tsx:441
 msgid "No published posts"
 msgstr "Sin publicaciones publicadas"
 
@@ -16638,7 +16671,7 @@ msgstr "Ningún bloque guardado coincide."
 msgid "No saved blocks yet"
 msgstr "Sin bloques guardados aún"
 
-#: src/components/blog/PostsTable.tsx:443
+#: src/components/blog/PostsTable.tsx:442
 msgid "No scheduled posts"
 msgstr "No hay artículos programados"
 
@@ -16773,7 +16806,7 @@ msgstr "Ninguna plantilla coincide con tu búsqueda"
 msgid "No text version: this email will be sent as HTML only."
 msgstr "Sin versión de texto: este email se enviará solo en HTML."
 
-#: src/components/blog/RecentThemesTable.tsx:226
+#: src/components/blog/RecentThemesTable.tsx:224
 msgid "No themes yet"
 msgstr "Sin temas aún"
 
@@ -17092,7 +17125,7 @@ msgstr "Sin seguimiento"
 msgid "Not-mapped channels"
 msgstr "Canales no asignados"
 
-#: src/components/templates/importTemplateFile.ts:65
+#: src/components/templates/importTemplateFile.ts:66
 msgid "Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components."
 msgstr "Nota: los componentes mj-raw solo pueden colocarse directamente en mj-body o mj-head, no dentro de mj-wrapper. Considera mover el contenido mj-raw fuera del contenedor o convertirlo a componentes MJML apropiados."
 
@@ -17100,7 +17133,7 @@ msgstr "Nota: los componentes mj-raw solo pueden colocarse directamente en mj-bo
 msgid "Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template."
 msgstr "Nota: La plantilla se ocultará de tu espacio de trabajo pero se preservará para mantener la capacidad de previsualizar envíos masivos y mensajes anteriores que usaron esta plantilla."
 
-#: src/components/templates/importTemplateFile.ts:68
+#: src/components/templates/importTemplateFile.ts:69
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "Nota: Esto podría ser causado por un archivo MJML estructurado incorrectamente. El contenido HTML dentro de mj-raw debe almacenarse como contenido de texto, no como elementos secundarios."
 
@@ -18218,8 +18251,8 @@ msgstr "Acceso estilo ruta"
 #: src/components/automations/AutomationEditor.tsx:495
 #: src/components/automations/AutomationEditor.tsx:538
 #: src/components/broadcasts/BroadcastsTable.tsx:199
-#: src/components/broadcasts/BroadcastsTable.tsx:462
-#: src/components/broadcasts/BroadcastsTable.tsx:466
+#: src/components/broadcasts/BroadcastsTable.tsx:461
+#: src/components/broadcasts/BroadcastsTable.tsx:464
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:307
 #: src/components/contacts/BulkActionProgressModal.tsx:50
 #: src/components/contacts/BulkUpdateDrawer.tsx:215
@@ -18236,7 +18269,7 @@ msgid "Pause a live automation"
 msgstr "Pausar una automatización activa"
 
 #: src/components/automations/list/AutomationsTable.tsx:275
-#: src/components/automations/list/AutomationsTable.tsx:279
+#: src/components/automations/list/AutomationsTable.tsx:278
 msgid "Pause automation"
 msgstr "Pausar automatización"
 
@@ -18404,8 +18437,8 @@ msgstr "Detalle de permisos"
 #~ msgid "Permission Details"
 #~ msgstr "Detalles de permiso"
 
-#: src/components/settings/WorkspaceMembers.tsx:584
-#: src/components/settings/WorkspaceMembers.tsx:654
+#: src/components/settings/WorkspaceMembers.tsx:583
+#: src/components/settings/WorkspaceMembers.tsx:653
 msgid "Permissions"
 msgstr "Permisos"
 
@@ -18416,7 +18449,7 @@ msgstr "Permisos actualizados exitosamente"
 #: src/components/automations/config/TriggerConfigForm.tsx:98
 #: src/components/contacts/contactColumns.ts:65
 #: src/components/contacts/contactFilterFields.ts:27
-#: src/components/contacts/ContactsTable.tsx:314
+#: src/components/contacts/ContactsTable.tsx:313
 #: src/components/contacts/csv-import/contactFields.ts:29
 #: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/contacts/sheet/contactFieldLabels.ts:27
@@ -18529,7 +18562,7 @@ msgstr "Texto plano (solo es seguro detrás de un proxy que termine el TLS)"
 msgid "Plan"
 msgstr ""
 
-#: src/components/settings/WorkspaceMembers.tsx:261
+#: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Platform admin"
 msgstr "Administrador de la plataforma"
 
@@ -18578,7 +18611,7 @@ msgstr "Por favor, introduce un nombre de categoría"
 #~ msgid "Please enter a coordinate precision"
 #~ msgstr ""
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:378
+#: src/components/settings/CustomFieldsConfiguration.tsx:377
 msgid "Please enter a custom label"
 msgstr "Por favor, introduce una etiqueta personalizada"
 
@@ -18676,8 +18709,8 @@ msgstr "Por favor, introduce un nombre de espacio de trabajo"
 msgid "Please enter an API identifier"
 msgstr "Por favor, introduce un identificador API"
 
-#: src/components/settings/WorkspaceMembers.tsx:349
-#: src/components/settings/WorkspaceMembers.tsx:639
+#: src/components/settings/WorkspaceMembers.tsx:348
+#: src/components/settings/WorkspaceMembers.tsx:638
 msgid "Please enter an API key name"
 msgstr "Por favor, introduce un nombre de clave API"
 
@@ -18686,8 +18719,8 @@ msgstr "Por favor, introduce un nombre de clave API"
 msgid "Please enter an automation name"
 msgstr "Por favor, introduce un nombre de automatización"
 
-#: src/components/settings/WorkspaceMembers.tsx:315
-#: src/components/settings/WorkspaceMembers.tsx:575
+#: src/components/settings/WorkspaceMembers.tsx:314
+#: src/components/settings/WorkspaceMembers.tsx:574
 msgid "Please enter an email address"
 msgstr "Por favor, introduce una dirección de correo"
 
@@ -18726,7 +18759,7 @@ msgstr "¡Por favor introduce tu correo!"
 msgid "Please select a category"
 msgstr "Por favor, selecciona una categoría"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:335
+#: src/components/settings/CustomFieldsConfiguration.tsx:334
 msgid "Please select a custom field"
 msgstr "Por favor, selecciona un campo personalizado"
 
@@ -18742,7 +18775,7 @@ msgstr "Por favor, selecciona una fecha"
 msgid "Please select a goal type"
 msgstr "Por favor, selecciona un tipo de objetivo"
 
-#: src/components/templates/importTemplateFile.ts:198
+#: src/components/templates/importTemplateFile.ts:236
 msgid "Please select a JSON file"
 msgstr "Por favor, selecciona un archivo JSON"
 
@@ -18798,7 +18831,7 @@ msgstr "Por favor, selecciona una plantilla de correo"
 msgid "Please select an event type"
 msgstr "Por favor, selecciona un tipo de evento"
 
-#: src/components/templates/importTemplateFile.ts:199
+#: src/components/templates/importTemplateFile.ts:237
 msgid "Please select an MJML file"
 msgstr "Por favor, selecciona un archivo MJML"
 
@@ -18983,7 +19016,7 @@ msgstr "Presiona Enter para confirmar, Escape para cancelar"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/EmailBuilder.tsx:1117
+#: src/components/email_builder/EmailBuilder.tsx:1132
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:132
 #: src/components/seo/SeoPreview.tsx:36
@@ -19044,7 +19077,7 @@ msgstr "Resultados de vista previa"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:184
 #: src/components/broadcasts/detail/AbTestPanel.tsx:185
-#: src/components/transactional/TransactionalTable.tsx:293
+#: src/components/transactional/TransactionalTable.tsx:294
 msgid "Preview template"
 msgstr "Previsualizar plantilla"
 
@@ -19073,7 +19106,7 @@ msgstr "Texto de vista previa ({lang})"
 msgid "Preview text will appear here..."
 msgstr "El texto de vista previa aparecerá aquí..."
 
-#: src/components/blog/RecentThemesTable.tsx:188
+#: src/components/blog/RecentThemesTable.tsx:187
 msgid "Preview this theme in a new tab"
 msgstr "Previsualizar este tema en una nueva pestaña"
 
@@ -19089,7 +19122,7 @@ msgstr "La vista previa aparecerá aquí tras la compilación"
 msgid "Preview with test data"
 msgstr "Vista previa con datos de prueba"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1506
+#: src/components/templates/CreateTemplateDrawer.tsx:1507
 msgid "Preview Your Email"
 msgstr "Previsualiza tu correo"
 
@@ -19327,7 +19360,7 @@ msgstr "Publicar este tema"
 #: src/components/blog/PostDrawer.tsx:754
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
-#: src/components/blog/PostsTable.tsx:434
+#: src/components/blog/PostsTable.tsx:433
 #: src/components/blog/ThemeEditorDrawer.tsx:471
 msgid "Published"
 msgstr "Publicado"
@@ -19646,7 +19679,7 @@ msgstr "Lee las fechas de las condiciones y fija la hora del recálculo diario."
 msgid "Ready"
 msgstr "Listo"
 
-#: src/components/templates/ImportExportButton.tsx:239
+#: src/components/templates/ImportExportButton.tsx:242
 msgid "Ready to send"
 msgstr "Listo para enviar"
 
@@ -19821,7 +19854,7 @@ msgstr "URI de redirección copiada"
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:793
 #: src/components/blog/PostDrawer.tsx:796
-#: src/components/email_builder/EmailBuilder.tsx:1101
+#: src/components/email_builder/EmailBuilder.tsx:1116
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
 msgstr "Rehacer"
@@ -20009,7 +20042,7 @@ msgstr "Recargar la última"
 msgid "Reload the automation?"
 msgstr "¿Recargar la automatización?"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:864
+#: src/components/templates/CreateTemplateDrawer.tsx:865
 msgid "Reload the page to update your saved blocks."
 msgstr "Recarga la página para actualizar tus bloques guardados."
 
@@ -20195,7 +20228,7 @@ msgstr "Elimina los contactos y su historial. No se puede deshacer."
 msgid "Rename"
 msgstr "Renombrar"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:315
+#: src/components/settings/CustomFieldsConfiguration.tsx:314
 msgid "Rename custom field"
 msgstr "Renombrar campo personalizado"
 
@@ -20268,7 +20301,7 @@ msgstr "¿Reemplazar \"{name}\" por el bloque seleccionado?"
 msgid "Replace an existing block ({count})"
 msgstr "Reemplazar un bloque existente ({count})"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:717
+#: src/components/templates/CreateTemplateDrawer.tsx:718
 msgid "Replace the content?"
 msgstr "¿Reemplazar el contenido?"
 
@@ -20604,7 +20637,7 @@ msgstr "Reintentó los envíos fallidos de la newsletter <0>{target}</0>"
 #: src/components/automations/AutomationEditor.tsx:93
 #: src/components/automations/AutomationEditor.tsx:563
 #: src/components/automations/stats/EmailStepPreview.tsx:42
-#: src/components/blog/PostsTable.tsx:462
+#: src/components/blog/PostsTable.tsx:461
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:95
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:568
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:170
@@ -20618,7 +20651,7 @@ msgstr "Reintentó los envíos fallidos de la newsletter <0>{target}</0>"
 #: src/components/segment/SegmentCountCard.tsx:124
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
-#: src/components/settings/WorkspaceMembers.tsx:497
+#: src/components/settings/WorkspaceMembers.tsx:496
 #: src/components/templates/TemplateSelectorModal.tsx:234
 #: src/components/transactional/LoadError.tsx:22
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
@@ -20955,7 +20988,7 @@ msgstr "Modo sandbox"
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:292
-#: src/components/settings/CustomFieldsConfiguration.tsx:389
+#: src/components/settings/CustomFieldsConfiguration.tsx:388
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:991
@@ -21014,7 +21047,7 @@ msgstr "Guardar cambios"
 msgid "Save Changes"
 msgstr "Guardar cambios"
 
-#: src/components/templates/ImportExportButton.tsx:259
+#: src/components/templates/ImportExportButton.tsx:262
 msgid "Save for later import"
 msgstr "Guardar para importar después"
 
@@ -21070,7 +21103,7 @@ msgstr "Guardar los metadatos de usuario en"
 #~ msgid "Save user metadata to this custom JSON field (Optional)"
 #~ msgstr "Guardar metadatos del usuario en este campo JSON personalizado (Opcional)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:944
+#: src/components/templates/CreateTemplateDrawer.tsx:945
 msgid "Save v{next} and send"
 msgstr "Guardar v{next} y enviar"
 
@@ -21104,7 +21137,7 @@ msgstr "Guardado {ago}"
 msgid "Saved as v{savedVersion}, but it could not be published. Publish it from the Themes list."
 msgstr "Guardado como v{savedVersion}, pero no se pudo publicar. Publícalo desde la lista de temas."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:354
+#: src/components/templates/CreateTemplateDrawer.tsx:355
 msgid "Saved as v{version}"
 msgstr "Guardado como v{version}"
 
@@ -21156,7 +21189,7 @@ msgstr "Zona horaria de la programación"
 
 #: src/components/blog/PostDrawer.tsx:756
 #: src/components/blog/PostsTable.tsx:346
-#: src/components/blog/PostsTable.tsx:435
+#: src/components/blog/PostsTable.tsx:434
 #: src/components/broadcasts/compose/SendingCard.tsx:39
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:202
 msgid "Scheduled"
@@ -21475,7 +21508,7 @@ msgid "See what's new"
 msgstr "Ver las novedades"
 
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:172
-#: src/components/broadcasts/detail/LinkStatsPanel.tsx:176
+#: src/components/broadcasts/detail/LinkStatsPanel.tsx:175
 msgid "See who clicked"
 msgstr "Ver quién hizo clic"
 
@@ -21519,7 +21552,7 @@ msgstr "Árbol de segmento restablecido"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:144
 #: src/components/contacts/contactColumns.ts:61
 #: src/components/contacts/ContactsRail.tsx:117
-#: src/components/contacts/ContactsTable.tsx:260
+#: src/components/contacts/ContactsTable.tsx:259
 #: src/components/contacts/sheet/ContactListsCard.tsx:258
 #: src/components/logs/labels.ts:18
 #: src/components/settings/permissionLabels.ts:18
@@ -21895,7 +21928,7 @@ msgid "Selected: {0}"
 msgstr "Seleccionado: {0}"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:451
-#: src/components/broadcasts/BroadcastsTable.tsx:455
+#: src/components/broadcasts/BroadcastsTable.tsx:454
 msgid "Send"
 msgstr "Enviar"
 
@@ -21968,7 +22001,7 @@ msgstr "Hook de envío de correo"
 msgid "Send emails and update lists when contacts do something"
 msgstr "Envía correos y actualiza listas cuando los contactos hacen algo"
 
-#: src/components/settings/WorkspaceMembers.tsx:565
+#: src/components/settings/WorkspaceMembers.tsx:564
 msgid "Send invitation"
 msgstr "Enviar invitación"
 
@@ -22030,11 +22063,11 @@ msgstr "Enviar correo de prueba"
 #~ msgid "Send Test Email"
 #~ msgstr "Enviar correo de prueba"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:934
+#: src/components/templates/CreateTemplateDrawer.tsx:935
 msgid "Send the saved version"
 msgstr "Enviar la versión guardada"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:920
+#: src/components/templates/CreateTemplateDrawer.tsx:921
 msgid "Send the saved version?"
 msgstr "¿Enviar la versión guardada?"
 
@@ -22779,7 +22812,7 @@ msgid "Show less"
 msgstr "Mostrar menos"
 
 #. placeholder {0}: totalCount - limit
-#: src/components/blog/RecentThemesTable.tsx:220
+#: src/components/blog/RecentThemesTable.tsx:218
 msgid "Show More ({0} remaining)"
 msgstr "Mostrar más ({0} restantes)"
 
@@ -22936,6 +22969,10 @@ msgstr "Inicia sesión como administrador root. Añada varias direcciones para d
 msgid "Signup"
 msgstr "Registro"
 
+#: src/components/templates/gallery/labels.ts:8
+msgid "Simple"
+msgstr "Simple"
+
 #: src/components/settings/WorkspaceMembers.tsx:180
 #~ msgid "Since"
 #~ msgstr "Desde"
@@ -23038,7 +23075,7 @@ msgstr "Omitido"
 msgid "Slash Commands"
 msgstr "Comandos de barra"
 
-#: src/components/settings/CustomFieldsConfiguration.tsx:282
+#: src/components/settings/CustomFieldsConfiguration.tsx:281
 msgid "Slots"
 msgstr "Espacios"
 
@@ -23527,7 +23564,7 @@ msgstr "Estado"
 #~ msgid "status changed"
 #~ msgstr "estado cambiado"
 
-#: src/components/contacts/ContactsTable.tsx:200
+#: src/components/contacts/ContactsTable.tsx:199
 msgid "Status in list"
 msgstr "Estado en la lista"
 
@@ -23635,7 +23672,7 @@ msgstr "Guardar la región"
 msgid "Strikethrough"
 msgstr "Tachado"
 
-#: src/components/email_builder/EmailBuilder.tsx:1183
+#: src/components/email_builder/EmailBuilder.tsx:1198
 msgid "Structure"
 msgstr "Estructura"
 
@@ -23762,7 +23799,7 @@ msgstr "Suscrito de nuevo a {name}"
 #~ msgstr "Suscrito el:"
 
 #. placeholder {0}: fullDate(subscription.created_at)
-#: src/components/contacts/ContactsTable.tsx:239
+#: src/components/contacts/ContactsTable.tsx:238
 msgid "Subscribed on: {0}"
 msgstr "Suscrito el: {0}"
 
@@ -23918,7 +23955,7 @@ msgstr "Idiomas admitidos"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Soporta reply_to, cc, bcc y adjuntos"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1508
+#: src/components/templates/CreateTemplateDrawer.tsx:1509
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Cambia al modo Vista previa para ver cómo se verá tu correo para los destinatarios. Esto muestra la versión final renderizada con todos los estilos aplicados."
 
@@ -23967,7 +24004,7 @@ msgstr "Etiquetas"
 msgid "Take a published post off the live blog"
 msgstr "Retirar una publicación del blog en producción"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:129
+#: src/components/templates/CreateTemplateDrawer.tsx:130
 msgid "Take a tour"
 msgstr "Hacer un tour"
 
@@ -24005,7 +24042,7 @@ msgstr "Tipo de tarea"
 #~ msgstr "Equipo"
 
 #: src/components/settings/SettingsSidebar.tsx:62
-#: src/components/settings/WorkspaceMembers.tsx:475
+#: src/components/settings/WorkspaceMembers.tsx:474
 msgid "Team & API keys"
 msgstr "Equipo y claves API"
 
@@ -24013,7 +24050,7 @@ msgstr "Equipo y claves API"
 msgid "Team invitation"
 msgstr "Invitación al equipo"
 
-#: src/components/settings/WorkspaceMembers.tsx:336
+#: src/components/settings/WorkspaceMembers.tsx:335
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "Se ha alcanzado el límite de miembros del equipo. Mejora tu plan para añadir más miembros."
 
@@ -24063,15 +24100,15 @@ msgstr "Plantilla {templateLabel} · v{0}"
 #~ msgstr "Bloque de plantilla \"{0}\" eliminado exitosamente"
 
 #. placeholder {0}: existingBlock?.name
-#: src/components/templates/CreateTemplateDrawer.tsx:817
+#: src/components/templates/CreateTemplateDrawer.tsx:818
 msgid "Template block \"{0}\" updated successfully"
 msgstr "Bloque de plantilla \"{0}\" actualizado exitosamente"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:816
+#: src/components/templates/CreateTemplateDrawer.tsx:817
 msgid "Template block \"{nameOrId}\" saved successfully"
 msgstr "Bloque de plantilla \"{nameOrId}\" guardado exitosamente"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:798
+#: src/components/templates/CreateTemplateDrawer.tsx:799
 msgid "Template block not found"
 msgstr "Bloque de plantilla no encontrado"
 
@@ -24083,7 +24120,7 @@ msgstr "Plantilla modificada por otra persona"
 msgid "Template created and selected"
 msgstr "Plantilla creada y seleccionada"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:355
+#: src/components/templates/CreateTemplateDrawer.tsx:356
 msgid "Template created successfully"
 msgstr "Plantilla creada exitosamente"
 
@@ -24100,7 +24137,7 @@ msgstr "Datos de la plantilla"
 msgid "Template Data"
 msgstr "Datos de plantilla"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1520
+#: src/components/templates/CreateTemplateDrawer.tsx:1521
 msgid "Template Data & Liquid Templating"
 msgstr "Datos de plantilla y plantillas Liquid"
 
@@ -24120,7 +24157,7 @@ msgstr "ID de plantilla"
 msgid "Template ID (utm_content)"
 msgstr "ID de plantilla (utm_content)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1175
+#: src/components/templates/CreateTemplateDrawer.tsx:1176
 msgid "Template ID already exists"
 msgstr "El ID de plantilla ya existe"
 
@@ -24206,7 +24243,7 @@ msgstr "Remitente de la plantilla ({0})"
 
 #: src/components/logs/labels.ts:14
 #: src/components/settings/permissionLabels.ts:9
-#: src/components/templates/CreateTemplateDrawer.tsx:968
+#: src/components/templates/CreateTemplateDrawer.tsx:969
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:229
 #: src/pages/TemplatesPage.tsx:591
@@ -24530,7 +24567,7 @@ msgstr "Estilo de texto"
 #~ msgid "Text Transform"
 #~ msgstr "Transformación de texto"
 
-#: src/components/email_builder/EmailBuilder.tsx:1120
+#: src/components/email_builder/EmailBuilder.tsx:1135
 #: src/components/email_builder/MjmlCodeEditor.tsx:693
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:807
@@ -24653,7 +24690,7 @@ msgstr "Se perderán los cambios hechos desde que se abrió el segmento."
 msgid "The changes you made since opening this notification will be lost."
 msgstr "Se perderán los cambios que hiciste desde que abriste esta notificación."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:895
+#: src/components/templates/CreateTemplateDrawer.tsx:896
 msgid "The changes you made since opening this template will be lost."
 msgstr "Se perderán los cambios que hiciste desde que abriste esta plantilla."
 
@@ -24661,7 +24698,7 @@ msgstr "Se perderán los cambios que hiciste desde que abriste esta plantilla."
 msgid "The changes you made to this rule will be lost."
 msgstr "Se perderán los cambios que hiciste en esta regla."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:718
+#: src/components/templates/CreateTemplateDrawer.tsx:719
 msgid "The changes you made will be replaced by the model you choose."
 msgstr "Los cambios que hiciste se reemplazarán por el modelo que elijas."
 
@@ -24781,11 +24818,11 @@ msgstr "El tema actualmente publicado se despublicará automáticamente."
 msgid "The custom text could not be used, the automatic version is sent instead: {previewTextError}"
 msgstr "No se pudo usar el texto personalizado, se envía la versión automática en su lugar: {previewTextError}"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1102
+#: src/components/templates/CreateTemplateDrawer.tsx:1103
 msgid "The custom text version ({languages}) has no confirmation link. Add {CONFIRM_VARIABLE} so recipients can confirm their subscription."
 msgstr "La versión de texto personalizada ({languages}) no tiene enlace de confirmación. Añade {CONFIRM_VARIABLE} para que los destinatarios puedan confirmar su suscripción."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1103
+#: src/components/templates/CreateTemplateDrawer.tsx:1104
 msgid "The custom text version ({languages}) has no unsubscribe link. Add {UNSUBSCRIBE_VARIABLE} so recipients can unsubscribe."
 msgstr "La versión de texto personalizada ({languages}) no tiene enlace para darse de baja. Añade {UNSUBSCRIBE_VARIABLE} para que los destinatarios puedan darse de baja."
 
@@ -25287,7 +25324,7 @@ msgstr "¡La configuración del espacio de trabajo ha sido actualizada!"
 msgid "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
 msgstr "El registro de auditoría del workspace: quién cambió qué, desde dónde y si estaba permitido. Los propietarios siempre lo leen; un miembro o una clave API solo con este permiso."
 
-#: src/components/blog/PostsTable.tsx:537
+#: src/components/blog/PostsTable.tsx:536
 msgid "Theme"
 msgstr "Tema"
 
@@ -25319,7 +25356,7 @@ msgstr "Tema v{themeVersion}"
 #~ msgid "Theme Versions"
 #~ msgstr "Versiones del tema"
 
-#: src/components/blog/RecentThemesTable.tsx:208
+#: src/components/blog/RecentThemesTable.tsx:206
 msgid "Themes"
 msgstr "Temas"
 
@@ -25524,11 +25561,11 @@ msgid "This field is required"
 msgstr "Este campo es obligatorio"
 
 #: src/components/templates/importTemplateFile.ts:151
-msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
-msgstr "Este archivo contiene las condiciones de visualización de una exportación. No se importan: los bloques que envolvían ahora se muestran a todos los destinatarios. Vuelve a añadir sus condiciones en los ajustes del bloque."
+#~ msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
+#~ msgstr "Este archivo contiene las condiciones de visualización de una exportación. No se importan: los bloques que envolvían ahora se muestran a todos los destinatarios. Vuelve a añadir sus condiciones en los ajustes del bloque."
 
 #: src/components/file_manager/FileGrid.tsx:123
-#: src/components/file_manager/FileTable.tsx:188
+#: src/components/file_manager/FileTable.tsx:187
 msgid "This file type can't be used here"
 msgstr "Este tipo de archivo no se puede usar aquí"
 
@@ -25544,7 +25581,7 @@ msgstr "Este archivo se procesó en parte el {savedOn}"
 #~ msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 #~ msgstr "Este hook nunca bloquea la creación de usuarios de Supabase por errores. Sin embargo, si 'Rechazar direcciones de correo desechables' está habilitado y se detecta un correo desechable, el registro de usuario será rechazado por Supabase."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1174
+#: src/components/templates/CreateTemplateDrawer.tsx:1175
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "Este ID pertenece a una plantilla eliminada y no se puede reutilizar"
 
@@ -25589,11 +25626,11 @@ msgstr "Este es el ID que se usará como parámetro utm_content en la URL de los
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "Aquí es donde viven las estadísticas de entrega, y no bajo Envíos masivos: una clave que puede crear y enviar un envío masivo sigue sin poder leer sus cifras de aperturas, clics o rebotes sin la lectura de Historial de mensajes. El registro lleva las direcciones de los destinatarios y los datos renderizados del mensaje, así que son datos de contacto con otro nombre."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1487
+#: src/components/templates/CreateTemplateDrawer.tsx:1488
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "Este es tu árbol de estructura de contenido. Puedes arrastrar y soltar bloques para reorganizar el diseño de tu correo. Haz clic en los botones + para añadir nuevos bloques, o arrastra bloques de una sección a otra."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1494
+#: src/components/templates/CreateTemplateDrawer.tsx:1495
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "Este es tu editor visual de correo. Haz clic en cualquier elemento de tu correo para seleccionarlo. Los elementos seleccionados se resaltarán con un borde azul y mostrarán opciones de edición."
 
@@ -25643,6 +25680,18 @@ msgstr "Esta notificación sigue enviando con ella"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:502
 msgid "This notification still sends with it. Choose another template to stop depending on a deleted one."
 msgstr "Esta notificación sigue enviando con ella. Elige otra plantilla para dejar de depender de una eliminada."
+
+#: src/components/templates/importTemplateFile.ts:153
+msgid "This notifuse:{tag} mark of a Notifuse export closes no mark."
+msgstr "Esta marca notifuse:{tag} de una exportación de Notifuse no cierra ninguna marca."
+
+#: src/components/templates/importTemplateFile.ts:151
+msgid "This notifuse:{tag} mark of a Notifuse export is not closed."
+msgstr "Esta marca notifuse:{tag} de una exportación de Notifuse no está cerrada."
+
+#: src/components/templates/importTemplateFile.ts:156
+msgid "This notifuse:condition mark of a Notifuse export holds no block or no valid condition."
+msgstr "Esta marca notifuse:condition de una exportación de Notifuse no contiene ningún bloque ni una condición válida."
 
 #: src/components/timeline/WebPageDrawer.tsx:89
 msgid "This page cannot be previewed here"
@@ -25784,7 +25833,7 @@ msgstr "Este texto no se actualiza cuando cambias el email."
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "Este token solo se muestra una vez y no se puede recuperar de nuevo. Cópialo ahora y pégalo en Zapier."
 
-#: src/components/settings/WorkspaceMembers.tsx:674
+#: src/components/settings/WorkspaceMembers.tsx:673
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Este token solo se mostrará una vez. Por favor, guárdalo en un lugar seguro. No se puede recuperar de nuevo."
 
@@ -25958,7 +26007,7 @@ msgstr "El TimeScore es la mediana del tiempo de interacción de todas las sesio
 #: src/components/broadcasts/compose/SendingCard.tsx:116
 #: src/components/broadcasts/compose/SendingCard.tsx:118
 #: src/components/contacts/contactColumns.ts:68
-#: src/components/contacts/ContactsTable.tsx:317
+#: src/components/contacts/ContactsTable.tsx:316
 #: src/components/contacts/csv-import/contactFields.ts:31
 #: src/components/contacts/sheet/contactFieldLabels.ts:34
 #: src/components/segment/segmentLabels.ts:25
@@ -25981,7 +26030,7 @@ msgstr "La zona horaria es obligatoria"
 msgid "Timezone used for dates"
 msgstr "Zona horaria usada para fechas"
 
-#: src/components/contacts/ContactsTable.tsx:289
+#: src/components/contacts/ContactsTable.tsx:288
 msgid "Timezone:"
 msgstr "Zona horaria:"
 
@@ -25994,7 +26043,7 @@ msgstr "Zona horaria:"
 #~ msgstr "Consejos para corregir estos errores:"
 
 #: src/components/blog/PostDrawer.tsx:886
-#: src/components/blog/PostsTable.tsx:566
+#: src/components/blog/PostsTable.tsx:565
 #: src/components/settings/BlogSettings.tsx:253
 #: src/components/settings/BlogSettings.tsx:390
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:182
@@ -26130,7 +26179,7 @@ msgstr "Los correos de hoy aparecerán aquí mañana: el gráfico cuenta días c
 #~ msgid "TODO"
 #~ msgstr "POR HACER"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1515
+#: src/components/templates/CreateTemplateDrawer.tsx:1516
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 msgstr "Alterna entre vistas móvil y de escritorio para ver cómo aparece tu correo en diferentes dispositivos. La vista móvil muestra 400px de ancho mientras que la de escritorio muestra el ancho completo."
 
@@ -26321,7 +26370,7 @@ msgstr "El seguimiento (aperturas y clics) debe estar habilitado en la configura
 #~ msgstr "El seguimiento (aperturas y clics) debe estar habilitado en la configuración de tu espacio de trabajo para usar esta función"
 
 #: src/components/contacts/contactColumns.ts:72
-#: src/components/contacts/ContactsTable.tsx:319
+#: src/components/contacts/ContactsTable.tsx:318
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:277
 msgid "Tracking consent"
 msgstr "Consentimiento de seguimiento"
@@ -26622,7 +26671,7 @@ msgstr "Entiende la calidad de las referencias"
 #: src/components/blog/PostDrawer.tsx:784
 #: src/components/blog/PostDrawer.tsx:787
 #: src/components/email_builder/EmailBuilder.tsx:1042
-#: src/components/email_builder/EmailBuilder.tsx:1094
+#: src/components/email_builder/EmailBuilder.tsx:1109
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Undo"
 msgstr "Deshacer"
@@ -26677,7 +26726,7 @@ msgstr "Los clics únicos cuentan a cada destinatario una vez por enlace: alguie
 msgid "Unknown"
 msgstr "Desconocido"
 
-#: src/components/contacts/ContactsTable.tsx:283
+#: src/components/contacts/ContactsTable.tsx:282
 msgid "Unknown date"
 msgstr "Fecha desconocida"
 
@@ -27199,11 +27248,11 @@ msgstr "Usa el nombre de la fuente en elementos de texto:"
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Usa el botón de guardar en la barra de herramientas del bloque para guardar bloques"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1522
+#: src/components/templates/CreateTemplateDrawer.tsx:1523
 msgid "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 msgstr "Usa la pestaña Datos de plantilla para definir contenido dinámico para tus correos. Añade variables como {{ name }} o {{ company }} en el contenido de tu correo, luego define sus valores aquí. El motor de plantillas Liquid soporta condicionales, bucles y filtros para personalización poderosa."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1530
+#: src/components/templates/CreateTemplateDrawer.tsx:1531
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Usa este botón para importar plantillas de correo guardadas o exportar tus correos terminados. Puedes importar plantillas JSON/MJML o exportar como HTML, MJML o JSON para uso futuro."
 
@@ -27623,7 +27672,7 @@ msgstr "Ver en el navegador"
 #: src/components/analytics/RecentFailures.tsx:98
 #: src/components/transactional/RecentSends.tsx:54
 #: src/components/transactional/TransactionalDetail.tsx:327
-#: src/components/transactional/TransactionalTable.tsx:299
+#: src/components/transactional/TransactionalTable.tsx:300
 msgid "View in logs"
 msgstr "Ver en los registros"
 
@@ -27667,7 +27716,7 @@ msgid "View snippet"
 msgstr "Ver el fragmento"
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:306
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:310
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:309
 msgid "View the sent email"
 msgstr "Ver el email enviado"
 
@@ -27768,7 +27817,7 @@ msgstr "Las visitas a tus sitios, registradas por un script propio y guardadas e
 msgid "Visual"
 msgstr "Visual"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1492
+#: src/components/templates/CreateTemplateDrawer.tsx:1493
 msgid "Visual Email Editor"
 msgstr "Editor visual de correo"
 
@@ -28061,7 +28110,7 @@ msgstr "Peso"
 msgid "Welcome"
 msgstr "Bienvenido"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1479
+#: src/components/templates/CreateTemplateDrawer.tsx:1480
 msgid "Welcome to Email Builder!"
 msgstr "¡Bienvenido al constructor de correos!"
 
@@ -28193,7 +28242,7 @@ msgstr "Cuándo cambió por última vez el consentimiento de seguimiento"
 msgid "When to send"
 msgstr "Cuándo enviar"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1501
+#: src/components/templates/CreateTemplateDrawer.tsx:1502
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Cuando seleccionas un bloque, su configuración aparece aquí. Modifica colores, texto, espaciado, alineación y otras propiedades para personalizar el diseño de tu correo."
 
@@ -28229,7 +28278,7 @@ msgstr "¿Qué páginas de destino traen más sesiones, y cuáles tienen la peor
 msgid "Which provider sends what"
 msgstr "Qué proveedor envía qué"
 
-#: src/components/settings/WorkspaceMembers.tsx:475
+#: src/components/settings/WorkspaceMembers.tsx:474
 msgid "Who can do what in this workspace"
 msgstr "Quién puede hacer qué en este espacio de trabajo"
 
@@ -28802,7 +28851,7 @@ msgstr "Necesitas acceso al historial de mensajes para ver los correos de este p
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:408
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:296
-#: src/components/templates/CreateTemplateDrawer.tsx:907
+#: src/components/templates/CreateTemplateDrawer.tsx:908
 #: src/components/templates/SendTestEmailButton.tsx:25
 #: src/components/transactional/notificationRules.ts:49
 msgid "You need Templates read and Transactional write permissions to send test emails"
@@ -28863,7 +28912,7 @@ msgstr "Tus credenciales de AWS no pueden crear tenants de SES. Concede ses:Crea
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "Tu configuración del blog no se ha guardado. Si sales de esta página, se descartará."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:923
+#: src/components/templates/CreateTemplateDrawer.tsx:924
 msgid "Your changes are not saved yet. A test sends the saved version."
 msgstr "Tus cambios aún no están guardados. Una prueba envía la versión guardada."
 
@@ -28927,7 +28976,7 @@ msgstr "Tu factura de octubre"
 msgid "Your SMTP server's name"
 msgstr "El nombre de tu servidor SMTP"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:706
+#: src/components/templates/CreateTemplateDrawer.tsx:707
 #: src/components/templates/TemplateStartModal.tsx:93
 #: src/components/templates/TemplateStartModal.tsx:135
 msgid "Your templates"

@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Emails sent by an automation can use the event that started the journey, as `{{ trigger_event }}`: a custom event's properties (`{{ trigger_event.properties.items }}`), the list or segment the contact joined, or the link clicked. Journeys that started before the upgrade have no event.
 
-- **Feature**: Creating a template starts from a gallery of 15 ready-made emails (verification code, receipt, order confirmation, abandoned cart, newsletter…) written in the workspace's language, from one of your templates, or from a blank email.
+- **Feature**: Creating a template starts from a gallery of 15 ready-made emails (verification code, receipt, order confirmation, abandoned cart, newsletter…) written in the workspace's language, from one of your templates, or from « Simple », a logo, a paragraph and the footer.
 
 - **Feature**: A scheduled broadcast that has not started sending can go back to draft, with the new `broadcasts.unschedule` API endpoint and « Back to draft » in the console. It keeps its date, and can be edited and scheduled again. Once its sending has started, the request is refused: cancel it instead.
 
@@ -74,6 +74,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: `compose.yaml` installs Notifuse without a clone, from the image published for its release (`NOTIFUSE_VERSION` in `.env` pins another; from a clone, `--build` builds it), and moves to PostgreSQL 18. An installation made on PostgreSQL 17 is upgraded by its next `docker compose up -d`, after a copy of its 17 data to the `postgres-upgrade-backup` volume, which you delete once satisfied (Self-hosting › Upgrading PostgreSQL says how, and how to roll back). PostgreSQL is now published on 127.0.0.1 only, and every variable of `.env` reaches Notifuse, not only those the file names: check that `.env` holds no stale setting. Notifuse still runs on PostgreSQL 17.
 
+- **Improvement**: Importing MJML into the visual editor keeps the Liquid written between blocks. An MJML export from Notifuse marks its Liquid blocks and display conditions with Liquid comments, and the import gives them back; in other MJML files, a passage with Liquid between blocks (a `{% for %}` loop around sections, for example) becomes a Liquid block holding that code. `templates.compile` takes `liquid_markers` for these marks.
+
 - **Improvement**: The SparkPost and Mailjet integrations are marked deprecated in the console and will be removed in a later version: SparkPost no longer accepts new customers, and Mailjet does not allow sending marketing emails through its API.
 
 - **Improvement**: The AI integrations suggest current models: Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 for Anthropic, Gemini 4 Carbon, Argon and Hydrogen for Google, and GPT-6.1 Sol, GPT-6 Astra and GPT-6.1 Terra for OpenAI. A new integration starts on Claude Sonnet 5.5, Gemini 4 Argon or GPT-6.1 Sol Existing integrations keep the model they name; one saved without a model now uses the new default.
@@ -89,6 +91,8 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: The Docker Compose files give Notifuse 75 seconds to stop instead of Docker's default 10, so the work under way (an automation step, emails being sent, web analytics visits) finishes before the container exits. It applies once the container is recreated, for example by `docker compose up -d`. With your own Compose file, `docker run` or Kubernetes, set `stop_grace_period: 75s`, `--stop-timeout 75` or `terminationGracePeriodSeconds: 75` on the Notifuse container.
 
 - **Improvement**: `DB_EXPECT_EXISTING=true` makes Notifuse refuse to start instead of creating or initialising its system database, and refuse to create a missing workspace database, on a server that must already hold the data (an upgrade, a restore). Without it, a first start on an empty database is now logged as a warning.
+
+- **Fix**: Importing MJML into the visual editor reads the file as MJML does: a bare `&`, a `<` in a Liquid condition, an unclosed `<p>`, an HTML entity such as `&minus;` or an attribute without quotes no longer fail with a syntax error.
 
 - **Fix**: The setup wizard sends telemetry and update checks as it shows them; they were sent switched off unless « Advanced Settings » was opened. It also saves the EHLO hostname it tests with, accepts several root emails as documented, asks for the SSO redirect URI and scopes, accepts a setup where the environment sets only some SMTP or SSO values, and waits for the restarted server before offering to sign in.
 

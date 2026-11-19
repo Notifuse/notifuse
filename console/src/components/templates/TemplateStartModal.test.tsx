@@ -52,6 +52,10 @@ describe('TemplateStartModal', () => {
   it('opens on the gallery, Blank first, with the use cases and their counts', () => {
     renderModal()
     expect(cards()[0]).toBe('blank')
+    // Named for what it holds (a logo, a paragraph, the footer): it is not empty.
+    const first = document.querySelector<HTMLElement>('[data-model="blank"]')!
+    expect(within(first).getByText('Simple')).toBeInTheDocument()
+    expect(within(first).queryByText('Blank')).not.toBeInTheDocument()
     expect(cards()).toHaveLength(16)
     const nav = screen.getByRole('navigation', { name: 'Use cases' })
     expect(within(nav).getByRole('button', { name: /All\s*15/ })).toHaveAttribute('aria-pressed', 'true')

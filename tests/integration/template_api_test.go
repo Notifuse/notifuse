@@ -1455,3 +1455,54 @@ func TestTemplateCompileWorkLimits(t *testing.T) {
 		assert.Contains(t, string(raw), "work budget of the email", "status %d, body %s", resp.StatusCode, raw)
 	})
 }
+
+// TestTemplateCompileLiquidMarkers verifies that the MJML export marks mj-liquid blocks and
+// display conditions only when liquid_markers is sent with preserve_liquid, so the visual
+// editor's MJML import can rebuild them.
+func TestTemplateCompileLiquidMarkers(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspace(t, client, "Liquid Markers Workspace")
+
+	const tree = `{"id":"root","type":"mjml","children":[{"id":"body","type":"mj-body","children":[
+		{"id":"sec","type":"mj-section","children":[{"id":"col","type":"mj-column","children":[
+			{"id":"txt","type":"mj-text","content":"<p>VIP</p>","display_condition":{"match":"all","rules":[{"variable":"contact.custom_string_1","operator":"eq","value":"50%"}]}},
+			{"id":"liq","type":"mj-liquid","content":"{% for i in (1..2) %}<mj-text>{{ i }}</mj-text>{% endfor %}"}
+		]}]}]}]}`
+
+	compile := func(flags string) string {
+		body := `{"workspace_id":"` + workspaceID + `","message_id":"export",` + flags + `"visual_editor_tree":` + tree + `}`
+		var payload map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(body), &payload))
+		resp, err := client.CompileTemplate(payload)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		var out struct {
+			Success bool    `json:"success"`
+			MJML    *string `json:"mjml"`
+		}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
+		require.True(t, out.Success)
+		require.NotNil(t, out.MJML)
+		return *out.MJML
+	}
+
+	marked := compile(`"preserve_liquid":true,"liquid_markers":true,`)
+	assert.Contains(t, marked, "{% comment %}notifuse:liquid{% endcomment %}{% for i in (1..2) %}<mj-text>{{ i }}</mj-text>{% endfor %}{% comment %}/notifuse:liquid{% endcomment %}")
+	assert.Contains(t, marked, `{% comment %}notifuse:condition {"match":"all","rules":[{"variable":"contact.custom_string_1","operator":"eq","value":"50\u0025"}]}{% endcomment %}`)
+	assert.Contains(t, marked, "{% comment %}/notifuse:condition{% endcomment %}")
+
+	assert.NotContains(t, compile(`"preserve_liquid":true,`), "notifuse:")
+	assert.NotContains(t, compile(`"liquid_markers":true,`), "notifuse:")
+}

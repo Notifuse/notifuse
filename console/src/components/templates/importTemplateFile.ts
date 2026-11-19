@@ -1,11 +1,12 @@
-import { msg } from '@lingui/core/macro'
+import { msg, plural } from '@lingui/core/macro'
 import type { I18n } from '@lingui/core'
 import type { EmailBlock } from '../email_builder/types'
 import { EmailBlockClass } from '../email_builder/EmailBlockClass'
 import { conditionErrorsInTree } from '../email_builder/displayCondition'
 import {
-  convertMjmlToJsonBrowser,
-  hasDisplayConditionLiquid
+  importMjmlSource,
+  MjmlImportError,
+  type MjmlImportErrorReason
 } from '../mjml-converter/mjml-to-json-browser'
 
 /** Which picker the file came from: a Notifuse export, or MJML to convert to a visual tree. */
@@ -137,25 +138,64 @@ export function syntaxErrorLine(message: string): number | undefined {
   return Number.isInteger(line) && line > 0 ? line : undefined
 }
 
+/** What an MJML import error says, in the console's language. */
+function importErrorMessage(error: MjmlImportError, i18n: I18n): string {
+  const tag = error.subject
+  const messages: Record<MjmlImportErrorReason, () => string> = {
+    not_closed: () => i18n._(msg`<${tag}> is not closed.`),
+    closes_nothing: () => i18n._(msg`</${tag}> closes no open tag.`),
+    liquid_in_tag: () =>
+      i18n._(msg`Liquid inside a tag cannot be imported into the visual editor.`),
+    liquid_between_blocks: () =>
+      i18n._(msg`Liquid between the blocks of <${tag}> cannot be imported into the visual editor.`),
+    outside_root: () => i18n._(msg`Liquid or markup outside <mjml> cannot be imported.`),
+    mark_not_closed: () =>
+      i18n._(msg`This notifuse:${tag} mark of a Notifuse export is not closed.`),
+    mark_not_opened: () =>
+      i18n._(msg`This notifuse:${tag} mark of a Notifuse export closes no mark.`),
+    condition_mark_invalid: () =>
+      i18n._(
+        msg`This notifuse:condition mark of a Notifuse export holds no block or no valid condition.`
+      )
+  }
+  return messages[error.reason]()
+}
+
 function importMjml(content: string, i18n: I18n): TemplateImport {
   try {
-    const tree = convertMjmlToJsonBrowser(content)
+    const { tree, liquidBlocksKept: count } = importMjmlSource(content)
     const errors = validateEmailTree(tree, i18n)
     if (errors.length > 0)
       return { ok: false, title: i18n._(msg`MJML Import Validation Failed`), errors }
-    const warnings = hasDisplayConditionLiquid(content)
-      ? [
-          {
-            title: i18n._(msg`Display conditions not imported`),
-            content: i18n._(
-              msg`This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings.`
-            )
-          }
-        ]
-      : []
+    // Liquid written between blocks, without the marks of a Notifuse export, is kept in Liquid
+    // blocks: nothing is lost, but those passages are no longer edited visually.
+    const warnings =
+      count > 0
+        ? [
+            {
+              title: i18n._(msg`Liquid kept in Liquid blocks`),
+              content: i18n._(
+                msg`${plural(count, {
+                  one: '# passage written between blocks was kept as a Liquid block: its Liquid is unchanged and it is edited as code.',
+                  other:
+                    '# passages written between blocks were kept as Liquid blocks: their Liquid is unchanged and they are edited as code.'
+                })}`
+              )
+            }
+          ]
+        : []
     return { ok: true, tree, warnings }
   } catch (error) {
     console.error('MJML import failed:', error)
+    if (error instanceof MjmlImportError) {
+      return {
+        ok: false,
+        title: i18n._(msg`MJML Syntax Error`),
+        errors: [importErrorMessage(error, i18n)],
+        source: content,
+        line: error.line
+      }
+    }
     if (!(error instanceof Error)) {
       return {
         ok: false,
