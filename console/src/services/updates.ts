@@ -39,6 +39,32 @@ export interface UpdateCheckRequest {
   entitlements: Entitlements | null
 }
 
+/** The console languages the update notes may be written in; English is the fallback. */
+const UPDATE_NOTE_LOCALES = ['en', 'fr', 'es', 'de', 'ca', 'pt-BR', 'ja', 'it'] as const
+
+/**
+ * The language to ask the update notes in: the first of the browser's languages the console
+ * speaks, matched exactly (pt-BR) or by its base (fr-CA to fr, any Portuguese to pt-BR), else
+ * English.
+ */
+export function browserLocale(languages?: readonly string[]): string {
+  let preferred: readonly string[] = languages ?? []
+  if (!languages && typeof navigator !== 'undefined') {
+    preferred = navigator.languages?.length ? navigator.languages : [navigator.language]
+  }
+  for (const tag of preferred) {
+    if (!tag) continue
+    const lower = tag.toLowerCase()
+    const exact = UPDATE_NOTE_LOCALES.find((locale) => locale.toLowerCase() === lower)
+    if (exact) return exact
+    const base = lower.split('-')[0]
+    if (base === 'pt') return 'pt-BR'
+    const byBase = UPDATE_NOTE_LOCALES.find((locale) => locale === base)
+    if (byBase) return byBase
+  }
+  return 'en'
+}
+
 /** The browser's IANA time zone, or an empty string when Intl cannot tell. */
 export function browserTimeZone(): string {
   try {
