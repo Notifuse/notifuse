@@ -2,7 +2,9 @@ package migrations
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -15,8 +17,8 @@ type SegmentSQLResult struct {
 	// Recompiled counts the segments whose stored query changed and was replaced; each of them
 	// is marked for a rebuild.
 	Recompiled int
-	// Skipped names the segments whose tree could not be recompiled, with why. They keep their
-	// stored query.
+	// Skipped names the segments whose tree could not be recompiled, or that were deleted while
+	// they were, with why. They keep their stored query.
 	Skipped map[string]string
 }
 
@@ -51,12 +53,6 @@ func RegenerateSegmentSQL(ctx context.Context, db DBExecutor) (SegmentSQLResult,
 		return result, fmt.Errorf("failed to query segments: %w", err)
 	}
 
-	type storedSegment struct {
-		id       string
-		tree     []byte
-		sql      *string
-		argsJSON []byte
-	}
 	var segments []storedSegment
 	for rows.Next() {
 		var s storedSegment
@@ -75,40 +71,125 @@ func RegenerateSegmentSQL(ctx context.Context, db DBExecutor) (SegmentSQLResult,
 	}
 
 	qb := service.NewQueryBuilder()
-	for _, s := range segments {
-		var tree domain.TreeNode
-		if unmarshalErr := json.Unmarshal(s.tree, &tree); unmarshalErr != nil {
-			result.Skipped[s.id] = fmt.Sprintf("tree is not valid JSON: %v", unmarshalErr)
-			continue
+	for _, seg := range segments {
+		// A segment saved meanwhile by a live instance is read again and recompiled from what
+		// was saved, a few times; one that keeps changing fails the run, so that the migration
+		// is not recorded and runs again at the next start.
+		for attempt := 1; ; attempt++ {
+			outcome, err := recompileSegment(ctx, db, qb, seg, &result)
+			if err != nil {
+				return result, err
+			}
+			if outcome != segmentSavedMeanwhile {
+				break
+			}
+			if attempt == segmentRegenAttempts {
+				return result, fmt.Errorf("segment %s was saved again each time it was recompiled; run the migration again", seg.id)
+			}
+			again, found, readErr := readSegment(ctx, db, seg.id)
+			if readErr != nil {
+				return result, readErr
+			}
+			if !found {
+				result.Skipped[seg.id] = "deleted while it was recompiled"
+				break
+			}
+			seg = again
 		}
-		sqlQuery, args, buildErr := qb.BuildSQL(&tree)
-		if buildErr != nil {
-			result.Skipped[s.id] = buildErr.Error()
-			continue
-		}
-		same, compareErr := sameArgs(s.argsJSON, args)
-		if compareErr != nil {
-			result.Skipped[s.id] = fmt.Sprintf("arguments do not encode: %v", compareErr)
-			continue
-		}
-		if s.sql != nil && *s.sql == sqlQuery && same {
-			continue
-		}
-		// Stored as the service stores them (domain.JSONArray), so that a rerun compares like
-		// with like. Only if the query is still the one read: a segment saved meanwhile by a live
-		// instance (cmd/regen-json-filters runs beside one) holds a query compiled from its new
-		// tree, which this one must not replace.
-		if _, execErr := db.ExecContext(ctx, `
-			UPDATE segments
-			SET generated_sql = $1, generated_args = $2, recompute_after = NOW(), db_updated_at = NOW()
-			WHERE id = $3 AND generated_sql IS NOT DISTINCT FROM $4
-		`, sqlQuery, domain.JSONArray(args), s.id, s.sql); execErr != nil {
-			return result, fmt.Errorf("failed to update segment %s: %w", s.id, execErr)
-		}
-		result.Recompiled++
 	}
 
 	return result, nil
+}
+
+// storedSegment is a segment as RegenerateSegmentSQL reads it.
+type storedSegment struct {
+	id       string
+	tree     []byte
+	sql      *string
+	argsJSON []byte
+}
+
+// segmentRegenAttempts bounds how often a segment saved during its recompilation is read again.
+const segmentRegenAttempts = 3
+
+type segmentOutcome int
+
+const (
+	segmentDone segmentOutcome = iota
+	segmentSavedMeanwhile
+)
+
+// recompileSegment recompiles one segment as read, and stores the new query only if the segment
+// still holds what was read.
+func recompileSegment(ctx context.Context, db DBExecutor, qb *service.QueryBuilder, s storedSegment, result *SegmentSQLResult) (segmentOutcome, error) {
+	var tree domain.TreeNode
+	if unmarshalErr := json.Unmarshal(s.tree, &tree); unmarshalErr != nil {
+		result.Skipped[s.id] = fmt.Sprintf("tree is not valid JSON: %v", unmarshalErr)
+		return segmentDone, nil
+	}
+	sqlQuery, args, buildErr := qb.BuildSQL(&tree)
+	if buildErr != nil {
+		result.Skipped[s.id] = buildErr.Error()
+		return segmentDone, nil
+	}
+	same, compareErr := sameArgs(s.argsJSON, args)
+	if compareErr != nil {
+		result.Skipped[s.id] = fmt.Sprintf("arguments do not encode: %v", compareErr)
+		return segmentDone, nil
+	}
+	if s.sql != nil && *s.sql == sqlQuery && same {
+		return segmentDone, nil
+	}
+	// Stored as the service stores them (domain.JSONArray), so that a rerun compares like
+	// with like. Only if the segment is still the one read: a segment saved meanwhile by a
+	// live instance (cmd/regen-json-filters runs beside one) holds a new tree, which this
+	// query was not compiled from. The query alone does not tell: a new value in the same
+	// condition changes only the tree and the arguments.
+	res, execErr := db.ExecContext(ctx, segmentRegenUpdateSQL,
+		sqlQuery, domain.JSONArray(args), s.id, s.sql, string(s.tree), nullableJSON(s.argsJSON))
+	if execErr != nil {
+		return segmentDone, fmt.Errorf("failed to update segment %s: %w", s.id, execErr)
+	}
+	updated, rowsErr := res.RowsAffected()
+	if rowsErr != nil {
+		return segmentDone, fmt.Errorf("failed to read the update of segment %s: %w", s.id, rowsErr)
+	}
+	if updated == 0 {
+		return segmentSavedMeanwhile, nil
+	}
+	result.Recompiled++
+	return segmentDone, nil
+}
+
+// readSegment reads one segment again; found is false once it is deleted.
+func readSegment(ctx context.Context, db DBExecutor, id string) (storedSegment, bool, error) {
+	s := storedSegment{id: id}
+	err := db.QueryRowContext(ctx, `SELECT tree, generated_sql, generated_args FROM segments WHERE id = $1 AND status <> 'deleted'`, id).
+		Scan(&s.tree, &s.sql, &s.argsJSON)
+	if errors.Is(err, sql.ErrNoRows) {
+		return s, false, nil
+	}
+	if err != nil {
+		return s, false, fmt.Errorf("failed to read segment %s again: %w", id, err)
+	}
+	return s, true, nil
+}
+
+// segmentRegenUpdateSQL stores a recompiled query if the segment still holds the query, tree and
+// arguments that were read: jsonb compares the tree and the arguments by value.
+const segmentRegenUpdateSQL = `
+			UPDATE segments
+			SET generated_sql = $1, generated_args = $2, recompute_after = NOW(), db_updated_at = NOW()
+			WHERE id = $3 AND status <> 'deleted' AND generated_sql IS NOT DISTINCT FROM $4
+			  AND tree = $5::jsonb AND generated_args IS NOT DISTINCT FROM $6::jsonb
+		`
+
+// nullableJSON passes stored JSON as text, and SQL NULL as nil.
+func nullableJSON(b []byte) interface{} {
+	if b == nil {
+		return nil
+	}
+	return string(b)
 }
 
 // sameArgs reports whether the stored generated_args hold args. They are compared by value, since

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { checkForUpdates, normalizeUpdateCheck, safeHttpsUrl, UPDATES_ENDPOINT } from './updates'
+import { browserTimeZone, checkForUpdates, normalizeUpdateCheck, safeHttpsUrl, UPDATES_ENDPOINT } from './updates'
 import type { Entitlements } from '../types/license'
 
 const entitlements: Entitlements = {
@@ -36,12 +36,12 @@ const okResponse = {
 describe('checkForUpdates', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('posts the version, locale and entitlements, without credentials or a session token', async () => {
+  it('posts the version, locale, time zone and entitlements, without credentials or a session token', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(okResponse), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     localStorage.setItem('auth_token', 'session-token-that-must-stay-home')
 
-    const result = await checkForUpdates({ version: '42.0', locale: 'fr', entitlements })
+    const result = await checkForUpdates({ version: '42.0', locale: 'fr', timezone: 'Europe/Paris', entitlements })
 
     expect(result).toEqual(okResponse)
     expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -49,18 +49,23 @@ describe('checkForUpdates', () => {
     expect(url).toBe(UPDATES_ENDPOINT)
     expect(init.method).toBe('POST')
     expect(init.credentials).toBe('omit')
-    expect(JSON.parse(init.body as string)).toEqual({ version: '42.0', locale: 'fr', entitlements })
+    expect(JSON.parse(init.body as string)).toEqual({
+      version: '42.0',
+      locale: 'fr',
+      timezone: 'Europe/Paris',
+      entitlements
+    })
     const headers = new Headers(init.headers)
     expect(headers.get('Authorization')).toBeNull()
     expect(JSON.stringify(init)).not.toContain('session-token-that-must-stay-home')
     localStorage.removeItem('auth_token')
   })
 
-  it('leaves entitlements out when user.me sent none', async () => {
+  it('leaves entitlements and an unknown time zone out', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(okResponse), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await checkForUpdates({ version: '42.0', locale: 'en', entitlements: null })
+    await checkForUpdates({ version: '42.0', locale: 'en', timezone: '', entitlements: null })
 
     const init = fetchMock.mock.calls[0][1] as RequestInit
     expect(JSON.parse(init.body as string)).toEqual({ version: '42.0', locale: 'en' })
@@ -68,7 +73,25 @@ describe('checkForUpdates', () => {
 
   it('rejects on an error status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })))
-    await expect(checkForUpdates({ version: '42.0', locale: 'en', entitlements: null })).rejects.toThrow('500')
+    await expect(checkForUpdates({ version: '42.0', locale: 'en', timezone: '', entitlements: null })).rejects.toThrow('500')
+  })
+})
+
+describe('browserTimeZone', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it("gives the browser's IANA time zone", () => {
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      timeZone: 'America/New_York'
+    } as Intl.ResolvedDateTimeFormatOptions)
+    expect(browserTimeZone()).toBe('America/New_York')
+  })
+
+  it('gives an empty string when Intl cannot tell', () => {
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => {
+      throw new Error('no Intl')
+    })
+    expect(browserTimeZone()).toBe('')
   })
 })
 
@@ -122,7 +145,7 @@ describe('normalizeUpdateCheck', () => {
 
   it('checkForUpdates rejects an answer it cannot read', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ releases: 'x' }), { status: 200 })))
-    await expect(checkForUpdates({ version: '42.0', locale: 'en', entitlements: null })).rejects.toThrow()
+    await expect(checkForUpdates({ version: '42.0', locale: 'en', timezone: '', entitlements: null })).rejects.toThrow()
     vi.unstubAllGlobals()
   })
 })

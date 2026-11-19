@@ -34,7 +34,18 @@ export interface UpdateCheckResponse {
 export interface UpdateCheckRequest {
   version: string
   locale: string
+  /** The browser's IANA time zone, such as Europe/Paris; empty when the browser gives none. */
+  timezone: string
   entitlements: Entitlements | null
+}
+
+/** The browser's IANA time zone, or an empty string when Intl cannot tell. */
+export function browserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+  } catch {
+    return ''
+  }
 }
 
 /**
@@ -43,6 +54,9 @@ export interface UpdateCheckRequest {
  */
 export async function checkForUpdates(request: UpdateCheckRequest): Promise<UpdateCheckResponse> {
   const body: Record<string, unknown> = { version: request.version, locale: request.locale }
+  if (request.timezone) {
+    body.timezone = request.timezone
+  }
   if (request.entitlements) {
     body.entitlements = request.entitlements
   }

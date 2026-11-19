@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { useLingui } from '@lingui/react'
-import { checkForUpdates, normalizeUpdateCheck, type UpdateCheckResponse } from '../services/updates'
+import { browserTimeZone, checkForUpdates, normalizeUpdateCheck, type UpdateCheckResponse } from '../services/updates'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 // A failed check (no network to the update service, a firewall, a timeout) waits this long before
@@ -95,7 +95,12 @@ export function useUpdateCheck(): UpdateCheckState {
       if (remembered?.kind === 'answer') return remembered.response
       if (remembered?.kind === 'failed') return null
       try {
-        const response = await checkForUpdates({ version, locale, entitlements: licenseEntitlements })
+        const response = await checkForUpdates({
+          version,
+          locale,
+          timezone: browserTimeZone(),
+          entitlements: licenseEntitlements
+        })
         writeCache(version, locale, response)
         return response
       } catch {

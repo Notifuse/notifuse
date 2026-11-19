@@ -20,6 +20,10 @@
 #   INTERRUPT=1    make the first upgrade fail half-way (pgautoupgrade pointed at a
 #                  database that does not exist): the next `up` must start again
 #                  from the copy.
+#   INTERRUPT_RESTORE=1  with INTERRUPT=1, also leave the putting back of the copy stopped
+#                  half-way (the data volume emptied, lock included, and only PG_VERSION
+#                  copied back): the next `up` must put the copy back again, never take the
+#                  partial data for the 17 data and delete the copy.
 #   KEEP=1         keep the project at the end, to look around.
 #   NOTIFUSE_LICENSE_KEY  a licence the image accepts: the demo fixtures use template
 #                  translations. An image built with -tags licdev accepts the dev
@@ -57,6 +61,8 @@ cleanup() {
 trap cleanup EXIT
 
 # The image tag also names NOTIFUSE_VERSION in the new file.
+[ "${INTERRUPT_RESTORE:-}" != 1 ] || [ "${INTERRUPT:-}" = 1 ] || fail "INTERRUPT_RESTORE=1 needs INTERRUPT=1"
+
 image_repo=${IMAGE%:*}
 image_tag=${IMAGE##*:}
 [ "$image_repo" = notifuse/notifuse ] || fail "IMAGE must be a notifuse/notifuse:<tag> image (got $IMAGE)"
@@ -177,6 +183,13 @@ sys.stdout.write(s.replace(line, "- POSTGRES_DB=no_such_database", 1))
   echo "The first upgrade stopped half-way. Running it again with the real file."
   dc down >/dev/null 2>&1
   cp "$repo/compose.yaml" "$work/compose.yaml"
+  if [ "${INTERRUPT_RESTORE:-}" = 1 ]; then
+    # What a putting back stopped by a kill leaves: its mark, the data volume emptied
+    # (the upgrade lock with it), and the first file of the copy back in place.
+    docker run --rm -v "${project}_postgres-data:/v" -v "${project}_postgres-upgrade-backup:/b" alpine \
+      sh -c 'touch /b/restore_in_progress && find /v -mindepth 1 -delete && cp -a /b/pg17/PG_VERSION /v/'
+    echo "The putting back stopped half-way too: only PG_VERSION is back, the lock is gone."
+  fi
 fi
 
 start=$(date +%s)
@@ -187,6 +200,8 @@ step "Checks on PostgreSQL 18"
 dc logs --no-log-prefix pg-upgrade > "$work/pg-upgrade.log"
 if [ "${INTERRUPT:-}" = 1 ]; then
   grep -q 'did not finish: putting back the data copied before it' "$work/pg-upgrade.log" || fail "no restart from the copy: $(head -20 "$work/pg-upgrade.log")"
+  docker run --rm -v "${project}_postgres-upgrade-backup:/b" alpine sh -c 'test -s /b/pg17/PG_VERSION && test ! -e /b/restore_in_progress' ||
+    fail "the copy is gone, or the putting back left its mark"
 else
   grep -q 'Copying the PostgreSQL 17 data' "$work/pg-upgrade.log" || fail "no copy logged: $(head -20 "$work/pg-upgrade.log")"
 fi
@@ -276,4 +291,4 @@ diff "$work/backup.txt" "$work/restored.txt" || fail "the restored data differs 
 until curl -fsS "$api/healthz" >/dev/null 2>&1; do sleep 2; done
 echo "Restored on PostgreSQL $(psql_at 'SHOW server_version'), identical to the backup."
 
-printf '\nPASS (DB_USER=%s%s%s%s)\n' "$DB_USER" "${KILL_OLD:+, KILL_OLD}" "${SMALL_BACKUP:+, SMALL_BACKUP}" "${INTERRUPT:+, INTERRUPT}"
+printf '\nPASS (DB_USER=%s%s%s%s%s)\n' "$DB_USER" "${KILL_OLD:+, KILL_OLD}" "${SMALL_BACKUP:+, SMALL_BACKUP}" "${INTERRUPT:+, INTERRUPT}" "${INTERRUPT_RESTORE:+, INTERRUPT_RESTORE}"
