@@ -1,0 +1,81 @@
+publiccodeYmlVersion: "0.5"
+name: Notifuse
+url: "https://github.com/Notifuse/notifuse.git"
+landingURL: "https://www.notifuse.com"
+softwareVersion: "44.0"
+releaseDate: "2026-11-19"
+logo: console/public/logo.png
+platforms:
+  - web
+  - linux
+categories:
+  - communications
+  - email-marketing
+  - marketing
+developmentStatus: stable
+softwareType: standalone/web
+description:
+  en:
+    genericName: Email marketing and newsletter platform
+    shortDescription: >-
+      Self-hosted email marketing, newsletter, transactional email, and
+      privacy-first web analytics platform.
+    longDescription: >
+      Notifuse is a modern, self-hosted email platform built with Go, React, and
+      PostgreSQL. It lets teams send newsletters, marketing campaigns,
+      multi-step automations, and transactional emails at scale using their own
+      SMTP or email providers (Amazon SES, Mailgun, Postmark, Mailjet,
+      SparkPost, SendGrid). It also includes cookieless, GDPR-friendly web
+      analytics.
+    documentation: "https://docs.notifuse.com"
+    features:
+      - Visual drag-and-drop MJML email builder
+      - Campaign management and A/B testing
+      - Visual multi-step automation flow builder
+      - Transactional email REST API and webhooks
+      - Multi-provider support (Amazon SES, Mailgun, Postmark, Mailjet, SparkPost, SendGrid, SMTP)
+      - Built-in cookieless, GDPR-friendly web analytics
+      - Multi-tenant workspaces and S3 file manager
+    screenshots:
+      - "https://github.com/user-attachments/assets/f650ac1b-58fd-44fb-884d-e9811255f1e4"
+  fr:
+    genericName: Plateforme d'email marketing et de newsletters
+    shortDescription: >-
+      Plateforme auto-hébergée d'email marketing, newsletters, emails
+      transactionnels et web analytics sans cookies.
+    longDescription: >
+      Notifuse est une plateforme auto-hébergée développée en Go, React et
+      PostgreSQL. Elle permet d'envoyer des newsletters, campagnes marketing,
+      scénarios d'automatisation et emails transactionnels via vos propres
+      fournisseurs (Amazon SES, Mailgun, Postmark, Mailjet, SparkPost, SendGrid,
+      SMTP), et intègre une mesure d'audience web respectueuse du RGPD et sans
+      cookies.
+    documentation: "https://docs.notifuse.com"
+    features:
+      - Éditeur visuel d'emails MJML en glisser-déposer
+      - Gestion de campagnes et tests A/B
+      - Constructeur visuel d'automatisations multi-étapes
+      - API REST transactionnelle et webhooks
+      - Support multi-fournisseurs (Amazon SES, Mailgun, Postmark, Mailjet, SparkPost, SendGrid, SMTP)
+      - Web analytics intégré sans cookies et conforme RGPD
+      - Gestion multi-espaces de travail et gestionnaire de fichiers S3
+legal:
+  license: AGPL-3.0-or-later
+  mainCopyrightOwner: Pierre Bazoge
+  repoOwner: Notifuse
+maintenance:
+  type: internal
+  contacts:
+    - name: Pierre Bazoge
+      email: hello@notifuse.com
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - en
+    - fr
+    - es
+    - de
+    - ca
+    - pt-BR
+    - ja
+    - it
