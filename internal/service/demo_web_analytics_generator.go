@@ -93,7 +93,49 @@ const (
 	demoBounceMaxSeconds        = 9
 
 	demoSDKVersion = "1.0.0"
+
+	// Automated traffic, shaped like what production workspaces receive: a
+	// share of every day, plus one crawl that walks the whole catalog within
+	// an hour. Each automated session loads one page and is closed from outside
+	// before the SDK's second beat, so it is classified by the same rule as
+	// real traffic (domain.WebSessionAutomatedSQL), not by a demo flag.
+	demoAutomatedShare       = 0.15
+	demoAutomatedMaxMs       = 30
+	demoCrawlDaysAgo         = 12
+	demoCrawlShareOfDay      = 0.6
+	demoCrawlHourUTC         = 2
+	demoAutomatedReferrerPct = 0.55 // of the datacenter crawler: a fake Google referrer
 )
+
+// demoAutomatedAgent is a robot profile: a device and a place it claims.
+type demoAutomatedAgent struct {
+	Device demoDevice
+	Geo    demoGeo
+	Weight int
+}
+
+// demoAutomatedAgents mirrors the two signatures seen in production: a
+// headless Chrome on Linux in a US datacenter, and Google's mobile renderer.
+var demoAutomatedAgents = []demoAutomatedAgent{
+	{
+		Device: demoDevice{
+			OS: "Linux", Browser: "Chrome", Device: "desktop",
+			UserAgent:   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
+			ScreenWidth: 1920, ScreenHeight: 1080,
+		},
+		Geo:    demoGeo{Country: "US", Region: "Virginia", City: "Ashburn", Latitude: 39.04, Longitude: -77.49, Timezone: "America/New_York", Language: "en-US"},
+		Weight: 6,
+	},
+	{
+		Device: demoDevice{
+			OS: "Android", Browser: "Mobile Chrome", Device: "mobile",
+			UserAgent:   "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Mobile Safari/537.36",
+			ScreenWidth: 412, ScreenHeight: 732,
+		},
+		Geo:    demoGeo{Country: "US", Region: "California", City: "Mountain View", Latitude: 37.39, Longitude: -122.08, Timezone: "America/Los_Angeles", Language: "en-US"},
+		Weight: 4,
+	},
+}
 
 // demoPageviewBuckets is the pageview-count distribution. Staminads emits one
 // pageview 76% of the time and two the rest — never three — which pins
@@ -322,6 +364,16 @@ func (g *demoWebAnalyticsGenerator) GenerateDay(day int) demoWebAnalyticsBatch {
 	midnight := g.DayStart(day)
 
 	for i := 0; i < count; i++ {
+		if g.rng.Float64() < demoAutomatedShare {
+			agent := pickWeighted(g.rng, demoAutomatedAgents, func(a demoAutomatedAgent) int { return a.Weight })
+			start := midnight.Add(time.Duration(g.rng.Int63n(int64(24 * time.Hour))))
+			landing := pickWeighted(g.rng, demoPages, func(p demoPage) int { return p.Weight })
+			if session, page := g.generateAutomatedSession(agent, landing, start); session != nil {
+				batch.Sessions = append(batch.Sessions, session)
+				batch.Pages = append(batch.Pages, page)
+			}
+			continue
+		}
 		session, pages, goals := g.generateSession(midnight, period)
 		if session == nil {
 			continue
@@ -330,7 +382,104 @@ func (g *demoWebAnalyticsGenerator) GenerateDay(day int) demoWebAnalyticsBatch {
 		batch.Pages = append(batch.Pages, pages...)
 		batch.Goals = append(batch.Goals, goals...)
 	}
+
+	// The crawl: one datacenter agent walking the catalog page by page, on top
+	// of the day's traffic, the way a burst shows on the automated-traffic card.
+	if day == g.Days()-1-demoCrawlDaysAgo {
+		crawl := int(float64(count) * demoCrawlShareOfDay)
+		start := midnight.Add(demoCrawlHourUTC * time.Hour)
+		for i := 0; i < crawl; i++ {
+			landing := demoPages[i%len(demoPages)]
+			at := start.Add(time.Duration(g.rng.Int63n(int64(time.Hour))))
+			if session, page := g.generateAutomatedSession(demoAutomatedAgents[0], landing, at); session != nil {
+				batch.Sessions = append(batch.Sessions, session)
+				batch.Pages = append(batch.Pages, page)
+			}
+		}
+	}
 	return batch
+}
+
+// generateAutomatedSession builds a session a robot leaves behind: one page,
+// a few milliseconds, no scroll, no goal, nobody identified, and only the
+// first beat. Its attribution still goes through the workspace rules, as
+// ingest does for every beat.
+func (g *demoWebAnalyticsGenerator) generateAutomatedSession(
+	agent demoAutomatedAgent,
+	landing demoPage,
+	start time.Time,
+) (*domain.WebSession, *domain.WebPage) {
+	if start.After(g.opts.Now) {
+		return nil, nil
+	}
+
+	referrer := demoReferrer{Category: "direct"}
+	if agent.Device.Device == "desktop" && g.rng.Float64() < demoAutomatedReferrerPct {
+		referrer = demoReferrer{Domain: "google.com", Category: "search"}
+	}
+	attribution := g.buildAttribution(landing, nil, referrer, agent.Device, agent.Geo)
+	// A headless browser reports its window as the viewport, whole.
+	attribution.ViewportWidth, attribution.ViewportHeight = agent.Device.ScreenWidth, agent.Device.ScreenHeight
+	attribution.Custom[1] = "anonymous"
+	attribution.Custom[2] = "control"
+	attribution.applyFilterResult(
+		domain.EvaluateWebFilters(g.opts.Filters, attribution.filterFields(attribution.LandingPath)),
+	)
+
+	duration := time.Duration(g.rng.Intn(demoAutomatedMaxMs+1)) * time.Millisecond
+	sessionID := g.sessionID(start)
+	sessionDate := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
+
+	page := &domain.WebPage{
+		SessionDate: sessionDate,
+		SessionID:   sessionID,
+		PageNumber:  1,
+		BeatSeq:     1,
+		Path:        landing.Path,
+		EnteredAt:   start,
+		ExitedAt:    start.Add(duration),
+		DurationMs:  duration.Milliseconds(),
+		IsLanding:   true,
+		IsExit:      true,
+		EntryType:   "navigation",
+	}
+
+	session := &domain.WebSession{
+		SessionDate: sessionDate,
+		ID:          sessionID,
+		BeatSeq:     1,
+		CreatedAt:   start,
+		UpdatedAt:   page.ExitedAt,
+
+		DurationMs:           page.DurationMs,
+		PageviewCount:        1,
+		MedianPageDurationMs: page.DurationMs,
+
+		ExitPath:    landing.Path,
+		LandingPage: attribution.LandingPage, LandingDomain: attribution.LandingDomain,
+		LandingPath: attribution.LandingPath,
+		Referrer:    attribution.Referrer, ReferrerDomain: attribution.ReferrerDomain,
+		ReferrerPath: attribution.ReferrerPath, IsDirect: attribution.IsDirect,
+
+		Channel: attribution.Channel, ChannelGroup: attribution.ChannelGroup,
+		Custom1: attribution.Custom[0], Custom2: attribution.Custom[1], Custom3: attribution.Custom[2],
+		Custom4: attribution.Custom[3], Custom5: attribution.Custom[4], Custom6: attribution.Custom[5],
+		Custom7: attribution.Custom[6], Custom8: attribution.Custom[7], Custom9: attribution.Custom[8],
+		Custom10: attribution.Custom[9],
+
+		ScreenWidth: attribution.ScreenWidth, ScreenHeight: attribution.ScreenHeight,
+		ViewportWidth: attribution.ViewportWidth, ViewportHeight: attribution.ViewportHeight,
+		Device: attribution.Device, Browser: attribution.Browser,
+		BrowserType: attribution.BrowserType, OS: attribution.OS,
+		UserAgent: attribution.UserAgent, ConnectionType: attribution.ConnType,
+		Language: attribution.Language, Timezone: attribution.Timezone,
+
+		Country: agent.Geo.Country, Region: agent.Geo.Region, City: agent.Geo.City,
+		Latitude: floatPtr(agent.Geo.Latitude), Longitude: floatPtr(agent.Geo.Longitude),
+
+		SDKVersion: demoSDKVersion,
+	}
+	return session, page
 }
 
 func (g *demoWebAnalyticsGenerator) generateSession(

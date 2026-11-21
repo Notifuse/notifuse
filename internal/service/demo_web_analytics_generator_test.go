@@ -696,3 +696,81 @@ func TestDemoWebAnalyticsHoursFollowTheVisitorsClock(t *testing.T) {
 	assert.Greater(t, evening, night*2,
 		fmt.Sprintf("evening %d should dominate the small hours %d", evening, night))
 }
+
+// isDemoAutomated is domain.WebSessionAutomatedSQL, read in Go: the demo has
+// to be classified by the rule the dashboard applies, not by a flag of its own.
+func isDemoAutomated(session *domain.WebSession) bool {
+	return session.BeatSeq <= 1 && session.DurationMs < 1000
+}
+
+func TestDemoWebAnalyticsAutomatedTraffic(t *testing.T) {
+	g := demoTestGenerator(t, 20_000, 60)
+	batch := demoGenerateAll(g)
+	require.NotEmpty(t, batch.Sessions)
+
+	goalsBySession := map[string]int{}
+	for _, goal := range batch.Goals {
+		goalsBySession[goal.SessionID]++
+	}
+
+	automated := 0
+	for _, session := range batch.Sessions {
+		if isDemoAutomated(session) {
+			automated++
+		}
+	}
+
+	t.Run("a believable share of sessions is automated", func(t *testing.T) {
+		share := float64(automated) / float64(len(batch.Sessions)) * 100
+		assert.Greater(t, share, 10.0, "automated share %.1f%%", share)
+		assert.Less(t, share, 30.0, "automated share %.1f%%", share)
+	})
+
+	t.Run("an automated session looks like a robot left it", func(t *testing.T) {
+		for _, session := range batch.Sessions {
+			if !isDemoAutomated(session) {
+				continue
+			}
+			assert.Equal(t, 1, session.PageviewCount, "session %s", session.ID)
+			assert.Zero(t, session.MaxScroll, "session %s", session.ID)
+			assert.Nil(t, session.ContactEmail, "a robot is nobody's visit: session %s", session.ID)
+			assert.Zero(t, goalsBySession[session.ID], "a robot converts nothing: session %s", session.ID)
+			assert.Equal(t, "US", session.Country)
+		}
+	})
+
+	t.Run("the rule separates the robots from the people exactly", func(t *testing.T) {
+		// Human pages last at least a second, so a single-beat human session
+		// always carries engaged time. The robots are told apart by the agent
+		// they claim, which no human device in the catalog shares.
+		robotAgents := map[string]bool{}
+		for _, agent := range demoAutomatedAgents {
+			robotAgents[agent.Device.UserAgent] = true
+		}
+		for _, device := range demoDevices {
+			require.False(t, robotAgents[device.UserAgent], "a human device claims a robot's agent")
+		}
+		for _, session := range batch.Sessions {
+			assert.Equal(t, robotAgents[session.UserAgent], isDemoAutomated(session), "session %s", session.ID)
+		}
+	})
+
+	t.Run("one night carries a crawl of the catalog", func(t *testing.T) {
+		crawlDay := g.DayStart(g.Days() - 1 - demoCrawlDaysAgo)
+		inCrawlHour := map[string]bool{}
+		other := 0
+		for _, session := range batch.Sessions {
+			if !isDemoAutomated(session) {
+				continue
+			}
+			start := crawlDay.Add(demoCrawlHourUTC * time.Hour)
+			if !session.CreatedAt.Before(start) && session.CreatedAt.Before(start.Add(time.Hour)) {
+				inCrawlHour[session.LandingPath] = true
+			} else {
+				other++
+			}
+		}
+		require.NotZero(t, other)
+		assert.Len(t, inCrawlHour, len(demoPages), "the crawl reaches every catalog page within the hour")
+	})
+}
