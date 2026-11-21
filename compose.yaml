@@ -45,10 +45,10 @@
 
 services:
   api:
-    # Pin a release in .env (NOTIFUSE_VERSION=v44.0). The default below moves with
+    # Pin a release in .env (NOTIFUSE_VERSION=v44.1). The default below moves with
     # this file, so `git pull` or a new copy of the file, then `up -d`, upgrades.
     # From a clone, a tag not published yet (on the dev branch) is built from source.
-    image: notifuse/notifuse:${NOTIFUSE_VERSION:-v44.0}
+    image: notifuse/notifuse:${NOTIFUSE_VERSION:-v44.1}
     build:
       context: .
       dockerfile: Dockerfile
