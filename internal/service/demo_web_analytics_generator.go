@@ -101,7 +101,7 @@ const (
 	// real traffic (domain.WebSessionAutomatedSQL), not by a demo flag.
 	demoAutomatedShare       = 0.15
 	demoAutomatedMaxMs       = 30
-	demoCrawlDaysAgo         = 12
+	demoCrawlDaysAgo         = 3
 	demoCrawlShareOfDay      = 0.6
 	demoCrawlHourUTC         = 2
 	demoAutomatedReferrerPct = 0.55 // of the datacenter crawler: a fake Google referrer
