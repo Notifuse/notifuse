@@ -234,4 +234,34 @@ describe('DimensionTableWidget', () => {
     // 200 sessions against 100: a rise, drawn as an improvement.
     await waitFor(() => expect(within(row).getByText('100%')).toHaveClass('text-success-fg'))
   })
+
+  it('shows a content tab in place of the table, without querying or expanding it', async () => {
+    renderWidget({
+      tabs: [
+        { key: 'trend', label: 'Trend', dimensionLabel: '', dimension: 'traffic_type', content: <p>trend chart</p> },
+        ...PAGE_TABS
+      ]
+    })
+    expect(screen.getByText('trend chart')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Expand' })).toBeNull()
+    expect(query).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Landing pages' }))
+    await screen.findByText('/pricing')
+    expect(screen.queryByText('trend chart')).toBeNull()
+    expect(queries().every((q) => !q.dimensions?.includes('traffic_type'))).toBe(true)
+
+    // The drawer lists the breakdowns only: a chart has no rows to page through.
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+    const drawer = await screen.findByRole('dialog')
+    expect(within(drawer).queryByRole('tab', { name: 'Trend' })).toBeNull()
+    expect(within(drawer).getByRole('tab', { name: 'Landing pages' })).toBeInTheDocument()
+  })
+
+  it('renders its footer under the card', async () => {
+    const { container } = renderWidget({ footer: <span>Robots left out</span> })
+    await screen.findByText('/pricing')
+    const footer = container.querySelector('section [data-panel-footer]') as HTMLElement
+    expect(within(footer).getByText('Robots left out')).toBeInTheDocument()
+  })
 })

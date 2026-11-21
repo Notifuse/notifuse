@@ -179,7 +179,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					"count": "desc",
 				},
 			},
-			expectedSQL: "SELECT (COUNT(*)) AS count, contact_email AS contact_email FROM message_history GROUP BY contact_email ORDER BY COUNT(*) DESC",
+			expectedSQL: "SELECT (COUNT(*)) AS count, contact_email AS contact_email FROM message_history GROUP BY contact_email ORDER BY COUNT(*) DESC NULLS LAST",
 		},
 		{
 			name: "query with limit and offset",
@@ -2769,13 +2769,25 @@ func TestSQLBuilder_OrderByMeasure(t *testing.T) {
 	t.Run("a filtered count", func(t *testing.T) {
 		sql := build(t, Query{Schema: "message_history", Measures: []string{"count_sent"}, Dimensions: []string{"contact_email"},
 			Order: map[string]string{"count_sent": "desc"}})
-		assert.True(t, strings.HasSuffix(sql, "ORDER BY COUNT(*) FILTER (WHERE sent_at IS NOT NULL) DESC"), sql)
+		assert.True(t, strings.HasSuffix(sql, "ORDER BY COUNT(*) FILTER (WHERE sent_at IS NOT NULL) DESC NULLS LAST"), sql)
+	})
+
+	t.Run("a measure with no value sorts last, whatever the direction", func(t *testing.T) {
+		sql := build(t, Query{Schema: "message_history", Measures: []string{"last_sent_at"}, Dimensions: []string{"contact_email"},
+			Order: map[string]string{"last_sent_at": "desc"}})
+		assert.True(t, strings.HasSuffix(sql, "ORDER BY MAX(sent_at) DESC NULLS LAST"), sql)
+	})
+
+	t.Run("a dimension keeps the default NULL placement", func(t *testing.T) {
+		sql := build(t, Query{Schema: "message_history", Measures: []string{"count_sent"}, Dimensions: []string{"contact_email"},
+			Order: map[string]string{"contact_email": "desc"}})
+		assert.True(t, strings.HasSuffix(sql, "ORDER BY contact_email DESC"), sql)
 	})
 
 	t.Run("a max, not selected", func(t *testing.T) {
 		sql := build(t, Query{Schema: "message_history", Measures: []string{"count_sent"}, Dimensions: []string{"contact_email"},
 			Order: map[string]string{"last_sent_at": "asc"}})
-		assert.True(t, strings.HasSuffix(sql, "ORDER BY MAX(sent_at) ASC"), sql)
+		assert.True(t, strings.HasSuffix(sql, "ORDER BY MAX(sent_at) ASC NULLS LAST"), sql)
 	})
 }
 

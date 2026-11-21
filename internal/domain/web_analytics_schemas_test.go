@@ -32,6 +32,37 @@ func TestWebAnalyticsSchemas(t *testing.T) {
 		assert.Contains(t, bounce.SQL, "duration_ms < 25000")
 	})
 
+	t.Run("TimeScore and bounce rate read human sessions only", func(t *testing.T) {
+		measures := WebAnalyticsSchemas(nil, "UTC")["web_sessions"].Measures
+		assert.Contains(t, measures["median_duration"].SQL,
+			"WITHIN GROUP (ORDER BY duration_ms) FILTER (WHERE NOT (beat_seq <= 1 AND duration_ms < 1000))")
+		bounce := measures["bounce_rate"].SQL
+		assert.Contains(t, bounce, "FILTER (WHERE NOT (beat_seq <= 1 AND duration_ms < 1000) AND duration_ms < 10000)",
+			"the numerator counts human bounces")
+		assert.Contains(t, bounce, "NULLIF(COUNT(*) FILTER (WHERE NOT (beat_seq <= 1 AND duration_ms < 1000)), 0)",
+			"the denominator is human sessions, not every session")
+		assert.Equal(t, "COUNT(*)", measures["sessions"].SQL, "sessions still count automated traffic")
+	})
+
+	t.Run("automated traffic: dimension and measures share one rule", func(t *testing.T) {
+		schema := WebAnalyticsSchemas(nil, "UTC")["web_sessions"]
+		assert.Equal(t, "(CASE WHEN (beat_seq <= 1 AND duration_ms < 1000) THEN 'automated' ELSE 'human' END)",
+			schema.Dimensions["traffic_type"].SQL)
+
+		query := analytics.Query{
+			Schema:     "web_sessions",
+			Measures:   []string{"automated_sessions", "automated_share"},
+			Dimensions: []string{"traffic_type"},
+			Filters:    []analytics.Filter{{Member: "traffic_type", Operator: "equals", Values: []string{"automated"}}},
+		}
+		sqlStr, args, err := analytics.NewSQLBuilder().BuildSQL(query, schema)
+		require.NoError(t, err)
+		assert.Contains(t, sqlStr, "COUNT(*) FILTER (WHERE (beat_seq <= 1 AND duration_ms < 1000))")
+		assert.Contains(t, sqlStr, "* 100.0 / NULLIF(COUNT(*), 0), 2)")
+		assert.Contains(t, sqlStr, "GROUP BY (CASE WHEN (beat_seq <= 1 AND duration_ms < 1000) THEN 'automated' ELSE 'human' END)")
+		assert.Contains(t, args, "automated")
+	})
+
 	t.Run("stm titles come from custom dimension labels", func(t *testing.T) {
 		schemas := WebAnalyticsSchemas(&WebAnalyticsSettings{
 			CustomDimensionLabels: map[string]string{"custom_1": "Plan", "custom_7": "Cohort"},
@@ -66,7 +97,7 @@ func TestWebAnalyticsSchemas(t *testing.T) {
 		assert.Contains(t, sqlStr, "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms)")
 		assert.NotContains(t, sqlStr, "COUNT(ROUND", "raw SQL measures must not be re-wrapped")
 		assert.Contains(t, sqlStr, "SUM(pageview_count)", "sum-typed measures wrap the bare column")
-		assert.Contains(t, sqlStr, "FILTER (WHERE duration_ms < 10000)")
+		assert.Contains(t, sqlStr, "AND duration_ms < 10000)")
 	})
 
 	t.Run("boolean dimensions are self-parenthesized text expressions", func(t *testing.T) {

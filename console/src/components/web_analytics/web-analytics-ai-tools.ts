@@ -175,10 +175,12 @@ export function assertOrderKey(raw: unknown, measures: string[], dimensions: str
 export const MEASURES_BY_SCHEMA: Record<WebSchema, Record<string, string>> = {
   web_sessions: {
     sessions: 'Number of sessions',
-    median_duration: 'Median engaged time per session, in seconds (the "TimeScore")',
+    median_duration: 'Median engaged time per human session, in seconds (the "TimeScore"); automated traffic is left out',
     avg_scroll: 'Average maximum scroll depth, in percent',
     median_scroll: 'Median maximum scroll depth, in percent',
-    bounce_rate: 'Share of sessions below the workspace engaged-time threshold, in percent',
+    bounce_rate: 'Share of human sessions below the workspace engaged-time threshold, in percent',
+    automated_sessions: 'Sessions that loaded a page and sent no further signal: crawlers, AI agents, headless browsers',
+    automated_share: 'Share of sessions that are automated traffic, in percent',
     pageviews: 'Total pageviews across sessions',
     pages_per_session: 'Average pageviews per session',
     median_page_duration: 'Median time on a page, in seconds',

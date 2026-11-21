@@ -111,6 +111,7 @@ const CATALOG: DimensionInfo[] = [
   define('pageview_count', 'Pageview Count', 'Session', 'number', ['web_sessions']),
   define('duration', 'Duration (ms)', 'Session', 'number', ['web_sessions']),
   define('sdk_version', 'SDK Version', 'Session', 'string', ['web_sessions']),
+  define('traffic_type', 'Traffic Type', 'Traffic', 'string', ['web_sessions']),
 
   define('goal_name', 'Goal Name', 'Goal', 'string', ['web_goals']),
   define('goal_type', 'Goal Type', 'Goal', 'string', ['web_goals']),
@@ -265,6 +266,7 @@ export const DIMENSION_EXAMPLES: Record<string, string[]> = {
   week_number: ['12', '48'],
   is_weekend: ['true', 'false'],
   sdk_version: ['1.0.0', '1.1.2'],
+  traffic_type: ['human', 'automated'],
   goal_name: ['signup', 'purchase'],
   goal_type: ['purchase', 'lead'],
   goal_path: ['/thank-you', '/checkout/success'],

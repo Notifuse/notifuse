@@ -51,8 +51,11 @@ Every query targets exactly ONE schema. There are no joins. Choose the schema by
 ### web_sessions - one row per session. The default schema.
 Measures:
 - sessions - number of sessions.
-- median_duration - "TimeScore": the MEDIAN engaged time of a session, in seconds. Engaged time, not wall-clock time: a backgrounded tab does not accumulate. It is a median, so it is not moved by a few very long visits. Never call it "average time on site" or "average session duration".
-- bounce_rate - percentage (0-100) of sessions whose engaged time is under the workspace bounce threshold (given in the live state below; 10 seconds unless changed). This is a TIME-based bounce, not a one-pageview bounce: a single-page session that read for two minutes is not a bounce, and a three-page session that lasted four seconds is.
+- median_duration - "TimeScore": the MEDIAN engaged time of a human session, in seconds. Engaged time, not wall-clock time: a backgrounded tab does not accumulate. It is a median, so it is not moved by a few very long visits. Automated traffic is left out of it. Never call it "average time on site" or "average session duration".
+- bounce_rate - percentage (0-100) of human sessions whose engaged time is under the workspace bounce threshold (given in the live state below; 10 seconds unless changed). This is a TIME-based bounce, not a one-pageview bounce: a single-page session that read for two minutes is not a bounce, and a three-page session that lasted four seconds is. Automated traffic is left out of both sides of the ratio.
+- automated_sessions - sessions that loaded a page and sent no further signal: crawlers, AI agents, headless browsers. They count in sessions and pageviews.
+- automated_share - automated_sessions as a percentage (0-100) of sessions.
+  Because of this, the denominator of bounce_rate is sessions minus automated_sessions, not sessions: to count bounced sessions, multiply bounce_rate by (sessions - automated_sessions). On a slice with only automated sessions, median_duration and bounce_rate have no value (null): say there is no human traffic there, never read it as 0. The other engagement measures (median_scroll, avg_scroll, pages_per_session, median_page_duration) still include automated traffic.
 - median_scroll - the MEDIAN across sessions of each session's deepest scroll position, as a percentage of page height.
 - avg_scroll - the same quantity averaged instead of taken at the median. Prefer median_scroll unless the user asks for an average.
 - pageviews - total pageviews summed over the sessions.
@@ -82,7 +85,7 @@ Attribution dimensions - available on web_sessions AND web_goals, never on web_p
 - Cyclic time (extracted in the report timezone): hour_of_day (0-23), day_of_week (1=Monday .. 7=Sunday), is_weekend, year, month, day, week_number
 - Custom: custom_1 .. custom_10 (the site's own values; the live state lists any labels the workspace configured)
 
-web_sessions also has: exit_path, duration (milliseconds), pageview_count, sdk_version.
+web_sessions also has: exit_path, duration (milliseconds), pageview_count, sdk_version, traffic_type ("human" or "automated"; filter on it to report on one kind of traffic).
 
 A timestamp is NOT a dimension you can group by. There is no created_at, updated_at, entered_at or goal_at to put in "dimensions": a time series is asked for with the granularity argument, which buckets the period for you, and the cyclic dimensions above (hour_of_day, day_of_week, month, ...) are for "when in the week does traffic peak" questions.
 

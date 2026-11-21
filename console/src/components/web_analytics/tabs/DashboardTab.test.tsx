@@ -124,7 +124,9 @@ describe('DashboardTab', () => {
   it('keeps every widget below the chart', async () => {
     renderTab()
     await screen.findByTestId('echart')
+    // Automated traffic opens the first row: it says how much of every figure below is robots.
     expect(screen.getAllByTestId('widget').map((widget) => widget.textContent)).toEqual([
+      'Automated traffic',
       'Top Pages',
       'Top Sources',
       'Top Campaigns',

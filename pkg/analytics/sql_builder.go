@@ -246,7 +246,12 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		// as HAVING filters by it: its raw SQL (* for a count, a column for a max) is not valid
 		// outside the aggregate, and the aggregate does not need the measure to be selected.
 		var fieldSQL string
+		// A measure can be NULL (a median or a rate over a group with nothing to count), and
+		// PostgreSQL puts NULLs first in a descending sort: a group with no value would top every
+		// "best first" ranking. Ascending already sorts them last.
+		nulls := ""
 		if measureDef, exists := schema.Measures[field]; exists {
+			nulls = " NULLS LAST"
 			measureSQL := measureDef.SQL
 			if measureSQL == "" {
 				measureSQL = field
@@ -261,7 +266,7 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 			return "", nil, fmt.Errorf("order field '%s' not found in schema", field)
 		}
 
-		selectBuilder = selectBuilder.OrderBy(fmt.Sprintf("%s %s", fieldSQL, orderDirection))
+		selectBuilder = selectBuilder.OrderBy(fmt.Sprintf("%s %s%s", fieldSQL, orderDirection, nulls))
 	}
 
 	// Add LIMIT and OFFSET

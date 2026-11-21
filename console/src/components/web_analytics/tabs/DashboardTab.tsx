@@ -8,6 +8,7 @@ import { MetricChart, useAnnotations } from '../MetricChart'
 import { MetricSummary } from '../MetricSummary'
 import { SdkVersionWarning } from '../SdkVersionWarning'
 import { TrafficHeatmapWidget } from '../TrafficHeatmapWidget'
+import { AutomatedTrafficWidget } from '../AutomatedTrafficWidget'
 import { GranularitySelector } from '../toolbar'
 import { CountryFlag, getDeviceIcon } from '../lib/icons'
 import { timeBucketColumn } from '../lib/dates'
@@ -33,7 +34,8 @@ export function DashboardTab() {
     median_scroll: t`Median Scroll Depth`
   }
   const metricTooltips: Record<string, string> = {
-    median_duration: t`TimeScore is the median engaged time across all sessions`
+    median_duration: t`TimeScore is the median engaged time of human sessions. Automated traffic is left out.`,
+    bounce_rate: t`Share of human sessions under the bounce threshold. Automated traffic is left out.`
   }
 
   const sessionFilters = filtersForSchema(context.filters, 'web_sessions')
@@ -172,6 +174,7 @@ export function DashboardTab() {
       </Panel>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <AutomatedTrafficWidget />
         <DimensionTableWidget
           title={t`Top Pages`}
           columns={sessionColumns}
@@ -190,6 +193,9 @@ export function DashboardTab() {
             }
           ]}
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Top Sources`}
           columns={sessionColumns}
@@ -214,9 +220,6 @@ export function DashboardTab() {
             }
           ]}
         />
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Top Campaigns`}
           columns={sessionColumns}
@@ -239,6 +242,9 @@ export function DashboardTab() {
             filters: [{ dimension, operator: 'isNotEmpty' as const, values: [] }]
           }))}
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Countries`}
           columns={sessionColumns}
@@ -256,10 +262,10 @@ export function DashboardTab() {
             { key: 'list', label: t`List`, dimensionLabel: t`Country`, dimension: 'country' }
           ]}
         />
+        <TrafficHeatmapWidget title={t`Traffic by day and hour`} />
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <TrafficHeatmapWidget title={t`Traffic by day and hour`} />
         <DimensionTableWidget
           title={t`Devices`}
           columns={sessionColumns}
@@ -275,9 +281,6 @@ export function DashboardTab() {
             { key: 'os', label: t`OS`, dimensionLabel: t`OS`, dimension: 'os' }
           ]}
         />
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Goals`}
           infoTooltip={t`Goal conversions and their total value`}

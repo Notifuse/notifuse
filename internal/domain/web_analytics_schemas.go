@@ -7,6 +7,28 @@ import (
 	"github.com/Notifuse/notifuse/pkg/analytics"
 )
 
+// Automated traffic: a session that loaded a page and never sent a second
+// beat. The SDK beats again on pagehide, visibilitychange and beforeunload, so
+// a person who leaves after half a second still sends one, while a tab closed
+// from outside, as crawlers, AI agents and headless browsers driven over CDP
+// close theirs, stays at its first beat. That is the signature observed on
+// production traffic, not a bot detector: a robot that closes its page through
+// the page lifecycle, or stays a second, counts as human. The duration bound
+// keeps a single beat that already carries engaged time on the human side.
+//
+// Two kinds of human session match too. One in its first heartbeat interval,
+// so a live "today" view overstates the share by the sessions started in the
+// last few seconds, while a finished day is exact. And one whose closing beacon
+// the browser dropped before the first heartbeat (an in-app web view torn down
+// mid-request).
+const (
+	WebSessionAutomatedSQL = "(beat_seq <= 1 AND duration_ms < 1000)"
+	webSessionHumanSQL     = "NOT " + WebSessionAutomatedSQL
+
+	WebTrafficTypeAutomated = "automated"
+	WebTrafficTypeHuman     = "human"
+)
+
 // WebAnalyticsSchemas builds the cube schemas for the three web analytics
 // tables. Unlike PredefinedSchemas these are per-workspace: the bounce
 // threshold is baked into the bounce_rate measure and the custom_* dimension
@@ -125,6 +147,9 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 	sessionsDimensions["duration"] = analytics.DimensionDefinition{Type: "number", Title: "Duration (ms)", SQL: "duration_ms"}
 	sessionsDimensions["pageview_count"] = analytics.DimensionDefinition{Type: "number", Title: "Pageview Count", SQL: "pageview_count"}
 	sessionsDimensions["sdk_version"] = analytics.DimensionDefinition{Type: "string", Title: "SDK Version", SQL: "sdk_version"}
+	sessionsDimensions["traffic_type"] = analytics.DimensionDefinition{Type: "string", Title: "Traffic Type",
+		SQL: fmt.Sprintf("(CASE WHEN %s THEN '%s' ELSE '%s' END)",
+			WebSessionAutomatedSQL, WebTrafficTypeAutomated, WebTrafficTypeHuman)}
 
 	goalsDimensions := attributionDimensions("goal_at")
 	goalsDimensions["goal_at"] = analytics.DimensionDefinition{Type: "time", Title: "Goal Time", SQL: "goal_at"}
@@ -141,15 +166,23 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 				"sessions": {Type: "count", Title: "Sessions", SQL: "COUNT(*)",
 					Description: "Number of sessions"},
 				"median_duration": {Type: "number", Title: "TimeScore",
-					SQL:         "ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms))::numeric / 1000.0, 1)",
-					Description: "Median session engaged time in seconds"},
+					SQL: fmt.Sprintf("ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms) FILTER (WHERE %s))::numeric / 1000.0, 1)",
+						webSessionHumanSQL),
+					Description: "Median engaged time of human sessions in seconds; automated traffic is left out"},
+				"automated_sessions": {Type: "count", Title: "Automated Sessions", SQL: "*",
+					Filters:     []analytics.MeasureFilter{{SQL: WebSessionAutomatedSQL}},
+					Description: "Sessions that loaded a page and sent no further signal: crawlers, AI agents, headless browsers"},
+				"automated_share": {Type: "number", Title: "Automated Traffic",
+					SQL:         fmt.Sprintf("ROUND((COUNT(*) FILTER (WHERE %s)) * 100.0 / NULLIF(COUNT(*), 0), 2)", WebSessionAutomatedSQL),
+					Description: "Share of sessions that are automated traffic (%)"},
 				"avg_scroll": {Type: "number", Title: "Avg Scroll Depth", SQL: "ROUND(AVG(max_scroll), 1)",
 					Description: "Average maximum scroll depth (%)"},
 				"median_scroll": {Type: "number", Title: "Median Scroll Depth",
 					SQL: "ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY max_scroll))::numeric, 1)"},
 				"bounce_rate": {Type: "number", Title: "Bounce Rate",
-					SQL:         fmt.Sprintf("ROUND((COUNT(*) FILTER (WHERE duration_ms < %d)) * 100.0 / NULLIF(COUNT(*), 0), 2)", bounceMs),
-					Description: fmt.Sprintf("Share of sessions with less than %ds of engaged time", bounceMs/1000)},
+					SQL: fmt.Sprintf("ROUND((COUNT(*) FILTER (WHERE %s AND duration_ms < %d)) * 100.0 / NULLIF(COUNT(*) FILTER (WHERE %s), 0), 2)",
+						webSessionHumanSQL, bounceMs, webSessionHumanSQL),
+					Description: fmt.Sprintf("Share of human sessions with less than %ds of engaged time; automated traffic is left out", bounceMs/1000)},
 				"pageviews": {Type: "sum", Title: "Pageviews", SQL: "pageview_count",
 					Description: "Total pageviews across sessions"},
 				"pages_per_session": {Type: "number", Title: "Pages / Session", SQL: "ROUND(AVG(pageview_count), 2)"},

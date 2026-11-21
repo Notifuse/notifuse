@@ -24,6 +24,7 @@ import {
   TIMESCORE_REFERENCE_SECONDS,
   ValueFormat,
   WebDimensionFilter,
+  WebMetricFilter,
   WebSchema
 } from './lib/types'
 
@@ -34,6 +35,8 @@ export interface ColumnConfig {
   currency?: string
   /** Renders a colour dot scaled against the best value in the table. */
   heatMap?: boolean
+  /** Its change is neither good nor bad (automated traffic), so it is drawn without a colour. */
+  neutralTrend?: boolean
 }
 
 export interface DimensionTabConfig {
@@ -46,9 +49,16 @@ export interface DimensionTabConfig {
   measures?: string[]
   /** Widget-specific filters, merged on top of the global ones. */
   filters?: WebDimensionFilter[]
+  /** Conditions on the measures of each row (HAVING), such as leaving out rows with no automated session. */
+  metricFilters?: WebMetricFilter[]
   order?: Record<string, 'asc' | 'desc'>
   limit?: number
   type?: 'table' | 'country_map'
+  /**
+   * A tab that is not a breakdown: the widget shows this in place of the table and runs no
+   * query for it. `dimension` is then unused, and the tab is left out of the expanded drawer.
+   */
+  content?: ReactNode
 }
 
 /**
@@ -70,6 +80,8 @@ interface DimensionTableWidgetProps {
   iconPrefix?: (value: string, tabKey: string) => ReactNode
   emptyText?: string
   live?: LiveOverride
+  /** A line under the card, such as what its figures leave out. */
+  footer?: ReactNode
 }
 
 const VISIBLE_ROWS = 7
@@ -99,12 +111,14 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   const isMap = tab.type === 'country_map'
+  const isContent = tab.content !== undefined
   const limit = isMap ? (tab.limit ?? 100) : expanded ? EXPANDED_ROWS : (tab.limit ?? VISIBLE_ROWS)
 
   const rows = useDimensionRows(tab, columns, {
     order: isMap ? tab.order : { [sortBy]: sortDirection },
     limit,
-    live: props.live
+    live: props.live,
+    enabled: !isContent
   })
 
   const toggleSort = (key: string) => {
@@ -127,7 +141,7 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
     </span>
   )
 
-  const expand = !isMap ? (
+  const expand = !isMap && !isContent ? (
     <Tooltip title={t`Expand`}>
       <Button
         type="text"
@@ -140,9 +154,11 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
   ) : null
 
   return (
-    <Panel title={title} extra={expand} flush>
+    <Panel title={title} extra={expand} footer={props.footer} flush>
       <WidgetTabs tabs={props.tabs} activeKey={activeTabKey} onChange={setActiveTabKey} />
-      {isMap ? (
+      {isContent ? (
+        tab.content
+      ) : isMap ? (
         <div className="px-3.5 py-3">
           <CountryMapView
             data={rows.data}
@@ -182,7 +198,9 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
       >
         <WidgetTabs
           className="-mx-6 mb-4"
-          tabs={props.tabs.filter((candidate) => candidate.type !== 'country_map')}
+          tabs={props.tabs.filter(
+            (candidate) => candidate.type !== 'country_map' && candidate.content === undefined
+          )}
           activeKey={activeTabKey}
           onChange={setActiveTabKey}
         />
@@ -208,7 +226,12 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
 function useDimensionRows(
   tab: DimensionTabConfig,
   columns: ColumnConfig[],
-  options: { order?: Record<string, 'asc' | 'desc'>; limit: number; live?: LiveOverride }
+  options: {
+    order?: Record<string, 'asc' | 'desc'>
+    limit: number
+    live?: LiveOverride
+    enabled?: boolean
+  }
 ) {
   const context = useWebAnalytics()
   const schema = tab.schema ?? 'web_sessions'
@@ -224,6 +247,7 @@ function useDimensionRows(
     measures,
     dimensions: [tab.dimension],
     filters,
+    metricFilters: tab.metricFilters,
     order: options.order,
     limit: options.limit,
     timezone: context.timezone,
@@ -240,7 +264,8 @@ function useDimensionRows(
 
   const result = useWebComparisonQuery(context.workspaceId, current, previous, {
     refetchInterval: options.live?.refetchInterval,
-    client: options.live ? webAnalyticsLiveClient : undefined
+    client: options.live ? webAnalyticsLiveClient : undefined,
+    enabled: options.enabled
   })
   const currentRows = result.current?.data
   const previousRows = result.previous?.data
@@ -383,7 +408,10 @@ function DimensionRowsTable(props: RowsTableProps) {
                             )}
                       </span>
                       {context.showComparison ? (
-                        <Delta change={row[`${column.key}_change`] as number | undefined} />
+                        <Delta
+                          change={row[`${column.key}_change`] as number | undefined}
+                          neutral={column.neutralTrend}
+                        />
                       ) : null}
                     </div>
                   </td>

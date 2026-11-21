@@ -42,6 +42,17 @@ describe('Delta', () => {
     expect(icon).toHaveClass('lucide-chevron-down')
   })
 
+  it('draws a neutral change in grey, keeping the arrow on the sign', () => {
+    const rise = renderDelta({ change: 12, neutral: true })
+    expect(rise.span).toHaveClass('text-ink-3')
+    expect(rise.span).not.toHaveClass('text-success-fg')
+    expect(rise.icon).toHaveClass('lucide-chevron-up')
+    const fall = renderDelta({ change: -12, neutral: true })
+    expect(fall.span).toHaveClass('text-ink-3')
+    expect(fall.span).not.toHaveClass('text-danger-fg')
+    expect(fall.icon).toHaveClass('lucide-chevron-down')
+  })
+
   it('colours a rise as bad with invertTrend', () => {
     const { span, icon } = renderDelta({ change: 12, invertTrend: true })
     expect(span).toHaveClass('text-danger-fg')

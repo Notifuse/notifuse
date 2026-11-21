@@ -7,6 +7,8 @@ interface DeltaProps {
   change?: number
   /** Lower is better (bounce rate), so a drop reads as an improvement. */
   invertTrend?: boolean
+  /** A change that is neither good nor bad: grey, whatever its sign. */
+  neutral?: boolean
   /** `text-2xs` instead of `text-xs`, for a tile or a dense cell. */
   small?: boolean
   decimals?: number
@@ -20,11 +22,15 @@ interface DeltaProps {
  * "good/bad" would make a falling bounce rate render as a green up arrow,
  * which reads as growth.
  */
-export function Delta({ change, invertTrend, small, decimals = 0 }: DeltaProps) {
+export function Delta({ change, invertTrend, neutral, small, decimals = 0 }: DeltaProps) {
   if (!hasChange(change)) return null
 
   const Icon = change > 0 ? ChevronUp : ChevronDown
-  const tone = deltaTone(change, invertTrend) === 'positive' ? 'text-success-fg' : 'text-danger-fg'
+  const tone = neutral
+    ? 'text-ink-3'
+    : deltaTone(change, invertTrend) === 'positive'
+      ? 'text-success-fg'
+      : 'text-danger-fg'
 
   return (
     <span className={`inline-flex items-center font-medium ${small ? 'text-2xs' : 'text-xs'} ${tone}`}>

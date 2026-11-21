@@ -25,7 +25,7 @@ msgstr " - Fehlgeschlagen"
 msgid " · {seconds}s"
 msgstr " · {seconds}s"
 
-#: src/components/email_builder/EmailBuilder.tsx:969
+#: src/components/email_builder/EmailBuilder.tsx:979
 msgid " (copy)"
 msgstr " (Kopie)"
 
@@ -81,7 +81,7 @@ msgstr "(trifft immer zu)"
 msgid "(Cancelled)"
 msgstr "(Abgebrochen)"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:374
+#: src/components/blog/ThemeEditorDrawer.tsx:384
 msgid "(changed)"
 msgstr "(geändert)"
 
@@ -90,7 +90,7 @@ msgstr "(geändert)"
 msgid "(default)"
 msgstr "(Standard)"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:360
+#: src/components/web_analytics/DimensionTableWidget.tsx:385
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:57
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:166
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:168
@@ -318,7 +318,7 @@ msgid "{0, plural, one {# rule runs later and can overwrite this rule on {afterL
 msgstr "{0, plural, one {# Regel läuft später und kann diese Regel bei {afterList} überschreiben} other {# Regeln laufen später und können diese Regel bei {afterList} überschreiben}}"
 
 #. placeholder {0}: checkedFiles.length
-#: src/components/file_manager/FileExplorer.tsx:724
+#: src/components/file_manager/FileExplorer.tsx:734
 msgid "{0, plural, one {# selected} other {# selected}}"
 msgstr "{0, plural, one {# ausgewählt} other {# ausgewählt}}"
 
@@ -374,7 +374,7 @@ msgid "{0, plural, one {Delete # contact} other {Delete {count} contacts}}"
 msgstr "{0, plural, one {# Kontakt löschen} other {{count} Kontakte löschen}}"
 
 #. placeholder {0}: keys.length
-#: src/components/file_manager/FileExplorer.tsx:399
+#: src/components/file_manager/FileExplorer.tsx:409
 msgid "{0, plural, one {Delete # selected file?} other {Delete # selected files?}}"
 msgstr "{0, plural, one {# ausgewählte Datei löschen?} other {# ausgewählte Dateien löschen?}}"
 
@@ -384,7 +384,7 @@ msgid "{0, plural, one {Delete the folder {name} and its # file?} other {Delete 
 msgstr "{0, plural, one {Den Ordner {name} und seine # Datei löschen?} other {Den Ordner {name} und seine # Dateien löschen?}}"
 
 #. placeholder {0}: checkedFiles.length
-#: src/components/file_manager/FileExplorer.tsx:385
+#: src/components/file_manager/FileExplorer.tsx:395
 msgid "{0, plural, one {Downloaded # file} other {Downloaded # files}}"
 msgstr "{0, plural, one {# Datei heruntergeladen} other {# Dateien heruntergeladen}}"
 
@@ -795,7 +795,7 @@ msgstr "{count, plural, one {# Liste} other {# Listen}}"
 msgid "{count, plural, one {# notification} other {# notifications}}"
 msgstr "{count, plural, one {# Benachrichtigung} other {# Benachrichtigungen}}"
 
-#: src/components/templates/importTemplateFile.ts:176
+#: src/components/templates/importTemplateFile.ts:178
 msgid "{count, plural, one {# passage written between blocks was kept as a Liquid block: its Liquid is unchanged and it is edited as code.} other {# passages written between blocks were kept as Liquid blocks: their Liquid is unchanged and they are edited as code.}}"
 msgstr "{count, plural, one {# Abschnitt zwischen Blöcken wurde als Liquid-Block beibehalten: Sein Liquid bleibt unverändert und er wird als Code bearbeitet.} other {# Abschnitte zwischen Blöcken wurden als Liquid-Blöcke beibehalten: Ihr Liquid bleibt unverändert und sie werden als Code bearbeitet.}}"
 
@@ -877,15 +877,15 @@ msgstr "{days, plural, one {Letzter # Tag} other {Letzte # Tage}}"
 msgid "{days, plural, one {Scheduled in # day} other {Scheduled in # days}}"
 msgstr "{days, plural, one {Geplant in # Tag} other {Geplant in # Tagen}}"
 
-#: src/components/file_manager/FileExplorer.tsx:415
+#: src/components/file_manager/FileExplorer.tsx:425
 msgid "{deleted, plural, one {Deleted # file, {failed} failed} other {Deleted # files, {failed} failed}}"
 msgstr "{deleted, plural, one {# Datei gelöscht, {failed} fehlgeschlagen} other {# Dateien gelöscht, {failed} fehlgeschlagen}}"
 
-#: src/components/file_manager/FileExplorer.tsx:412
+#: src/components/file_manager/FileExplorer.tsx:422
 msgid "{deleted, plural, one {Deleted # file} other {Deleted # files}}"
 msgstr "{deleted, plural, one {# Datei gelöscht} other {# Dateien gelöscht}}"
 
-#: src/components/file_manager/FileExplorer.tsx:360
+#: src/components/file_manager/FileExplorer.tsx:370
 msgid "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
 msgstr "{deletedFiles, plural, one {# Datei gelöscht, {failedFiles} fehlgeschlagen} other {# Dateien gelöscht, {failedFiles} fehlgeschlagen}}"
 
@@ -1032,11 +1032,11 @@ msgstr "{full} ({timezone})"
 msgid "{goals, plural, one {# goal} other {# goals}}"
 msgstr "{goals, plural, one {# Ziel} other {# Ziele}}"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:142
+#: src/components/web_analytics/tabs/DashboardTab.tsx:144
 msgid "{goalsOnlyList} filter only applies to the Goals table"
 msgstr "Der Filter {goalsOnlyList} gilt nur für die Tabelle Ziele"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:143
+#: src/components/web_analytics/tabs/DashboardTab.tsx:145
 msgid "{goalsOnlyList} filters only apply to the Goals table"
 msgstr "Die Filter {goalsOnlyList} gelten nur für die Tabelle Ziele"
 
@@ -1048,12 +1048,12 @@ msgstr "{groups, plural, one {# Gruppe} other {# Gruppen}}"
 msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
 msgstr "{hiddenBlockCount} Blöcke mit diesen Testdaten durch ihre Bedingung ausgeblendet."
 
-#: src/components/web_analytics/lib/format.ts:76
+#: src/components/web_analytics/lib/format.ts:88
 msgid "{hours} h"
 msgstr "{hours} Std."
 
 #: src/components/contacts/visits/duration.ts:12
-#: src/components/web_analytics/lib/format.ts:78
+#: src/components/web_analytics/lib/format.ts:90
 msgid "{hours} h {mm} min"
 msgstr "{hours} Std. {mm} Min."
 
@@ -1074,11 +1074,11 @@ msgstr "{id} wird bereits von einer anderen Benachrichtigung verwendet"
 msgid "{id} is free"
 msgstr "{id} ist verfügbar"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:149
+#: src/components/web_analytics/tabs/DashboardTab.tsx:151
 msgid "{ignoredList} filter not applied on this dashboard"
 msgstr "Filter {ignoredList} wird in diesem Dashboard nicht angewendet"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:150
+#: src/components/web_analytics/tabs/DashboardTab.tsx:152
 msgid "{ignoredList} filters not applied on this dashboard"
 msgstr "Filter {ignoredList} werden in diesem Dashboard nicht angewendet"
 
@@ -1146,13 +1146,13 @@ msgstr "Median-Besuch: {median}"
 msgid "{minutes, plural, one {# min read} other {# min read}}"
 msgstr "{minutes, plural, one {# Min. Lesezeit} other {# Min. Lesezeit}}"
 
-#: src/components/web_analytics/lib/format.ts:70
-#: src/components/web_analytics/lib/format.ts:141
+#: src/components/web_analytics/lib/format.ts:82
+#: src/components/web_analytics/lib/format.ts:153
 msgid "{minutes} min"
 msgstr "{minutes} Min."
 
 #: src/components/contacts/visits/duration.ts:14
-#: src/components/web_analytics/lib/format.ts:70
+#: src/components/web_analytics/lib/format.ts:82
 msgid "{minutes} min {seconds} s"
 msgstr "{minutes} Min. {seconds} Sek."
 
@@ -1294,6 +1294,10 @@ msgstr "{perMinuteText} E-Mails/Min."
 msgid "{pickedListName} uses double opt-in, but no confirmation email is sent: these contacts are added as active, your choice to add them standing as their consent."
 msgstr "{pickedListName} verwendet Double Opt-in, aber es wird keine Bestätigungs-E-Mail gesendet: Diese Kontakte werden als aktiv hinzugefügt, und Ihre Entscheidung, sie hinzuzufügen, gilt als ihre Einwilligung."
 
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:241
+msgid "{pointsText} pts"
+msgstr "{pointsText} Pp."
+
 #: src/components/layout/DrawerControls.tsx:72
 msgid "{position} of {total}"
 msgstr "{position} von {total}"
@@ -1344,8 +1348,8 @@ msgid "{scroll}% scrolled"
 msgstr "{scroll} % gescrollt"
 
 #: src/components/contacts/visits/duration.ts:15
-#: src/components/web_analytics/lib/format.ts:65
-#: src/components/web_analytics/lib/format.ts:138
+#: src/components/web_analytics/lib/format.ts:77
+#: src/components/web_analytics/lib/format.ts:150
 msgid "{seconds} s"
 msgstr "{seconds} Sek."
 
@@ -1890,7 +1894,7 @@ msgstr "Eine Bedingung kann .empty und .to_liquid nicht verwenden: Nutzen Sie de
 msgid "A condition is open: confirm or cancel it."
 msgstr "Eine Bedingung ist geöffnet: Bestätigen oder verwerfen Sie sie."
 
-#: src/components/segment/SegmentDrawer.tsx:170
+#: src/components/segment/SegmentDrawer.tsx:180
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "Eine Bedingung ist noch geöffnet, und die Änderungen seit dem Öffnen des Segments gehen verloren."
 
@@ -1955,7 +1959,7 @@ msgstr "Ein befristetes Angebot: ein Bild, ein Gutscheincode und hervorgehobene 
 msgid "A Liquid block cannot go inside a block with a display condition"
 msgstr "Ein Liquid-Block kann nicht in einen Block mit Anzeigebedingung"
 
-#: src/components/email_builder/EmailBuilder.tsx:435
+#: src/components/email_builder/EmailBuilder.tsx:445
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "Ein Liquid-Block kann nicht in einen Block mit Anzeigebedingung: Entfernen Sie zuerst die Bedingung oder platzieren Sie den Liquid-Block außerhalb."
 
@@ -1987,7 +1991,7 @@ msgstr "Ein Vielfaches der Schriftgröße, ein Prozentwert oder Pixel."
 msgid "A name replaces custom_N in dashboards, the explore picker and attribution rules"
 msgstr "Ein Name ersetzt custom_N in Dashboards, der Explore-Auswahl und den Attributionsregeln"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:546
+#: src/components/blog/ThemeEditorDrawer.tsx:556
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
 msgstr "Ein neuerer Entwurf wurde im lokalen Speicher gefunden. Möchten Sie ihn wiederherstellen oder verwerfen?"
 
@@ -2315,7 +2319,7 @@ msgstr "aktiv"
 #: src/components/automations/edges/edgeLabel.ts:17
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:38
-#: src/components/segment/SegmentDrawer.tsx:270
+#: src/components/segment/SegmentDrawer.tsx:280
 #: src/components/settings/LicenseSettings.tsx:110
 #: src/components/settings/WebhookDetail.tsx:265
 msgid "Active"
@@ -2404,7 +2408,7 @@ msgstr "Bedingung hinzufügen"
 msgid "Add a filter"
 msgstr "Filter hinzufügen"
 
-#: src/components/segment/SegmentDrawer.tsx:350
+#: src/components/segment/SegmentDrawer.tsx:360
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "Fügen Sie eine erste Bedingung hinzu: eine Kontakteigenschaft, eine Liste, eine Aktivität oder ein Ziel."
 
@@ -2568,7 +2572,7 @@ msgstr "Schlüsselwörter hinzufügen..."
 msgid "Add node"
 msgstr "Knoten hinzufügen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:568
+#: src/components/blog/ThemeEditorDrawer.tsx:578
 msgid "Add notes about this version..."
 msgstr "Notizen zu dieser Version hinzufügen..."
 
@@ -3230,7 +3234,7 @@ msgstr "Anmerkungen haben keine eigene Berechtigung: Sie unterstehen bewusst die
 msgid "Anonymous telemetry"
 msgstr "Anonyme Telemetrie"
 
-#: src/components/email_builder/EmailBuilder.tsx:927
+#: src/components/email_builder/EmailBuilder.tsx:937
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Eine andere Änderung der Bibliothek läuft gerade. Versuchen Sie es gleich noch einmal."
 
@@ -3697,7 +3701,7 @@ msgstr "Fragen Sie mich, um beim Schreiben Ihres Blogs zu helfen..."
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "Hat einen Anmeldecode für <0>{target}</0> angefordert"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:357
+#: src/components/blog/ThemeEditorDrawer.tsx:367
 msgid "Assets"
 msgstr "Assets"
 
@@ -3905,6 +3909,15 @@ msgstr "Automatisch für Listen anmelden"
 #: src/components/email_builder/ui/fields/BackgroundFields.tsx:230
 msgid "Auto, cover, contain, or a custom size: 1 to 2000 px, or 1 to 500 %."
 msgstr "Auto, abdecken, enthalten oder eine eigene Größe: 1 bis 2000 px oder 1 bis 500 %."
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:41
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:139
+msgid "Automated"
+msgstr "Automatisiert"
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:47
+msgid "Automated traffic"
+msgstr "Automatisierter Traffic"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:157
 #: src/components/templates/TemplatePreviewDrawer.tsx:237
@@ -4332,7 +4345,7 @@ msgstr "Leer lassen, um den aktuellen Wert zu behalten."
 msgid "Block \"{name}\" deleted"
 msgstr "Block „{name}“ gelöscht"
 
-#: src/components/email_builder/EmailBuilder.tsx:1035
+#: src/components/email_builder/EmailBuilder.tsx:1045
 msgid "Block \"{name}\" inserted"
 msgstr "Block „{name}“ eingefügt"
 
@@ -4445,7 +4458,7 @@ msgstr "Blog aktiviert, aber Theme-Erstellung fehlgeschlagen. Bitte erstellen Si
 msgid "Blog published on"
 msgstr "Blog veröffentlicht unter"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:495
+#: src/components/blog/ThemeEditorDrawer.tsx:505
 msgid "Blog settings"
 msgstr "Blog-Einstellungen"
 
@@ -4621,7 +4634,7 @@ msgstr "Rückläufer-Diagnose"
 #: src/components/web_analytics/explore/ExploreSummary.tsx:53
 #: src/components/web_analytics/explore/ExploreTable.tsx:142
 #: src/components/web_analytics/FilterBuilder.tsx:101
-#: src/components/web_analytics/tabs/DashboardTab.tsx:32
+#: src/components/web_analytics/tabs/DashboardTab.tsx:33
 msgid "Bounce Rate"
 msgstr "Absprungrate"
 
@@ -4709,7 +4722,7 @@ msgstr "Verzweigung"
 msgid "Branch Logic"
 msgstr "Verzweigungslogik"
 
-#: src/components/file_manager/FileExplorer.tsx:662
+#: src/components/file_manager/FileExplorer.tsx:672
 msgid "Breadcrumb"
 msgstr "Brotkrümelnavigation"
 
@@ -4962,8 +4975,9 @@ msgstr "Durchsuchen, filtern und exportieren Sie das Log unter Logs → Audit-Lo
 #~ msgstr "Durchsuchen, filtern und exportieren Sie das Log unter Logs → Audit."
 
 #: src/components/segment/segmentLabels.ts:118
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:76
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
-#: src/components/web_analytics/tabs/DashboardTab.tsx:272
+#: src/components/web_analytics/tabs/DashboardTab.tsx:278
 msgid "Browser"
 msgstr "Browser"
 
@@ -4971,8 +4985,9 @@ msgstr "Browser"
 msgid "Browser used for the visit"
 msgstr "Für den Besuch verwendeter Browser"
 
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:75
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
-#: src/components/web_analytics/tabs/DashboardTab.tsx:271
+#: src/components/web_analytics/tabs/DashboardTab.tsx:277
 msgid "Browsers"
 msgstr "Browser"
 
@@ -5078,7 +5093,7 @@ msgid "Campaign"
 msgstr "Kampagne"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:268
-#: src/components/web_analytics/tabs/DashboardTab.tsx:226
+#: src/components/web_analytics/tabs/DashboardTab.tsx:229
 #: src/pages/WebAnalyticsLivePage.tsx:199
 #: src/pages/WebAnalyticsLivePage.tsx:206
 msgid "Campaigns"
@@ -5123,8 +5138,8 @@ msgstr "Im Browser nicht testbar"
 #: src/components/blog/PostsTable.tsx:222
 #: src/components/blog/PublishModal.tsx:205
 #: src/components/blog/RecentThemesTable.tsx:96
-#: src/components/blog/ThemeEditorDrawer.tsx:326
-#: src/components/blog/ThemeEditorDrawer.tsx:556
+#: src/components/blog/ThemeEditorDrawer.tsx:336
+#: src/components/blog/ThemeEditorDrawer.tsx:566
 #: src/components/broadcasts/BroadcastsTable.tsx:204
 #: src/components/broadcasts/BroadcastsTable.tsx:207
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
@@ -5148,8 +5163,8 @@ msgstr "Im Browser nicht testbar"
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:151
-#: src/components/email_builder/EmailBuilder.tsx:983
-#: src/components/email_builder/EmailBuilder.tsx:999
+#: src/components/email_builder/EmailBuilder.tsx:993
+#: src/components/email_builder/EmailBuilder.tsx:1009
 #: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/panels/TextVersionPanel.tsx:140
 #: src/components/email_builder/panels/TextVersionPanel.tsx:184
@@ -5162,17 +5177,17 @@ msgstr "Im Browser nicht testbar"
 #: src/components/file_manager/buttonSettings.tsx:307
 #: src/components/file_manager/context.tsx:212
 #: src/components/file_manager/DeleteFolderModal.tsx:56
-#: src/components/file_manager/FileExplorer.tsx:335
-#: src/components/file_manager/FileExplorer.tsx:404
-#: src/components/file_manager/FileExplorer.tsx:886
-#: src/components/file_manager/FileExplorer.tsx:929
-#: src/components/file_manager/FileExplorer.tsx:1181
+#: src/components/file_manager/FileExplorer.tsx:345
+#: src/components/file_manager/FileExplorer.tsx:414
+#: src/components/file_manager/FileExplorer.tsx:896
+#: src/components/file_manager/FileExplorer.tsx:939
+#: src/components/file_manager/FileExplorer.tsx:1191
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/lists/ListDrawer.tsx:579
 #: src/components/segment/form_leaf.tsx:204
 #: src/components/segment/input.tsx:311
-#: src/components/segment/SegmentDrawer.tsx:296
+#: src/components/segment/SegmentDrawer.tsx:306
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:386
@@ -5294,7 +5309,7 @@ msgstr "Liste kann nicht entfernt werden, solange E-Mail-Knoten existieren. Lös
 #~ msgid "Cannot restore progress: CSV data is not available"
 #~ msgstr "Fortschritt kann nicht wiederhergestellt werden: CSV-Daten sind nicht verfügbar"
 
-#: src/components/file_manager/FileExplorer.tsx:504
+#: src/components/file_manager/FileExplorer.tsx:514
 msgid "Cannot upload in read-only mode"
 msgstr "Upload im Nur-Lese-Modus nicht möglich"
 
@@ -5325,7 +5340,7 @@ msgstr "kategorie"
 #: src/components/blog/CategoryDrawer.tsx:229
 #: src/components/blog/PostDrawer.tsx:897
 #: src/components/blog/PostsTable.tsx:325
-#: src/components/blog/ThemeEditorDrawer.tsx:419
+#: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/TemplateSelectorModal.tsx:444
 #: src/components/templates/TemplateSettingsStep.tsx:157
 #: src/components/templates/TemplateStartModal.tsx:295
@@ -5492,25 +5507,25 @@ msgstr "Domain ändern"
 #: src/components/web_analytics/FilterBuilder.tsx:38
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:110
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
-#: src/components/web_analytics/tabs/DashboardTab.tsx:206
+#: src/components/web_analytics/tabs/DashboardTab.tsx:212
 msgid "Channel"
 msgstr "Kanal"
 
 #: src/components/segment/segmentLabels.ts:116
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:257
-#: src/components/web_analytics/tabs/DashboardTab.tsx:212
+#: src/components/web_analytics/tabs/DashboardTab.tsx:218
 #: src/pages/WebAnalyticsLivePage.tsx:224
 msgid "Channel group"
 msgstr "Kanalgruppe"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
-#: src/components/web_analytics/tabs/DashboardTab.tsx:211
+#: src/components/web_analytics/tabs/DashboardTab.tsx:217
 msgid "Channel groups"
 msgstr "Kanalgruppen"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
-#: src/components/web_analytics/tabs/DashboardTab.tsx:205
+#: src/components/web_analytics/tabs/DashboardTab.tsx:211
 #: src/pages/WebAnalyticsLivePage.tsx:216
 #: src/pages/WebAnalyticsLivePage.tsx:223
 msgid "Channels"
@@ -5686,7 +5701,7 @@ msgstr "Claude-Modelle"
 #: src/components/contacts/ContactsFilters.tsx:240
 #: src/components/contacts/InlineEditableField.tsx:306
 #: src/components/email_builder/ui/fields/ColorField.tsx:175
-#: src/components/file_manager/FileExplorer.tsx:742
+#: src/components/file_manager/FileExplorer.tsx:752
 msgid "Clear"
 msgstr "Leeren"
 
@@ -5997,7 +6012,7 @@ msgstr "Vorlage klonen"
 
 #: src/components/automations/NodeConfigPanel.tsx:266
 #: src/components/blog/CategoryDrawer.tsx:155
-#: src/components/blog/ThemeEditorDrawer.tsx:325
+#: src/components/blog/ThemeEditorDrawer.tsx:335
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:233
 #: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/BulkActionProgressModal.tsx:65
@@ -6028,7 +6043,7 @@ msgstr "Ohne Speichern schließen?"
 msgid "Closed Captions (CC)"
 msgstr "Untertitel (CC)"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:509
+#: src/components/blog/ThemeEditorDrawer.tsx:519
 #: src/components/email_builder/MjmlCodeEditor.tsx:679
 #: src/pages/TemplatesPage.tsx:404
 msgid "Code"
@@ -6288,7 +6303,7 @@ msgstr "Abgeschlossen"
 msgid "Completed the automation {name}"
 msgstr "Hat die Automation {name} abgeschlossen"
 
-#: src/components/segment/SegmentDrawer.tsx:267
+#: src/components/segment/SegmentDrawer.tsx:277
 msgid "Computing"
 msgstr "Wird berechnet"
 
@@ -6325,7 +6340,7 @@ msgstr "Bedingung {position} verwendet ein Lookaround oder eine Rückreferenz, d
 msgid "conditions"
 msgstr "Bedingungen"
 
-#: src/components/segment/SegmentDrawer.tsx:327
+#: src/components/segment/SegmentDrawer.tsx:337
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -6387,8 +6402,8 @@ msgstr "Konfigurieren Sie eine benutzerdefinierte Domain für E-Mail-Links, Bena
 msgid "Configure Integration"
 msgstr "Integration konfigurieren"
 
-#: src/components/file_manager/FileExplorer.tsx:1001
-#: src/components/file_manager/FileExplorer.tsx:1006
+#: src/components/file_manager/FileExplorer.tsx:1011
+#: src/components/file_manager/FileExplorer.tsx:1016
 msgid "Configure now"
 msgstr "Jetzt konfigurieren"
 
@@ -6463,7 +6478,7 @@ msgstr "Bestätigt eine Abmeldung und verlinkt auf die Einstellungen."
 msgid "Connect an email provider"
 msgstr "E-Mail-Anbieter verbinden"
 
-#: src/components/file_manager/FileExplorer.tsx:996
+#: src/components/file_manager/FileExplorer.tsx:1006
 msgid "Connect an S3-compatible bucket to upload images for your emails and blog."
 msgstr "Verbinden Sie einen S3-kompatiblen Bucket, um Bilder für Ihre E-Mails und Ihren Blog hochzuladen."
 
@@ -6654,7 +6669,7 @@ msgstr "Kontakt erfolgreich aktualisiert"
 #: src/components/contacts/ContactDetailsDrawer.tsx:136
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:279
 #: src/components/logs/labels.ts:22
-#: src/components/segment/SegmentDrawer.tsx:319
+#: src/components/segment/SegmentDrawer.tsx:329
 #: src/components/settings/permissionLabels.ts:7
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:224
@@ -6773,7 +6788,7 @@ msgstr "Inhaltsqualität nach Traffic-Quelle"
 msgid "Content Structure Tree"
 msgstr "Inhaltsstrukturbaum"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:229
+#: src/components/web_analytics/tabs/DashboardTab.tsx:232
 msgid "Contents"
 msgstr "Inhalte"
 
@@ -6871,7 +6886,7 @@ msgstr "Secret kopieren"
 #~ msgid "Copy to clipboard"
 #~ msgstr "In Zwischenablage kopieren"
 
-#: src/components/file_manager/FileExplorer.tsx:563
+#: src/components/file_manager/FileExplorer.tsx:573
 #: src/components/file_manager/FilePreview.tsx:95
 msgid "Copy URL"
 msgstr "URL kopieren"
@@ -6932,7 +6947,7 @@ msgstr "Laden fehlgeschlagen"
 msgid "Could not load the annotations"
 msgstr "Die Anmerkungen konnten nicht geladen werden"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:124
+#: src/components/web_analytics/tabs/DashboardTab.tsx:126
 msgid "Could not load the dashboard"
 msgstr "Das Dashboard konnte nicht geladen werden"
 
@@ -7010,7 +7025,7 @@ msgstr "Die Kampagnen konnten nicht geladen werden"
 msgid "Couldn't load the deliveries"
 msgstr "Die Zustellungen konnten nicht geladen werden"
 
-#: src/components/file_manager/FileExplorer.tsx:798
+#: src/components/file_manager/FileExplorer.tsx:808
 msgid "Couldn't load the files"
 msgstr "Die Dateien konnten nicht geladen werden"
 
@@ -7089,7 +7104,7 @@ msgstr "Anzahl"
 #: src/components/web_analytics/goals/GoalCard.tsx:45
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:59
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:138
-#: src/components/web_analytics/tabs/DashboardTab.tsx:286
+#: src/components/web_analytics/tabs/DashboardTab.tsx:289
 msgid "Count"
 msgstr "Anzahl"
 
@@ -7125,12 +7140,17 @@ msgstr "Die Nachrichten derselben Filter zählen, insgesamt und nach Zustell- un
 msgid "Counted from your providers' delivery webhooks"
 msgstr "Gezählt aus den Zustellungs-Webhooks Ihrer Anbieter"
 
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:50
+msgid "Counted in Sessions, left out of TimeScore and Bounce Rate"
+msgstr "In Sitzungen gezählt, bei TimeScore und Absprungrate nicht berücksichtigt"
+
 #: src/components/broadcasts/compose/AudienceCard.tsx:56
 msgid "Counting…"
 msgstr "Wird gezählt…"
 
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:82
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:296
-#: src/components/web_analytics/tabs/DashboardTab.tsx:243
+#: src/components/web_analytics/tabs/DashboardTab.tsx:249
 msgid "Countries"
 msgstr "Länder"
 
@@ -7143,10 +7163,11 @@ msgstr "Länder"
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentLabels.ts:23
 #: src/components/segment/segmentLabels.ts:120
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:83
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:304
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
-#: src/components/web_analytics/tabs/DashboardTab.tsx:251
-#: src/components/web_analytics/tabs/DashboardTab.tsx:256
+#: src/components/web_analytics/tabs/DashboardTab.tsx:257
+#: src/components/web_analytics/tabs/DashboardTab.tsx:262
 msgid "Country"
 msgstr "Land"
 
@@ -7183,8 +7204,8 @@ msgid "Covers more than templates: reusable blocks answer to the same switch, an
 msgstr "Deckt mehr ab als Vorlagen: Wiederverwendbare Blöcke unterstehen demselben Schalter, und wer einen Block bearbeitet, bearbeitet jede Vorlage, die ihn einbettet. Blöcke werden zusammen mit den eigenen Einstellungen des Arbeitsbereichs gespeichert, sodass ihr Inhalt auch von /api/workspaces.get und von /api/workspaces.list zurückkommt, was überhaupt keine Berechtigung erfordert — Leserecht für Vorlagen ist nicht der einzige Weg, Blockinhalte zu sehen. Und /api/templates.compile prüft diese Berechtigung nur bei Aufrufen, die über die API eintreffen; wenn der Arbeitsbereich eine Vorlage für sich selbst kompiliert, wird nichts geprüft."
 
 #: src/components/automations/AutomationEditor.tsx:514
-#: src/components/file_manager/FileExplorer.tsx:932
-#: src/components/segment/SegmentDrawer.tsx:292
+#: src/components/file_manager/FileExplorer.tsx:942
+#: src/components/segment/SegmentDrawer.tsx:302
 msgid "Create"
 msgstr "Erstellen"
 
@@ -7310,7 +7331,7 @@ msgstr "Eigene erstellen"
 #~ msgid "Create New Category"
 #~ msgstr "Neue Kategorie erstellen"
 
-#: src/components/file_manager/FileExplorer.tsx:923
+#: src/components/file_manager/FileExplorer.tsx:933
 msgid "Create new folder"
 msgstr "Neuen Ordner erstellen"
 
@@ -7486,7 +7507,7 @@ msgstr "Von Zapier erstellt"
 #~ msgid "Created new version v{0}"
 #~ msgstr "Neue Version v{0} erstellt"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:260
+#: src/components/blog/ThemeEditorDrawer.tsx:270
 msgid "Created new version v{savedVersion}"
 msgstr "Neue Version v{savedVersion} erstellt"
 
@@ -8162,13 +8183,13 @@ msgstr "Verzögerung"
 #: src/components/contacts/ContactsTable.tsx:103
 #: src/components/contacts/ContactsViewHeader.tsx:153
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:56
-#: src/components/email_builder/EmailBuilder.tsx:997
+#: src/components/email_builder/EmailBuilder.tsx:1007
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
-#: src/components/file_manager/FileExplorer.tsx:334
-#: src/components/file_manager/FileExplorer.tsx:403
-#: src/components/file_manager/FileExplorer.tsx:572
-#: src/components/file_manager/FileExplorer.tsx:733
-#: src/components/file_manager/FileExplorer.tsx:738
+#: src/components/file_manager/FileExplorer.tsx:344
+#: src/components/file_manager/FileExplorer.tsx:413
+#: src/components/file_manager/FileExplorer.tsx:582
+#: src/components/file_manager/FileExplorer.tsx:743
+#: src/components/file_manager/FileExplorer.tsx:748
 #: src/components/file_manager/FilePreview.tsx:117
 #: src/components/file_manager/FilePreview.tsx:124
 #: src/components/file_manager/FilePreview.tsx:126
@@ -8206,7 +8227,7 @@ msgstr "Löschen"
 #~ msgid "DELETE"
 #~ msgstr "DELETE"
 
-#: src/components/email_builder/EmailBuilder.tsx:995
+#: src/components/email_builder/EmailBuilder.tsx:1005
 msgid "Delete \"{name}\" from the library?"
 msgstr "„{name}“ aus der Bibliothek löschen?"
 
@@ -8356,23 +8377,23 @@ msgstr "Kontakte löschen"
 msgid "Delete edge"
 msgstr "Kante löschen"
 
-#: src/components/file_manager/FileExplorer.tsx:573
-#: src/components/file_manager/FileExplorer.tsx:731
+#: src/components/file_manager/FileExplorer.tsx:583
+#: src/components/file_manager/FileExplorer.tsx:741
 #: src/components/file_manager/FilePreview.tsx:111
 msgid "Delete file (Read-only mode)"
 msgstr "Datei löschen (Nur-Lese-Modus)"
 
 #: src/components/file_manager/DeleteFolderModal.tsx:54
 #: src/components/file_manager/DeleteFolderModal.tsx:55
-#: src/components/file_manager/FileExplorer.tsx:555
-#: src/components/file_manager/FileExplorer.tsx:639
-#: src/components/file_manager/FileExplorer.tsx:1084
+#: src/components/file_manager/FileExplorer.tsx:565
+#: src/components/file_manager/FileExplorer.tsx:649
+#: src/components/file_manager/FileExplorer.tsx:1094
 msgid "Delete folder"
 msgstr "Ordner löschen"
 
-#: src/components/file_manager/FileExplorer.tsx:556
-#: src/components/file_manager/FileExplorer.tsx:640
-#: src/components/file_manager/FileExplorer.tsx:1085
+#: src/components/file_manager/FileExplorer.tsx:566
+#: src/components/file_manager/FileExplorer.tsx:650
+#: src/components/file_manager/FileExplorer.tsx:1095
 msgid "Delete folder (Read-only mode)"
 msgstr "Ordner löschen (Nur-Lese-Modus)"
 
@@ -8708,7 +8729,7 @@ msgstr "Die Beschreibung darf höchstens {MAX_DESCRIPTION_LENGTH} Zeichen lang s
 msgid "Description when shared on social media (og:description)"
 msgstr "Beschreibung beim Teilen in sozialen Medien (og:description)"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:430
+#: src/components/blog/ThemeEditorDrawer.tsx:440
 #: src/components/broadcasts/compose/PreviewPanel.tsx:65
 #: src/components/email_builder/MjmlCodeEditor.tsx:708
 #: src/components/email_builder/MjmlCodeEditor.tsx:711
@@ -8740,7 +8761,7 @@ msgstr "Von der Website erkennen"
 #~ msgid "Detect from website URL"
 #~ msgstr "Von Website-URL erkennen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:428
+#: src/components/blog/ThemeEditorDrawer.tsx:438
 #: src/components/contacts/visits/ContactWebVisits.tsx:296
 #: src/components/segment/segmentLabels.ts:117
 #: src/components/web_analytics/explore/BreakdownModal.tsx:35
@@ -8748,7 +8769,7 @@ msgstr "Von der Website erkennen"
 #: src/components/web_analytics/FilterBuilder.tsx:42
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:114
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
-#: src/components/web_analytics/tabs/DashboardTab.tsx:268
+#: src/components/web_analytics/tabs/DashboardTab.tsx:274
 #: src/pages/WebAnalyticsLivePage.tsx:195
 msgid "Device"
 msgstr "Gerät"
@@ -8759,8 +8780,8 @@ msgstr "Gerätekategorie des Besuchs"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:285
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
-#: src/components/web_analytics/tabs/DashboardTab.tsx:264
-#: src/components/web_analytics/tabs/DashboardTab.tsx:268
+#: src/components/web_analytics/tabs/DashboardTab.tsx:270
+#: src/components/web_analytics/tabs/DashboardTab.tsx:274
 #: src/pages/WebAnalyticsLivePage.tsx:190
 #: src/pages/WebAnalyticsLivePage.tsx:195
 msgid "Devices"
@@ -8848,7 +8869,7 @@ msgstr "Deaktivierte Regeln"
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
 #: src/components/lists/ListDrawer.tsx:214
-#: src/components/segment/SegmentDrawer.tsx:172
+#: src/components/segment/SegmentDrawer.tsx:182
 #: src/components/templates/CreateTemplateDrawer.tsx:897
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
@@ -8861,7 +8882,7 @@ msgstr "Verwerfen"
 msgid "Discard changes"
 msgstr "Änderungen verwerfen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:544
+#: src/components/blog/ThemeEditorDrawer.tsx:554
 msgid "Discard Draft"
 msgstr "Entwurf verwerfen"
 
@@ -8870,7 +8891,7 @@ msgid "Discard unsaved changes?"
 msgstr "Nicht gespeicherte Änderungen verwerfen?"
 
 #: src/components/lists/ListDrawer.tsx:212
-#: src/components/segment/SegmentDrawer.tsx:168
+#: src/components/segment/SegmentDrawer.tsx:178
 #: src/components/templates/CreateTemplateDrawer.tsx:895
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -8971,7 +8992,7 @@ msgstr "Möchten Sie diese Gruppe wirklich entfernen?"
 #~ msgid "Do you want to delete the"
 #~ msgstr "Möchten Sie löschen"
 
-#: src/components/file_manager/FileExplorer.tsx:333
+#: src/components/file_manager/FileExplorer.tsx:343
 #: src/components/file_manager/FilePreview.tsx:125
 msgid "Do you want to permanently delete this file from your storage?"
 msgstr "Möchten Sie diese Datei dauerhaft aus Ihrem Speicher löschen?"
@@ -9089,7 +9110,7 @@ msgstr "Double Opt-in"
 #~ msgid "Double Opt-in Template"
 #~ msgstr "Double-Opt-in-Vorlage"
 
-#: src/components/file_manager/FileExplorer.tsx:569
+#: src/components/file_manager/FileExplorer.tsx:579
 #: src/components/file_manager/FilePreview.tsx:98
 #: src/components/web_analytics/explore/CsvExportModal.tsx:139
 msgid "Download"
@@ -9099,7 +9120,7 @@ msgstr "Herunterladen"
 msgid "Download as CSV"
 msgstr "Als CSV herunterladen"
 
-#: src/components/file_manager/FileExplorer.tsx:728
+#: src/components/file_manager/FileExplorer.tsx:738
 msgid "Download as zip"
 msgstr "Als ZIP herunterladen"
 
@@ -9119,7 +9140,7 @@ msgstr "Fehlgeschlagene Zeilen herunterladen"
 #: src/components/automations/AutomationStatusPill.tsx:15
 #: src/components/blog/PostDrawer.tsx:758
 #: src/components/blog/PostsTable.tsx:348
-#: src/components/blog/ThemeEditorDrawer.tsx:473
+#: src/components/blog/ThemeEditorDrawer.tsx:483
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:199
 #: src/components/templates/templateUsage.ts:83
 msgid "Draft"
@@ -9130,7 +9151,7 @@ msgctxt "newsletter status"
 msgid "Draft"
 msgstr "Entwurf"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:163
+#: src/components/blog/ThemeEditorDrawer.tsx:173
 msgid "Draft restored from local storage"
 msgstr "Entwurf aus lokalem Speicher wiederhergestellt"
 
@@ -9157,7 +9178,7 @@ msgstr "Ziehen von {name} wurde abgebrochen."
 msgid "Drop a CSV file here, or click to browse"
 msgstr "CSV-Datei hier ablegen oder zum Durchsuchen klicken"
 
-#: src/components/file_manager/FileExplorer.tsx:853
+#: src/components/file_manager/FileExplorer.tsx:863
 msgid "Drop files here to upload"
 msgstr "Dateien hier ablegen zum Hochladen"
 
@@ -9351,7 +9372,7 @@ msgstr "Jede Variante behält den Absender ihrer Vorlage, es sei denn, Sie wähl
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:91
-#: src/components/email_builder/EmailBuilder.tsx:1128
+#: src/components/email_builder/EmailBuilder.tsx:1138
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
 #: src/components/segment/input.tsx:389
 #: src/components/segment/input.tsx:393
@@ -9537,7 +9558,7 @@ msgid "Edit rule"
 msgstr "Regel bearbeiten"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:65
-#: src/components/segment/SegmentDrawer.tsx:322
+#: src/components/segment/SegmentDrawer.tsx:332
 msgid "Edit segment"
 msgstr "Segment bearbeiten"
 
@@ -9588,7 +9609,7 @@ msgid "Edit the title in Details"
 msgstr "Titel in Details bearbeiten"
 
 #: src/components/blog/RecentThemesTable.tsx:180
-#: src/components/blog/ThemeEditorDrawer.tsx:501
+#: src/components/blog/ThemeEditorDrawer.tsx:511
 msgid "Edit theme"
 msgstr "Theme bearbeiten"
 
@@ -10748,7 +10769,7 @@ msgid "exit page"
 msgstr "Ausstiegsseite"
 
 #: src/components/segment/segmentLabels.ts:104
-#: src/components/web_analytics/tabs/DashboardTab.tsx:188
+#: src/components/web_analytics/tabs/DashboardTab.tsx:191
 msgid "Exit page"
 msgstr "Ausstiegsseite"
 
@@ -10768,13 +10789,13 @@ msgstr "Ausgetreten"
 msgid "Exited on"
 msgstr "Verlassen auf"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:187
+#: src/components/web_analytics/tabs/DashboardTab.tsx:190
 msgid "Exits"
 msgstr "Ausstiege"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/components/web_analytics/DimensionTableWidget.tsx:131
-#: src/components/web_analytics/DimensionTableWidget.tsx:135
+#: src/components/web_analytics/DimensionTableWidget.tsx:145
+#: src/components/web_analytics/DimensionTableWidget.tsx:149
 msgid "Expand"
 msgstr "Erweitern"
 
@@ -11004,7 +11025,7 @@ msgstr "Verbindung mit Zapier fehlgeschlagen"
 
 #: src/components/automations/AutomationEditor.tsx:429
 #: src/components/common/CodeSnippet.tsx:35
-#: src/components/file_manager/FileExplorer.tsx:306
+#: src/components/file_manager/FileExplorer.tsx:316
 #: src/components/layout/DrawerControls.tsx:88
 #: src/components/layout/Mono.tsx:24
 #: src/components/logs/CodeBlock.tsx:22
@@ -11035,7 +11056,7 @@ msgstr "Erstellen der Automatisierung fehlgeschlagen: {0}"
 msgid "Failed to create category: {0}"
 msgstr "Erstellen der Kategorie fehlgeschlagen: {0}"
 
-#: src/components/file_manager/FileExplorer.tsx:522
+#: src/components/file_manager/FileExplorer.tsx:532
 msgid "Failed to create folder: "
 msgstr "Erstellen des Ordners fehlgeschlagen: "
 
@@ -11053,7 +11074,7 @@ msgstr "Erstellen der Benachrichtigung fehlgeschlagen: {0}"
 msgid "Failed to create post: {0}"
 msgstr "Erstellen des Beitrags fehlgeschlagen: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:252
+#: src/components/segment/SegmentDrawer.tsx:262
 msgid "Failed to create segment"
 msgstr "Erstellen des Segments fehlgeschlagen"
 
@@ -11086,11 +11107,11 @@ msgstr "Löschen der Kategorie fehlgeschlagen"
 msgid "Failed to delete contact"
 msgstr "Löschen des Kontakts fehlgeschlagen"
 
-#: src/components/file_manager/FileExplorer.tsx:327
+#: src/components/file_manager/FileExplorer.tsx:337
 msgid "Failed to delete file: "
 msgstr "Löschen der Datei fehlgeschlagen: "
 
-#: src/components/file_manager/FileExplorer.tsx:368
+#: src/components/file_manager/FileExplorer.tsx:378
 msgid "Failed to delete folder: "
 msgstr "Ordner konnte nicht gelöscht werden: "
 
@@ -11140,11 +11161,11 @@ msgstr "Löschen des Arbeitsbereichs fehlgeschlagen"
 msgid "Failed to detect icon: {0}"
 msgstr "Erkennen des Symbols fehlgeschlagen: {0}"
 
-#: src/components/file_manager/FileExplorer.tsx:312
+#: src/components/file_manager/FileExplorer.tsx:322
 msgid "Failed to download file"
 msgstr "Herunterladen der Datei fehlgeschlagen"
 
-#: src/components/file_manager/FileExplorer.tsx:389
+#: src/components/file_manager/FileExplorer.tsx:399
 msgid "Failed to download files"
 msgstr "Herunterladen der Dateien fehlgeschlagen"
 
@@ -11193,7 +11214,7 @@ msgstr "Abrufen des Einrichtungsstatus fehlgeschlagen"
 msgid "Failed to fetch workspace members"
 msgstr "Abrufen der Arbeitsbereich-Mitglieder fehlgeschlagen"
 
-#: src/components/templates/importTemplateFile.ts:200
+#: src/components/templates/importTemplateFile.ts:202
 msgid "Failed to import MJML template. Please check the MJML syntax."
 msgstr "Importieren der MJML-Vorlage fehlgeschlagen. Bitte überprüfen Sie die MJML-Syntax."
 
@@ -11260,7 +11281,7 @@ msgid "Failed to publish theme"
 msgstr "Veröffentlichung des Themes fehlgeschlagen"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:570
-#: src/components/templates/importTemplateFile.ts:245
+#: src/components/templates/importTemplateFile.ts:247
 msgid "Failed to read the file"
 msgstr "Lesen der Datei fehlgeschlagen"
 
@@ -11354,7 +11375,7 @@ msgstr "Speichern des Vorlagenblocks fehlgeschlagen"
 msgid "Failed to save the retention"
 msgstr "Die Aufbewahrung konnte nicht gespeichert werden"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:282
+#: src/components/blog/ThemeEditorDrawer.tsx:292
 msgid "Failed to save theme"
 msgstr "Speichern des Themes fehlgeschlagen"
 
@@ -11481,7 +11502,7 @@ msgstr "Aktualisieren der Berechtigungen fehlgeschlagen"
 msgid "Failed to update post: {0}"
 msgstr "Aktualisieren des Beitrags fehlgeschlagen: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:252
+#: src/components/segment/SegmentDrawer.tsx:262
 msgid "Failed to update segment"
 msgstr "Aktualisieren des Segments fehlgeschlagen"
 
@@ -11630,7 +11651,7 @@ msgstr "Datei {0} hinzugefügt"
 msgid "File {0} exceeds 3MB limit"
 msgstr "Datei {0} überschreitet 3MB-Limit"
 
-#: src/components/file_manager/FileExplorer.tsx:321
+#: src/components/file_manager/FileExplorer.tsx:331
 msgid "File deleted successfully."
 msgstr "Datei erfolgreich gelöscht."
 
@@ -11638,7 +11659,7 @@ msgstr "Datei erfolgreich gelöscht."
 msgid "File is too large. Maximum size is 1MB."
 msgstr "Die Datei ist zu groß. Die maximale Größe beträgt 1 MB."
 
-#: src/components/file_manager/FileExplorer.tsx:1015
+#: src/components/file_manager/FileExplorer.tsx:1025
 #: src/layouts/app-shell/menuItems.ts:231
 msgid "File Manager"
 msgstr "Dateimanager"
@@ -11651,13 +11672,13 @@ msgstr "Dateimanager-Fehler: "
 msgid "File manager settings updated successfully"
 msgstr "Dateimanager-Einstellungen erfolgreich aktualisiert"
 
-#: src/components/file_manager/FileExplorer.tsx:755
-#: src/components/file_manager/FileExplorer.tsx:756
+#: src/components/file_manager/FileExplorer.tsx:765
+#: src/components/file_manager/FileExplorer.tsx:766
 #: src/components/web_analytics/explore/CsvExportModal.tsx:163
 msgid "File name"
 msgstr "Dateiname"
 
-#: src/components/file_manager/FileExplorer.tsx:994
+#: src/components/file_manager/FileExplorer.tsx:1004
 msgid "File storage is not configured."
 msgstr "Dateispeicher ist nicht konfiguriert."
 
@@ -11865,23 +11886,23 @@ msgstr "Nach dem Speichern der Vorlage festgelegt"
 msgid "Folder"
 msgstr "Ordner"
 
-#: src/components/file_manager/FileExplorer.tsx:519
+#: src/components/file_manager/FileExplorer.tsx:529
 msgid "Folder already exists."
 msgstr "Ordner existiert bereits."
 
-#: src/components/file_manager/FileExplorer.tsx:520
+#: src/components/file_manager/FileExplorer.tsx:530
 msgid "Folder created successfully."
 msgstr "Ordner erfolgreich erstellt."
 
-#: src/components/file_manager/FileExplorer.tsx:352
+#: src/components/file_manager/FileExplorer.tsx:362
 msgid "Folder deleted successfully."
 msgstr "Ordner erfolgreich gelöscht."
 
-#: src/components/file_manager/FileExplorer.tsx:793
+#: src/components/file_manager/FileExplorer.tsx:803
 msgid "Folder is empty"
 msgstr "Ordner ist leer"
 
-#: src/components/file_manager/FileExplorer.tsx:942
+#: src/components/file_manager/FileExplorer.tsx:952
 msgid "Folder name"
 msgstr "Ordnername"
 
@@ -11889,8 +11910,8 @@ msgstr "Ordnername"
 #~ msgid "folder with all its content?"
 #~ msgstr "Ordner mit gesamtem Inhalt?"
 
-#: src/components/file_manager/FileExplorer.tsx:1027
-#: src/components/file_manager/FileExplorer.tsx:1113
+#: src/components/file_manager/FileExplorer.tsx:1037
+#: src/components/file_manager/FileExplorer.tsx:1123
 #: src/components/file_manager/FolderTree.tsx:138
 msgid "Folders"
 msgstr "Ordner"
@@ -12353,7 +12374,7 @@ msgstr "Zur Anmeldung"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
 #: src/components/web_analytics/FilterBuilder.tsx:46
-#: src/components/web_analytics/tabs/DashboardTab.tsx:293
+#: src/components/web_analytics/tabs/DashboardTab.tsx:296
 msgid "Goal"
 msgstr "Ziel"
 
@@ -12361,7 +12382,7 @@ msgstr "Ziel"
 msgid "Goal {goalName}"
 msgstr "Ziel {goalName}"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:283
+#: src/components/web_analytics/tabs/DashboardTab.tsx:286
 msgid "Goal conversions and their total value"
 msgstr "Zielkonversionen und ihr Gesamtwert"
 
@@ -12415,8 +12436,8 @@ msgstr "Zielwert"
 #: src/components/web_analytics/CountryMapView.tsx:69
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:175
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:237
-#: src/components/web_analytics/tabs/DashboardTab.tsx:282
-#: src/components/web_analytics/tabs/DashboardTab.tsx:292
+#: src/components/web_analytics/tabs/DashboardTab.tsx:285
+#: src/components/web_analytics/tabs/DashboardTab.tsx:295
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
 #: src/layouts/app-shell/menuItems.ts:221
 #: src/pages/WebAnalyticsPage.tsx:97
@@ -12515,8 +12536,8 @@ msgstr "Grün"
 msgid "Grey"
 msgstr "Grau"
 
-#: src/components/file_manager/FileExplorer.tsx:704
-#: src/components/file_manager/FileExplorer.tsx:705
+#: src/components/file_manager/FileExplorer.tsx:714
+#: src/components/file_manager/FileExplorer.tsx:715
 msgid "Grid"
 msgstr "Raster"
 
@@ -12739,7 +12760,7 @@ msgstr "Eine Streaming-Unterhaltung mit dem konfigurierten LLM-Anbieter des Arbe
 msgid "Hold for drag"
 msgstr "Halten zum Ziehen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:418
+#: src/components/blog/ThemeEditorDrawer.tsx:428
 msgid "Home"
 msgstr "Startseite"
 
@@ -12867,6 +12888,10 @@ msgstr "https://example.com oder {LIQUID_URL}"
 #: src/components/email_builder/blocks/MjFontBlock.tsx:93
 msgid "https://fonts.googleapis.com/css?family=… or {LIQUID_FONT_URL}"
 msgstr "https://fonts.googleapis.com/css?family=… oder {LIQUID_FONT_URL}"
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:140
+msgid "Human"
+msgstr "Menschlich"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:873
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
@@ -13193,7 +13218,7 @@ msgstr "Importieren Sie eine CSV-Datei in eine Liste oder senden Sie Kontakte au
 msgid "Import another file"
 msgstr "Eine weitere Datei importieren"
 
-#: src/components/file_manager/FileExplorer.tsx:477
+#: src/components/file_manager/FileExplorer.tsx:487
 msgid "Import cancelled"
 msgstr "Import abgebrochen"
 
@@ -13293,7 +13318,7 @@ msgstr "Importierte Schriften"
 msgid "Importing"
 msgstr "Import läuft"
 
-#: src/components/file_manager/FileExplorer.tsx:858
+#: src/components/file_manager/FileExplorer.tsx:868
 msgid "Importing files..."
 msgstr "Dateien werden importiert..."
 
@@ -13503,7 +13528,7 @@ msgstr "Emoji einfügen"
 msgid "Insert here"
 msgstr "Hier einfügen"
 
-#: src/components/file_manager/FileExplorer.tsx:1183
+#: src/components/file_manager/FileExplorer.tsx:1193
 msgid "Insert image"
 msgstr "Bild einfügen"
 
@@ -13839,7 +13864,7 @@ msgstr "Issuer-URL"
 msgid "Issuer URL is required"
 msgstr "Issuer-URL ist erforderlich"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:576
+#: src/components/blog/ThemeEditorDrawer.tsx:586
 msgid "It goes live on your blog; the currently published theme will be unpublished automatically."
 msgstr "Es geht auf Ihrem Blog live; das derzeit veröffentlichte Theme wird automatisch zurückgezogen."
 
@@ -13851,7 +13876,7 @@ msgstr "Sie wird bei jedem Versand aus dem HTML erzeugt, es gibt also nichts zu 
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "Sie wird nicht zum geplanten Zeitpunkt gesendet. Sie können sie bearbeiten und erneut planen; das Datum bleibt erhalten."
 
-#: src/components/email_builder/EmailBuilder.tsx:996
+#: src/components/email_builder/EmailBuilder.tsx:1006
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "Er wird für alle Vorlagen des Workspace entfernt. Vorlagen, die diesen Block bereits enthalten, ändern sich nicht."
 
@@ -14001,7 +14026,7 @@ msgstr "Blocksatz"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
 #: src/components/lists/ListDrawer.tsx:215
-#: src/components/segment/SegmentDrawer.tsx:173
+#: src/components/segment/SegmentDrawer.tsx:183
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:721
 #: src/components/templates/CreateTemplateDrawer.tsx:899
@@ -14086,10 +14111,11 @@ msgstr "Beschriftung"
 msgid "Label must be at most 100 characters"
 msgstr "Label darf höchstens 100 Zeichen haben"
 
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:68
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:313
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:319
-#: src/components/web_analytics/tabs/DashboardTab.tsx:181
+#: src/components/web_analytics/tabs/DashboardTab.tsx:184
 #: src/pages/WebAnalyticsLivePage.tsx:157
 msgid "Landing pages"
 msgstr "Landingpages"
@@ -14411,7 +14437,7 @@ msgstr "Nur Buchstaben, Ziffern, Leerzeichen, Anführungszeichen, Kommas und Bin
 msgid "Level"
 msgstr "Ebene"
 
-#: src/components/email_builder/EmailBuilder.tsx:1200
+#: src/components/email_builder/EmailBuilder.tsx:1210
 msgid "Library"
 msgstr "Bibliothek"
 
@@ -14451,7 +14477,7 @@ msgstr "Lebenszyklus"
 msgid "Lime"
 msgstr "Limette"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:177
+#: src/components/web_analytics/DimensionTableWidget.tsx:193
 msgid "Limited to the top {EXPANDED_ROWS} values for performance"
 msgstr "Aus Performance-Gründen auf die obersten {EXPANDED_ROWS} Werte begrenzt"
 
@@ -14608,7 +14634,7 @@ msgstr "Liquid erlaubt"
 msgid "Liquid accepted, for example"
 msgstr "Liquid erlaubt, zum Beispiel"
 
-#: src/components/templates/importTemplateFile.ts:149
+#: src/components/templates/importTemplateFile.ts:150
 msgid "Liquid between the blocks of <{tag}> cannot be imported into the visual editor."
 msgstr "Liquid zwischen den Blöcken von <{tag}> kann nicht in den visuellen Editor importiert werden."
 
@@ -14620,15 +14646,15 @@ msgstr "Liquid zwischen den Blöcken von <{tag}> kann nicht in den visuellen Edi
 msgid "Liquid block - Click to add MJML + Liquid content"
 msgstr "Liquid-Block - Klicken, um MJML- + Liquid-Inhalt hinzuzufügen"
 
-#: src/components/templates/importTemplateFile.ts:147
+#: src/components/templates/importTemplateFile.ts:148
 msgid "Liquid inside a tag cannot be imported into the visual editor."
 msgstr "Liquid innerhalb eines Tags kann nicht in den visuellen Editor importiert werden."
 
-#: src/components/templates/importTemplateFile.ts:174
+#: src/components/templates/importTemplateFile.ts:176
 msgid "Liquid kept in Liquid blocks"
 msgstr "Liquid in Liquid-Blöcken beibehalten"
 
-#: src/components/templates/importTemplateFile.ts:150
+#: src/components/templates/importTemplateFile.ts:151
 msgid "Liquid or markup outside <mjml> cannot be imported."
 msgstr "Liquid oder Markup außerhalb von <mjml> kann nicht importiert werden."
 
@@ -14650,8 +14676,8 @@ msgstr "Liquid zwischen den Blöcken eines Abschnitts oder einer Spalte landet m
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/contacts/sheet/activityLabel.ts:17
 #: src/components/contacts/sheet/describeActivity.tsx:163
-#: src/components/file_manager/FileExplorer.tsx:710
-#: src/components/file_manager/FileExplorer.tsx:711
+#: src/components/file_manager/FileExplorer.tsx:720
+#: src/components/file_manager/FileExplorer.tsx:721
 #: src/components/logs/MessageDetail.tsx:693
 #: src/components/logs/MessagesTab.tsx:292
 #: src/components/logs/MessagesTab.tsx:475
@@ -14660,7 +14686,7 @@ msgstr "Liquid zwischen den Blöcken eines Abschnitts oder einer Spalte landet m
 #: src/components/messages/MessageHistoryTable.tsx:299
 #: src/components/templates/TemplateSelectorModal.tsx:710
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
-#: src/components/web_analytics/tabs/DashboardTab.tsx:256
+#: src/components/web_analytics/tabs/DashboardTab.tsx:262
 msgid "List"
 msgstr "Liste"
 
@@ -14908,7 +14934,7 @@ msgstr "Die neueste Version dieser Vorlage wurde geladen (v{0})."
 msgid "loading"
 msgstr "wird geladen"
 
-#: src/components/file_manager/FileExplorer.tsx:823
+#: src/components/file_manager/FileExplorer.tsx:833
 msgid "Loading"
 msgstr "Wird geladen"
 
@@ -14944,7 +14970,7 @@ msgstr "Vorlage wird geladen..."
 #~ msgid "Loading webhook status..."
 #~ msgstr "Webhook-Status wird geladen..."
 
-#: src/components/blog_editor/NotifuseEditor.tsx:480
+#: src/components/blog_editor/NotifuseEditor.tsx:490
 #: src/components/templates/CreateTemplateDrawer.tsx:1013
 #: src/components/templates/TemplateSelectorInput.tsx:162
 #: src/layouts/RootLayout.tsx:99
@@ -15170,7 +15196,7 @@ msgid "Manual"
 msgstr "Manuell"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:303
-#: src/components/web_analytics/tabs/DashboardTab.tsx:250
+#: src/components/web_analytics/tabs/DashboardTab.tsx:256
 msgid "Map"
 msgstr "Karte"
 
@@ -15336,7 +15362,7 @@ msgstr "Median {0}"
 #: src/components/web_analytics/explore/ExploreSummary.tsx:54
 #: src/components/web_analytics/explore/ExploreTable.tsx:158
 #: src/components/web_analytics/FilterBuilder.tsx:102
-#: src/components/web_analytics/tabs/DashboardTab.tsx:33
+#: src/components/web_analytics/tabs/DashboardTab.tsx:34
 msgid "Median Scroll Depth"
 msgstr "Mediane Scrolltiefe"
 
@@ -15359,7 +15385,7 @@ msgstr "Mediane Sitzungsdauer. Grün erreicht den Referenzwert, Cyan übertrifft
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:64
 #: src/components/web_analytics/explore/ExploreSummary.tsx:52
-#: src/components/web_analytics/tabs/DashboardTab.tsx:31
+#: src/components/web_analytics/tabs/DashboardTab.tsx:32
 msgid "Median TimeScore"
 msgstr "Medianer TimeScore"
 
@@ -15373,7 +15399,7 @@ msgid "Medium"
 msgstr "Mittel"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:270
-#: src/components/web_analytics/tabs/DashboardTab.tsx:228
+#: src/components/web_analytics/tabs/DashboardTab.tsx:231
 msgid "Mediums"
 msgstr "Medien"
 
@@ -15592,11 +15618,11 @@ msgstr "MJML-Datei (.mjml)"
 msgid "MJML file imported"
 msgstr "MJML-Datei importiert"
 
-#: src/components/templates/importTemplateFile.ts:217
+#: src/components/templates/importTemplateFile.ts:219
 msgid "MJML Import Error"
 msgstr "MJML-Importfehler"
 
-#: src/components/templates/importTemplateFile.ts:167
+#: src/components/templates/importTemplateFile.ts:169
 msgid "MJML Import Validation Failed"
 msgstr "MJML-Import-Validierung fehlgeschlagen"
 
@@ -15605,8 +15631,8 @@ msgstr "MJML-Import-Validierung fehlgeschlagen"
 msgid "MJML Source"
 msgstr "MJML-Quelle"
 
-#: src/components/templates/importTemplateFile.ts:191
-#: src/components/templates/importTemplateFile.ts:209
+#: src/components/templates/importTemplateFile.ts:193
+#: src/components/templates/importTemplateFile.ts:211
 msgid "MJML Syntax Error"
 msgstr "MJML-Syntaxfehler"
 
@@ -15614,7 +15640,7 @@ msgstr "MJML-Syntaxfehler"
 msgid "MJML template imported and converted successfully"
 msgstr "MJML-Vorlage erfolgreich importiert und konvertiert"
 
-#: src/components/templates/importTemplateFile.ts:216
+#: src/components/templates/importTemplateFile.ts:218
 msgid "MJML Validation Failed"
 msgstr "MJML-Validierung fehlgeschlagen"
 
@@ -15622,7 +15648,7 @@ msgstr "MJML-Validierung fehlgeschlagen"
 msgid "MJML with Liquid kept"
 msgstr "MJML mit beibehaltenem Liquid"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:431
+#: src/components/blog/ThemeEditorDrawer.tsx:441
 #: src/components/broadcasts/compose/PreviewPanel.tsx:66
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:34
 #: src/components/email_builder/MjmlCodeEditor.tsx:718
@@ -15704,7 +15730,7 @@ msgstr "Monatlich"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:346
 #: src/components/contacts/ContactsViewHeader.tsx:134
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
-#: src/components/file_manager/FileExplorer.tsx:1093
+#: src/components/file_manager/FileExplorer.tsx:1103
 #: src/components/settings/Integrations.tsx:282
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
@@ -15898,7 +15924,7 @@ msgid "Never run"
 msgstr "Nie ausgeführt"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
-#: src/components/segment/SegmentDrawer.tsx:264
+#: src/components/segment/SegmentDrawer.tsx:274
 #: src/components/templates/TemplateDrawerBar.tsx:35
 msgid "New"
 msgstr "Neu"
@@ -16001,7 +16027,7 @@ msgid "New rule"
 msgstr "Neue Regel"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/SegmentDrawer.tsx:322
+#: src/components/segment/SegmentDrawer.tsx:332
 msgid "New segment"
 msgstr "Neues Segment"
 
@@ -16031,8 +16057,8 @@ msgid "New template"
 msgstr "Neue Vorlage"
 
 #: src/components/blog/RecentThemesTable.tsx:211
-#: src/components/blog/ThemeEditorDrawer.tsx:466
-#: src/components/blog/ThemeEditorDrawer.tsx:501
+#: src/components/blog/ThemeEditorDrawer.tsx:476
+#: src/components/blog/ThemeEditorDrawer.tsx:511
 msgid "New theme"
 msgstr "Neues Theme"
 
@@ -16208,7 +16234,7 @@ msgid "No broadcasts yet"
 msgstr "Noch keine Kampagnen"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:265
-#: src/components/web_analytics/tabs/DashboardTab.tsx:223
+#: src/components/web_analytics/tabs/DashboardTab.tsx:226
 #: src/pages/WebAnalyticsLivePage.tsx:202
 msgid "No campaign data"
 msgstr "Keine Kampagnendaten"
@@ -16284,7 +16310,7 @@ msgstr "Noch kein Inhalt"
 
 #: src/components/web_analytics/CountryMapView.tsx:165
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:298
-#: src/components/web_analytics/tabs/DashboardTab.tsx:245
+#: src/components/web_analytics/tabs/DashboardTab.tsx:251
 msgid "No country data"
 msgstr "Keine Länderdaten"
 
@@ -16301,11 +16327,12 @@ msgstr "Noch kein benutzerdefiniertes Feld benannt"
 msgid "No data"
 msgstr "Keine Daten"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:288
+#: src/components/web_analytics/DimensionTableWidget.tsx:313
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:224
 msgid "No data available"
 msgstr "Keine Daten verfügbar"
 
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:266
 #: src/components/web_analytics/MetricChart.tsx:323
 msgid "No data for this period"
 msgstr "Keine Daten für diesen Zeitraum"
@@ -16402,7 +16429,7 @@ msgstr "Kein Beitragsbild"
 msgid "No field matches"
 msgstr "Kein Feld gefunden"
 
-#: src/components/file_manager/FileExplorer.tsx:793
+#: src/components/file_manager/FileExplorer.tsx:803
 msgid "No files match your search"
 msgstr "Keine Dateien entsprechen Ihrer Suche"
 
@@ -16430,7 +16457,7 @@ msgstr "Keine Zieldaten"
 msgid "No goal yet"
 msgstr "Noch kein Ziel"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:284
+#: src/components/web_analytics/tabs/DashboardTab.tsx:287
 msgid "No goals data"
 msgstr "Keine Zieldaten"
 
@@ -16990,7 +17017,7 @@ msgstr "Über {countMax} hinaus nicht gezählt"
 
 #: src/components/blog/CategoryDrawer.tsx:177
 #: src/components/blog/PostDrawer.tsx:752
-#: src/components/blog/ThemeEditorDrawer.tsx:469
+#: src/components/blog/ThemeEditorDrawer.tsx:479
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
 msgid "Not created"
@@ -17543,7 +17570,7 @@ msgstr "Nur Links in E-Mails dieser Kampagne."
 msgid "Only links in emails sent with this template."
 msgstr "Nur Links in E-Mails, die mit dieser Vorlage gesendet wurden."
 
-#: src/components/file_manager/FileExplorer.tsx:957
+#: src/components/file_manager/FileExplorer.tsx:967
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Nur Kleinbuchstaben, Zahlen, Unterstrich und Bindestrich sind erlaubt."
 
@@ -17569,10 +17596,10 @@ msgstr "Nur Arbeitsbereich-Inhaber können Integrationen ändern"
 msgid "Only you so far. Import a CSV, or add contacts from your app through the API."
 msgstr "Bisher nur Sie. Importieren Sie eine CSV-Datei oder fügen Sie Kontakte aus Ihrer App über die API hinzu."
 
-#: src/components/blog/ThemeEditorDrawer.tsx:444
+#: src/components/blog/ThemeEditorDrawer.tsx:454
 #: src/components/broadcasts/detail/BroadcastAside.tsx:75
 #: src/components/contacts/sheet/activityLabel.ts:14
-#: src/components/file_manager/FileExplorer.tsx:552
+#: src/components/file_manager/FileExplorer.tsx:562
 msgid "Open"
 msgstr "Öffnung"
 
@@ -17619,7 +17646,7 @@ msgstr "Open Graph-Titel"
 msgid "Open in"
 msgstr "Öffnen in"
 
-#: src/components/file_manager/FileExplorer.tsx:566
+#: src/components/file_manager/FileExplorer.tsx:576
 #: src/components/file_manager/FilePreview.tsx:100
 #: src/components/file_manager/FilePreview.tsx:105
 msgid "Open in a new tab"
@@ -17992,8 +18019,8 @@ msgstr "Herkunft"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
-#: src/components/web_analytics/tabs/DashboardTab.tsx:275
-#: src/components/web_analytics/tabs/DashboardTab.tsx:275
+#: src/components/web_analytics/tabs/DashboardTab.tsx:281
+#: src/components/web_analytics/tabs/DashboardTab.tsx:281
 msgid "OS"
 msgstr "Betriebssystem"
 
@@ -18084,8 +18111,9 @@ msgstr "Inhaber"
 #~ msgid "Padding Settings"
 #~ msgstr "Innenabstand-Einstellungen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:416
-#: src/components/web_analytics/tabs/DashboardTab.tsx:182
+#: src/components/blog/ThemeEditorDrawer.tsx:426
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:69
+#: src/components/web_analytics/tabs/DashboardTab.tsx:185
 #: src/pages/WebAnalyticsLivePage.tsx:158
 msgid "Page"
 msgstr "Seite"
@@ -18106,7 +18134,7 @@ msgstr "Seitenaufruf"
 msgid "Page views of this post's path over the last 30 days, counted by web analytics"
 msgstr "Seitenaufrufe des Pfads dieses Beitrags in den letzten 30 Tagen, gezählt von der Webanalyse"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:357
+#: src/components/blog/ThemeEditorDrawer.tsx:367
 #: src/components/web_analytics/explore/BreakdownModal.tsx:34
 #: src/components/web_analytics/explore/DimensionSelector.tsx:110
 #: src/components/web_analytics/FilterBuilder.tsx:41
@@ -18775,7 +18803,7 @@ msgstr "Bitte wählen Sie ein Datum"
 msgid "Please select a goal type"
 msgstr "Bitte wählen Sie einen Zieltyp"
 
-#: src/components/templates/importTemplateFile.ts:236
+#: src/components/templates/importTemplateFile.ts:238
 msgid "Please select a JSON file"
 msgstr "Bitte wählen Sie eine JSON-Datei"
 
@@ -18831,7 +18859,7 @@ msgstr "Bitte wählen Sie eine E-Mail-Vorlage"
 msgid "Please select an event type"
 msgstr "Bitte wählen Sie einen Ereignistyp"
 
-#: src/components/templates/importTemplateFile.ts:237
+#: src/components/templates/importTemplateFile.ts:239
 msgid "Please select an MJML file"
 msgstr "Bitte wählen Sie eine MJML-Datei"
 
@@ -18898,7 +18926,7 @@ msgstr "Position Y"
 
 #: src/components/blog/PostDrawer.tsx:883
 #: src/components/blog/PostsTable.tsx:290
-#: src/components/blog/ThemeEditorDrawer.tsx:420
+#: src/components/blog/ThemeEditorDrawer.tsx:430
 msgid "Post"
 msgstr "Beitrag"
 
@@ -19012,12 +19040,12 @@ msgstr "Drücken Sie Enter zum Bestätigen, Escape zum Abbrechen"
 #~ msgid "preview"
 #~ msgstr "Vorschau"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:511
+#: src/components/blog/ThemeEditorDrawer.tsx:521
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/EmailBuilder.tsx:1132
-#: src/components/file_manager/FileExplorer.tsx:1118
+#: src/components/email_builder/EmailBuilder.tsx:1142
+#: src/components/file_manager/FileExplorer.tsx:1128
 #: src/components/segment/SegmentCountCard.tsx:132
 #: src/components/seo/SeoPreview.tsx:36
 #: src/components/templates/TemplateSelectorInput.tsx:244
@@ -19327,8 +19355,8 @@ msgstr "Veröffentlichung"
 #: src/components/blog/PublishModal.tsx:207
 #: src/components/blog/RecentThemesTable.tsx:94
 #: src/components/blog/RecentThemesTable.tsx:138
-#: src/components/blog/ThemeEditorDrawer.tsx:485
-#: src/components/blog/ThemeEditorDrawer.tsx:555
+#: src/components/blog/ThemeEditorDrawer.tsx:495
+#: src/components/blog/ThemeEditorDrawer.tsx:565
 msgid "Publish"
 msgstr "Veröffentlichen"
 
@@ -19349,7 +19377,7 @@ msgstr "Beitrag veröffentlichen"
 msgid "Publish Theme"
 msgstr "Theme veröffentlichen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:551
+#: src/components/blog/ThemeEditorDrawer.tsx:561
 msgid "Publish theme v{themeVersion}"
 msgstr "Theme v{themeVersion} veröffentlichen"
 
@@ -19361,7 +19389,7 @@ msgstr "Dieses Theme veröffentlichen"
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
 #: src/components/blog/PostsTable.tsx:433
-#: src/components/blog/ThemeEditorDrawer.tsx:471
+#: src/components/blog/ThemeEditorDrawer.tsx:481
 msgid "Published"
 msgstr "Veröffentlicht"
 
@@ -19671,7 +19699,7 @@ msgstr "Lesezeit"
 msgid "Reads"
 msgstr "Liest"
 
-#: src/components/segment/SegmentDrawer.tsx:375
+#: src/components/segment/SegmentDrawer.tsx:385
 msgid "Reads the dates of the conditions and sets the hour of the daily recompute."
 msgstr "Liest die Datumsangaben der Bedingungen und legt die Uhrzeit der täglichen Neuberechnung fest."
 
@@ -19854,7 +19882,7 @@ msgstr "Weiterleitungs-URI kopiert"
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:793
 #: src/components/blog/PostDrawer.tsx:796
-#: src/components/email_builder/EmailBuilder.tsx:1116
+#: src/components/email_builder/EmailBuilder.tsx:1126
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
 msgstr "Wiederholen"
@@ -19873,7 +19901,7 @@ msgstr "Verweis-Traffic"
 
 #: src/components/segment/segmentLabels.ts:110
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:250
-#: src/components/web_analytics/tabs/DashboardTab.tsx:200
+#: src/components/web_analytics/tabs/DashboardTab.tsx:206
 #: src/pages/WebAnalyticsLivePage.tsx:181
 msgid "Referrer domain"
 msgstr "Verweis-Domain"
@@ -19883,7 +19911,7 @@ msgstr "Verweis-Domain"
 #~ msgstr "Verweisquelle:"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:249
-#: src/components/web_analytics/tabs/DashboardTab.tsx:199
+#: src/components/web_analytics/tabs/DashboardTab.tsx:205
 #: src/pages/WebAnalyticsLivePage.tsx:180
 msgid "Referrers"
 msgstr "Verweisquellen"
@@ -19920,8 +19948,8 @@ msgstr "Statistiken aktualisieren"
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "Den Daten-Feed der Kampagne aktualisieren, indem die konfigurierte externe URL aufgerufen wird"
 
-#: src/components/file_manager/FileExplorer.tsx:760
-#: src/components/file_manager/FileExplorer.tsx:764
+#: src/components/file_manager/FileExplorer.tsx:770
+#: src/components/file_manager/FileExplorer.tsx:774
 msgid "Refresh the list"
 msgstr "Liste aktualisieren"
 
@@ -20286,14 +20314,14 @@ msgstr "X wiederholen"
 msgid "Repeat Y"
 msgstr "Y wiederholen"
 
-#: src/components/email_builder/EmailBuilder.tsx:982
+#: src/components/email_builder/EmailBuilder.tsx:992
 #: src/components/email_builder/panels/TextVersionPanel.tsx:183
 #: src/components/email_builder/ui/SaveBlockModal.tsx:97
 #: src/components/settings/LogoInput.tsx:107
 msgid "Replace"
 msgstr "Ersetzen"
 
-#: src/components/email_builder/EmailBuilder.tsx:980
+#: src/components/email_builder/EmailBuilder.tsx:990
 msgid "Replace \"{name}\" with the selected block?"
 msgstr "„{name}“ durch den ausgewählten Block ersetzen?"
 
@@ -20532,12 +20560,12 @@ msgstr "Server neu starten?"
 msgid "Restore"
 msgstr "Wiederherstellen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:543
+#: src/components/blog/ThemeEditorDrawer.tsx:553
 msgid "Restore Draft"
 msgstr "Entwurf wiederherstellen"
 
 #: src/components/blog/PostDrawer.tsx:304
-#: src/components/blog/ThemeEditorDrawer.tsx:539
+#: src/components/blog/ThemeEditorDrawer.tsx:549
 msgid "Restore Draft?"
 msgstr "Entwurf wiederherstellen?"
 
@@ -20642,7 +20670,7 @@ msgstr "Hat die fehlgeschlagenen Sendungen des Newsletters <0>{target}</0> erneu
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:568
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:170
 #: src/components/contacts/BlockError.tsx:11
-#: src/components/file_manager/FileExplorer.tsx:802
+#: src/components/file_manager/FileExplorer.tsx:812
 #: src/components/logs/AuditLogTab.tsx:559
 #: src/components/logs/InboundWebhooksTab.tsx:282
 #: src/components/logs/MessageDetail.tsx:91
@@ -20728,8 +20756,8 @@ msgstr "Von rechts nach links"
 #~ msgid "Role"
 #~ msgstr "Rolle"
 
-#: src/components/file_manager/FileExplorer.tsx:664
-#: src/components/file_manager/FileExplorer.tsx:1055
+#: src/components/file_manager/FileExplorer.tsx:674
+#: src/components/file_manager/FileExplorer.tsx:1065
 #: src/components/file_manager/FileGrid.tsx:99
 #: src/components/file_manager/FileGrid.tsx:100
 #: src/components/file_manager/FilePreview.tsx:63
@@ -20915,7 +20943,7 @@ msgstr "S3-Region"
 msgid "S3 secret key"
 msgstr "S3-Geheimschlüssel"
 
-#: src/components/file_manager/FileExplorer.tsx:626
+#: src/components/file_manager/FileExplorer.tsx:636
 msgid "S3 storage"
 msgstr "S3-Speicher"
 
@@ -20975,8 +21003,8 @@ msgstr "Sandbox-Modus"
 
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/blog/AuthorsField.tsx:185
-#: src/components/blog/ThemeEditorDrawer.tsx:482
-#: src/components/blog/ThemeEditorDrawer.tsx:555
+#: src/components/blog/ThemeEditorDrawer.tsx:492
+#: src/components/blog/ThemeEditorDrawer.tsx:565
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:137
 #: src/components/contacts/ContactUpsertDrawer.tsx:518
 #: src/components/contacts/InlineEditableField.tsx:322
@@ -20987,7 +21015,7 @@ msgstr "Sandbox-Modus"
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:582
-#: src/components/segment/SegmentDrawer.tsx:292
+#: src/components/segment/SegmentDrawer.tsx:302
 #: src/components/settings/CustomFieldsConfiguration.tsx:388
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
@@ -21006,8 +21034,8 @@ msgstr "Speichern & neu starten"
 msgid "Save a block from its toolbar to reuse it in every template."
 msgstr "Speichern Sie einen Block über seine Werkzeugleiste, um ihn in allen Vorlagen wiederzuverwenden."
 
-#: src/components/blog/ThemeEditorDrawer.tsx:485
-#: src/components/blog/ThemeEditorDrawer.tsx:551
+#: src/components/blog/ThemeEditorDrawer.tsx:495
+#: src/components/blog/ThemeEditorDrawer.tsx:561
 msgid "Save and publish"
 msgstr "Speichern und veröffentlichen"
 
@@ -21019,7 +21047,7 @@ msgstr "Trotzdem speichern"
 #~ msgid "Save Anyway"
 #~ msgstr "Trotzdem speichern"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:482
+#: src/components/blog/ThemeEditorDrawer.tsx:492
 msgid "Save as a new version"
 msgstr "Als neue Version speichern"
 
@@ -21080,7 +21108,7 @@ msgstr "Speichern Sie zuerst die Kampagne"
 msgid "Save the selected block"
 msgstr "Ausgewählten Block speichern"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:551
+#: src/components/blog/ThemeEditorDrawer.tsx:561
 msgid "Save Theme"
 msgstr "Theme speichern"
 
@@ -21133,7 +21161,7 @@ msgstr "Gespeichert {0}"
 msgid "Saved {ago}"
 msgstr "Gespeichert {ago}"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:275
+#: src/components/blog/ThemeEditorDrawer.tsx:285
 msgid "Saved as v{savedVersion}, but it could not be published. Publish it from the Themes list."
 msgstr "Als v{savedVersion} gespeichert, aber die Veröffentlichung ist fehlgeschlagen. Veröffentlichen Sie es aus der Theme-Liste."
 
@@ -21318,7 +21346,7 @@ msgstr "Suchmaschinen wählen einen Satz aus der Seite"
 msgid "Search looks in names and subjects."
 msgstr "Die Suche berücksichtigt Namen und Betreffzeilen."
 
-#: src/components/file_manager/FileExplorer.tsx:1055
+#: src/components/file_manager/FileExplorer.tsx:1065
 msgid "Search results"
 msgstr "Suchergebnisse"
 
@@ -21528,11 +21556,11 @@ msgstr "Segmentbedingungen"
 msgid "Segment deleted successfully"
 msgstr "Segment erfolgreich gelöscht"
 
-#: src/components/segment/SegmentDrawer.tsx:280
+#: src/components/segment/SegmentDrawer.tsx:290
 msgid "Segment name"
 msgstr "Segmentname"
 
-#: src/components/segment/SegmentDrawer.tsx:280
+#: src/components/segment/SegmentDrawer.tsx:290
 msgid "Segment name, e.g. Big spenders"
 msgstr "Segmentname, z. B. Großkunden"
 
@@ -21612,7 +21640,7 @@ msgstr "Benutzerdefinierten Zeitraum auswählen"
 msgid "Select a field"
 msgstr "Feld auswählen"
 
-#: src/components/file_manager/FileExplorer.tsx:1165
+#: src/components/file_manager/FileExplorer.tsx:1175
 msgid "Select a file"
 msgstr "Wählen Sie eine Datei"
 
@@ -21665,7 +21693,7 @@ msgstr "Wählen Sie einen Social-Block aus"
 msgid "Select a template"
 msgstr "Vorlage auswählen"
 
-#: src/components/segment/SegmentDrawer.tsx:379
+#: src/components/segment/SegmentDrawer.tsx:389
 msgid "Select a time zone"
 msgstr "Zeitzone auswählen"
 
@@ -21776,7 +21804,7 @@ msgstr "Feld auswählen"
 #~ msgid "Select field to map to"
 #~ msgstr "Feld für Zuordnung auswählen"
 
-#: src/components/file_manager/FileExplorer.tsx:1183
+#: src/components/file_manager/FileExplorer.tsx:1193
 msgid "Select file"
 msgstr "Datei auswählen"
 
@@ -22435,14 +22463,14 @@ msgid "Session"
 msgstr "Sitzung"
 
 #: src/components/web_analytics/CountryMapView.tsx:66
-#: src/components/web_analytics/DimensionTableWidget.tsx:94
+#: src/components/web_analytics/DimensionTableWidget.tsx:106
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:63
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:127
 #: src/components/web_analytics/explore/CsvExportModal.tsx:41
 #: src/components/web_analytics/explore/ExploreSummary.tsx:51
 #: src/components/web_analytics/explore/ExploreTable.tsx:90
-#: src/components/web_analytics/tabs/DashboardTab.tsx:30
-#: src/components/web_analytics/tabs/DashboardTab.tsx:113
+#: src/components/web_analytics/tabs/DashboardTab.tsx:31
+#: src/components/web_analytics/tabs/DashboardTab.tsx:115
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:56
 #: src/pages/WebAnalyticsLivePage.tsx:116
 msgid "Sessions"
@@ -22467,6 +22495,10 @@ msgstr "Sitzungen aus der UTM-Kampagne der Kampagne, vom Versandtag bis 7 Tage n
 #: src/components/broadcasts/BroadcastKpis.tsx:171
 msgid "Sessions from the UTM campaign of a broadcast, during the 7 days after it was sent. Broadcasts sharing a campaign count a session once here, and once each in the list."
 msgstr "Sitzungen aus der UTM-Kampagne einer Kampagne in den 7 Tagen nach dem Versand. Kampagnen mit derselben UTM-Kampagne zählen eine Sitzung hier einmal und in der Liste jeweils einmal."
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:48
+msgid "Sessions that loaded a page and sent no further signal: crawlers, AI agents and headless browsers"
+msgstr "Sitzungen, die eine Seite geladen und danach kein Signal mehr gesendet haben: Crawler, KI-Agenten und Headless-Browser"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:351
 #~ msgid "Sessions with less engaged time than this count as bounces."
@@ -22693,7 +22725,7 @@ msgstr "Wird eingerichtet…"
 
 #: src/components/automations/EditorSettings.tsx:22
 #: src/components/automations/EditorSettings.tsx:24
-#: src/components/segment/SegmentDrawer.tsx:371
+#: src/components/segment/SegmentDrawer.tsx:381
 #: src/components/templates/TemplateDrawerBar.tsx:82
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
@@ -22752,12 +22784,21 @@ msgstr "Teilen-Bild"
 msgid "Share link"
 msgstr "Link teilen"
 
+#: src/components/web_analytics/tabs/DashboardTab.tsx:38
+msgid "Share of human sessions under the bounce threshold. Automated traffic is left out."
+msgstr "Anteil der menschlichen Sitzungen unter dem Absprung-Schwellenwert. Automatisierter Traffic ist ausgeschlossen."
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:42
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:233
+msgid "Share of sessions"
+msgstr "Anteil der Sitzungen"
+
 #: src/components/seo/SeoCards.tsx:58
 #: src/components/settings/BlogSettings.tsx:487
 msgid "Share title"
 msgstr "Teilen-Titel"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:357
+#: src/components/blog/ThemeEditorDrawer.tsx:367
 msgid "Shared"
 msgstr "Gemeinsam"
 
@@ -22837,7 +22878,7 @@ msgstr "Die ersten {0} Kontakte werden angezeigt. Verfeinern Sie Ihre Filter, um
 #~ msgid "Showing the first {maxObjectsLabel} files of this bucket."
 #~ msgstr "Die ersten {maxObjectsLabel} Dateien dieses Buckets werden angezeigt."
 
-#: src/components/file_manager/FileExplorer.tsx:901
+#: src/components/file_manager/FileExplorer.tsx:911
 msgid "Showing the first {maxObjectsLabel} files of this bucket. Folder counts, total size and search only cover these files."
 msgstr "Es werden die ersten {maxObjectsLabel} Dateien dieses Buckets angezeigt. Ordnerzähler, Gesamtgröße und Suche beziehen sich nur auf diese Dateien."
 
@@ -23332,7 +23373,7 @@ msgstr "Quelle {source} nicht gefunden"
 #~ msgstr "Quelle:"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
-#: src/components/web_analytics/tabs/DashboardTab.tsx:227
+#: src/components/web_analytics/tabs/DashboardTab.tsx:230
 msgid "Sources"
 msgstr "Quellen"
 
@@ -23389,7 +23430,7 @@ msgstr "SparkPost"
 #~ msgid "SparkPost API Key"
 #~ msgstr "SparkPost-API-Schlüssel"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:510
+#: src/components/blog/ThemeEditorDrawer.tsx:520
 msgid "Split"
 msgstr "Aufteilen"
 
@@ -23476,7 +23517,7 @@ msgstr "Beginnen Sie zu tippen..."
 msgid "Start writing your blog post..."
 msgstr "Beginnen Sie, Ihren Blog-Beitrag zu schreiben..."
 
-#: src/components/blog_editor/NotifuseEditor.tsx:369
+#: src/components/blog_editor/NotifuseEditor.tsx:379
 #: src/components/email_builder/ui/tiptap/TiptapRichEditor.tsx:23
 msgid "Start writing..."
 msgstr "Beginnen Sie zu schreiben..."
@@ -23625,14 +23666,14 @@ msgstr "Wird angehalten…"
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "Stoppt diese Automatisierung für einen Kontakt, sobald dieser auf eine ihrer E-Mails antwortet. Dafür muss bei Ihrem E-Mail-Anbieter (ESP) die Weiterleitung eingehender Antworten konfiguriert sein: Antworten an Ihre Versanddomain müssen an den Anbieter geleitet werden, der sie an Notifuse weiterleitet. Ohne diese Einrichtung werden Antworten nicht erkannt und die Sequenz wird nicht gestoppt."
 
-#: src/components/file_manager/FileExplorer.tsx:602
 #: src/components/file_manager/FileExplorer.tsx:612
-#: src/components/file_manager/FileExplorer.tsx:616
+#: src/components/file_manager/FileExplorer.tsx:622
+#: src/components/file_manager/FileExplorer.tsx:626
 msgid "Storage settings"
 msgstr "Speichereinstellungen"
 
-#: src/components/file_manager/FileExplorer.tsx:597
-#: src/components/file_manager/FileExplorer.tsx:999
+#: src/components/file_manager/FileExplorer.tsx:607
+#: src/components/file_manager/FileExplorer.tsx:1009
 msgid "Storage settings (Read-only mode)"
 msgstr "Speichereinstellungen (Nur-Lese-Modus)"
 
@@ -23672,7 +23713,7 @@ msgstr "Region speichern"
 msgid "Strikethrough"
 msgstr "Durchgestrichen"
 
-#: src/components/email_builder/EmailBuilder.tsx:1198
+#: src/components/email_builder/EmailBuilder.tsx:1208
 msgid "Structure"
 msgstr "Struktur"
 
@@ -24251,7 +24292,7 @@ msgstr "Absender der Vorlage ({0})"
 msgid "Templates"
 msgstr "Vorlagen"
 
-#: src/components/email_builder/EmailBuilder.tsx:981
+#: src/components/email_builder/EmailBuilder.tsx:991
 msgid "Templates that already contain this block do not change."
 msgstr "Vorlagen, die diesen Block bereits enthalten, ändern sich nicht."
 
@@ -24299,7 +24340,7 @@ msgstr "Mandanten-ID ist für Microsoft erforderlich"
 msgid "Tenant isolation"
 msgstr "Mandantenisolierung"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:230
+#: src/components/web_analytics/tabs/DashboardTab.tsx:233
 msgid "Terms"
 msgstr "Suchbegriffe"
 
@@ -24567,7 +24608,7 @@ msgstr "Textstil"
 #~ msgid "Text Transform"
 #~ msgstr "Texttransformation"
 
-#: src/components/email_builder/EmailBuilder.tsx:1135
+#: src/components/email_builder/EmailBuilder.tsx:1145
 #: src/components/email_builder/MjmlCodeEditor.tsx:693
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:807
@@ -24682,7 +24723,7 @@ msgstr "Die Kategorie {forcedLabel} ist dort vorgegeben, wo diese Vorlage erstel
 msgid "The category is set by where this template is used"
 msgstr "Die Kategorie ergibt sich daraus, wo diese Vorlage verwendet wird"
 
-#: src/components/segment/SegmentDrawer.tsx:171
+#: src/components/segment/SegmentDrawer.tsx:181
 msgid "The changes made since the segment was opened will be lost."
 msgstr "Die Änderungen seit dem Öffnen des Segments gehen verloren."
 
@@ -24886,7 +24927,7 @@ msgstr "Die erste Zeile enthält die Spaltennamen · eine Spalte enthält E-Mail
 msgid "The first row holds the column names and one column holds email addresses. Consent columns take granted or denied, JSON fields take valid JSON."
 msgstr "Die erste Zeile enthält die Spaltennamen, und eine Spalte enthält E-Mail-Adressen. Einwilligungsspalten nehmen granted oder denied auf, JSON-Felder gültiges JSON."
 
-#: src/components/file_manager/FileExplorer.tsx:351
+#: src/components/file_manager/FileExplorer.tsx:361
 msgid "The folder held nothing to delete."
 msgstr "Der Ordner enthielt nichts zum Löschen."
 
@@ -25133,7 +25174,7 @@ msgstr "Die bisher gesendeten Zeilen bleiben importiert. Legen Sie dieselbe Date
 msgid "The saved column mapping does not fit this file: map the columns, then import."
 msgstr "Die gespeicherte Spaltenzuordnung passt nicht zu dieser Datei: Ordnen Sie die Spalten zu und importieren Sie dann."
 
-#: src/components/blog/ThemeEditorDrawer.tsx:435
+#: src/components/blog/ThemeEditorDrawer.tsx:445
 msgid "The saved version, on your blog"
 msgstr "Die gespeicherte Version, auf Ihrem Blog"
 
@@ -25141,11 +25182,11 @@ msgstr "Die gespeicherte Version, auf Ihrem Blog"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "Die Spalten und Gruppen des Abschnitts überschreiten seine Breite um {over} %: In der E-Mail rücken die letzten in eine neue Zeile."
 
-#: src/components/segment/SegmentDrawer.tsx:245
+#: src/components/segment/SegmentDrawer.tsx:255
 msgid "The segment has been created!"
 msgstr "Das Segment wurde erstellt!"
 
-#: src/components/segment/SegmentDrawer.tsx:235
+#: src/components/segment/SegmentDrawer.tsx:245
 msgid "The segment has been updated!"
 msgstr "Das Segment wurde aktualisiert!"
 
@@ -25199,7 +25240,7 @@ msgstr ""
 msgid "The status to assign when adding to the list"
 msgstr "Der Status, der beim Hinzufügen zur Liste zugewiesen wird"
 
-#: src/components/file_manager/FileExplorer.tsx:902
+#: src/components/file_manager/FileExplorer.tsx:912
 msgid "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
 msgstr "Der Speicher hat nicht den ganzen Bucket zurückgegeben. Ordnerzähler, Gesamtgröße und Suche beziehen sich nur auf die angezeigten Dateien."
 
@@ -25328,11 +25369,11 @@ msgstr "Das Audit-Log des Workspace: wer was wann von wo geändert hat und ob es
 msgid "Theme"
 msgstr "Design"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:264
+#: src/components/blog/ThemeEditorDrawer.tsx:274
 msgid "Theme created successfully"
 msgstr "Theme erfolgreich erstellt"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:350
+#: src/components/blog/ThemeEditorDrawer.tsx:360
 msgid "Theme files"
 msgstr "Theme-Dateien"
 
@@ -25340,15 +25381,15 @@ msgstr "Theme-Dateien"
 msgid "Theme published successfully"
 msgstr "Theme erfolgreich veröffentlicht"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:262
+#: src/components/blog/ThemeEditorDrawer.tsx:272
 msgid "Theme updated successfully"
 msgstr "Theme erfolgreich aktualisiert"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:258
+#: src/components/blog/ThemeEditorDrawer.tsx:268
 msgid "Theme v{savedVersion} published"
 msgstr "Theme v{savedVersion} veröffentlicht"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:466
+#: src/components/blog/ThemeEditorDrawer.tsx:476
 msgid "Theme v{themeVersion}"
 msgstr "Theme v{themeVersion}"
 
@@ -25372,7 +25413,7 @@ msgstr "Diese AWS-Zugangsdaten können keine Mandanten oder Konfigurationssätze
 msgid "These AWS credentials cannot read SES tenants (needs ses:GetTenant and ses:ListTenantResources)."
 msgstr "Diese AWS-Zugangsdaten können keine SES-Mandanten lesen (erfordert ses:GetTenant und ses:ListTenantResources)."
 
-#: src/components/segment/SegmentDrawer.tsx:333
+#: src/components/segment/SegmentDrawer.tsx:343
 msgid "These conditions come from the filters of the contacts view."
 msgstr "Diese Bedingungen stammen aus den Filtern der Kontaktansicht."
 
@@ -25681,15 +25722,15 @@ msgstr "Diese Benachrichtigung sendet weiterhin damit"
 msgid "This notification still sends with it. Choose another template to stop depending on a deleted one."
 msgstr "Diese Benachrichtigung sendet weiterhin damit. Wählen Sie eine andere Vorlage, um nicht mehr von einer gelöschten abzuhängen."
 
-#: src/components/templates/importTemplateFile.ts:153
+#: src/components/templates/importTemplateFile.ts:155
 msgid "This notifuse:{tag} mark of a Notifuse export closes no mark."
 msgstr "Diese notifuse:{tag}-Markierung eines Notifuse-Exports schließt keine Markierung."
 
-#: src/components/templates/importTemplateFile.ts:151
+#: src/components/templates/importTemplateFile.ts:153
 msgid "This notifuse:{tag} mark of a Notifuse export is not closed."
 msgstr "Diese notifuse:{tag}-Markierung eines Notifuse-Exports ist nicht geschlossen."
 
-#: src/components/templates/importTemplateFile.ts:156
+#: src/components/templates/importTemplateFile.ts:158
 msgid "This notifuse:condition mark of a Notifuse export holds no block or no valid condition."
 msgstr "Diese notifuse:condition-Markierung eines Notifuse-Exports enthält keinen Block oder keine gültige Bedingung."
 
@@ -25969,13 +26010,13 @@ msgstr "Zeiten in {timezone}"
 msgid "Times the font size"
 msgstr "Vielfaches der Schriftgröße"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:95
+#: src/components/web_analytics/DimensionTableWidget.tsx:107
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:69
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:144
 #: src/components/web_analytics/explore/CsvExportModal.tsx:43
 #: src/components/web_analytics/explore/ExploreTable.tsx:123
 #: src/components/web_analytics/FilterBuilder.tsx:100
-#: src/components/web_analytics/tabs/DashboardTab.tsx:114
+#: src/components/web_analytics/tabs/DashboardTab.tsx:116
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:57
 msgid "TimeScore"
 msgstr "TimeScore"
@@ -25994,9 +26035,13 @@ msgid "TimeScore (seconds)"
 msgstr "TimeScore (Sekunden)"
 
 #: src/components/web_analytics/explore/ExploreSummary.tsx:57
-#: src/components/web_analytics/tabs/DashboardTab.tsx:36
-msgid "TimeScore is the median engaged time across all sessions"
-msgstr "TimeScore ist die mediane aktive Verweildauer über alle Sitzungen hinweg"
+#~ msgid "TimeScore is the median engaged time across all sessions"
+#~ msgstr "TimeScore ist die mediane aktive Verweildauer über alle Sitzungen hinweg"
+
+#: src/components/web_analytics/explore/ExploreSummary.tsx:57
+#: src/components/web_analytics/tabs/DashboardTab.tsx:37
+msgid "TimeScore is the median engaged time of human sessions. Automated traffic is left out."
+msgstr "Der TimeScore ist die mediane aktive Zeit menschlicher Sitzungen. Automatisierter Traffic ist ausgeschlossen."
 
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:420
 #~ msgid "Timestamp"
@@ -26026,7 +26071,7 @@ msgstr "Zeitzone — {detail}"
 msgid "Timezone is required"
 msgstr "Zeitzone ist erforderlich"
 
-#: src/components/segment/SegmentDrawer.tsx:374
+#: src/components/segment/SegmentDrawer.tsx:384
 msgid "Timezone used for dates"
 msgstr "Zeitzone für Datumsangaben"
 
@@ -26234,7 +26279,7 @@ msgid "Top border width"
 msgstr "Breite des oberen Rahmens"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:263
-#: src/components/web_analytics/tabs/DashboardTab.tsx:221
+#: src/components/web_analytics/tabs/DashboardTab.tsx:224
 msgid "Top Campaigns"
 msgstr "Top-Kampagnen"
 
@@ -26266,7 +26311,7 @@ msgstr "Oben links"
 #~ msgid "Top Left"
 #~ msgstr "Oben Links"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:176
+#: src/components/web_analytics/tabs/DashboardTab.tsx:179
 #: src/pages/WebAnalyticsLivePage.tsx:150
 msgid "Top Pages"
 msgstr "Top-Seiten"
@@ -26284,7 +26329,7 @@ msgstr "Oben rechts"
 #~ msgstr "Oben Rechts"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:243
-#: src/components/web_analytics/tabs/DashboardTab.tsx:194
+#: src/components/web_analytics/tabs/DashboardTab.tsx:200
 msgid "Top Sources"
 msgstr "Top-Quellen"
 
@@ -26395,13 +26440,17 @@ msgstr "Tracking deaktiviert"
 msgid "Traffic"
 msgstr "Traffic"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:262
+#: src/components/web_analytics/tabs/DashboardTab.tsx:265
 msgid "Traffic by day and hour"
 msgstr "Traffic nach Tag und Stunde"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:43
 msgid "Traffic no filter rule has classified"
 msgstr "Traffic, den keine Filterregel klassifiziert hat"
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:57
+#~ msgid "Traffic type"
+#~ msgstr "Traffic-Typ"
 
 #: src/components/analytics/OriginVolumeChart.tsx:50
 #: src/components/analytics/SendingCard.tsx:31
@@ -26499,6 +26548,10 @@ msgstr ""
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:86
 msgid "Transparent"
 msgstr "Transparent"
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:61
+msgid "Trend"
+msgstr "Verlauf"
 
 #: src/components/segment/segmentLabels.ts:278
 #: src/components/settings/WebhooksSettings.tsx:619
@@ -26670,8 +26723,8 @@ msgstr "Die Qualität der Verweise verstehen"
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:784
 #: src/components/blog/PostDrawer.tsx:787
-#: src/components/email_builder/EmailBuilder.tsx:1042
-#: src/components/email_builder/EmailBuilder.tsx:1109
+#: src/components/email_builder/EmailBuilder.tsx:1052
+#: src/components/email_builder/EmailBuilder.tsx:1119
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Undo"
 msgstr "Rückgängig"
@@ -26799,7 +26852,7 @@ msgstr "Hat den Blogbeitrag <0>{target}</0> zurückgezogen"
 #: src/components/blog/CategoryDrawer.tsx:177
 #: src/components/blog/PostDrawer.tsx:584
 #: src/components/blog/PostDrawer.tsx:761
-#: src/components/blog/ThemeEditorDrawer.tsx:475
+#: src/components/blog/ThemeEditorDrawer.tsx:485
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:252
@@ -26809,7 +26862,7 @@ msgstr "Nicht gespeicherte Änderungen"
 
 #: src/components/automations/AutomationEditor.tsx:270
 #: src/components/automations/AutomationEditor.tsx:293
-#: src/components/blog/ThemeEditorDrawer.tsx:321
+#: src/components/blog/ThemeEditorDrawer.tsx:331
 msgid "Unsaved Changes"
 msgstr "Nicht gespeicherte Änderungen"
 
@@ -27092,8 +27145,8 @@ msgstr "Updates und Telemetrie"
 #~ msgid "Upgrade licence"
 #~ msgstr ""
 
-#: src/components/file_manager/FileExplorer.tsx:785
-#: src/components/file_manager/FileExplorer.tsx:1073
+#: src/components/file_manager/FileExplorer.tsx:795
+#: src/components/file_manager/FileExplorer.tsx:1083
 msgid "Upload"
 msgstr "Hochladen"
 
@@ -27105,7 +27158,7 @@ msgstr "Hochladen"
 #~ msgid "Upload Error"
 #~ msgstr "Upload-Fehler"
 
-#: src/components/file_manager/FileExplorer.tsx:457
+#: src/components/file_manager/FileExplorer.tsx:467
 msgid "Upload failed: "
 msgstr "Hochladen fehlgeschlagen: "
 
@@ -27118,8 +27171,8 @@ msgstr "Hochladen fehlgeschlagen: "
 #~ msgid "Upload failed. Please try again."
 #~ msgstr "Upload fehlgeschlagen. Bitte versuchen Sie es erneut."
 
-#: src/components/file_manager/FileExplorer.tsx:778
-#: src/components/file_manager/FileExplorer.tsx:1065
+#: src/components/file_manager/FileExplorer.tsx:788
+#: src/components/file_manager/FileExplorer.tsx:1075
 msgid "Upload file (Read-only mode)"
 msgstr "Datei hochladen (Nur-Lese-Modus)"
 
@@ -27147,7 +27200,7 @@ msgstr "URL"
 #~ msgid "URL copied to clipboard"
 #~ msgstr ""
 
-#: src/components/file_manager/FileExplorer.tsx:305
+#: src/components/file_manager/FileExplorer.tsx:315
 msgid "URL copied to clipboard."
 msgstr "URL in Zwischenablage kopiert."
 
@@ -27499,7 +27552,7 @@ msgstr "Validierungsfehler"
 #: src/components/web_analytics/filters/RuleValueInput.tsx:33
 #: src/components/web_analytics/goals/GoalCard.tsx:47
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:139
-#: src/components/web_analytics/tabs/DashboardTab.tsx:287
+#: src/components/web_analytics/tabs/DashboardTab.tsx:290
 msgid "Value"
 msgstr "Wert"
 
@@ -27597,7 +27650,7 @@ msgstr "Einladung wird überprüft..."
 msgid "Version"
 msgstr "Version"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:563
+#: src/components/blog/ThemeEditorDrawer.tsx:573
 msgid "Version notes (optional)"
 msgstr "Versionshinweise (optional)"
 
@@ -27634,7 +27687,7 @@ msgstr "Vertikale Ausrichtung"
 msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 msgstr "Video beginnt bei diesem Zeitstempel (MM:SS, HH:MM:SS oder Sekunden)"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:507
+#: src/components/blog/ThemeEditorDrawer.tsx:517
 msgid "View"
 msgstr "Ansicht"
 
@@ -27828,6 +27881,10 @@ msgstr "Vulkan"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
 msgid "vs {comparedTo}"
 msgstr "vs. {comparedTo}"
+
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:243
+msgid "vs {previousLabel}"
+msgstr "vs. {previousLabel}"
 
 #: src/components/web_analytics/toolbar.tsx:121
 msgid "vs."
@@ -28286,7 +28343,7 @@ msgstr "Wer in diesem Arbeitsbereich was tun darf"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Wer was in diesem Workspace getan hat: Mitglieder, Berechtigungen, API-Schlüssel, Integrationen, Einstellungen und Inhaltsänderungen, mit Herkunftsadresse und ob es erlaubt war."
 
-#: src/components/segment/SegmentDrawer.tsx:348
+#: src/components/segment/SegmentDrawer.tsx:358
 msgid "Who should be in this segment?"
 msgstr "Wer soll in diesem Segment sein?"
 
@@ -28311,7 +28368,7 @@ msgstr "Breite"
 msgid "will be deleted, with their history"
 msgstr "werden mit ihrem Verlauf gelöscht"
 
-#: src/components/file_manager/FileExplorer.tsx:1170
+#: src/components/file_manager/FileExplorer.tsx:1180
 msgid "will be inserted into {targetLabel}"
 msgstr "wird in {targetLabel} eingefügt"
 
@@ -28801,7 +28858,7 @@ msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie dies
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schließen möchten?"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:324
+#: src/components/blog/ThemeEditorDrawer.tsx:334
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schließen möchten? Ihre Änderungen gehen verloren."
 

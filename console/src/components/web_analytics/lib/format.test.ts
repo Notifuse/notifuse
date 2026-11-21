@@ -7,6 +7,7 @@ import {
   formatNumber,
   formatCurrency,
   formatPercent,
+  formatPoints,
   formatValue,
   formatAxisValue,
   formatRangeSeriesName,
@@ -211,3 +212,22 @@ describe('formatCurrency in the console language', () => {
   })
 })
 
+describe('formatPoints', () => {
+  it('signs a change in points and keeps one decimal', () => {
+    expect(formatPoints(31.71)).toBe('+31.7')
+    expect(formatPoints(-2)).toBe('-2.0')
+    expect(formatPoints(0)).toBe('0.0')
+    expect(formatPoints(Number.NaN)).toBe('0.0')
+    expect(formatPoints(-0.04), 'a change that rounds to zero has no sign').toBe('0.0')
+  })
+
+  it('writes the decimal separator of the active language', () => {
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    try {
+      expect(formatPoints(18.24)).toBe('+18,2')
+    } finally {
+      i18n.activate('en')
+    }
+  })
+})

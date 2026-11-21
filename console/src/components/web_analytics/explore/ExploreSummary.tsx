@@ -54,7 +54,7 @@ export function ExploreSummary(props: ExploreSummaryProps) {
     median_scroll: t`Median Scroll Depth`,
   };
   const tooltips: Record<string, string> = {
-    median_duration: t`TimeScore is the median engaged time across all sessions`,
+    median_duration: t`TimeScore is the median engaged time of human sessions. Automated traffic is left out.`,
   };
 
   const bestHint = hasBest ? (

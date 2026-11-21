@@ -44,6 +44,18 @@ export function formatNumber(value: number): string {
   }).format(Math.abs(value) < 1_000 ? rounded : value)
 }
 
+/**
+ * A change between two percentages, in points, signed: 31.71 → "+31.7", -2 → "-2.0", 0 → "0.0".
+ * A share moves in points: 14% to 32% is +18 points, which a relative change (+130%) would hide.
+ */
+export function formatPoints(value: number): string {
+  return new Intl.NumberFormat(locale(), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    signDisplay: 'exceptZero'
+  }).format(Number.isFinite(value) ? value : 0)
+}
+
 /** A percentage given in percent: 12.5 → "12.5%" in English, "12,5 %" in French. */
 export function formatPercent(value: number, decimals = 1, minimumDecimals = decimals): string {
   return new Intl.NumberFormat(locale(), {

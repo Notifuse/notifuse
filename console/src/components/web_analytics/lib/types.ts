@@ -163,7 +163,7 @@ export const SESSION_METRICS: MetricConfig[] = [
     label: 'Median TimeScore',
     format: 'duration',
     color: colors.chart.series3,
-    tooltip: 'TimeScore is the median engaged time across all sessions'
+    tooltip: 'TimeScore is the median engaged time of human sessions. Automated traffic is left out.'
   },
   {
     key: 'bounce_rate',
