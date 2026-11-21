@@ -19484,7 +19484,7 @@ msgstr "Erreicht"
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:244
 msgid "Read"
-msgstr "Gelesen"
+msgstr "Lesen"
 
 #: src/services/api/permissions.ts:800
 msgid "Read a backfill task's state and progress"

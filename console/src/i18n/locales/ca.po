@@ -19484,7 +19484,7 @@ msgstr "Arribats"
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:244
 msgid "Read"
-msgstr "Llegit"
+msgstr "Lectura"
 
 #: src/services/api/permissions.ts:800
 msgid "Read a backfill task's state and progress"
@@ -28579,7 +28579,7 @@ msgstr ""
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
 msgid "Write"
-msgstr "Escriure"
+msgstr "Escriptura"
 
 #: src/services/api/permissions.ts:235
 msgid "Write contact fields beyond the recipient's email address; without it the send still creates the recipient but carries only the email (also needs Transactional write)"

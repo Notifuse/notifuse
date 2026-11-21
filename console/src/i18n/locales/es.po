@@ -3475,7 +3475,7 @@ msgstr "Aplicar filtro"
 
 #: src/components/setup/SetupRestartView.tsx:67
 msgid "Applying your configuration"
-msgstr "Aplicando su configuración"
+msgstr "Aplicando tu configuración"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:450
 #~ msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
@@ -5534,7 +5534,7 @@ msgstr "Comprueba la jerarquía MJML y que cada etiqueta esté cerrada."
 
 #: src/components/setup/SetupRestartView.tsx:88
 msgid "Check the server logs, then reload this page. Your configuration is already saved."
-msgstr "Revise los registros del servidor y luego recargue esta página. Su configuración ya está guardada."
+msgstr "Revisa los registros del servidor y luego recarga esta página. Tu configuración ya está guardada."
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:193
 msgid "Checked as you type; the server checks again on save."
@@ -9573,7 +9573,7 @@ msgstr "Editar datos de prueba (JSON)"
 
 #: src/components/setup/SetupPanel.tsx:81
 msgid "Edit the environment and restart the server to change these values."
-msgstr "Edite el entorno y reinicie el servidor para cambiar estos valores."
+msgstr "Edita el entorno y reinicia el servidor para cambiar estos valores."
 
 #: src/components/broadcasts/compose/ContentCard.tsx:193
 msgid "Edit the subject in the template"
@@ -10385,11 +10385,11 @@ msgstr "Introduce el nombre del evento personalizado (ej., 'compra', 'registro')
 
 #: src/components/setup/SmtpPanel.tsx:202
 msgid "Enter the password that goes with this username, or clear both."
-msgstr "Introduzca la contraseña de este usuario o vacíe ambos."
+msgstr "Introduce la contraseña de este usuario o vacía ambos."
 
 #: src/components/setup/SmtpPanel.tsx:193
 msgid "Enter the username that goes with this password, or clear both."
-msgstr "Introduzca el usuario de esta contraseña o vacíe ambos."
+msgstr "Introduce el usuario de esta contraseña o vacía ambos."
 
 #: src/components/email_builder/ui/StringPopoverInput.tsx:26
 #~ msgid "Enter value"
@@ -19484,7 +19484,7 @@ msgstr "Alcanzados"
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:244
 msgid "Read"
-msgstr "Leído"
+msgstr "Lectura"
 
 #: src/services/api/permissions.ts:800
 msgid "Read a backfill task's state and progress"
@@ -19980,7 +19980,7 @@ msgstr "La región y la ciudad están desactivadas: las coordenadas se guardan c
 
 #: src/components/setup/SsoPanel.tsx:108
 msgid "Register this address with your identity provider. Left empty, it follows the API endpoint."
-msgstr "Registre esta dirección en su proveedor de identidad. Si se deja vacía, sigue el endpoint de la API."
+msgstr "Registra esta dirección en tu proveedor de identidad. Si se deja vacía, sigue el endpoint de la API."
 
 #: src/components/settings/integrations/EmailProviderCard.tsx:204
 msgid "Register webhooks"
@@ -22649,7 +22649,7 @@ msgstr "Configurar la analítica web"
 
 #: src/pages/SetupWizard.tsx:231
 msgid "Set up your Notifuse instance"
-msgstr "Configure su instancia de Notifuse"
+msgstr "Configura tu instancia de Notifuse"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:368
 #~ msgid "set value"
@@ -22907,7 +22907,7 @@ msgstr "Iniciar sesión"
 
 #: src/components/setup/SetupRestartView.tsx:54
 msgid "Sign in with {rootEmail}."
-msgstr "Inicie sesión con {rootEmail}."
+msgstr "Inicia sesión con {rootEmail}."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:636
 #: src/components/setup/SsoPanel.tsx:97
@@ -22963,7 +22963,7 @@ msgstr "Cerrando sesión..."
 
 #: src/components/setup/AdministratorPanel.tsx:35
 msgid "Signs in as the root administrator. Add several addresses to give several people root access; each gets an account on the next start."
-msgstr "Inicia sesión como administrador root. Añada varias direcciones para dar acceso root a varias personas; cada una obtiene una cuenta en el siguiente arranque."
+msgstr "Inicia sesión como administrador root. Añade varias direcciones para dar acceso root a varias personas; cada una obtiene una cuenta en el siguiente arranque."
 
 #: src/components/settings/WebhooksSettings.tsx:617
 msgid "Signup"
@@ -25159,7 +25159,7 @@ msgstr "El archivo seleccionado"
 
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:143
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
-msgstr "El remitente elegido para este envío masivo ya no es uno de los remitentes de la integración de email de marketing. Elija otro, o vacíe el campo para enviar desde el remitente de la plantilla, y luego reanude el envío masivo."
+msgstr "El remitente elegido para este envío masivo ya no es uno de los remitentes de la integración de email de marketing. Elige otro, o vacía el campo para enviar desde el remitente de la plantilla, y luego reanuda el envío masivo."
 
 #: src/components/broadcasts/compose/useIssueText.ts:29
 msgid "the sender of variant {variant} no longer exists"
@@ -26882,7 +26882,7 @@ msgstr "Cancelar suscripción de lista"
 #: src/components/messages/MessageHistoryTable.tsx:384
 #: src/components/transactional/RecentSends.tsx:41
 msgid "Unsubscribed"
-msgstr "Cancelado suscripción"
+msgstr "Dado de baja"
 
 #: src/components/automations/describeTrigger.ts:75
 msgid "Unsubscribed from {list}"
@@ -28579,7 +28579,7 @@ msgstr ""
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
 msgid "Write"
-msgstr "Escribir"
+msgstr "Escritura"
 
 #: src/services/api/permissions.ts:235
 msgid "Write contact fields beyond the recipient's email address; without it the send still creates the recipient but carries only the email (also needs Transactional write)"

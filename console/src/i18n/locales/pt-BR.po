@@ -15,7 +15,7 @@ msgstr ""
 
 #: src/components/ai-assistant/useAIAssistant.tsx:354
 msgid " - Done"
-msgstr " - Concluido"
+msgstr " - Concluído"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:354
 msgid " - Failed"
@@ -1092,7 +1092,7 @@ msgstr "{invalid, plural, one {# campo a corrigir} other {# campos a corrigir}}"
 
 #: src/components/settings/ZapierSettings.tsx:100
 msgid "{label} copied to clipboard"
-msgstr "{label} copiado para a area de transferencia"
+msgstr "{label} copiado para a área de transferência"
 
 #: src/components/transactional/TransactionalDetail.tsx:188
 msgid "{label}: {value}, view in the message log"
@@ -1108,7 +1108,7 @@ msgstr "A tradução {langName} está sem campos obrigatórios (assunto e prévi
 
 #: src/components/transactional/ApiCommandDrawer.tsx:96
 msgid "{language} code copied to clipboard!"
-msgstr "Codigo {language} copiado para a area de transferencia!"
+msgstr "Código {language} copiado para a área de transferência!"
 
 #: src/components/transactional/TransactionalTable.tsx:254
 msgid "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
@@ -1799,7 +1799,7 @@ msgstr "48 h"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:147
 msgid "500 - Medium"
-msgstr "500 - Medio"
+msgstr "500 - Médio"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:576
 msgid "587 for STARTTLS, 465 for TLS from the first byte, 25 unencrypted"
@@ -1852,11 +1852,11 @@ msgstr "900 - Preto"
 
 #: src/components/segment/input.tsx:435
 msgid "A branch condition is required..."
-msgstr "Uma condicao de ramificacao e obrigatoria..."
+msgstr "Uma condição de ramificação é obrigatória..."
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:476
 msgid "A brief description of this notification's purpose"
-msgstr "Uma breve descricao do proposito desta notificacao"
+msgstr "Uma breve descrição do propósito desta notificação"
 
 #: src/components/analytics/GetStartedChecklist.tsx:198
 msgid "A broadcast goes to a list; a transactional email is sent by your app through <0>transactional.send</0>. Try it on the Test List first: only you will receive it."
@@ -2068,7 +2068,7 @@ msgstr "Uma imagem quadrada, exibida ao lado do nome do workspace"
 
 #: src/components/segment/input.tsx:537
 msgid "A value is required..."
-msgstr "Um valor e obrigatorio..."
+msgstr "Um valor é obrigatório..."
 
 #: src/components/broadcasts/useBroadcastActions.tsx:86
 msgid "A variation's sender is no longer one of the marketing integration's senders. Choose its sender again, then resume."
@@ -2259,7 +2259,7 @@ msgstr "Canal de aquisição definido pelas regras de atribuição"
 #: src/components/logs/AuditLogTab.tsx:493
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:94
 msgid "Action"
-msgstr "Acao"
+msgstr "Ação"
 
 #: src/components/automations/nodeTypes.ts:42
 #: src/components/blog/RecentThemesTable.tsx:173
@@ -2267,7 +2267,7 @@ msgstr "Acao"
 #: src/components/settings/WorkspaceMembers.tsx:227
 #: src/components/transactional/TransactionalTable.tsx:274
 msgid "Actions"
-msgstr "Acoes"
+msgstr "Ações"
 
 #. placeholder {0}: contact.email
 #. placeholder {0}: item.name
@@ -2301,7 +2301,7 @@ msgstr "Ativar automação"
 #: src/components/automations/AutomationEditor.tsx:380
 #: src/components/automations/list/AutomationsTable.tsx:69
 msgid "Activate automation?"
-msgstr "Ativar automacao?"
+msgstr "Ativar automação?"
 
 #: src/components/logs/auditPhrases.ts:17
 msgid "Activated the automation <0>{target}</0>"
@@ -2472,11 +2472,11 @@ msgstr "Adicionar bloco na coluna"
 
 #: src/components/email_builder/panels/TreePanel.tsx:140
 msgid "Add block in header"
-msgstr "Adicionar bloco no cabecalho"
+msgstr "Adicionar bloco no cabeçalho"
 
 #: src/components/email_builder/panels/TreePanel.tsx:146
 msgid "Add block in section"
-msgstr "Adicionar bloco na secao"
+msgstr "Adicionar bloco na seção"
 
 #: src/components/email_builder/panels/TreePanel.tsx:144
 msgid "Add block in wrapper"
@@ -2500,7 +2500,7 @@ msgstr "Adicionar condição"
 
 #: src/pages/DebugSegmentPage.tsx:65
 msgid "Add conditions to define your contact segment"
-msgstr "Adicione condicoes para definir seu segmento de contatos"
+msgstr "Adicione condições para definir seu segmento de contatos"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:503
 #: src/components/contacts/ContactUpsertDrawer.tsx:508
@@ -2570,7 +2570,7 @@ msgstr "Adicionar no"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:568
 msgid "Add notes about this version..."
-msgstr "Adicionar notas sobre esta versao..."
+msgstr "Adicionar notas sobre esta versão..."
 
 #: src/components/settings/Integrations.tsx:1914
 #~ msgid "Add one or more email senders. The first sender will be used as the default."
@@ -2706,21 +2706,21 @@ msgstr "Contexto adicional sobre este evento"
 #: src/components/contacts/contactColumns.ts:69
 #: src/components/contacts/ContactsTable.tsx:326
 msgid "Address"
-msgstr "Endereco"
+msgstr "Endereço"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:107
 #: src/components/contacts/csv-import/contactFields.ts:33
 #: src/components/contacts/sheet/contactFieldLabels.ts:28
 #: src/components/segment/segmentLabels.ts:26
 msgid "Address Line 1"
-msgstr "Endereco Linha 1"
+msgstr "Endereço Linha 1"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:108
 #: src/components/contacts/csv-import/contactFields.ts:34
 #: src/components/contacts/sheet/contactFieldLabels.ts:29
 #: src/components/segment/segmentLabels.ts:27
 msgid "Address Line 2"
-msgstr "Endereco Linha 2"
+msgstr "Endereço Linha 2"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:367
 #~ msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
@@ -2809,7 +2809,7 @@ msgstr "Assistente de IA"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:137
 msgid "AI Assistant Not Configured"
-msgstr "Assistente IA Nao Configurado"
+msgstr "Assistente IA Não Configurado"
 
 #: src/components/blog/BlogAIAssistant.tsx:55
 msgid "AI Blog Assistant"
@@ -2934,7 +2934,7 @@ msgstr "Todas as condições devem ter um valor"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:116
 msgid "All contact fields are optional except email."
-msgstr "Todos os campos de contato sao opcionais exceto email."
+msgstr "Todos os campos de contato são opcionais exceto email."
 
 #: src/components/analytics/NewContactsTable.tsx:60
 #: src/components/contacts/ContactsRail.tsx:65
@@ -3342,7 +3342,7 @@ msgstr "Endpoint API"
 
 #: src/components/setup/AdministratorPanel.tsx:56
 msgid "API endpoint is required"
-msgstr "Endpoint API e obrigatorio"
+msgstr "Endpoint API é obrigatório"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:426
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:428
@@ -3687,7 +3687,7 @@ msgstr "Peça-me para corrigir estes problemas."
 
 #: src/components/blog/BlogAIAssistant.tsx:61
 msgid "Ask me to help write your blog..."
-msgstr "Peca-me para ajudar a escrever seu blog..."
+msgstr "Peça-me para ajudar a escrever seu blog..."
 
 #: src/components/license/LicenceGateNotice.tsx:134
 #~ msgid "Ask the person who runs this Notifuse instance to install a licence."
@@ -3740,7 +3740,7 @@ msgstr "Pelo menos um email raiz é obrigatório"
 
 #: src/components/segment/segmentLabels.ts:307
 msgid "at most"
-msgstr "no maximo"
+msgstr "no máximo"
 
 #: src/components/logs/MessageDetail.tsx:698
 #: src/components/templates/SendTemplateModal.tsx:465
@@ -3770,7 +3770,7 @@ msgstr "Regras de atribuição"
 #: src/components/broadcasts/compose/AudienceCard.tsx:61
 #: src/components/broadcasts/detail/BroadcastAside.tsx:138
 msgid "Audience"
-msgstr "Audiencia"
+msgstr "Audiência"
 
 #: src/pages/LogsPage.tsx:70
 #~ msgid "Audit"
@@ -3816,7 +3816,7 @@ msgstr "Email de autenticação"
 
 #: src/components/settings/Integrations.tsx:381
 msgid "Auth Email Hook"
-msgstr "Hook de Email de Autenticacao"
+msgstr "Hook de Email de Autenticação"
 
 #: src/components/integrations/SupabaseIntegration.tsx:146
 #~ msgid "Auth Email Hook Secret"
@@ -3826,11 +3826,11 @@ msgstr "Hook de Email de Autenticacao"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:603
 #: src/components/settings/integrations/providerDetails.ts:66
 msgid "Authentication"
-msgstr "Autenticacao"
+msgstr "Autenticação"
 
 #: src/components/contacts/sheet/describeActivity.tsx:329
 msgid "Authentication email sent via Supabase"
-msgstr "Email de autenticacao enviado via Supabase"
+msgstr "Email de autenticação enviado via Supabase"
 
 #: src/components/settings/Integrations.tsx:1439
 #~ msgid "Authentication Type"
@@ -3842,11 +3842,11 @@ msgstr "Autor"
 
 #: src/components/blog/AuthorsField.tsx:195
 msgid "Author name is required"
-msgstr "Nome do autor e obrigatorio"
+msgstr "Nome do autor é obrigatório"
 
 #: src/components/automations/config/WebhookConfigForm.tsx:56
 msgid "Authorization Secret"
-msgstr "Segredo de Autorizacao"
+msgstr "Segredo de Autorização"
 
 #: src/components/blog/PostDrawer.tsx:985
 msgid "Authors"
@@ -3866,7 +3866,7 @@ msgstr "Autores"
 #: src/components/email_builder/ui/fields/BackgroundFields.tsx:118
 #: src/components/email_builder/ui/fields/NumberUnitField.tsx:158
 msgid "Auto"
-msgstr "Automatico"
+msgstr "Automático"
 
 #: src/components/setup/SsoPanel.tsx:144
 #: src/components/setup/SsoPanel.tsx:154
@@ -3913,7 +3913,7 @@ msgstr "Automática"
 
 #: src/components/integrations/SupabaseIntegration.tsx:223
 msgid "Automatically add new users to the selected lists"
-msgstr "Adicionar novos usuarios automaticamente as listas selecionadas"
+msgstr "Adicionar novos usuários automaticamente às listas selecionadas"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:756
 #~ msgid "Automatically send winner"
@@ -3926,19 +3926,19 @@ msgstr "Adicionar novos usuarios automaticamente as listas selecionadas"
 #: src/components/logs/MessagesTab.tsx:295
 #: src/components/templates/TemplateSelectorModal.tsx:709
 msgid "Automation"
-msgstr "Automacao"
+msgstr "Automação"
 
 #: src/components/automations/list/useAutomationActions.ts:22
 msgid "Automation activated successfully"
-msgstr "Automacao ativada com sucesso"
+msgstr "Automação ativada com sucesso"
 
 #: src/components/automations/context/AutomationContext.tsx:355
 msgid "Automation created successfully"
-msgstr "Automacao criada com sucesso"
+msgstr "Automação criada com sucesso"
 
 #: src/components/automations/list/useAutomationActions.ts:51
 msgid "Automation deleted successfully"
-msgstr "Automacao excluida com sucesso"
+msgstr "Automação excluída com sucesso"
 
 #: src/services/api/permissions.ts:673
 msgid "Automation flows — their triggers, nodes and per-contact execution history."
@@ -3959,11 +3959,11 @@ msgstr "Automação não encontrada"
 
 #: src/components/automations/list/useAutomationActions.ts:38
 msgid "Automation paused successfully"
-msgstr "Automacao pausada com sucesso"
+msgstr "Automação pausada com sucesso"
 
 #: src/components/automations/context/AutomationContext.tsx:369
 msgid "Automation updated successfully"
-msgstr "Automacao atualizada com sucesso"
+msgstr "Automação atualizada com sucesso"
 
 #: src/components/automations/context/AutomationContext.tsx:366
 #~ msgid "Automation updated, but it is paused: activate it to run this version."
@@ -3983,7 +3983,7 @@ msgstr "Automacao atualizada com sucesso"
 #: src/pages/AutomationsPage.tsx:202
 #: src/services/api/errors.ts:90
 msgid "Automations"
-msgstr "Automacoes"
+msgstr "Automações"
 
 #: src/services/api/permissions.ts:726
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
@@ -3999,7 +3999,7 @@ msgstr "Disponível após salvar"
 
 #: src/components/email_builder/ui/AddBlockPopover.tsx:445
 msgid "Available Blocks"
-msgstr "Blocos Disponiveis"
+msgstr "Blocos Disponíveis"
 
 #: src/components/settings/Integrations.tsx:889
 #~ msgid "Available integrations"
@@ -4230,7 +4230,7 @@ msgstr "BCC"
 
 #: src/components/templates/SendTemplateModal.tsx:443
 msgid "BCC Recipients"
-msgstr "Destinatarios BCC"
+msgstr "Destinatários BCC"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:238
 #~ msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
@@ -4264,7 +4264,7 @@ msgstr "Hook antes de criar usuário"
 
 #: src/components/settings/Integrations.tsx:389
 msgid "Before User Created Hook"
-msgstr "Hook Antes de Criar Usuario"
+msgstr "Hook Antes de Criar Usuário"
 
 #: src/components/blog/category/CategoryChecks.tsx:33
 #: src/components/transactional/NotificationChecks.tsx:238
@@ -4387,7 +4387,7 @@ msgstr "Bloco salvo. Recarregue a página para vê-lo nos seus blocos salvos."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1500
 msgid "Block Settings Panel"
-msgstr "Painel de Configuracoes do Bloco"
+msgstr "Painel de Configurações do Bloco"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:370
 msgid "block shown"
@@ -4435,11 +4435,11 @@ msgstr "Categorias, posts e temas do blog, além da configuração do blog no n�
 
 #: src/components/blog/RecentThemesTable.tsx:71
 msgid "Blog custom endpoint URL is not configured"
-msgstr "URL do endpoint personalizado do blog nao esta configurada"
+msgstr "URL do endpoint personalizado do blog não está configurada"
 
 #: src/components/settings/BlogSettings.tsx:162
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
-msgstr "Blog ativado mas a criacao do tema falhou. Por favor, crie um tema manualmente."
+msgstr "Blog ativado mas a criação do tema falhou. Por favor, crie um tema manualmente."
 
 #: src/components/blog/PostsTable.tsx:512
 msgid "Blog published on"
@@ -4451,11 +4451,11 @@ msgstr "Configurações do blog"
 
 #: src/components/settings/BlogSettings.tsx:184
 msgid "Blog settings updated successfully"
-msgstr "Configuracoes do blog atualizadas com sucesso"
+msgstr "Configurações do blog atualizadas com sucesso"
 
 #: src/components/settings/BlogSettings.tsx:228
 msgid "Blog styling and SEO settings"
-msgstr "Estilo do blog e configuracoes de SEO"
+msgstr "Estilo do blog e configurações de SEO"
 
 #: src/components/settings/BlogSettings.tsx:340
 #~ msgid "Blog Title"
@@ -4703,11 +4703,11 @@ msgstr "Rejeições"
 
 #: src/components/automations/nodeTypes.ts:37
 msgid "Branch"
-msgstr "Ramificacao"
+msgstr "Ramificação"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:40
 msgid "Branch Logic"
-msgstr "Logica de Ramificacao"
+msgstr "Lógica de Ramificação"
 
 #: src/components/file_manager/FileExplorer.tsx:662
 msgid "Breadcrumb"
@@ -4754,11 +4754,11 @@ msgstr "Porta da Ponte"
 #: src/components/blog/PostDrawer.tsx:1002
 #: src/components/settings/BlogSettings.tsx:460
 msgid "Brief description for search results"
-msgstr "Breve descricao para resultados de busca"
+msgstr "Breve descrição para resultados de busca"
 
 #: src/components/blog/CategoryDrawer.tsx:281
 msgid "Brief description of this category"
-msgstr "Breve descricao desta categoria"
+msgstr "Breve descrição desta categoria"
 
 #: src/components/blog/PostDrawer.tsx:957
 msgid "Brief summary of the post"
@@ -5288,7 +5288,7 @@ msgstr "Não foi possível acessar o endpoint API configurado"
 
 #: src/components/automations/context/AutomationContext.tsx:75
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
-msgstr "Nao e possivel remover a lista enquanto existem nos de email. Exclua os nos de email primeiro."
+msgstr "Não é possível remover a lista enquanto existem nós de email. Exclua os nós de email primeiro."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:247
 #~ msgid "Cannot restore progress: CSV data is not available"
@@ -5296,11 +5296,11 @@ msgstr "Nao e possivel remover a lista enquanto existem nos de email. Exclua os 
 
 #: src/components/file_manager/FileExplorer.tsx:504
 msgid "Cannot upload in read-only mode"
-msgstr "Nao e possivel fazer upload em modo somente leitura"
+msgstr "Não é possível fazer upload em modo somente leitura"
 
 #: src/components/seo/SeoCards.tsx:36
 msgid "Canonical URL"
-msgstr "URL Canonica"
+msgstr "URL Canônica"
 
 #: src/components/settings/LicenseSettings.tsx:168
 msgid "Capabilities"
@@ -5340,7 +5340,7 @@ msgstr "Categoria criada com sucesso"
 
 #: src/pages/BlogPage.tsx:65
 msgid "Category deleted successfully"
-msgstr "Categoria excluida com sucesso"
+msgstr "Categoria excluída com sucesso"
 
 #: src/components/templates/TemplateStartModal.tsx:218
 msgid "Category to choose"
@@ -5361,7 +5361,7 @@ msgstr "CC"
 
 #: src/components/templates/SendTemplateModal.tsx:432
 msgid "CC Recipients"
-msgstr "Destinatarios CC"
+msgstr "Destinatários CC"
 
 #: src/components/file_manager/buttonSettings.tsx:283
 msgid "CDN endpoint"
@@ -5526,7 +5526,7 @@ msgstr "Verificar atualizações"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:709
 msgid "Check for Updates"
-msgstr "Verificar Atualizacoes"
+msgstr "Verificar Atualizações"
 
 #: src/components/templates/ImportErrorsModal.tsx:76
 msgid "Check the MJML hierarchy and that every tag is closed."
@@ -17826,7 +17826,7 @@ msgstr "Aberturas por dia"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:395
 msgid "Opens this email in the browser. The link is filled in for broadcasts and automations, and left empty in other emails."
-msgstr "Abre este e-mail no navegador. O link é preenchido em broadcasts e automacoes, e fica vazio nos outros e-mails."
+msgstr "Abre este e-mail no navegador. O link é preenchido em broadcasts e automações, e fica vazio nos outros e-mails."
 
 #: src/components/contacts/contactFilterFields.ts:40
 #: src/components/contacts/ExportContactsModal.tsx:103
@@ -19104,7 +19104,7 @@ msgstr "Texto de prévia ({lang})"
 #: src/components/templates/TemplateSettingsAside.tsx:129
 #: src/components/templates/TemplateTranslationsTab.tsx:416
 msgid "Preview text will appear here..."
-msgstr "O texto de visualizacao aparecera aqui..."
+msgstr "O texto de visualização aparecerá aqui..."
 
 #: src/components/blog/RecentThemesTable.tsx:187
 msgid "Preview this theme in a new tab"
@@ -19321,7 +19321,7 @@ msgstr "URL pública onde esta instância do Notifuse está acessível. Preenchi
 
 #: src/components/blog/PublishModal.tsx:113
 msgid "Publication"
-msgstr "Publicacao"
+msgstr "Publicação"
 
 #: src/components/blog/PostsTable.tsx:252
 #: src/components/blog/PublishModal.tsx:207
