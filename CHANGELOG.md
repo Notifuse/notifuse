@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: TimeScore and Bounce Rate now leave automated traffic out, while Sessions and pageviews still count it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
 
+- **Fix**: The Gmail app on iOS no longer shows a broken-image icon at the bottom of emails with open tracking. The tracking pixel was a PNG with truncated pixel data, which Gmail could not display; it is now a valid transparent PNG. Opens were recorded correctly all along.
+
 ## [44.0] - 2026-11-19
 
 ### Before you upgrade

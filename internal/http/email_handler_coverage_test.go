@@ -1,7 +1,10 @@
 package http
 
 import (
+	"bytes"
 	"context"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -136,4 +139,17 @@ func TestCoverage_HandleEncryptedOpen(t *testing.T) {
 		rr := coverageEncryptedOpenRequest(t, handler, "/t/"+token, coverageBrowserUA)
 		assertTrackingPixel(t, rr)
 	})
+}
+
+// The pixel must decode as a real PNG: Gmail's image proxy and its iOS app show a
+// broken-image icon for one whose pixel data is truncated.
+func TestPaddedTrackingPixel_DecodesAsTransparent1x1PNG(t *testing.T) {
+	r := bytes.NewReader(paddedTrackingPixel)
+	img, err := png.Decode(r)
+	require.NoError(t, err)
+	assert.Zero(t, r.Len(), "no bytes may follow IEND")
+	assert.Equal(t, image.Rect(0, 0, 1, 1), img.Bounds())
+	_, _, _, alpha := img.At(0, 0).RGBA()
+	assert.Zero(t, alpha, "the pixel must be fully transparent")
+	assert.Greater(t, len(paddedTrackingPixel), 68, "the padding must keep it away from the 67-68 byte fingerprint")
 }
