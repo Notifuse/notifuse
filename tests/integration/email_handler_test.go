@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net"
 	"net/http"
@@ -1092,8 +1094,10 @@ func TestEmailHandler_EncryptedTracking(t *testing.T) {
 
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
-		assert.Equal(t, 825, len(body))
-		assert.Equal(t, []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, body[:8])
+		assert.Greater(t, len(body), 68, "the padding must keep the pixel away from the 67-68 byte fingerprint")
+		img, err := png.Decode(bytes.NewReader(body))
+		require.NoError(t, err, "the pixel must decode as a PNG")
+		assert.Equal(t, image.Rect(0, 0, 1, 1), img.Bounds())
 	})
 
 	t.Run("legacy click token to another site shows the interstitial", func(t *testing.T) {
