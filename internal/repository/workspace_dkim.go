@@ -45,6 +45,12 @@ func (r *workspaceRepository) UpdateDKIMKeys(ctx context.Context, workspaceID st
 		}
 	}
 
+	// The ciphertexts already stored, read before mutate can touch the slice.
+	stored := make(map[string]bool, len(keys))
+	for _, k := range keys {
+		stored[k.EncryptedPrivateKey] = true
+	}
+
 	mutation, err := mutate(keys, integrations)
 	if err != nil {
 		return nil, err
@@ -66,10 +72,6 @@ func (r *workspaceRepository) UpdateDKIMKeys(ctx context.Context, workspaceID st
 	}
 	// Only the private keys this write brings are opened: a stored key that no longer
 	// opens fails its own sends, never the writes about other domains.
-	stored := make(map[string]bool, len(keys))
-	for _, k := range keys {
-		stored[k.EncryptedPrivateKey] = true
-	}
 	var added []domain.DKIMKey
 	for _, k := range newKeys {
 		if k.EncryptedPrivateKey != "" && !stored[k.EncryptedPrivateKey] {

@@ -63,13 +63,23 @@ export const dkimQueryKeys = {
   list: (workspaceId: string) => ['dkim-domains', workspaceId] as const
 }
 
-/** The ASCII, lower-case domain of an email address, as the server matches it (no IDN). */
+/**
+ * The ASCII, lower-case domain of an email address, as the server matches it: an
+ * internationalized domain in its punycode form (bücher.de → xn--bcher-kva.de), which is how
+ * the keys are stored. "" when the address has no valid domain.
+ */
 export function emailDomain(address: string): string {
   const at = address.lastIndexOf('@')
   if (at < 0) return ''
-  return address
+  const domain = address
     .slice(at + 1)
     .trim()
+    .replace(/>$/, '')
     .replace(/\.$/, '')
-    .toLowerCase()
+  if (!domain) return ''
+  try {
+    return new URL(`http://${domain}`).hostname
+  } catch {
+    return ''
+  }
 }

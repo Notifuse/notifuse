@@ -53,7 +53,8 @@ describe('SMTPDkimPanel', () => {
         key('pending.io', { status: 'pending' }),
         key('wrong.io', { status: 'mismatch' }),
         key('stopped.io', { status: 'pending', downgraded_at: '2026-11-20T08:00:00Z' }),
-        key('degrading.io', { consecutive_failures: 2 })
+        key('degrading.io', { consecutive_failures: 2 }),
+        key('xn--bcher-kva.de')
       ]
     })
   })
@@ -66,9 +67,10 @@ describe('SMTPDkimPanel', () => {
       { email: 'a@pending.io' },
       { email: 'a@wrong.io' },
       { email: 'a@stopped.io' },
-      { email: 'a@degrading.io' }
+      { email: 'a@degrading.io' },
+      { email: 'info@bücher.de' }
     ])
-    await screen.findByText('Signed')
+    await screen.findAllByText('Signed')
     expect(api.get).toHaveBeenCalledWith('/api/workspaces.listDKIMDomains?workspace_id=ws-1')
 
     expect(screen.getAllByText('acme.io')).toHaveLength(1)
@@ -78,6 +80,7 @@ describe('SMTPDkimPanel', () => {
     expect(within(rowOf('wrong.io')).getByText('Wrong key: sent unsigned')).toBeInTheDocument()
     expect(within(rowOf('stopped.io')).getByText('Signing stopped: sent unsigned')).toBeInTheDocument()
     expect(within(rowOf('degrading.io')).getByText('Signed · record missing 2/3')).toBeInTheDocument()
+    expect(within(rowOf('xn--bcher-kva.de')).getByText('Signed')).toBeInTheDocument()
   })
 
   it('links to Settings › Domains', async () => {

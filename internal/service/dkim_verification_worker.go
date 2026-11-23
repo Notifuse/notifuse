@@ -50,6 +50,10 @@ type DKIMVerificationWorker struct {
 	initialDelay time.Duration
 	parallel     int
 	now          func() time.Time
+
+	// lastListError is the last error the listing reported, logged once rather than
+	// at every tick while it stays the same.
+	lastListError string
 }
 
 // NewDKIMVerificationWorker checks every hour, starting three minutes after boot, with
@@ -188,10 +192,15 @@ func recheckInterval(k domain.DKIMKey, now time.Time) time.Duration {
 func (w *DKIMVerificationWorker) check(ctx context.Context) {
 	workspaces, err := w.repo.ListWorkspacesDKIMMetadata(ctx)
 	if err != nil {
-		w.logger.WithField("error", err.Error()).Error("DKIM check: failed to read the keys of some workspaces")
+		if err.Error() != w.lastListError {
+			w.lastListError = err.Error()
+			w.logger.WithField("error", err.Error()).Error("DKIM check: failed to read the keys of some workspaces; their keys are not checked until they are fixed")
+		}
 		if workspaces == nil {
 			return
 		}
+	} else {
+		w.lastListError = ""
 	}
 	due := dueKeys(workspaces, w.now())
 	if len(due) == 0 {

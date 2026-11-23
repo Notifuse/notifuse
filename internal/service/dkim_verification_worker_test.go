@@ -253,6 +253,30 @@ func TestDKIMVerificationWorker_Unlock(t *testing.T) {
 	})
 }
 
+type failingListRepo struct {
+	fakeDKIMRepo
+}
+
+func (r *failingListRepo) ListWorkspacesDKIMMetadata(ctx context.Context) ([]domain.WorkspaceDKIMMetadata, error) {
+	return []domain.WorkspaceDKIMMetadata{}, errors.New("workspace ws-bad: failed to decode the DKIM keys")
+}
+
+func TestDKIMVerificationWorker_LogsAnUnreadableWorkspaceOnce(t *testing.T) {
+	f := newDKIMWorkerFixture(t)
+	f.w.repo = &failingListRepo{}
+	ctrl := gomock.NewController(t)
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().Error(gomock.Any()).Times(1)
+	f.w.logger = log
+
+	for i := 0; i < 3; i++ {
+		f.expectLockedPass()
+		f.w.RunOnce(context.Background())
+	}
+	assert.NoError(t, f.mock.ExpectationsWereMet())
+}
+
 type countingResolver struct {
 	mu       sync.Mutex
 	inFlight int

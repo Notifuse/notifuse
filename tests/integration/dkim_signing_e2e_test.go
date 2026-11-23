@@ -221,7 +221,9 @@ func TestDKIMSigningE2E(t *testing.T) {
 
 		resp, err := client.ScheduleBroadcast(map[string]interface{}{"workspace_id": workspace.ID, "id": broadcast.ID, "send_now": true})
 		require.NoError(t, err)
+		scheduleBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, string(scheduleBody))
 		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed"}, 60*time.Second)
 		require.NoError(t, err)
 

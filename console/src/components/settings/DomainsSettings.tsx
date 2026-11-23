@@ -49,7 +49,14 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
   const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
   const handleCreate = async () => {
-    const { domain } = await form.validateFields()
+    // Enter can fire again while the key is generated: one request per domain.
+    if (creating) return
+    let domain: string
+    try {
+      ;({ domain } = await form.validateFields())
+    } catch {
+      return // the form shows what is missing
+    }
     setCreating(true)
     try {
       const { domain: created } = await dkimApi.create(workspaceId, domain)
@@ -318,7 +325,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
           <span className="inline-flex items-center gap-1.5">
             {t`DKIM keys`}
             <HelpTip label={t`About DKIM keys`} icon="info">
-              {t`Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. Notifuse checks the records every hour and stops signing after ${DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart.`}
+              {t`Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. Notifuse checks a record every hour until it finds it, then once a day, and every hour again after a failed check. A published key stops signing after ${DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart.`}
             </HelpTip>
           </span>
         }

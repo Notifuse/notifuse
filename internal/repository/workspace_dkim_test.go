@@ -197,6 +197,21 @@ func TestWorkspaceRepository_UpdateDKIMKeys(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("a new key written in place of an old one is still checked", func(t *testing.T) {
+		repo, mock := newDKIMRepo(t)
+		mock.ExpectBegin()
+		mock.ExpectQuery(dkimLockQuery).WithArgs("ws-1").
+			WillReturnRows(sqlmock.NewRows([]string{"keys", "integrations"}).AddRow([]byte(stored), nil))
+		mock.ExpectRollback()
+
+		_, err := repo.UpdateDKIMKeys(ctx, "ws-1", func(keys []domain.DKIMKey, _ domain.Integrations) (domain.DKIMKeysMutation, error) {
+			keys[0] = domain.DKIMKey{Domain: "acme.io", EncryptedPrivateKey: "zz"}
+			return domain.DKIMKeysMutation{Keys: keys, Changed: true}, nil
+		})
+		assert.ErrorContains(t, err, "acme.io")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("unknown workspace", func(t *testing.T) {
 		repo, mock := newDKIMRepo(t)
 		mock.ExpectBegin()

@@ -123,6 +123,30 @@ describe('DomainsSettings', () => {
     await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
   })
 
+  it('sends one request when Enter is pressed twice, and none for an empty field', async () => {
+    let finish: (value: unknown) => void = () => {}
+    vi.mocked(api.post).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+    renderDomains()
+    await screen.findByText('acme.io', { selector: 'span.font-medium' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add domain' }))
+    const dialog = await screen.findByRole('dialog')
+    const input = within(dialog).getByLabelText('Domain')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }))
+    expect(await within(dialog).findByText('Please enter a domain')).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+
+    fireEvent.change(input, { target: { value: 'new.io' } })
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+    fireEvent.keyUp(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1))
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+    fireEvent.keyUp(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+    finish({ domain: record({ domain: 'new.io', status: 'pending' }) })
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
+    expect(api.post).toHaveBeenCalledTimes(1)
+  })
+
   it('verifies a domain and says what the lookup found', async () => {
     vi.mocked(api.post).mockResolvedValue({ domain: pending, check: { result: 'not_found', detail: 'no TXT record found' } })
     renderDomains()
