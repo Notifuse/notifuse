@@ -64,8 +64,26 @@ func (r *workspaceRepository) UpdateDKIMKeys(ctx context.Context, workspaceID st
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the DKIM keys: %w", err)
 	}
-	if err := domain.CheckDKIMKeys(append(append([]byte(`{"dkim_keys":`), encoded...), '}'), r.secretKey); err != nil {
-		return nil, err
+	// Only the private keys this write brings are opened: a stored key that no longer
+	// opens fails its own sends, never the writes about other domains.
+	stored := make(map[string]bool, len(keys))
+	for _, k := range keys {
+		stored[k.EncryptedPrivateKey] = true
+	}
+	var added []domain.DKIMKey
+	for _, k := range newKeys {
+		if k.EncryptedPrivateKey != "" && !stored[k.EncryptedPrivateKey] {
+			added = append(added, k)
+		}
+	}
+	if len(added) > 0 {
+		check, err := json.Marshal(map[string][]domain.DKIMKey{"dkim_keys": added})
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode the DKIM keys: %w", err)
+		}
+		if err := domain.CheckDKIMKeys(check, r.secretKey); err != nil {
+			return nil, err
+		}
 	}
 
 	query := `UPDATE workspaces SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb), '{dkim_keys}', $1::jsonb, true) WHERE id = $2`
@@ -115,7 +133,10 @@ func (r *workspaceRepository) ListWorkspacesDKIMMetadata(ctx context.Context) ([
 	}
 	defer func() { _ = rows.Close() }()
 
+	// A workspace whose keys cannot be decoded is left out and named in the error, which
+	// comes with the others: one bad row does not stop the checks of every workspace.
 	var result []domain.WorkspaceDKIMMetadata
+	var skipped []error
 	for rows.Next() {
 		var id string
 		var keysJSON []byte
@@ -124,14 +145,15 @@ func (r *workspaceRepository) ListWorkspacesDKIMMetadata(ctx context.Context) ([
 		}
 		keys, err := decodeDKIMKeys(keysJSON)
 		if err != nil {
-			return nil, fmt.Errorf("workspace %s: %w", id, err)
+			skipped = append(skipped, fmt.Errorf("workspace %s: %w", id, err))
+			continue
 		}
 		result = append(result, domain.WorkspaceDKIMMetadata{WorkspaceID: id, Keys: keys})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to list the DKIM keys: %w", err)
 	}
-	return result, nil
+	return result, errors.Join(skipped...)
 }
 
 func decodeDKIMKeys(raw []byte) ([]domain.DKIMKey, error) {

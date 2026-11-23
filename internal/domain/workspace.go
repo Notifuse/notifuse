@@ -1175,7 +1175,8 @@ type WorkspaceRepository interface {
 	// GetWorkspaceDKIMKeys reads the DKIM keys of one workspace, without loading it.
 	GetWorkspaceDKIMKeys(ctx context.Context, workspaceID string) ([]DKIMKey, error)
 	// ListWorkspacesDKIMMetadata reads the keys of every workspace that has one, without
-	// their private half and without loading the workspaces.
+	// their private half and without loading the workspaces. A workspace whose keys cannot
+	// be decoded is left out and named in the error, returned with the others.
 	ListWorkspacesDKIMMetadata(ctx context.Context) ([]WorkspaceDKIMMetadata, error)
 	Delete(ctx context.Context, id string) error
 

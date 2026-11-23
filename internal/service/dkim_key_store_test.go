@@ -54,6 +54,33 @@ func TestDKIMKeyStore_Keys(t *testing.T) {
 	assert.Equal(t, 3, repo.reads, "read again after Invalidate")
 }
 
+// invalidatingRepo calls Invalidate while a read is in flight, as a DKIM change committed
+// during a send's lookup would.
+type invalidatingRepo struct {
+	fakeDKIMRepo
+	store *DKIMKeyStore
+}
+
+func (r *invalidatingRepo) GetWorkspaceDKIMKeys(ctx context.Context, id string) ([]domain.DKIMKey, error) {
+	keys, err := r.fakeDKIMRepo.GetWorkspaceDKIMKeys(ctx, id)
+	r.store.Invalidate(id)
+	return keys, err
+}
+
+func TestDKIMKeyStore_AReadOverlappingAnInvalidateIsNotKept(t *testing.T) {
+	ctx := context.Background()
+	repo := &invalidatingRepo{fakeDKIMRepo: fakeDKIMRepo{keys: []domain.DKIMKey{{Domain: "acme.io"}}}}
+	store := NewDKIMKeyStore(repo, dkimServiceSecret)
+	repo.store = store
+
+	keys, err := store.Keys(ctx, "ws-1")
+	require.NoError(t, err)
+	assert.Len(t, keys, 1, "the read is still used")
+	_, err = store.Keys(ctx, "ws-1")
+	require.NoError(t, err)
+	assert.Equal(t, 2, repo.reads, "but not cached: the next call reads again")
+}
+
 func TestDKIMKeyStore_IsBounded(t *testing.T) {
 	ctx := context.Background()
 	store := NewDKIMKeyStore(&fakeDKIMRepo{}, dkimServiceSecret)

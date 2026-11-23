@@ -31,6 +31,9 @@ type DKIMKeyStore struct {
 
 	mu      sync.Mutex
 	entries map[string]dkimKeysEntry
+	// generations counts the Invalidate calls of each workspace, so a read that started
+	// before one does not store keys it made stale.
+	generations map[string]uint64
 }
 
 type dkimKeysEntry struct {
@@ -42,11 +45,12 @@ type dkimKeysEntry struct {
 // instance secret key.
 func NewDKIMKeyStore(repo domain.WorkspaceRepository, secretKey string) *DKIMKeyStore {
 	return &DKIMKeyStore{
-		repo:      repo,
-		secretKey: secretKey,
-		signers:   dkim.NewKeyCache(dkim.KeyCacheSize),
-		now:       time.Now,
-		entries:   map[string]dkimKeysEntry{},
+		repo:        repo,
+		secretKey:   secretKey,
+		signers:     dkim.NewKeyCache(dkim.KeyCacheSize),
+		now:         time.Now,
+		entries:     map[string]dkimKeysEntry{},
+		generations: map[string]uint64{},
 	}
 }
 
@@ -55,6 +59,7 @@ func (s *DKIMKeyStore) Keys(ctx context.Context, workspaceID string) ([]domain.D
 	now := s.now()
 	s.mu.Lock()
 	entry, ok := s.entries[workspaceID]
+	generation := s.generations[workspaceID]
 	s.mu.Unlock()
 	if ok && now.Sub(entry.readAt) < dkimKeysTTL {
 		return entry.keys, nil
@@ -67,6 +72,10 @@ func (s *DKIMKeyStore) Keys(ctx context.Context, workspaceID string) ([]domain.D
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.generations[workspaceID] != generation {
+		// Invalidated during the read: use what was read, but do not keep it.
+		return keys, nil
+	}
 	if _, held := s.entries[workspaceID]; !held && len(s.entries) >= dkimKeysMaxWorkspaces {
 		for id, e := range s.entries {
 			if now.Sub(e.readAt) >= dkimKeysTTL {
@@ -88,6 +97,7 @@ func (s *DKIMKeyStore) Keys(ctx context.Context, workspaceID string) ([]domain.D
 func (s *DKIMKeyStore) Invalidate(workspaceID string) {
 	s.mu.Lock()
 	delete(s.entries, workspaceID)
+	s.generations[workspaceID]++
 	s.mu.Unlock()
 }
 

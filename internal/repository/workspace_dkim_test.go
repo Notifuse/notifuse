@@ -180,6 +180,23 @@ func TestWorkspaceRepository_UpdateDKIMKeys(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("a stored key that no longer opens does not block a write about another domain", func(t *testing.T) {
+		repo, mock := newDKIMRepo(t)
+		broken := `[{"id":"k1","domain":"broken.io","encrypted_private_key":"zz","status":"published"},{"id":"k2","domain":"acme.io","status":"pending"}]`
+		mock.ExpectBegin()
+		mock.ExpectQuery(dkimLockQuery).WithArgs("ws-1").
+			WillReturnRows(sqlmock.NewRows([]string{"keys", "integrations"}).AddRow([]byte(broken), nil))
+		mock.ExpectExec(dkimWrite).WithArgs(sqlmock.AnyArg(), "ws-1").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		_, err := repo.UpdateDKIMKeys(ctx, "ws-1", func(keys []domain.DKIMKey, _ domain.Integrations) (domain.DKIMKeysMutation, error) {
+			keys[1].Status = domain.DKIMKeyStatusPublished
+			return domain.DKIMKeysMutation{Keys: keys, Changed: true}, nil
+		})
+		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("unknown workspace", func(t *testing.T) {
 		repo, mock := newDKIMRepo(t)
 		mock.ExpectBegin()
@@ -234,4 +251,17 @@ func TestWorkspaceRepository_ListWorkspacesDKIMMetadata(t *testing.T) {
 	assert.Equal(t, domain.DKIMKeyStatusPublished, got[0].Keys[0].Status)
 	assert.Len(t, got[1].Keys, 2)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkspaceRepository_ListWorkspacesDKIMMetadata_SkipsAnUndecodableWorkspace(t *testing.T) {
+	repo, mock := newDKIMRepo(t)
+	mock.ExpectQuery(`SELECT id`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "keys"}).
+			AddRow("ws-bad", []byte(`[{"domain":"acme.io","revision":"two"}]`)).
+			AddRow("ws-2", []byte(`[{"domain":"b.io"}]`)))
+
+	got, err := repo.ListWorkspacesDKIMMetadata(context.Background())
+	assert.ErrorContains(t, err, "ws-bad")
+	require.Len(t, got, 1, "the other workspaces are still returned")
+	assert.Equal(t, "ws-2", got[0].WorkspaceID)
 }

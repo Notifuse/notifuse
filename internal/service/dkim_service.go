@@ -195,7 +195,6 @@ func (s *DKIMService) RegenerateKey(ctx context.Context, workspaceID, rawDomain 
 			return domain.DKIMKeysMutation{}, &domain.ErrDKIMConflict{Message: fmt.Sprintf("the key of %s is published and signs: it cannot be regenerated", domainName)}
 		}
 		oldSelector = keys[i].Selector
-		key.CreatedAt = keys[i].CreatedAt
 		updated := append([]domain.DKIMKey{}, keys...)
 		updated[i] = key
 		usedBy = domain.DKIMDomainUsers(integrations, domainName)
@@ -263,11 +262,16 @@ func (s *DKIMService) VerifyDomain(ctx context.Context, workspaceID, rawDomain s
 	if !stale {
 		s.store.Invalidate(workspaceID)
 	}
-	if transition != nil {
+	// The audit records what this call changed: nothing when another writer got there
+	// first.
+	switch {
+	case stale:
+		auditDKIM(ctx, workspaceID, domainName, domain.AuditChange{})
+	case transition != nil:
 		transition.WorkspaceID = workspaceID
 		logDKIMTransition(s.logger, transition)
 		auditDKIM(ctx, workspaceID, domainName, domain.AuditChange{Old: transition.OldStatus, New: transition.NewStatus})
-	} else {
+	default:
 		auditDKIM(ctx, workspaceID, domainName, domain.AuditChange{Old: checked.Status, New: stored.Status})
 	}
 

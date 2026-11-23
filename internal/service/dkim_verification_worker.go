@@ -188,8 +188,10 @@ func recheckInterval(k domain.DKIMKey, now time.Time) time.Duration {
 func (w *DKIMVerificationWorker) check(ctx context.Context) {
 	workspaces, err := w.repo.ListWorkspacesDKIMMetadata(ctx)
 	if err != nil {
-		w.logger.WithField("error", err.Error()).Error("DKIM check: failed to list the keys")
-		return
+		w.logger.WithField("error", err.Error()).Error("DKIM check: failed to read the keys of some workspaces")
+		if workspaces == nil {
+			return
+		}
 	}
 	due := dueKeys(workspaces, w.now())
 	if len(due) == 0 {

@@ -285,7 +285,8 @@ func TestDKIMService_RegenerateKey(t *testing.T) {
 			assert.Equal(t, stored.Selector, view.Selector)
 			assert.Equal(t, domain.DKIMKeyStatusPending, stored.Status)
 			assert.Zero(t, stored.ConsecutiveFailures)
-			assert.Equal(t, created, stored.CreatedAt)
+			assert.Equal(t, f.now, stored.CreatedAt, "a new key: its age drives the pace of the checks")
+			assert.NotEqual(t, created, stored.CreatedAt)
 		})
 	}
 
