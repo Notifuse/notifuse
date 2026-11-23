@@ -102,7 +102,7 @@ msgstr "(per defecte)"
 msgid "(empty)"
 msgstr "(buit)"
 
-#: src/components/blog/PostDrawer.tsx:774
+#: src/components/blog/PostDrawer.tsx:775
 msgid "(has checks left)"
 msgstr "(queden revisions)"
 
@@ -649,6 +649,11 @@ msgstr "{0} segons"
 #: src/components/analytics/EmailMetricsChart.tsx:491
 #~ msgid "{0} total unsubscribes (hidden from chart)"
 #~ msgstr "{0} baixes totals (ocults del gràfic)"
+
+#. placeholder {0}: contact.email
+#: src/components/contacts/sheet/ContactListsCard.tsx:69
+msgid "{0} unsubscribed from {name}"
+msgstr "{0} s'ha donat de baixa de {name}"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
@@ -1319,7 +1324,7 @@ msgstr "{providerName} · remitent per defecte {email}"
 msgid "{providerName} has no default sender"
 msgstr "{providerName} no té remitent per defecte"
 
-#: src/components/blog/PostDrawer.tsx:1081
+#: src/components/blog/PostDrawer.tsx:1082
 msgid "{readingTime} min read"
 msgstr "{readingTime} min de lectura"
 
@@ -1444,7 +1449,7 @@ msgstr "Lliures: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} hora local"
 
-#: src/components/blog/PostDrawer.tsx:1115
+#: src/components/blog/PostDrawer.tsx:1116
 #: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, one {# per revisar} other {# per revisar}}"
@@ -2235,7 +2240,7 @@ msgstr "Sobre els destinataris donats de baixa"
 msgid "Accept Invitation"
 msgstr "Acceptar invitació"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:86
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Ha acceptat la invitació <0>{target}</0>"
 
@@ -2289,7 +2294,7 @@ msgstr "Accions"
 #. placeholder {0}: item.name
 #. placeholder {0}: listName(subscription.list_id)
 #: src/components/contacts/ContactsTable.tsx:115
-#: src/components/contacts/sheet/ContactListsCard.tsx:173
+#: src/components/contacts/sheet/ContactListsCard.tsx:215
 #: src/components/file_manager/FileGrid.tsx:114
 #: src/components/file_manager/FileTable.tsx:147
 #: src/components/file_manager/FolderTree.tsx:109
@@ -2694,7 +2699,7 @@ msgstr "Afegit"
 msgid "Added {blockType}"
 msgstr "{blockType} afegit"
 
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:90
 msgid "Added a DKIM domain to <0>{target}</0>"
 msgstr "Ha afegit un domini DKIM a <0>{target}</0>"
 
@@ -2707,7 +2712,7 @@ msgstr "Afegit el {0}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "Ha afegit l'anotació <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:91
 msgid "Added the integration <0>{target}</0>"
 msgstr "Ha afegit la integració <0>{target}</0>"
 
@@ -3013,7 +3018,7 @@ msgstr "Tots els articles"
 msgid "all sessions"
 msgstr "totes les sessions"
 
-#: src/components/blog/PostDrawer.tsx:1118
+#: src/components/blog/PostDrawer.tsx:1119
 #: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
@@ -3074,7 +3079,7 @@ msgstr "També disponible: <0>un blog</0> per al teu lloc."
 msgid "Also the image of a post or category without one; 1200 × 630 px"
 msgstr "També la imatge dels articles i categories que no en tenen; 1200 × 630 px"
 
-#: src/components/blog/PostDrawer.tsx:964
+#: src/components/blog/PostDrawer.tsx:965
 msgid "Also the share image when none is set"
 msgstr "També és la imatge per compartir si no n’hi ha cap altra"
 
@@ -3730,7 +3735,7 @@ msgstr "Demaneu-me que us ajudi a escriure el vostre blog..."
 #~ msgid "Ask the person who runs this Notifuse instance to install a licence."
 #~ msgstr ""
 
-#: src/components/logs/auditPhrases.ts:74
+#: src/components/logs/auditPhrases.ts:76
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "Ha demanat un codi d'inici de sessió per a <0>{target}</0>"
 
@@ -3889,7 +3894,7 @@ msgstr "El nom de l'autor és obligatori"
 msgid "Authorization Secret"
 msgstr "Secret d'autorització"
 
-#: src/components/blog/PostDrawer.tsx:985
+#: src/components/blog/PostDrawer.tsx:986
 msgid "Authors"
 msgstr "Autors"
 
@@ -4465,7 +4470,7 @@ msgid "Blocks"
 msgstr "Blocs"
 
 #: src/components/blog/CategoryDrawer.tsx:218
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:836
 #: src/components/logs/labels.ts:20
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
@@ -4802,7 +4807,7 @@ msgid "Bridge Port"
 msgstr "Port del pont"
 
 #: src/components/blog/CategoryDrawer.tsx:290
-#: src/components/blog/PostDrawer.tsx:1002
+#: src/components/blog/PostDrawer.tsx:1003
 #: src/components/settings/BlogSettings.tsx:460
 msgid "Brief description for search results"
 msgstr "Breu descripció per als resultats de cerca"
@@ -4811,7 +4816,7 @@ msgstr "Breu descripció per als resultats de cerca"
 msgid "Brief description of this category"
 msgstr "Breu descripció d'aquesta categoria"
 
-#: src/components/blog/PostDrawer.tsx:957
+#: src/components/blog/PostDrawer.tsx:958
 msgid "Brief summary of the post"
 msgstr "Breu resum de la publicació"
 
@@ -5197,7 +5202,8 @@ msgstr "No es pot provar al navegador"
 #: src/components/contacts/InlineEditableField.tsx:302
 #: src/components/contacts/InlineEditableField.tsx:318
 #: src/components/contacts/InlineEditableField.tsx:359
-#: src/components/contacts/sheet/ContactListsCard.tsx:114
+#: src/components/contacts/sheet/ContactListsCard.tsx:125
+#: src/components/contacts/sheet/ContactListsCard.tsx:156
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:151
@@ -5322,7 +5328,7 @@ msgctxt "newsletter status"
 msgid "Cancelled"
 msgstr "Cancel·lat"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:95
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "Ha cancel·lat la invitació <0>{target}</0>"
 
@@ -5330,7 +5336,7 @@ msgstr "Ha cancel·lat la invitació <0>{target}</0>"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "Ha cancel·lat el butlletí <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:76
+#: src/components/logs/auditPhrases.ts:78
 msgid "Cancelled the web analytics backfill"
 msgstr "Ha cancel·lat l'emplenament de l'analítica web"
 
@@ -5374,12 +5380,12 @@ msgstr "Majúscules/minúscules"
 msgid "Categories"
 msgstr "Categories"
 
-#: src/components/blog/PostDrawer.tsx:733
+#: src/components/blog/PostDrawer.tsx:734
 msgid "category"
 msgstr "categoria"
 
 #: src/components/blog/CategoryDrawer.tsx:229
-#: src/components/blog/PostDrawer.tsx:897
+#: src/components/blog/PostDrawer.tsx:898
 #: src/components/blog/PostsTable.tsx:325
 #: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/TemplateSelectorModal.tsx:444
@@ -5503,27 +5509,31 @@ msgstr "Canvia el remitent"
 #~ msgstr "Canviar estat"
 
 #. placeholder {0}: listName(statusOf.list_id)
-#: src/components/contacts/sheet/ContactListsCard.tsx:214
+#: src/components/contacts/sheet/ContactListsCard.tsx:260
 msgid "Change Status for {0}"
 msgstr "Canviar estat per a {0}"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:99
+#: src/components/contacts/sheet/ContactListsCard.tsx:139
 msgid "Change status…"
 msgstr "Canviar l'estat…"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:100
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "Ha canviat la conservació del registre d'auditoria de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:101
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "Ha canviat la configuració del blog de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:103
+msgid "Changed the MCP access of <0>{target}</0>"
+msgstr "Ha canviat l'accés MCP de <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:104
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "Ha canviat els permisos de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:105
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "Ha canviat la configuració de l'analítica web de <0>{target}</0>"
 
@@ -5596,7 +5606,7 @@ msgstr "Reviseu els registres del servidor i després torneu a carregar aquesta 
 msgid "Checked {ago}"
 msgstr "Comprovat {ago}"
 
-#: src/components/logs/auditPhrases.ts:105
+#: src/components/logs/auditPhrases.ts:108
 msgid "Checked a DKIM record of <0>{target}</0>"
 msgstr "Ha comprovat un registre DKIM de <0>{target}</0>"
 
@@ -6558,7 +6568,7 @@ msgstr "Aplicacions connectades"
 msgid "Connected to {target} · {time}"
 msgstr "Connectat a {target} · {time}"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:87
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "Ha connectat Zapier com a integració <0>{target}</0>"
 
@@ -6610,7 +6620,7 @@ msgstr "Consola"
 msgid "Contact"
 msgstr "Contacte"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:63
+#: src/components/contacts/sheet/ContactListsCard.tsx:85
 msgid "Contact added to list successfully"
 msgstr "Contacte afegit a la llista correctament"
 
@@ -6691,11 +6701,15 @@ msgstr "Propietat del contacte"
 #~ msgid "Contact re-enters each time the event occurs"
 #~ msgstr "El contacte torna a entrar cada vegada que es produeix l'esdeveniment"
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:100
+msgid "Contact re-subscribed"
+msgstr "Contacte subscrit de nou"
+
 #: src/services/api/permissions.ts:138
 msgid "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 msgstr "Registres de contactes i els seus camps, cronologies de contactes i esdeveniments personalitzats registrats contra els contactes."
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:90
+#: src/components/contacts/sheet/ContactListsCard.tsx:111
 msgid "Contact removed from the list"
 msgstr "Contacte tret de la llista"
 
@@ -7425,7 +7439,7 @@ msgstr "Crear la notificació"
 msgid "Create Notification"
 msgstr "Crear notificació"
 
-#: src/components/blog/PostDrawer.tsx:822
+#: src/components/blog/PostDrawer.tsx:823
 msgid "Create post"
 msgstr "Crea l'article"
 
@@ -7576,7 +7590,7 @@ msgstr "Nova versió v{savedVersion} creada"
 msgid "Created on {createdOn}"
 msgstr "Creada el {createdOn}"
 
-#: src/components/logs/auditPhrases.ts:87
+#: src/components/logs/auditPhrases.ts:89
 msgid "Created the API key <0>{target}</0>"
 msgstr "Ha creat la clau API <0>{target}</0>"
 
@@ -7596,7 +7610,7 @@ msgstr "Ha creat l'entrada del blog <0>{target}</0>"
 msgid "Created the blog theme <0>{target}</0>"
 msgstr "Ha creat el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:51
+#: src/components/logs/auditPhrases.ts:52
 msgid "Created the list <0>{target}</0>"
 msgstr "Ha creat la llista <0>{target}</0>"
 
@@ -7604,23 +7618,23 @@ msgstr "Ha creat la llista <0>{target}</0>"
 msgid "Created the newsletter <0>{target}</0>"
 msgstr "Ha creat el butlletí <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:54
+#: src/components/logs/auditPhrases.ts:56
 msgid "Created the segment <0>{target}</0>"
 msgstr "Ha creat el segment <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:64
+#: src/components/logs/auditPhrases.ts:66
 msgid "Created the template <0>{target}</0>"
 msgstr "Ha creat la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:67
+#: src/components/logs/auditPhrases.ts:69
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "Ha creat la notificació transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:78
+#: src/components/logs/auditPhrases.ts:80
 msgid "Created the webhook <0>{target}</0>"
 msgstr "Ha creat el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:86
+#: src/components/logs/auditPhrases.ts:88
 msgid "Created the workspace <0>{target}</0>"
 msgstr "Ha creat l'espai de treball <0>{target}</0>"
 
@@ -8151,12 +8165,12 @@ msgid "Default transactional"
 msgstr "Transaccional per defecte"
 
 #: src/components/blog/CategoryDrawer.tsx:295
-#: src/components/blog/PostDrawer.tsx:1007
+#: src/components/blog/PostDrawer.tsx:1008
 msgid "Defaults to {fallbackShareTitle}"
 msgstr "Per defecte: {fallbackShareTitle}"
 
 #: src/components/blog/CategoryDrawer.tsx:289
-#: src/components/blog/PostDrawer.tsx:1001
+#: src/components/blog/PostDrawer.tsx:1002
 msgid "Defaults to {fallbackTitle}"
 msgstr "Per defecte: {fallbackTitle}"
 
@@ -8182,11 +8196,11 @@ msgstr "Per defecte: la descripció del blog"
 msgid "Defaults to the blog's share image"
 msgstr "Per defecte: la imatge per compartir del blog"
 
-#: src/components/blog/PostDrawer.tsx:717
+#: src/components/blog/PostDrawer.tsx:718
 msgid "Defaults to the category's or the blog's description"
 msgstr "Per defecte: la descripció de la categoria o del blog"
 
-#: src/components/blog/PostDrawer.tsx:722
+#: src/components/blog/PostDrawer.tsx:723
 msgid "Defaults to the category's or the blog's share image"
 msgstr "Per defecte: la imatge per compartir de la categoria o del blog"
 
@@ -8194,11 +8208,11 @@ msgstr "Per defecte: la imatge per compartir de la categoria o del blog"
 msgid "Defaults to the description"
 msgstr "Per defecte: la descripció"
 
-#: src/components/blog/PostDrawer.tsx:715
+#: src/components/blog/PostDrawer.tsx:716
 msgid "Defaults to the excerpt"
 msgstr "Per defecte: l'extracte"
 
-#: src/components/blog/PostDrawer.tsx:720
+#: src/components/blog/PostDrawer.tsx:721
 msgid "Defaults to the featured image"
 msgstr "Per defecte: la imatge destacada"
 
@@ -8647,11 +8661,11 @@ msgstr "Ha eliminat la categoria del blog <0>{target}</0>"
 msgid "Deleted the blog post <0>{target}</0>"
 msgstr "Ha eliminat l'entrada del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:44
+#: src/components/logs/auditPhrases.ts:45
 msgid "Deleted the contact <0>{target}</0>"
 msgstr "Ha eliminat el contacte <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:52
+#: src/components/logs/auditPhrases.ts:53
 msgid "Deleted the list <0>{target}</0>"
 msgstr "Ha eliminat la llista <0>{target}</0>"
 
@@ -8659,27 +8673,27 @@ msgstr "Ha eliminat la llista <0>{target}</0>"
 msgid "Deleted the newsletter <0>{target}</0>"
 msgstr "Ha eliminat el butlletí <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:62
+#: src/components/logs/auditPhrases.ts:64
 msgid "Deleted the saved block <0>{target}</0>"
 msgstr "Ha eliminat el bloc desat <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:55
+#: src/components/logs/auditPhrases.ts:57
 msgid "Deleted the segment <0>{target}</0>"
 msgstr "Ha eliminat el segment <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:65
+#: src/components/logs/auditPhrases.ts:67
 msgid "Deleted the template <0>{target}</0>"
 msgstr "Ha eliminat la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:68
+#: src/components/logs/auditPhrases.ts:70
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "Ha eliminat la notificació transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:79
+#: src/components/logs/auditPhrases.ts:81
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "Ha eliminat el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:92
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Ha eliminat l'espai de treball <0>{target}</0>"
 
@@ -8816,7 +8830,7 @@ msgstr "Vista d'escriptori (100%)"
 msgid "Detail"
 msgstr "Detall"
 
-#: src/components/blog/PostDrawer.tsx:849
+#: src/components/blog/PostDrawer.tsx:850
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "Detalls"
@@ -9235,7 +9249,7 @@ msgstr "Baixa les files amb error"
 #~ msgstr "Descarregat(s) {0} fitxer(s)"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
-#: src/components/blog/PostDrawer.tsx:758
+#: src/components/blog/PostDrawer.tsx:759
 #: src/components/blog/PostsTable.tsx:348
 #: src/components/blog/ThemeEditorDrawer.tsx:483
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:199
@@ -9637,7 +9651,7 @@ msgstr "Editar permisos"
 msgid "Edit Permissions for {0}"
 msgstr "Editar permisos per a {0}"
 
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:842
 msgid "Edit post"
 msgstr "Edita l'article"
 
@@ -9701,7 +9715,7 @@ msgstr "Editeu l'assumpte a la plantilla"
 msgid "Edit the template"
 msgstr "Edita la plantilla"
 
-#: src/components/blog/PostDrawer.tsx:1070
+#: src/components/blog/PostDrawer.tsx:1071
 msgid "Edit the title in Details"
 msgstr "Edita el títol a Detalls"
 
@@ -9745,7 +9759,7 @@ msgstr "Editar la connexió de Zapier"
 #~ msgstr "Marcatge editable"
 
 #. placeholder {0}: relative(post.updated_at)
-#: src/components/blog/PostDrawer.tsx:763
+#: src/components/blog/PostDrawer.tsx:764
 #: src/components/blog/PostsTable.tsx:272
 msgid "Edited {0}"
 msgstr "Editat {0}"
@@ -10832,7 +10846,7 @@ msgstr "Valor exacte"
 msgid "exactly"
 msgstr "exactament"
 
-#: src/components/blog/PostDrawer.tsx:954
+#: src/components/blog/PostDrawer.tsx:955
 msgid "Excerpt"
 msgstr "Extracte"
 
@@ -10969,7 +10983,7 @@ msgstr "Exportar el registre d'auditoria com a CSV o NDJSON"
 msgid "Export to CSV"
 msgstr "Exportar a CSV"
 
-#: src/components/logs/auditPhrases.ts:45
+#: src/components/logs/auditPhrases.ts:46
 msgid "Exported contacts"
 msgstr "Ha exportat contactes"
 
@@ -11083,7 +11097,7 @@ msgid "Failed to activate automation"
 msgstr "No s'ha pogut activar l'automatització"
 
 #. placeholder {0}: error.message
-#: src/components/contacts/sheet/ContactListsCard.tsx:67
+#: src/components/contacts/sheet/ContactListsCard.tsx:87
 msgid "Failed to add to list: {0}"
 msgstr "No s'ha pogut afegir a la llista: {0}"
 
@@ -11595,7 +11609,7 @@ msgid "Failed to update permissions"
 msgstr "No s'han pogut actualitzar els permisos"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:536
+#: src/components/blog/PostDrawer.tsx:537
 msgid "Failed to update post: {0}"
 msgstr "No s'ha pogut actualitzar la publicació: {0}"
 
@@ -11604,7 +11618,7 @@ msgid "Failed to update segment"
 msgstr "No s'ha pogut actualitzar el segment"
 
 #. placeholder {0}: error.message
-#: src/components/contacts/sheet/ContactListsCard.tsx:83
+#: src/components/contacts/sheet/ContactListsCard.tsx:104
 msgid "Failed to update status: {0}"
 msgstr "No s'ha pogut actualitzar l'estat: {0}"
 
@@ -11658,8 +11672,8 @@ msgstr "Favicon"
 #~ msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 #~ msgstr "Favicon per al vostre blog. Recomanat: PNG de 32x32px o 192x192px"
 
-#: src/components/blog/PostDrawer.tsx:963
-#: src/components/blog/PostDrawer.tsx:973
+#: src/components/blog/PostDrawer.tsx:964
+#: src/components/blog/PostDrawer.tsx:974
 msgid "Featured image"
 msgstr "Imatge destacada"
 
@@ -11965,7 +11979,7 @@ msgstr "Fix un cop creat: les crides a l'API l'envien"
 msgid "Fixed once created: its posts' links depend on it"
 msgstr "Fix un cop creat: els enllaços dels seus articles en depenen"
 
-#: src/components/blog/PostDrawer.tsx:938
+#: src/components/blog/PostDrawer.tsx:939
 msgid "Fixed once created: links to the post may already be shared"
 msgstr "Fix un cop creat: potser ja s'han compartit enllaços a l'article"
 
@@ -12034,7 +12048,7 @@ msgstr "Segueix el nom fins que el modifiquis"
 msgid "Follows the name until you edit it. Lowercase letters, numbers and underscores"
 msgstr "Segueix el nom fins que el modifiquis. Lletres minúscules, números i guions baixos"
 
-#: src/components/blog/PostDrawer.tsx:941
+#: src/components/blog/PostDrawer.tsx:942
 msgid "Follows the title until you edit it"
 msgstr "Segueix el títol fins que el modifiquis"
 
@@ -12909,7 +12923,7 @@ msgstr "Quant pensa un model de raonament. Per defecte per a altres models; algu
 msgid "How the category page appears in search results"
 msgstr "Com apareix la pàgina de la categoria als resultats de cerca"
 
-#: src/components/blog/PostDrawer.tsx:1000
+#: src/components/blog/PostDrawer.tsx:1001
 msgid "How the post appears in search results"
 msgstr "Com apareix l'article als resultats de cerca"
 
@@ -13392,11 +13406,11 @@ msgstr "Notes importants"
 #~ msgid "Imported {0} contacts ({1} failed, see details below)"
 #~ msgstr "Importats {0} contactes ({1} fallats, vegeu detalls a continuació)"
 
-#: src/components/logs/auditPhrases.ts:46
+#: src/components/logs/auditPhrases.ts:47
 msgid "Imported contacts"
 msgstr "Ha importat contactes"
 
-#: src/components/logs/auditPhrases.ts:47
+#: src/components/logs/auditPhrases.ts:48
 msgid "Imported custom events"
 msgstr "Ha importat esdeveniments personalitzats"
 
@@ -13853,7 +13867,7 @@ msgstr "Convidar membre"
 msgid "Invite your team"
 msgstr "Convida el teu equip"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:96
 msgid "Invited <0>{target}</0>"
 msgstr "Ha convidat <0>{target}</0>"
 
@@ -14084,7 +14098,7 @@ msgstr "Ha entrat al segment {chip}"
 msgid "Joined segment {segment}"
 msgstr "S'ha unit al segment {segment}"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:97
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "S'ha unit amb la invitació <0>{target}</0>"
 
@@ -14170,6 +14184,10 @@ msgstr "Conserva l'enllaç per donar-se de baixa: {UNSUBSCRIBE_VARIABLE}."
 #: src/components/contacts/csv-import/ImportProgress.tsx:74
 msgid "Keep this tab open"
 msgstr "Mantén aquesta pestanya oberta"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:72
+msgid "Keep unsubscribed"
+msgstr "Mantenir donat de baixa"
 
 #: src/components/logs/AuditLogTab.tsx:614
 msgid "Kept for the deployment default"
@@ -14958,7 +14976,7 @@ msgstr "Llista actualitzada"
 #: src/components/contacts/ContactsRail.tsx:75
 #: src/components/contacts/ContactsTable.tsx:220
 #: src/components/contacts/csv-import/ColumnsStep.tsx:221
-#: src/components/contacts/sheet/ContactListsCard.tsx:126
+#: src/components/contacts/sheet/ContactListsCard.tsx:168
 #: src/components/logs/labels.ts:17
 #: src/components/settings/permissionLabels.ts:8
 #: src/components/templates/DeleteTemplateModal.tsx:44
@@ -15064,7 +15082,7 @@ msgstr "Carregant configuració..."
 #~ msgid "Loading stats..."
 #~ msgstr "Carregant estadístiques..."
 
-#: src/components/blog/PostDrawer.tsx:1087
+#: src/components/blog/PostDrawer.tsx:1088
 msgid "Loading template..."
 msgstr "Carregant plantilla..."
 
@@ -15169,7 +15187,7 @@ msgid "Lowercase"
 msgstr "Minúscules"
 
 #: src/components/blog/CategoryDrawer.tsx:268
-#: src/components/blog/PostDrawer.tsx:940
+#: src/components/blog/PostDrawer.tsx:941
 msgid "Lowercase letters, numbers and hyphens"
 msgstr "Minúscules, números i guions"
 
@@ -15639,7 +15657,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "Mig"
 
-#: src/components/blog/PostDrawer.tsx:913
+#: src/components/blog/PostDrawer.tsx:914
 msgid "min"
 msgstr "Mínim"
 
@@ -16132,8 +16150,8 @@ msgstr "Nou codi màgic enviat al teu correu"
 msgid "New notification"
 msgstr "Notificació nova"
 
-#: src/components/blog/PostDrawer.tsx:749
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:750
+#: src/components/blog/PostDrawer.tsx:842
 #: src/components/blog/PostsTable.tsx:547
 msgid "New post"
 msgstr "Nou article"
@@ -16250,7 +16268,7 @@ msgstr "Següent pas"
 
 #: src/components/automations/edges/edgeLabel.ts:34
 #: src/components/blog/PostDrawer.tsx:307
-#: src/components/blog/PostDrawer.tsx:587
+#: src/components/blog/PostDrawer.tsx:588
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/useBroadcastActions.tsx:174
 #: src/components/broadcasts/useBroadcastActions.tsx:180
@@ -16552,7 +16570,7 @@ msgstr "Sense errors"
 msgid "No failure"
 msgstr "Cap error"
 
-#: src/components/blog/PostDrawer.tsx:978
+#: src/components/blog/PostDrawer.tsx:979
 msgid "No featured image"
 msgstr "Sense imatge destacada"
 
@@ -17159,7 +17177,7 @@ msgid "Not counted beyond {countMax}"
 msgstr "No es compten més enllà de {countMax}"
 
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:752
+#: src/components/blog/PostDrawer.tsx:753
 #: src/components/blog/ThemeEditorDrawer.tsx:479
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
@@ -17272,6 +17290,14 @@ msgstr "no subscrits"
 #: src/components/contacts/bulk-update/useBulkUpdateRun.ts:89
 msgid "Not subscribed to this list"
 msgstr "No subscrit a aquesta llista"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:80
+msgid "Not subscribed: this address bounced on {name}"
+msgstr "No subscrit: aquesta adreça ha rebotat a {name}"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:81
+msgid "Not subscribed: this contact reported emails from {name} as spam"
+msgstr "No subscrit: aquest contacte ha marcat els correus de {name} com a correu brossa"
 
 #: src/components/web_analytics/filters/ConditionResultRow.tsx:43
 msgid "Not tested"
@@ -17426,12 +17452,16 @@ msgid "notifuse-…"
 msgstr "notifuse-…"
 
 #: src/components/broadcasts/compose/PreviewPanel.tsx:102
-#: src/components/broadcasts/compose/SendingCard.tsx:88
-#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
 #: src/components/broadcasts/detail/EngagementChart.tsx:74
 #: src/components/templates/TemplateSettingsAside.tsx:105
 #: src/components/templates/TemplateSettingsAside.tsx:130
 #: src/components/templates/TemplateTranslationsTab.tsx:417
+msgid "Now"
+msgstr "Ara"
+
+#: src/components/broadcasts/compose/SendingCard.tsx:88
+#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
+msgctxt "send"
 msgid "Now"
 msgstr "Ara"
 
@@ -17633,7 +17663,7 @@ msgstr "A la targeta i a cada selector de remitent"
 msgid "On the card, and on the notifications it creates"
 msgstr "A la targeta i a les notificacions que crea"
 
-#: src/components/blog/PostDrawer.tsx:1041
+#: src/components/blog/PostDrawer.tsx:1042
 msgid "On this page"
 msgstr "En aquesta pàgina"
 
@@ -18765,7 +18795,7 @@ msgstr "Opcions de reproducció"
 msgid "Playback Options"
 msgstr "Opcions de reproducció"
 
-#: src/components/blog/PostDrawer.tsx:990
+#: src/components/blog/PostDrawer.tsx:991
 msgid "Please add at least one author"
 msgstr "Si us plau, afegiu com a mínim un autor"
 
@@ -18777,7 +18807,7 @@ msgstr "Si us plau, afegiu com a mínim un remitent abans de desar"
 #~ msgid "Please check the form for errors"
 #~ msgstr "Si us plau, comproveu el formulari per errors"
 
-#: src/components/blog/PostDrawer.tsx:863
+#: src/components/blog/PostDrawer.tsx:864
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:378
 msgid "Please check the form for errors."
 msgstr "Si us plau, comproveu el formulari per errors."
@@ -18838,7 +18868,7 @@ msgstr "Si us plau, introduïu un nom"
 msgid "Please enter a notification name"
 msgstr "Si us plau, introduïu un nom de notificació"
 
-#: src/components/blog/PostDrawer.tsx:888
+#: src/components/blog/PostDrawer.tsx:889
 msgid "Please enter a post title"
 msgstr "Si us plau, introduïu un títol de publicació"
 
@@ -18855,7 +18885,7 @@ msgstr "Si us plau, introduïu un límit d'enviament"
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:260
-#: src/components/blog/PostDrawer.tsx:929
+#: src/components/blog/PostDrawer.tsx:930
 msgid "Please enter a slug"
 msgstr "Si us plau, introduïu un slug"
 
@@ -18925,7 +18955,7 @@ msgstr "Si us plau, introduïu una adreça de correu"
 msgid "Please enter integration name"
 msgstr "Si us plau, introduïu el nom de la integració"
 
-#: src/components/blog/PostDrawer.tsx:911
+#: src/components/blog/PostDrawer.tsx:912
 msgid "Please enter reading time"
 msgstr "Si us plau, introduïu el temps de lectura"
 
@@ -18950,7 +18980,7 @@ msgstr "Si us plau, introdueix el codi màgic!"
 msgid "Please input your email!"
 msgstr "Si us plau, introdueix el teu correu!"
 
-#: src/components/blog/PostDrawer.tsx:898
+#: src/components/blog/PostDrawer.tsx:899
 msgid "Please select a category"
 msgstr "Si us plau, seleccioneu una categoria"
 
@@ -18974,7 +19004,7 @@ msgstr "Si us plau, seleccioneu un tipus d'objectiu"
 msgid "Please select a JSON file"
 msgstr "Si us plau, seleccioneu un fitxer JSON"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:203
+#: src/components/contacts/sheet/ContactListsCard.tsx:249
 #: src/components/segment/form_leaf.tsx:416
 msgid "Please select a list"
 msgstr "Si us plau, seleccioneu una llista"
@@ -18992,7 +19022,7 @@ msgstr "Si us plau, seleccioneu una llista"
 msgid "Please select a page size"
 msgstr "Si us plau, seleccioneu una mida de pàgina"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:231
+#: src/components/contacts/sheet/ContactListsCard.tsx:277
 #: src/components/segment/form_leaf.tsx:440
 msgid "Please select a status"
 msgstr "Si us plau, seleccioneu un estat"
@@ -19091,7 +19121,7 @@ msgstr "Posició X"
 msgid "Position Y"
 msgstr "Posició Y"
 
-#: src/components/blog/PostDrawer.tsx:883
+#: src/components/blog/PostDrawer.tsx:884
 #: src/components/blog/PostsTable.tsx:290
 #: src/components/blog/ThemeEditorDrawer.tsx:430
 msgid "Post"
@@ -19109,7 +19139,7 @@ msgstr "Publicació eliminada correctament"
 msgid "Post published successfully"
 msgstr "Publicació publicada correctament"
 
-#: src/components/blog/PostDrawer.tsx:892
+#: src/components/blog/PostDrawer.tsx:893
 msgid "Post title"
 msgstr "Títol de la publicació"
 
@@ -19556,7 +19586,7 @@ msgstr "Publiqueu aquest registre per a {shownName}"
 msgid "Publish this theme"
 msgstr "Publicar aquest tema"
 
-#: src/components/blog/PostDrawer.tsx:754
+#: src/components/blog/PostDrawer.tsx:755
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
 #: src/components/blog/PostsTable.tsx:433
@@ -19669,6 +19699,29 @@ msgstr "Contingut en brut"
 #: src/components/settings/integrations/EmailProviderCard.tsx:204
 msgid "Re-register webhooks"
 msgstr "Torna a registrar els webhooks"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:71
+#: src/components/contacts/sheet/ContactListsCard.tsx:124
+msgid "Re-subscribe"
+msgstr "Tornar a subscriure"
+
+#. placeholder {0}: contact.email
+#. placeholder {1}: listName(subscription.list_id)
+#: src/components/contacts/sheet/ContactListsCard.tsx:119
+msgid "Re-subscribe {0} to {1}?"
+msgstr "Tornar a subscriure {0} a {1}?"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:132
+msgid "Re-subscribe…"
+msgstr "Tornar a subscriure…"
+
+#: src/components/logs/auditPhrases.ts:44
+msgid "Re-subscribed the contact <0>{target}</0> after they opted out"
+msgstr "Ha tornat a subscriure el contacte <0>{target}</0> després de la seva baixa"
+
+#: src/components/logs/auditPhrases.ts:54
+msgid "Re-subscribed the contact <0>{target}</0> after they unsubscribed"
+msgstr "Ha tornat a subscriure el contacte <0>{target}</0> després de donar-se de baixa"
 
 #: src/components/analytics/GetStartedChecklist.tsx:385
 msgid "Reach your audience"
@@ -19862,7 +19915,7 @@ msgstr "Llegiu la guia de configuració de Zapier"
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:910
+#: src/components/blog/PostDrawer.tsx:911
 msgid "Reading time"
 msgstr "Temps de lectura"
 
@@ -19911,7 +19964,7 @@ msgstr "Esforç de raonament"
 msgid "Rebuild segment"
 msgstr "Reconstruir segment"
 
-#: src/components/logs/auditPhrases.ts:56
+#: src/components/logs/auditPhrases.ts:58
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "Ha recalculat el segment <0>{target}</0>"
 
@@ -20026,11 +20079,11 @@ msgstr "Registrar o sobreescriure un esdeveniment personalitzat en un contacte"
 #~ msgid "Record web navigation on the contact timeline"
 #~ msgstr ""
 
-#: src/components/logs/auditPhrases.ts:48
+#: src/components/logs/auditPhrases.ts:49
 msgid "Recording resumed"
 msgstr "Registre represo"
 
-#: src/components/logs/auditPhrases.ts:49
+#: src/components/logs/auditPhrases.ts:50
 msgid "Recording stopped: no valid licence"
 msgstr "Registre aturat: cap llicència vàlida"
 
@@ -20059,8 +20112,8 @@ msgstr "URI de redirecció copiada"
 
 #: src/components/automations/AutomationEditor.tsx:482
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:793
-#: src/components/blog/PostDrawer.tsx:796
+#: src/components/blog/PostDrawer.tsx:794
+#: src/components/blog/PostDrawer.tsx:797
 #: src/components/email_builder/EmailBuilder.tsx:1126
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
@@ -20168,11 +20221,11 @@ msgstr "Regenerar secret?"
 msgid "Regenerate the key of {domain}?"
 msgstr "Regenerar la clau de {domain}?"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:99
 msgid "Regenerated a DKIM key of <0>{target}</0>"
 msgstr "Ha regenerat una clau DKIM de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:80
+#: src/components/logs/auditPhrases.ts:82
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Ha regenerat el secret del webhook <0>{target}</0>"
 
@@ -20181,7 +20234,11 @@ msgstr "Ha regenerat el secret del webhook <0>{target}</0>"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:757
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:760
 #: src/components/settings/integrations/providerDetails.ts:145
+msgid "Region"
+msgstr "Regió"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:358
+msgctxt "geo"
 msgid "Region"
 msgstr "Regió"
 
@@ -20218,7 +20275,7 @@ msgstr "Registreu els webhooks per configurar el reenviament de respostes i desp
 msgid "Register webhooks?"
 msgstr "Registrar webhooks?"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:85
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Ha registrat els webhooks del proveïdor de <0>{target}</0>"
 
@@ -20270,7 +20327,7 @@ msgstr "Torna a carregar la pàgina per actualitzar els teus blocs desats."
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
-#: src/components/contacts/sheet/ContactListsCard.tsx:113
+#: src/components/contacts/sheet/ContactListsCard.tsx:155
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:77
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/LogoInput.tsx:111
@@ -20285,7 +20342,7 @@ msgstr "Treure"
 
 #. placeholder {0}: contact.email
 #. placeholder {1}: listName(subscription.list_id)
-#: src/components/contacts/sheet/ContactListsCard.tsx:112
+#: src/components/contacts/sheet/ContactListsCard.tsx:154
 msgid "Remove {0} from {1}?"
 msgstr "Vols treure {0} de {1}?"
 
@@ -20343,8 +20400,8 @@ msgstr "Treu el filtre Segments"
 #: src/components/automations/nodeTypes.ts:31
 #: src/components/contacts/BulkActionsBar.tsx:86
 #: src/components/contacts/BulkActionsBar.tsx:149
-#: src/components/contacts/sheet/ContactListsCard.tsx:107
-#: src/components/contacts/sheet/ContactListsCard.tsx:111
+#: src/components/contacts/sheet/ContactListsCard.tsx:149
+#: src/components/contacts/sheet/ContactListsCard.tsx:153
 #: src/pages/ContactsPage.tsx:284
 msgid "Remove from list"
 msgstr "Treure de la llista"
@@ -20422,7 +20479,7 @@ msgstr "Suprimeix la variant {letter}"
 msgid "Removed"
 msgstr "Eliminat"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:93
 msgid "Removed a DKIM domain from <0>{target}</0>"
 msgstr "Ha retirat un domini DKIM de <0>{target}</0>"
 
@@ -20434,11 +20491,11 @@ msgstr "Eliminat de {list}"
 msgid "Removed from {name}"
 msgstr "Eliminat de {name}"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:94
 msgid "Removed the integration <0>{target}</0>"
 msgstr "Ha retirat la integració <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:98
 msgid "Removed the member <0>{target}</0>"
 msgstr "Ha retirat el membre <0>{target}</0>"
 
@@ -20463,7 +20520,7 @@ msgstr "Canviar el nom o el slug d'una categoria"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Canviar el nom de les etiquetes de camps de contacte personalitzats de l'espai de treball"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:102
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "Ha canviat el nom dels camps personalitzats de <0>{target}</0>"
 
@@ -21257,7 +21314,7 @@ msgstr "Desa com a versió nova"
 #~ msgstr "Desar bloc"
 
 #: src/components/blog/CategoryDrawer.tsx:205
-#: src/components/blog/PostDrawer.tsx:822
+#: src/components/blog/PostDrawer.tsx:823
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
@@ -21382,7 +21439,7 @@ msgstr "Blocs desats ({savedCount})"
 msgid "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 msgstr "Els blocs desats es poden fer servir en totes les plantilles de l’espai de treball. Les plantilles que ja contenen aquest bloc no canvien."
 
-#: src/components/logs/auditPhrases.ts:61
+#: src/components/logs/auditPhrases.ts:63
 msgid "Saved the block <0>{target}</0>"
 msgstr "Ha desat el bloc <0>{target}</0>"
 
@@ -21411,7 +21468,7 @@ msgstr "Programar o enviar immediatament una difusió a tot el seu públic"
 msgid "Schedule timezone"
 msgstr "Zona horària de la programació"
 
-#: src/components/blog/PostDrawer.tsx:756
+#: src/components/blog/PostDrawer.tsx:757
 #: src/components/blog/PostsTable.tsx:346
 #: src/components/blog/PostsTable.tsx:434
 #: src/components/broadcasts/compose/SendingCard.tsx:39
@@ -21496,7 +21553,7 @@ msgstr "Cercar un model"
 
 #: src/components/blog/category/CategoryChecks.tsx:33
 #: src/components/blog/post/PostChecks.tsx:13
-#: src/components/blog/PostDrawer.tsx:1112
+#: src/components/blog/PostDrawer.tsx:1113
 msgid "Search and share"
 msgstr "Cerca i compartir"
 
@@ -21777,7 +21834,7 @@ msgstr "Arbre del segment restablert"
 #: src/components/contacts/contactColumns.ts:61
 #: src/components/contacts/ContactsRail.tsx:117
 #: src/components/contacts/ContactsTable.tsx:259
-#: src/components/contacts/sheet/ContactListsCard.tsx:258
+#: src/components/contacts/sheet/ContactListsCard.tsx:309
 #: src/components/logs/labels.ts:18
 #: src/components/settings/permissionLabels.ts:18
 #: src/services/api/errors.ts:93
@@ -21820,7 +21877,7 @@ msgstr "Seleccioneu un bloc per editar els seus atributs"
 msgid "Select a broadcast"
 msgstr "Seleccionar una difusió"
 
-#: src/components/blog/PostDrawer.tsx:901
+#: src/components/blog/PostDrawer.tsx:902
 msgid "Select a category"
 msgstr "Seleccioneu una categoria"
 
@@ -21844,7 +21901,7 @@ msgstr "Selecciona un fitxer"
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:197
 #: src/components/contacts/BulkUpdateDrawer.tsx:323
-#: src/components/contacts/sheet/ContactListsCard.tsx:207
+#: src/components/contacts/sheet/ContactListsCard.tsx:253
 #: src/components/segment/form_leaf.tsx:422
 msgid "Select a list"
 msgstr "Seleccioneu una llista"
@@ -22033,7 +22090,7 @@ msgstr "Seleccionar idioma..."
 msgid "Select list"
 msgstr "Seleccionar llista"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:202
+#: src/components/contacts/sheet/ContactListsCard.tsx:248
 msgid "Select List"
 msgstr "Seleccionar llista"
 
@@ -22846,7 +22903,7 @@ msgstr "Establir només quan actualment està buit"
 msgid "Set Publication Date"
 msgstr "Establir data de publicació"
 
-#: src/components/logs/auditPhrases.ts:50
+#: src/components/logs/auditPhrases.ts:51
 msgid "Set the licence <0>{target}</0>"
 msgstr "Ha establert la llicència <0>{target}</0>"
 
@@ -22870,7 +22927,7 @@ msgstr "Configura un proveïdor de correu"
 msgid "Set up sending"
 msgstr "Configura l'enviament"
 
-#: src/components/logs/auditPhrases.ts:60
+#: src/components/logs/auditPhrases.ts:62
 msgid "Set up this Notifuse installation"
 msgstr "Ha configurat aquesta instal·lació de Notifuse"
 
@@ -23102,7 +23159,7 @@ msgstr "Es mostra a la part superior de la pàgina de la categoria"
 msgid "Shown if"
 msgstr "Visible si"
 
-#: src/components/blog/PostDrawer.tsx:955
+#: src/components/blog/PostDrawer.tsx:956
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "Es mostra a les llistes d'articles, i com a descripció si no hi ha meta descripció"
 
@@ -23176,7 +23233,7 @@ msgstr "Signat · registre absent {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
 #~ msgid "Signed in as <0>{target}</0>"
 #~ msgstr "Ha iniciat la sessió com a <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:75
 msgid "Signed in as root <0>{target}</0>"
 msgstr "Ha iniciat la sessió com a root <0>{target}</0>"
 
@@ -23184,8 +23241,8 @@ msgstr "Ha iniciat la sessió com a root <0>{target}</0>"
 #~ msgid "Signed in with"
 #~ msgstr "Sessió iniciada amb"
 
-#: src/components/logs/auditPhrases.ts:71
-#: src/components/logs/auditPhrases.ts:72
+#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:74
 msgid "Signed in with single sign-on"
 msgstr "Ha iniciat la sessió amb inici de sessió únic"
 
@@ -23193,7 +23250,7 @@ msgstr "Ha iniciat la sessió amb inici de sessió únic"
 #~ msgid "Signed in with single sign-on as <0>{target}</0>"
 #~ msgstr "Ha iniciat la sessió amb inici de sessió únic com a <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:70
+#: src/components/logs/auditPhrases.ts:72
 msgid "Signed out"
 msgstr "Ha tancat la sessió"
 
@@ -23235,12 +23292,12 @@ msgstr "Simple"
 #~ msgstr "Des de"
 
 #. placeholder {0}: matched.format('ll')
-#: src/components/contacts/sheet/ContactListsCard.tsx:287
+#: src/components/contacts/sheet/ContactListsCard.tsx:338
 msgid "since {0}"
 msgstr "des del {0}"
 
 #. placeholder {0}: dayjs(subscription.created_at).tz(timezone).format('ll')
-#: src/components/contacts/sheet/ContactListsCard.tsx:182
+#: src/components/contacts/sheet/ContactListsCard.tsx:224
 msgid "Since {0}"
 msgstr "Des de {0}"
 
@@ -23338,18 +23395,18 @@ msgstr "Espais"
 
 #: src/components/blog/CategoryDrawer.tsx:252
 #: src/components/blog/CategoryDrawer.tsx:256
-#: src/components/blog/PostDrawer.tsx:921
-#: src/components/blog/PostDrawer.tsx:925
+#: src/components/blog/PostDrawer.tsx:922
+#: src/components/blog/PostDrawer.tsx:926
 msgid "Slug"
 msgstr "Slug"
 
 #: src/components/blog/CategoryDrawer.tsx:262
-#: src/components/blog/PostDrawer.tsx:934
+#: src/components/blog/PostDrawer.tsx:935
 msgid "Slug must be less than 100 characters"
 msgstr "L'slug ha de tenir menys de 100 caràcters"
 
 #: src/components/blog/CategoryDrawer.tsx:261
-#: src/components/blog/PostDrawer.tsx:932
+#: src/components/blog/PostDrawer.tsx:933
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "L'slug només pot contenir lletres minúscules, números i guions"
 
@@ -23572,10 +23629,14 @@ msgstr "Algú ha desat la versió {0} mentre l'editàveu (vau començar des de l
 msgid "Something went wrong"
 msgstr "Alguna cosa ha anat malament"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:273
 #: src/components/logs/InboundWebhooksTab.tsx:176
 #: src/components/logs/InboundWebhooksTab.tsx:254
 #: src/components/logs/InboundWebhooksTab.tsx:386
+msgid "Source"
+msgstr "Origen"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:273
+msgctxt "traffic"
 msgid "Source"
 msgstr "Origen"
 
@@ -23733,7 +23794,7 @@ msgstr "Comenceu a escriure..."
 #~ msgid "Start Upload"
 #~ msgstr "Iniciar càrrega"
 
-#: src/components/blog/PostDrawer.tsx:1094
+#: src/components/blog/PostDrawer.tsx:1095
 msgid "Start writing your blog post..."
 msgstr "Comenceu a escriure la vostra publicació..."
 
@@ -23755,7 +23816,7 @@ msgstr "Iniciat"
 msgid "Started from “{0}”"
 msgstr "Basada en «{0}»"
 
-#: src/components/logs/auditPhrases.ts:77
+#: src/components/logs/auditPhrases.ts:79
 msgid "Started the web analytics backfill"
 msgstr "Ha iniciat l'emplenament de l'analítica web"
 
@@ -23843,7 +23904,7 @@ msgid "Step status"
 msgstr "Estat del pas"
 
 #: src/components/automations/list/AutomationsTable.tsx:151
-#: src/components/blog/PostDrawer.tsx:847
+#: src/components/blog/PostDrawer.tsx:848
 #: src/components/templates/TemplateDrawerBar.tsx:89
 msgid "Steps"
 msgstr "Passos"
@@ -24008,7 +24069,7 @@ msgstr "L'assumpte, el text de previsualització i l'adreça de resposta provene
 msgid "Submitting batch request to the server..."
 msgstr "Enviant la sol·licitud per lots al servidor..."
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/contacts/sheet/ContactListsCard.tsx:238
 #: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "Subscriure's"
@@ -24021,12 +24082,12 @@ msgstr "Subscriure una adreça a qualsevol llista, pública o no — i crear o s
 msgid "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
 msgstr "Subscriure a llistes els contactes importats — només cal quan la importació indica llistes (també necessita escriptura de Contactes)"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:132
-#: src/components/contacts/sheet/ContactListsCard.tsx:136
+#: src/components/contacts/sheet/ContactListsCard.tsx:174
+#: src/components/contacts/sheet/ContactListsCard.tsx:178
 msgid "Subscribe to list"
 msgstr "Subscriu a una llista"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:192
+#: src/components/contacts/sheet/ContactListsCard.tsx:234
 msgid "Subscribe to List"
 msgstr "Subscriure a la llista"
 
@@ -24111,11 +24172,11 @@ msgstr "ID de subscripció"
 #~ msgstr "Llista de subscripció"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:49
-#: src/components/contacts/sheet/ContactListsCard.tsx:230
+#: src/components/contacts/sheet/ContactListsCard.tsx:276
 msgid "Subscription Status"
 msgstr "Estat de subscripció"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:79
+#: src/components/contacts/sheet/ContactListsCard.tsx:100
 msgid "Subscription status updated successfully"
 msgstr "Estat de subscripció actualitzat correctament"
 
@@ -24257,7 +24318,7 @@ msgstr "Configuració del sistema"
 msgid "System SMTP"
 msgstr "SMTP del sistema"
 
-#: src/components/blog/PostDrawer.tsx:1037
+#: src/components/blog/PostDrawer.tsx:1038
 msgid "Table of Contents"
 msgstr "Taula de continguts"
 
@@ -25606,6 +25667,10 @@ msgstr "La configuració de l'espai de treball s'ha actualitzat!"
 msgid "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
 msgstr "El registre d'auditoria del workspace: qui ha canviat què, des d'on, i si estava permès. Els propietaris sempre el llegeixen; un membre o una clau d'API només amb aquest permís."
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:122
+msgid "Their address bounced on this list. Only re-subscribe them if it works again. They get no confirmation email."
+msgstr "La seva adreça ha rebotat en aquesta llista. Torna'l a subscriure només si torna a funcionar. No rep cap correu de confirmació."
+
 #: src/components/blog/PostsTable.tsx:536
 msgid "Theme"
 msgstr "Tema"
@@ -25677,6 +25742,14 @@ msgstr "Aquests contactes se subscriuran a la llista seleccionada (estat: actiu)
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:48
 msgid "These styles were edited by hand. Edit them in the mj-style block."
 msgstr "Aquests estils s’han editat a mà. Edita’ls al bloc mj-style."
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:70
+msgid "They stay unsubscribed. Only re-subscribe them if they asked you to. They get no confirmation email."
+msgstr "Continua donat de baixa. Torna'l a subscriure només si t'ho ha demanat. No rep cap correu de confirmació."
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:123
+msgid "They unsubscribed from this list. Only re-subscribe them if they asked you to. They get no confirmation email."
+msgstr "S'ha donat de baixa d'aquesta llista. Torna'l a subscriure només si t'ho ha demanat. No rep cap correu de confirmació."
 
 #: src/components/broadcasts/useBroadcastActions.tsx:184
 msgid "They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time."
@@ -25799,11 +25872,11 @@ msgstr "Aquesta categoria encara no s’ha creat."
 #~ msgid "This console is read-only: single sign-on is enabled and this deployment's licence does not include it."
 #~ msgstr ""
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:264
+#: src/components/contacts/sheet/ContactListsCard.tsx:315
 msgid "This contact is in no segment"
 msgstr "Aquest contacte no és a cap segment"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:149
+#: src/components/contacts/sheet/ContactListsCard.tsx:191
 msgid "This contact is not subscribed to any lists"
 msgstr "Aquest contacte no està subscrit a cap llista"
 
@@ -25995,8 +26068,8 @@ msgstr "Aquest permís no protegeix cap endpoint actualment."
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "Aquest permís encara no s'aplica, de manera que sempre està concedit. No es pot desactivar."
 
-#: src/components/blog/PostDrawer.tsx:1104
-#: src/components/blog/PostDrawer.tsx:1106
+#: src/components/blog/PostDrawer.tsx:1105
+#: src/components/blog/PostDrawer.tsx:1107
 msgid "This post"
 msgstr "Aquest article"
 
@@ -26328,7 +26401,7 @@ msgstr "Zona horària:"
 #~ msgid "Tips for fixing these errors:"
 #~ msgstr "Consells per solucionar aquests errors:"
 
-#: src/components/blog/PostDrawer.tsx:886
+#: src/components/blog/PostDrawer.tsx:887
 #: src/components/blog/PostsTable.tsx:565
 #: src/components/settings/BlogSettings.tsx:253
 #: src/components/settings/BlogSettings.tsx:390
@@ -26344,7 +26417,7 @@ msgstr "El títol és obligatori"
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr "El títol ha de tenir com a màxim {MAX_TITLE_LENGTH} caràcters"
 
-#: src/components/blog/PostDrawer.tsx:889
+#: src/components/blog/PostDrawer.tsx:890
 msgid "Title must be less than 500 characters"
 msgstr "El títol ha de tenir menys de 500 caràcters"
 
@@ -26887,11 +26960,11 @@ msgstr "Activar o desactivar el blog i canviar-ne el títol, l'SEO, la paginaci�
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Activar o desactivar l'analítica web i canviar-ne els dominis permesos, els filtres, les etiquetes de dimensions personalitzades i la identificació per enllaç de correu"
 
-#: src/components/logs/auditPhrases.ts:58
+#: src/components/logs/auditPhrases.ts:60
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "Ha activat l'aïllament de tenants d'Amazon SES per a <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:83
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Ha activat o desactivat el webhook <0>{target}</0>"
 
@@ -26963,8 +27036,8 @@ msgstr "Entendre la qualitat de les referències"
 
 #: src/components/automations/AutomationEditor.tsx:479
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:784
-#: src/components/blog/PostDrawer.tsx:787
+#: src/components/blog/PostDrawer.tsx:785
+#: src/components/blog/PostDrawer.tsx:788
 #: src/components/email_builder/EmailBuilder.tsx:1052
 #: src/components/email_builder/EmailBuilder.tsx:1119
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
@@ -27092,8 +27165,8 @@ msgstr "Ha despublicat l'entrada del blog <0>{target}</0>"
 
 #: src/components/automations/AutomationEditor.tsx:463
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:584
-#: src/components/blog/PostDrawer.tsx:761
+#: src/components/blog/PostDrawer.tsx:585
+#: src/components/blog/PostDrawer.tsx:762
 #: src/components/blog/ThemeEditorDrawer.tsx:485
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
@@ -27219,7 +27292,7 @@ msgstr "Sense títol"
 msgid "Untitled automation"
 msgstr "Automatització sense títol"
 
-#: src/components/blog/PostDrawer.tsx:1075
+#: src/components/blog/PostDrawer.tsx:1076
 msgid "Untitled post"
 msgstr "Article sense títol"
 
@@ -27261,7 +27334,7 @@ msgstr "Actualitzar enllaç"
 #~ msgid "Update segment"
 #~ msgstr "Actualitzar segment"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:218
+#: src/components/contacts/sheet/ContactListsCard.tsx:264
 msgid "Update Status"
 msgstr "Actualitzar estat"
 
@@ -27326,11 +27399,11 @@ msgstr "Ha actualitzat l'entrada del blog <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "Ha actualitzat el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:107
 msgid "Updated the integration <0>{target}</0>"
 msgstr "Ha actualitzat la integració <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:53
+#: src/components/logs/auditPhrases.ts:55
 msgid "Updated the list <0>{target}</0>"
 msgstr "Ha actualitzat la llista <0>{target}</0>"
 
@@ -27342,11 +27415,11 @@ msgstr "Ha actualitzat el butlletí <0>{target}</0>"
 msgid "Updated the preview text"
 msgstr "Text de previsualització actualitzat"
 
-#: src/components/logs/auditPhrases.ts:63
+#: src/components/logs/auditPhrases.ts:65
 msgid "Updated the saved block <0>{target}</0>"
 msgstr "Ha actualitzat el bloc desat <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:57
+#: src/components/logs/auditPhrases.ts:59
 msgid "Updated the segment <0>{target}</0>"
 msgstr "Ha actualitzat el segment <0>{target}</0>"
 
@@ -27358,23 +27431,23 @@ msgstr "Assumpte actualitzat"
 msgid "Updated the subject and the preview text"
 msgstr "Assumpte i text de previsualització actualitzats"
 
-#: src/components/logs/auditPhrases.ts:59
+#: src/components/logs/auditPhrases.ts:61
 msgid "Updated the system settings"
 msgstr "Ha actualitzat la configuració del sistema"
 
-#: src/components/logs/auditPhrases.ts:66
+#: src/components/logs/auditPhrases.ts:68
 msgid "Updated the template <0>{target}</0>"
 msgstr "Ha actualitzat la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:69
+#: src/components/logs/auditPhrases.ts:71
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "Ha actualitzat la notificació transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:84
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Ha actualitzat el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:106
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Ha actualitzat la configuració de l'espai de treball <0>{target}</0>"
 
@@ -27874,7 +27947,7 @@ msgstr "Variants"
 msgid "Verification code"
 msgstr "Codi de verificació"
 
-#: src/components/logs/auditPhrases.ts:75
+#: src/components/logs/auditPhrases.ts:77
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Ha verificat el codi d'inici de sessió de <0>{target}</0>"
 
@@ -27993,7 +28066,7 @@ msgstr "Mostra els missatges"
 msgid "View page"
 msgstr "Mostra la pàgina"
 
-#: src/components/blog/PostDrawer.tsx:812
+#: src/components/blog/PostDrawer.tsx:813
 msgid "View post"
 msgstr "Mostra l'article"
 
@@ -28460,7 +28533,7 @@ msgstr "Quan es comparteix un enllaç al blog"
 msgid "When a link to the category is shared"
 msgstr "Quan es comparteix un enllaç a la categoria"
 
-#: src/components/blog/PostDrawer.tsx:1006
+#: src/components/blog/PostDrawer.tsx:1007
 msgid "When a link to the post is shared"
 msgstr "Quan es comparteix un enllaç a l'article"
 
@@ -28757,7 +28830,7 @@ msgstr "Sense correu vàlid"
 msgid "Without its own text, this language receives the automatic version."
 msgstr "Sense text propi, aquest idioma rep la versió automàtica."
 
-#: src/components/blog/PostDrawer.tsx:1108
+#: src/components/blog/PostDrawer.tsx:1109
 msgid "Words"
 msgstr "Paraules"
 
@@ -28876,7 +28949,7 @@ msgstr ""
 #~ msgid "Wrapper Attributes"
 #~ msgstr "Atributs del contenidor"
 
-#: src/components/blog/PostDrawer.tsx:850
+#: src/components/blog/PostDrawer.tsx:851
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -28933,7 +29006,7 @@ msgstr "Anual"
 
 #: src/components/automations/edges/edgeLabel.ts:33
 #: src/components/blog/PostDrawer.tsx:306
-#: src/components/blog/PostDrawer.tsx:586
+#: src/components/blog/PostDrawer.tsx:587
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/useBroadcastActions.tsx:199
 #: src/components/contacts/ContactUpsertDrawer.tsx:559
@@ -29107,7 +29180,7 @@ msgstr "No teniu permís d'escriptura per a l'analítica web"
 msgid "You have unsaved changes."
 msgstr "Teniu canvis sense desar."
 
-#: src/components/blog/PostDrawer.tsx:585
+#: src/components/blog/PostDrawer.tsx:586
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar aquest panell?"
 

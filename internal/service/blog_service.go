@@ -392,7 +392,7 @@ func (s *BlogService) CreatePost(ctx context.Context, request *domain.CreateBlog
 	// Check if slug already exists
 	existing, err := s.postRepo.GetPostBySlug(ctx, request.Slug)
 	if err == nil && existing != nil {
-		return nil, fmt.Errorf("post with slug '%s' already exists", request.Slug)
+		return nil, domain.NewAlreadyExistsError("blog_post", request.Slug, false)
 	}
 
 	// Verify category exists
@@ -570,7 +570,7 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 	if post.Slug != request.Slug {
 		existing, err := s.postRepo.GetPostBySlug(ctx, request.Slug)
 		if err == nil && existing != nil && existing.ID != request.ID {
-			return nil, fmt.Errorf("post with slug '%s' already exists", request.Slug)
+			return nil, domain.NewAlreadyExistsError("blog_post", request.Slug, false)
 		}
 	}
 

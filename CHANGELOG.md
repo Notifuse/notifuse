@@ -2,13 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [44.1] - unreleased
+## [45.0] - unreleased
 
 - **Feature**: The web analytics dashboard opens with an Automated traffic card. It counts the sessions that load a page and never send a second signal, which is how crawlers, AI agents and headless browsers behave. The card shows their share of all sessions, its change since the comparison period, and the landing pages, browsers and countries they come from. The new Traffic Type dimension (`human` or `automated`) filters any report, and `analytics.query` gains the `automated_sessions` and `automated_share` measures. The demo workspace now has automated traffic too, with one overnight crawl.
 
 - **Improvement**: TimeScore and Bounce Rate now leave automated traffic out, while Sessions and pageviews still count it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
 
+- **Feature**: `lists.subscribe` and `contactLists.updateStatus` accept `resubscribe: true` to bring back a contact who unsubscribed from a list: they become active with no confirmation email, and the audit log records it. Without the flag, `lists.subscribe` now leaves an unsubscribed contact unsubscribed and sends nothing, where it used to set them to pending with a confirmation email and make them active on a second call. If your integration re-subscribes contacts on purpose, add the flag. In the console, a list row on the contact page offers Re-subscribe, which can also clear a bounce once the address works again.
+
+- **Fix**: Nothing re-subscribes a contact who opted out of a list any more. An automation's add-to-list step and `contactLists.updateStatus` could set an unsubscribed contact back to active, and the console could also revive a bounced or complained one. The add-to-list step now leaves them as they are and says so in its output, and a status change out of an opt-out returns 409. A form post with the address of a contact who unsubscribed no longer sets them to pending: it only sends the list's confirmation email, whose link brings them back.
+
+- **Fix**: The Japanese console now uses one word for each thing: contacts are コンタクト on every screen (some said 連絡先), goals ゴール, integrations 連携, unsubscribing 購読解除, the SMTP bridge SMTPリレー, web analytics Webアナリティクス and telemetry テレメトリー, and Japanese text no longer puts a space before or after a Latin word or a number. Three labels that shared one translation now have their own: sending a broadcast now reads 今すぐ (it read 現在, "current"), the source of an incoming webhook reads 送信元 (it used the web traffic source's 流入元), and the region in the web analytics settings reads 地域 (it used the AWS region's リージョン).
+
 - **Fix**: The Gmail app on iOS no longer shows a broken-image icon at the bottom of emails with open tracking. The tracking pixel was a PNG with truncated pixel data, which Gmail could not display; it is now a valid transparent PNG. Opens were recorded correctly all along.
+
+- **Fix**: The API no longer answers 500 when a broadcast, blog post, segment, automation or transactional notification refuses a request. An action the object's status does not allow, such as scheduling a broadcast that is no longer a draft or publishing a published post, answers 409 with that status; an ID or slug already taken answers 409; an unknown object answers 404; an invalid segment answers 400. Two pauses, resumes or cancellations of the same broadcast sent at the same time no longer both go through.
+
+- **Security**: `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
 
 ## [44.0] - 2026-11-19
 

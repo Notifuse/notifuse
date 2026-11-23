@@ -439,7 +439,7 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 		// Create a context with both user and userWorkspace already stored
 		ctx := context.WithValue(
 			context.WithValue(context.Background(), domain.WorkspaceUserKey(workspaceID), user),
-			domain.UserWorkspaceKey, userWorkspace,
+			domain.WorkspaceMembershipKey(workspaceID), userWorkspace,
 		)
 
 		// No mock expectations should be called since the user is already in context
@@ -1131,4 +1131,366 @@ func TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "member", uw.Role)
 	})
+}
+
+// newWorkspaceAuthService wires an AuthService whose IsRootEmail recognises rootEmail.
+func newWorkspaceAuthService(t *testing.T, rootEmail string) (*mocks.MockAuthRepository, *mocks.MockWorkspaceRepository, *AuthService) {
+	ctrl := gomock.NewController(t)
+	mockAuthRepo := mocks.NewMockAuthRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	svc := NewAuthService(AuthServiceConfig{
+		Repository:          mockAuthRepo,
+		WorkspaceRepository: mockWorkspaceRepo,
+		GetSecret:           func() ([]byte, error) { return []byte("test-jwt-secret-key-1234567890123456"), nil },
+		Logger:              pkgmocks.NewMockLogger(ctrl),
+		IsRootEmail:         func(email string) bool { return rootEmail != "" && email == rootEmail },
+	})
+	return mockAuthRepo, mockWorkspaceRepo, svc
+}
+
+// apiKeyContext is the context RequireAuth builds for an API key token.
+func apiKeyContext(userID string) context.Context {
+	return context.WithValue(
+		context.WithValue(context.Background(), domain.UserIDKey, userID),
+		domain.UserTypeKey, string(domain.UserTypeAPIKey),
+	)
+}
+
+func TestAuthService_AuthenticateUserForWorkspace_CacheIsKeyedByWorkspace(t *testing.T) {
+	const (
+		userID    = "user-1"
+		sessionID = "session-1"
+	)
+	mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, "")
+
+	ctx := context.WithValue(
+		context.WithValue(
+			context.WithValue(context.Background(), domain.UserIDKey, userID),
+			domain.SessionIDKey, sessionID,
+		),
+		domain.UserTypeKey, string(domain.UserTypeUser),
+	)
+	expiresAt := time.Now().Add(time.Hour)
+	mockAuthRepo.EXPECT().GetSessionByID(gomock.Any(), sessionID, userID).Return(&expiresAt, nil).Times(2)
+	mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), userID).
+		Return(&domain.User{ID: userID, Email: "person@example.com", Type: domain.UserTypeUser}, nil).Times(2)
+
+	membershipA := &domain.UserWorkspace{UserID: userID, WorkspaceID: "workspaceA", Role: "owner"}
+	membershipB := &domain.UserWorkspace{UserID: userID, WorkspaceID: "workspaceB", Role: "member"}
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspaceA").Return(&domain.Workspace{ID: "workspaceA"}, nil)
+	mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), userID, "workspaceA").Return(membershipA, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspaceB").Return(&domain.Workspace{ID: "workspaceB"}, nil)
+	mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), userID, "workspaceB").Return(membershipB, nil)
+
+	ctx, _, first, err := svc.AuthenticateUserForWorkspace(ctx, "workspaceA")
+	require.NoError(t, err)
+	require.Same(t, membershipA, first)
+
+	ctx, _, second, err := svc.AuthenticateUserForWorkspace(ctx, "workspaceB")
+	require.NoError(t, err)
+	require.Same(t, membershipB, second)
+
+	// The third call is served from the context: no repository call is expected.
+	_, _, third, err := svc.AuthenticateUserForWorkspace(ctx, "workspaceA")
+	require.NoError(t, err)
+	require.Same(t, membershipA, third, "workspace A must get A's membership, not the last one cached")
+	require.Equal(t, "owner", third.Role)
+}
+
+func TestAuthService_AuthenticateUserForWorkspace_CachedMembershipOfAnotherWorkspaceIsIgnored(t *testing.T) {
+	// A context seeded by hand with a membership that names another workspace
+	// must not stand for this one.
+	const userID = "key-user"
+	mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, "")
+
+	ctx := context.WithValue(apiKeyContext(userID), domain.WorkspaceUserKey("workspaceA"),
+		&domain.User{ID: userID, Type: domain.UserTypeAPIKey})
+	ctx = context.WithValue(ctx, domain.WorkspaceMembershipKey("workspaceA"),
+		&domain.UserWorkspace{UserID: userID, WorkspaceID: "workspaceB", Role: "owner"})
+
+	stored := &domain.UserWorkspace{UserID: userID, WorkspaceID: "workspaceA", Role: "member"}
+	mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(&domain.User{ID: userID, Type: domain.UserTypeAPIKey}, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspaceA").Return(&domain.Workspace{ID: "workspaceA"}, nil)
+	mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), userID, "workspaceA").Return(stored, nil)
+
+	_, _, membership, err := svc.AuthenticateUserForWorkspace(ctx, "workspaceA")
+	require.NoError(t, err)
+	require.Same(t, stored, membership)
+}
+
+func TestAuthService_AuthenticateUserForWorkspace_MCPReachability(t *testing.T) {
+	const (
+		keyUserID   = "key-user"
+		workspaceID = "workspace1"
+	)
+	keyUser := &domain.User{ID: keyUserID, Email: "key@api.example.com", Type: domain.UserTypeAPIKey}
+	membership := func() *domain.UserWorkspace {
+		return &domain.UserWorkspace{UserID: keyUserID, WorkspaceID: workspaceID, Role: "member",
+			Permissions: domain.UserPermissions{domain.PermissionResourceContacts: {Read: true}}}
+	}
+	mcpContext := func() context.Context {
+		return domain.WithMCPCaller(apiKeyContext(keyUserID), &domain.MCPCaller{Kind: domain.MCPCredentialHeader, APIKeyUserID: keyUserID})
+	}
+	switchedOff := &domain.Workspace{ID: workspaceID, Settings: domain.WorkspaceSettings{MCP: &domain.MCPSettings{Disabled: true}}}
+
+	type outcome struct {
+		err    error
+		ctx    context.Context
+		inCtx  context.Context
+		member *domain.UserWorkspace
+	}
+	run := func(t *testing.T, prime func(*mocks.MockAuthRepository, *mocks.MockWorkspaceRepository)) outcome {
+		mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, "")
+		prime(mockAuthRepo, mockWorkspaceRepo)
+		ctx := mcpContext()
+		newCtx, _, member, err := svc.AuthenticateUserForWorkspace(ctx, workspaceID)
+		return outcome{err: err, ctx: newCtx, inCtx: ctx, member: member}
+	}
+
+	unreachable := map[string]func(*mocks.MockAuthRepository, *mocks.MockWorkspaceRepository){
+		"switched off": func(a *mocks.MockAuthRepository, w *mocks.MockWorkspaceRepository) {
+			a.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(keyUser, nil)
+			w.EXPECT().GetByID(gomock.Any(), workspaceID).Return(switchedOff, nil)
+			w.EXPECT().GetUserWorkspace(gomock.Any(), keyUserID, workspaceID).Return(membership(), nil)
+		},
+		"no membership": func(a *mocks.MockAuthRepository, w *mocks.MockWorkspaceRepository) {
+			a.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(keyUser, nil)
+			w.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+			w.EXPECT().GetUserWorkspace(gomock.Any(), keyUserID, workspaceID).Return(nil, domain.ErrUserNotInWorkspace)
+		},
+		"nonexistent workspace": func(a *mocks.MockAuthRepository, w *mocks.MockWorkspaceRepository) {
+			a.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(keyUser, nil)
+			w.EXPECT().GetByID(gomock.Any(), workspaceID).Return(nil, &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID})
+		},
+	}
+
+	for name, prime := range unreachable {
+		t.Run(name+" answers as a workspace the key is not a member of", func(t *testing.T) {
+			got := run(t, prime)
+			require.Error(t, got.err)
+			require.ErrorIs(t, got.err, domain.ErrUserNotInWorkspace)
+			require.Equal(t, "user is not a member of the workspace", got.err.Error(),
+				"the three refusals must not be told apart by their message")
+			var notFound *domain.ErrWorkspaceNotFound
+			require.False(t, errors.As(got.err, &notFound))
+			require.Nil(t, got.member)
+			require.Equal(t, got.inCtx, got.ctx)
+		})
+	}
+
+	t.Run("a deleted key is still a revoked key", func(t *testing.T) {
+		got := run(t, func(a *mocks.MockAuthRepository, _ *mocks.MockWorkspaceRepository) {
+			a.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(nil, sql.ErrNoRows)
+		})
+		require.ErrorIs(t, got.err, domain.ErrAPIKeyRevoked)
+		require.NotErrorIs(t, got.err, domain.ErrUserNotInWorkspace)
+	})
+
+	t.Run("an account other than the caller's key never reaches the workspace", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			account *domain.User
+			want    error
+		}{
+			// Refused already when the account is loaded, as a revoked key (a 401 on /mcp).
+			{"a console account", &domain.User{ID: keyUserID, Email: "person@example.com", Type: domain.UserTypeUser}, domain.ErrAPIKeyRevoked},
+			// A key, but not the one the MCP credential names.
+			{"another key", &domain.User{ID: "other-key", Email: "other@api.example.com", Type: domain.UserTypeAPIKey}, domain.ErrUserNotInWorkspace},
+		}
+		for _, c := range cases {
+			t.Run(c.name, func(t *testing.T) {
+				mockAuthRepo, _, svc := newWorkspaceAuthService(t, "")
+				mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), c.account.ID).Return(c.account, nil)
+				ctx := domain.WithMCPCaller(apiKeyContext(c.account.ID), &domain.MCPCaller{Kind: domain.MCPCredentialHeader, APIKeyUserID: keyUserID})
+
+				_, _, member, err := svc.AuthenticateUserForWorkspace(ctx, workspaceID)
+				require.ErrorIs(t, err, c.want)
+				require.Nil(t, member)
+			})
+		}
+	})
+
+	t.Run("a database failure on the workspace read is not hidden", func(t *testing.T) {
+		dbErr := errors.New("connection reset")
+		got := run(t, func(a *mocks.MockAuthRepository, w *mocks.MockWorkspaceRepository) {
+			a.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(keyUser, nil)
+			w.EXPECT().GetByID(gomock.Any(), workspaceID).Return(nil, dbErr)
+		})
+		require.ErrorIs(t, got.err, dbErr)
+		require.NotErrorIs(t, got.err, domain.ErrUserNotInWorkspace)
+	})
+
+	t.Run("an enabled workspace with a membership is reachable", func(t *testing.T) {
+		for name, workspace := range map[string]*domain.Workspace{
+			"no settings":   {ID: workspaceID},
+			"explicitly on": {ID: workspaceID, Settings: domain.WorkspaceSettings{MCP: &domain.MCPSettings{Disabled: false}}},
+		} {
+			t.Run(name, func(t *testing.T) {
+				got := run(t, func(a *mocks.MockAuthRepository, w *mocks.MockWorkspaceRepository) {
+					a.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(keyUser, nil)
+					w.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+					w.EXPECT().GetUserWorkspace(gomock.Any(), keyUserID, workspaceID).Return(membership(), nil)
+				})
+				require.NoError(t, got.err)
+				require.Equal(t, "member", got.member.Role)
+			})
+		}
+	})
+}
+
+func TestAuthService_AuthenticateUserForWorkspace_SwitchOnlyHidesFromMCP(t *testing.T) {
+	// Without an MCP caller, a switched-off workspace authenticates as before:
+	// the switch hides the workspace from MCP and nothing else.
+	const (
+		keyUserID   = "key-user"
+		workspaceID = "workspace1"
+	)
+	mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, "")
+	mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(&domain.User{ID: keyUserID, Type: domain.UserTypeAPIKey}, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).
+		Return(&domain.Workspace{ID: workspaceID, Settings: domain.WorkspaceSettings{MCP: &domain.MCPSettings{Disabled: true}}}, nil)
+	mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), keyUserID, workspaceID).
+		Return(&domain.UserWorkspace{UserID: keyUserID, WorkspaceID: workspaceID, Role: "member"}, nil)
+
+	_, user, membership, err := svc.AuthenticateUserForWorkspace(apiKeyContext(keyUserID), workspaceID)
+	require.NoError(t, err)
+	require.Equal(t, keyUserID, user.ID)
+	require.Equal(t, "member", membership.Role)
+}
+
+func TestAuthService_AuthenticateUserForWorkspace_PlainPathErrorsUnchanged(t *testing.T) {
+	// Without an MCP caller a nonexistent workspace still answers
+	// ErrWorkspaceNotFound, and a non-member ErrUserNotInWorkspace.
+	const (
+		keyUserID   = "key-user"
+		workspaceID = "workspace1"
+	)
+	t.Run("nonexistent workspace", func(t *testing.T) {
+		mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, "")
+		mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(&domain.User{ID: keyUserID, Type: domain.UserTypeAPIKey}, nil)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(nil, &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID})
+
+		_, _, _, err := svc.AuthenticateUserForWorkspace(apiKeyContext(keyUserID), workspaceID)
+		var notFound *domain.ErrWorkspaceNotFound
+		require.True(t, errors.As(err, &notFound))
+	})
+
+	t.Run("no membership", func(t *testing.T) {
+		mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, "")
+		mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), keyUserID).Return(&domain.User{ID: keyUserID, Type: domain.UserTypeAPIKey}, nil)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), keyUserID, workspaceID).Return(nil, domain.ErrUserNotInWorkspace)
+
+		_, _, _, err := svc.AuthenticateUserForWorkspace(apiKeyContext(keyUserID), workspaceID)
+		require.ErrorIs(t, err, domain.ErrUserNotInWorkspace)
+	})
+}
+
+func TestAuthService_AuthenticateUserForWorkspace_RootElevation(t *testing.T) {
+	const (
+		rootEmail   = "root@example.com"
+		workspaceID = "workspace1"
+	)
+
+	t.Run("an api_key account whose email is ROOT_EMAIL is not elevated", func(t *testing.T) {
+		keyPermissions := domain.UserPermissions{domain.PermissionResourceContacts: {Read: true}}
+		for name, stored := range map[string]*domain.UserWorkspace{
+			"member row": {UserID: "key-user", WorkspaceID: workspaceID, Role: "member", Permissions: keyPermissions},
+			"no row":     nil,
+		} {
+			t.Run(name, func(t *testing.T) {
+				mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, rootEmail)
+				mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), "key-user").
+					Return(&domain.User{ID: "key-user", Email: rootEmail, Type: domain.UserTypeAPIKey}, nil)
+				mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+				if stored != nil {
+					mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), "key-user", workspaceID).Return(stored, nil)
+				} else {
+					mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), "key-user", workspaceID).Return(nil, domain.ErrUserNotInWorkspace)
+				}
+
+				record := domain.NewAuditRecord("", "", "")
+				ctx := domain.WithAuditRecord(apiKeyContext("key-user"), record)
+				_, _, membership, err := svc.AuthenticateUserForWorkspace(ctx, workspaceID)
+
+				if stored == nil {
+					require.ErrorIs(t, err, domain.ErrUserNotInWorkspace)
+					require.Nil(t, membership)
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, "member", membership.Role)
+				require.Equal(t, domain.UserPermissions{domain.PermissionResourceContacts: {Read: true}}, membership.Permissions)
+				event, _ := record.Finalize(200)
+				require.Equal(t, "member", event.ActorRole, "a key is never recorded as root")
+			})
+		}
+	})
+
+	t.Run("root elevation never hands out FullPermissions itself", func(t *testing.T) {
+		before := domain.NewFullPermissions()
+		for name, stored := range map[string]*domain.UserWorkspace{
+			"member row": {UserID: "root-user", WorkspaceID: workspaceID, Role: "member"},
+			"no row":     nil,
+		} {
+			t.Run(name, func(t *testing.T) {
+				mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, rootEmail)
+				ctx := context.WithValue(
+					context.WithValue(
+						context.WithValue(context.Background(), domain.UserIDKey, "root-user"),
+						domain.SessionIDKey, "root-session",
+					),
+					domain.UserTypeKey, string(domain.UserTypeUser),
+				)
+				expiresAt := time.Now().Add(time.Hour)
+				mockAuthRepo.EXPECT().GetSessionByID(gomock.Any(), "root-session", "root-user").Return(&expiresAt, nil)
+				mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), "root-user").
+					Return(&domain.User{ID: "root-user", Email: rootEmail, Type: domain.UserTypeUser}, nil)
+				mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+				if stored != nil {
+					mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), "root-user", workspaceID).Return(stored, nil)
+				} else {
+					mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), "root-user", workspaceID).Return(nil, domain.ErrUserNotInWorkspace)
+				}
+
+				_, _, membership, err := svc.AuthenticateUserForWorkspace(ctx, workspaceID)
+				require.NoError(t, err)
+				require.Equal(t, "owner", membership.Role)
+				require.Equal(t, before, membership.Permissions)
+
+				membership.Permissions[domain.PermissionResourceContacts] = domain.ResourcePermissions{Read: false, Write: false}
+				delete(membership.Permissions, domain.PermissionResourceLists)
+				require.Equal(t, before, domain.FullPermissions, "mutating the returned map must leave FullPermissions untouched")
+			})
+		}
+	})
+}
+
+func TestAuthService_AuthenticateUserForWorkspace_SetActorOnCacheHit(t *testing.T) {
+	const (
+		keyUserID   = "key-user"
+		workspaceID = "workspace1"
+	)
+	mockAuthRepo, mockWorkspaceRepo, svc := newWorkspaceAuthService(t, "")
+	mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), keyUserID).
+		Return(&domain.User{ID: keyUserID, Email: "key@api.example.com", Name: "Zapier", Type: domain.UserTypeAPIKey}, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+	mockWorkspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), keyUserID, workspaceID).
+		Return(&domain.UserWorkspace{UserID: keyUserID, WorkspaceID: workspaceID, Role: "member"}, nil)
+
+	ctx, _, _, err := svc.AuthenticateUserForWorkspace(apiKeyContext(keyUserID), workspaceID)
+	require.NoError(t, err)
+
+	// A record created after the first authentication, as an MCP tool call does.
+	record := domain.NewAuditRecord("", "", "")
+	_, _, _, err = svc.AuthenticateUserForWorkspace(domain.WithAuditRecord(ctx, record), workspaceID)
+	require.NoError(t, err)
+
+	event, skipped := record.Finalize(200)
+	require.False(t, skipped)
+	require.Equal(t, keyUserID, event.ActorID)
+	require.Equal(t, "key@api.example.com", event.ActorEmail)
+	require.Equal(t, domain.AuditActorAPIKey, event.ActorType)
+	require.Equal(t, "member", event.ActorRole)
+	require.Equal(t, workspaceID, event.WorkspaceID)
 }

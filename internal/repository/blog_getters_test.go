@@ -10,6 +10,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,9 +19,9 @@ import (
 )
 
 // Public blog rendering resolves posts/categories by slug on every page
-// view. The not-found contract ("blog post not found", a fresh error that
-// does not wrap sql.ErrNoRows) is what the renderer maps to a 404, so it
-// is pinned exactly, along with workspace scoping on every lookup.
+// view. The not-found contract (an ErrNotFound naming the post, which does
+// not wrap sql.ErrNoRows) is what the API maps to a 404, so it is pinned
+// exactly, along with workspace scoping on every lookup.
 
 var blogPostCols = []string{"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at"}
 
@@ -50,9 +51,8 @@ func TestBlogPostRepository_GetBySlug_NotFoundContract(t *testing.T) {
 
 		post, err := repo.GetPostBySlug(blogCtx(), "missing")
 		assert.Nil(t, post)
-		require.EqualError(t, err, "blog post not found")
-		assert.NotErrorIs(t, err, sql.ErrNoRows,
-			"not-found must not wrap ErrNoRows: the renderer branches on the message")
+		requireNotFound(t, err, "blog_post", "missing")
+		assert.NotErrorIs(t, err, sql.ErrNoRows)
 	})
 
 	t.Run("GetPostBySlug returns the scanned row verbatim", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestBlogPostRepository_GetPostByCategoryAndSlug(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows(blogPostCols))
 
 		_, err = repo.GetPostByCategoryAndSlug(blogCtx(), "tech", "ghost")
-		require.EqualError(t, err, "blog post not found")
+		requireNotFound(t, err, "blog_post", "tech/ghost")
 	})
 }
 
@@ -187,5 +187,77 @@ func TestBlogCategoryRepository_GetCategoryBySlug(t *testing.T) {
 		_, err := repo.GetCategoryBySlug(blogCtx(), "tech")
 		require.ErrorContains(t, err, "failed to get workspace connection:")
 		assert.ErrorIs(t, err, sentinel)
+	})
+}
+
+// A slug is unique across deleted posts too, so a deleted post keeps its slug for good. A write
+// that meets a taken slug answers AlreadyExistsError, and says whether a live post holds it,
+// once the failed transaction has rolled back.
+func TestBlogPostRepository_SlugTaken(t *testing.T) {
+	post := &domain.BlogPost{ID: "post-2", CategoryID: "cat-1", Slug: "hello", Settings: domain.BlogPostSettings{Title: "Hello"}}
+	holderQuery := regexp.QuoteMeta("SELECT EXISTS (SELECT 1 FROM blog_posts WHERE slug = $1 AND deleted_at IS NULL)")
+
+	for _, tc := range []struct {
+		name    string
+		live    bool
+		deleted bool
+	}{
+		{"held by a live post", true, false},
+		{"held by a deleted post", false, true},
+	} {
+		t.Run("create of a slug "+tc.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+			repo, _, _ := blogPostRepoWithDB(t, db)
+			mock.ExpectBegin()
+			mock.ExpectExec(regexp.QuoteMeta("INSERT INTO blog_posts")).
+				WillReturnError(&pq.Error{Code: "23505", Constraint: "blog_posts_slug_key"})
+			mock.ExpectRollback()
+			mock.ExpectQuery(holderQuery).WithArgs("hello").
+				WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(tc.live))
+
+			err = repo.CreatePost(blogCtx(), post)
+
+			var exists *domain.AlreadyExistsError
+			require.ErrorAs(t, err, &exists)
+			assert.Equal(t, domain.AlreadyExistsError{Entity: "blog_post", ID: "hello", Deleted: tc.deleted}, *exists)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("update to a slug a deleted post holds", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		repo, _, _ := blogPostRepoWithDB(t, db)
+		mock.ExpectBegin()
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE blog_posts")).
+			WillReturnError(&pq.Error{Code: "23505", Constraint: "blog_posts_slug_key"})
+		mock.ExpectRollback()
+		mock.ExpectQuery(holderQuery).WithArgs("hello").
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+
+		err = repo.UpdatePost(blogCtx(), post)
+
+		var exists *domain.AlreadyExistsError
+		require.ErrorAs(t, err, &exists)
+		assert.Equal(t, domain.AlreadyExistsError{Entity: "blog_post", ID: "hello", Deleted: true}, *exists)
+	})
+
+	t.Run("any other write failure is not a taken slug", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		repo, _, _ := blogPostRepoWithDB(t, db)
+		mock.ExpectBegin()
+		mock.ExpectExec(regexp.QuoteMeta("INSERT INTO blog_posts")).WillReturnError(errors.New("disk full"))
+		mock.ExpectRollback()
+
+		err = repo.CreatePost(blogCtx(), post)
+
+		var exists *domain.AlreadyExistsError
+		assert.False(t, errors.As(err, &exists))
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }

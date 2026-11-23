@@ -367,6 +367,31 @@ func (r *workspaceRepository) PatchIntegrationSESSettings(ctx context.Context, w
 	return nil
 }
 
+// SetMCPSettings writes the workspace's MCP switch alone, with one statement, so it
+// neither reads nor rewrites any other setting.
+func (r *workspaceRepository) SetMCPSettings(ctx context.Context, workspaceID string, settings *domain.MCPSettings) error {
+	doc, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+	result, err := r.systemDB.ExecContext(ctx, `
+		UPDATE workspaces
+		SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb), '{mcp}', $2::jsonb), updated_at = $3
+		WHERE id = $1
+	`, workspaceID, doc, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID}
+	}
+	return nil
+}
+
 func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {
 	workspace.UpdatedAt = time.Now().UTC()
 
@@ -379,17 +404,20 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	// dkim_keys has a single writer, UpdateDKIMKeys: the copy of the settings the caller
-	// read earlier never replaces the stored keys, so a settings save cannot undo a key
-	// created, verified or downgraded meanwhile. The row is re-read under its lock, so
-	// the keys kept are the last committed ones.
+	// Two settings have a single writer each, so a save made from a copy read earlier
+	// keeps their stored values: dkim_keys (UpdateDKIMKeys), so that a settings save
+	// cannot undo a key created, verified or downgraded meanwhile; mcp (SetMCPSettings),
+	// so that it cannot switch MCP back on. The row is re-read under its lock, so the
+	// values kept are the last committed ones.
 	query := `
 		UPDATE workspaces
 		SET name = $1,
 			settings = CASE
 				WHEN workspaces.settings ? 'dkim_keys'
-					THEN jsonb_set($2::jsonb, '{dkim_keys}', workspaces.settings->'dkim_keys', true)
-				ELSE $2::jsonb - 'dkim_keys'
+					THEN jsonb_set(
+						CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', workspaces.settings->'mcp') ELSE $2::jsonb - 'mcp' END,
+						'{dkim_keys}', workspaces.settings->'dkim_keys', true)
+				ELSE (CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', workspaces.settings->'mcp') ELSE $2::jsonb - 'mcp' END) - 'dkim_keys'
 			END,
 			integrations = $3, updated_at = $4
 		WHERE id = $5

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -1313,4 +1314,41 @@ func TestListHandler_HandleList_WithCounts(t *testing.T) {
 		})
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
+}
+
+// lists.subscribe is audited only when the service brought back a contact who had opted
+// out (the resubscribe flag); every other call is skipped, so the data plane does not
+// flood the log. The flag reaches the service from a raw body.
+func TestListHandler_HandleSubscribe_AuditOnlyResubscriptions(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		body        string
+		resubscribe bool
+	}{
+		{name: "no flag", body: `{"workspace_id":"ws1","contact":{"email":"a@example.com"},"list_ids":["l1"]}`},
+		{name: "flag set", body: `{"workspace_id":"ws1","contact":{"email":"a@example.com"},"list_ids":["l1"],"resubscribe":true}`, resubscribe: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, handler := setupListHandlerTest(t)
+			mockService.EXPECT().SubscribeToLists(gomock.Any(), gomock.Any(), true).
+				DoAndReturn(func(ctx context.Context, payload *domain.SubscribeToListsRequest, _ bool) error {
+					assert.Equal(t, tc.resubscribe, payload.Resubscribe)
+					if payload.Resubscribe {
+						domain.AuditFromContext(ctx).AddMetadata(domain.AuditResubscribedListIDs, []string{"l1"})
+					}
+					return nil
+				})
+			subscribeResults(handler, []*domain.ContactList{{Email: "a@example.com", ListID: "l1", Status: domain.ContactListStatusActive}})
+
+			record := domain.NewAuditRecord("", "", "")
+			req := httptest.NewRequest(http.MethodPost, "/api/lists.subscribe", strings.NewReader(tc.body))
+			req = req.WithContext(domain.WithAuditRecord(req.Context(), record))
+			rr := httptest.NewRecorder()
+			handler.handleSubscribe(rr, req)
+
+			require.Equal(t, http.StatusOK, rr.Code)
+			_, skipped := record.Finalize(http.StatusOK)
+			assert.Equal(t, !tc.resubscribe, skipped)
+		})
+	}
 }

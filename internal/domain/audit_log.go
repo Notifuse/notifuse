@@ -282,6 +282,23 @@ func (r *AuditRecord) AddMetadata(key string, value any) {
 	r.event.Metadata[key] = value
 }
 
+// AuditResubscribedListIDs is the metadata key naming the lists a contact who had opted
+// out was subscribed to again. lists.subscribe and contactLists.updateStatus are
+// recorded only when it is set.
+const AuditResubscribedListIDs = "resubscribed_list_ids"
+
+// HasMetadata reports whether something attached the key, for a handler whose route is
+// audited only when its service did a particular thing.
+func (r *AuditRecord) HasMetadata(key string) bool {
+	if r == nil {
+		return false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	_, ok := r.event.Metadata[key]
+	return ok
+}
+
 // SetAuthMethod names how the actor authenticated when it is not the session
 // or API-key default: a login records magic_code, sso or root_password.
 func (r *AuditRecord) SetAuthMethod(method string) {

@@ -102,7 +102,7 @@ msgstr "(predeterminado)"
 msgid "(empty)"
 msgstr "(vacío)"
 
-#: src/components/blog/PostDrawer.tsx:774
+#: src/components/blog/PostDrawer.tsx:775
 msgid "(has checks left)"
 msgstr "(quedan revisiones)"
 
@@ -649,6 +649,11 @@ msgstr "{0} segundos"
 #: src/components/analytics/EmailMetricsChart.tsx:491
 #~ msgid "{0} total unsubscribes (hidden from chart)"
 #~ msgstr "{0} cancelaciones de suscripción totales (ocultos del gráfico)"
+
+#. placeholder {0}: contact.email
+#: src/components/contacts/sheet/ContactListsCard.tsx:69
+msgid "{0} unsubscribed from {name}"
+msgstr "{0} se dio de baja de {name}"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
@@ -1319,7 +1324,7 @@ msgstr "{providerName} · remitente predeterminado {email}"
 msgid "{providerName} has no default sender"
 msgstr "{providerName} no tiene remitente predeterminado"
 
-#: src/components/blog/PostDrawer.tsx:1081
+#: src/components/blog/PostDrawer.tsx:1082
 msgid "{readingTime} min read"
 msgstr "{readingTime} min de lectura"
 
@@ -1444,7 +1449,7 @@ msgstr "Libres: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} hora local"
 
-#: src/components/blog/PostDrawer.tsx:1115
+#: src/components/blog/PostDrawer.tsx:1116
 #: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, one {# por revisar} other {# por revisar}}"
@@ -2235,7 +2240,7 @@ msgstr "Sobre los destinatarios dados de baja"
 msgid "Accept Invitation"
 msgstr "Aceptar invitación"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:86
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Aceptó la invitación <0>{target}</0>"
 
@@ -2289,7 +2294,7 @@ msgstr "Acciones"
 #. placeholder {0}: item.name
 #. placeholder {0}: listName(subscription.list_id)
 #: src/components/contacts/ContactsTable.tsx:115
-#: src/components/contacts/sheet/ContactListsCard.tsx:173
+#: src/components/contacts/sheet/ContactListsCard.tsx:215
 #: src/components/file_manager/FileGrid.tsx:114
 #: src/components/file_manager/FileTable.tsx:147
 #: src/components/file_manager/FolderTree.tsx:109
@@ -2694,7 +2699,7 @@ msgstr "Añadido"
 msgid "Added {blockType}"
 msgstr "{blockType} añadido"
 
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:90
 msgid "Added a DKIM domain to <0>{target}</0>"
 msgstr "Añadió un dominio DKIM a <0>{target}</0>"
 
@@ -2707,7 +2712,7 @@ msgstr "Añadido el {0}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "Añadió la anotación <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:91
 msgid "Added the integration <0>{target}</0>"
 msgstr "Añadió la integración <0>{target}</0>"
 
@@ -3013,7 +3018,7 @@ msgstr "Todos los artículos"
 msgid "all sessions"
 msgstr "todas las sesiones"
 
-#: src/components/blog/PostDrawer.tsx:1118
+#: src/components/blog/PostDrawer.tsx:1119
 #: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
@@ -3074,7 +3079,7 @@ msgstr "También disponible: <0>un blog</0> para tu sitio."
 msgid "Also the image of a post or category without one; 1200 × 630 px"
 msgstr "También la imagen de artículos y categorías sin una propia; 1200 × 630 px"
 
-#: src/components/blog/PostDrawer.tsx:964
+#: src/components/blog/PostDrawer.tsx:965
 msgid "Also the share image when none is set"
 msgstr "También es la imagen para compartir si no hay otra"
 
@@ -3730,7 +3735,7 @@ msgstr "Pídeme ayuda para escribir tu blog..."
 #~ msgid "Ask the person who runs this Notifuse instance to install a licence."
 #~ msgstr ""
 
-#: src/components/logs/auditPhrases.ts:74
+#: src/components/logs/auditPhrases.ts:76
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "Pidió un código de inicio de sesión para <0>{target}</0>"
 
@@ -3889,7 +3894,7 @@ msgstr "El nombre del autor es requerido"
 msgid "Authorization Secret"
 msgstr "Secreto de autorización"
 
-#: src/components/blog/PostDrawer.tsx:985
+#: src/components/blog/PostDrawer.tsx:986
 msgid "Authors"
 msgstr "Autores"
 
@@ -4465,7 +4470,7 @@ msgid "Blocks"
 msgstr "Bloques"
 
 #: src/components/blog/CategoryDrawer.tsx:218
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:836
 #: src/components/logs/labels.ts:20
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
@@ -4802,7 +4807,7 @@ msgid "Bridge Port"
 msgstr "Puerto del puente"
 
 #: src/components/blog/CategoryDrawer.tsx:290
-#: src/components/blog/PostDrawer.tsx:1002
+#: src/components/blog/PostDrawer.tsx:1003
 #: src/components/settings/BlogSettings.tsx:460
 msgid "Brief description for search results"
 msgstr "Breve descripción para resultados de búsqueda"
@@ -4811,7 +4816,7 @@ msgstr "Breve descripción para resultados de búsqueda"
 msgid "Brief description of this category"
 msgstr "Breve descripción de esta categoría"
 
-#: src/components/blog/PostDrawer.tsx:957
+#: src/components/blog/PostDrawer.tsx:958
 msgid "Brief summary of the post"
 msgstr "Breve resumen de la publicación"
 
@@ -5197,7 +5202,8 @@ msgstr "No se puede probar en el navegador"
 #: src/components/contacts/InlineEditableField.tsx:302
 #: src/components/contacts/InlineEditableField.tsx:318
 #: src/components/contacts/InlineEditableField.tsx:359
-#: src/components/contacts/sheet/ContactListsCard.tsx:114
+#: src/components/contacts/sheet/ContactListsCard.tsx:125
+#: src/components/contacts/sheet/ContactListsCard.tsx:156
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:151
@@ -5322,7 +5328,7 @@ msgctxt "newsletter status"
 msgid "Cancelled"
 msgstr "Cancelado"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:95
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "Canceló la invitación <0>{target}</0>"
 
@@ -5330,7 +5336,7 @@ msgstr "Canceló la invitación <0>{target}</0>"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "Canceló la newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:76
+#: src/components/logs/auditPhrases.ts:78
 msgid "Cancelled the web analytics backfill"
 msgstr "Canceló el relleno de la analítica web"
 
@@ -5374,12 +5380,12 @@ msgstr "Mayúsculas/minúsculas"
 msgid "Categories"
 msgstr "Categorías"
 
-#: src/components/blog/PostDrawer.tsx:733
+#: src/components/blog/PostDrawer.tsx:734
 msgid "category"
 msgstr "categoria"
 
 #: src/components/blog/CategoryDrawer.tsx:229
-#: src/components/blog/PostDrawer.tsx:897
+#: src/components/blog/PostDrawer.tsx:898
 #: src/components/blog/PostsTable.tsx:325
 #: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/TemplateSelectorModal.tsx:444
@@ -5503,27 +5509,31 @@ msgstr "Cambiar el remitente"
 #~ msgstr "Cambiar estado"
 
 #. placeholder {0}: listName(statusOf.list_id)
-#: src/components/contacts/sheet/ContactListsCard.tsx:214
+#: src/components/contacts/sheet/ContactListsCard.tsx:260
 msgid "Change Status for {0}"
 msgstr "Cambiar estado para {0}"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:99
+#: src/components/contacts/sheet/ContactListsCard.tsx:139
 msgid "Change status…"
 msgstr "Cambiar estado…"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:100
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "Cambió la retención del registro de auditoría de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:101
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "Cambió la configuración del blog de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:103
+msgid "Changed the MCP access of <0>{target}</0>"
+msgstr "Cambió el acceso MCP de <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:104
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "Cambió los permisos de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:105
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "Cambió la configuración de analítica web de <0>{target}</0>"
 
@@ -5596,7 +5606,7 @@ msgstr "Revisa los registros del servidor y luego recarga esta página. Tu confi
 msgid "Checked {ago}"
 msgstr "Comprobado {ago}"
 
-#: src/components/logs/auditPhrases.ts:105
+#: src/components/logs/auditPhrases.ts:108
 msgid "Checked a DKIM record of <0>{target}</0>"
 msgstr "Comprobó un registro DKIM de <0>{target}</0>"
 
@@ -6558,7 +6568,7 @@ msgstr "Aplicaciones conectadas"
 msgid "Connected to {target} · {time}"
 msgstr "Conectado a {target} · {time}"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:87
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "Conectó Zapier como la integración <0>{target}</0>"
 
@@ -6610,7 +6620,7 @@ msgstr "Consola"
 msgid "Contact"
 msgstr "Contacto"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:63
+#: src/components/contacts/sheet/ContactListsCard.tsx:85
 msgid "Contact added to list successfully"
 msgstr "Contacto añadido a la lista exitosamente"
 
@@ -6691,11 +6701,15 @@ msgstr "Propiedad del contacto"
 #~ msgid "Contact re-enters each time the event occurs"
 #~ msgstr "El contacto vuelve a entrar cada vez que ocurre el evento"
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:100
+msgid "Contact re-subscribed"
+msgstr "Contacto suscrito de nuevo"
+
 #: src/services/api/permissions.ts:138
 msgid "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 msgstr "Registros de contacto y sus campos, líneas de tiempo de contactos y eventos personalizados registrados contra contactos."
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:90
+#: src/components/contacts/sheet/ContactListsCard.tsx:111
 msgid "Contact removed from the list"
 msgstr "Contacto eliminado de la lista"
 
@@ -7425,7 +7439,7 @@ msgstr "Crear notificación"
 msgid "Create Notification"
 msgstr "Crear notificación"
 
-#: src/components/blog/PostDrawer.tsx:822
+#: src/components/blog/PostDrawer.tsx:823
 msgid "Create post"
 msgstr "Crear artículo"
 
@@ -7576,7 +7590,7 @@ msgstr "Nueva versión v{savedVersion} creada"
 msgid "Created on {createdOn}"
 msgstr "Creada el {createdOn}"
 
-#: src/components/logs/auditPhrases.ts:87
+#: src/components/logs/auditPhrases.ts:89
 msgid "Created the API key <0>{target}</0>"
 msgstr "Creó la clave API <0>{target}</0>"
 
@@ -7596,7 +7610,7 @@ msgstr "Creó la entrada del blog <0>{target}</0>"
 msgid "Created the blog theme <0>{target}</0>"
 msgstr "Creó el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:51
+#: src/components/logs/auditPhrases.ts:52
 msgid "Created the list <0>{target}</0>"
 msgstr "Creó la lista <0>{target}</0>"
 
@@ -7604,23 +7618,23 @@ msgstr "Creó la lista <0>{target}</0>"
 msgid "Created the newsletter <0>{target}</0>"
 msgstr "Creó la newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:54
+#: src/components/logs/auditPhrases.ts:56
 msgid "Created the segment <0>{target}</0>"
 msgstr "Creó el segmento <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:64
+#: src/components/logs/auditPhrases.ts:66
 msgid "Created the template <0>{target}</0>"
 msgstr "Creó la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:67
+#: src/components/logs/auditPhrases.ts:69
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "Creó la notificación transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:78
+#: src/components/logs/auditPhrases.ts:80
 msgid "Created the webhook <0>{target}</0>"
 msgstr "Creó el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:86
+#: src/components/logs/auditPhrases.ts:88
 msgid "Created the workspace <0>{target}</0>"
 msgstr "Creó el espacio de trabajo <0>{target}</0>"
 
@@ -8151,12 +8165,12 @@ msgid "Default transactional"
 msgstr "Transaccional predeterminado"
 
 #: src/components/blog/CategoryDrawer.tsx:295
-#: src/components/blog/PostDrawer.tsx:1007
+#: src/components/blog/PostDrawer.tsx:1008
 msgid "Defaults to {fallbackShareTitle}"
 msgstr "Por defecto: {fallbackShareTitle}"
 
 #: src/components/blog/CategoryDrawer.tsx:289
-#: src/components/blog/PostDrawer.tsx:1001
+#: src/components/blog/PostDrawer.tsx:1002
 msgid "Defaults to {fallbackTitle}"
 msgstr "Por defecto: {fallbackTitle}"
 
@@ -8182,11 +8196,11 @@ msgstr "Por defecto: la descripción del blog"
 msgid "Defaults to the blog's share image"
 msgstr "Por defecto: la imagen para compartir del blog"
 
-#: src/components/blog/PostDrawer.tsx:717
+#: src/components/blog/PostDrawer.tsx:718
 msgid "Defaults to the category's or the blog's description"
 msgstr "Por defecto: la descripción de la categoría o del blog"
 
-#: src/components/blog/PostDrawer.tsx:722
+#: src/components/blog/PostDrawer.tsx:723
 msgid "Defaults to the category's or the blog's share image"
 msgstr "Por defecto: la imagen para compartir de la categoría o del blog"
 
@@ -8194,11 +8208,11 @@ msgstr "Por defecto: la imagen para compartir de la categoría o del blog"
 msgid "Defaults to the description"
 msgstr "Por defecto: la descripción"
 
-#: src/components/blog/PostDrawer.tsx:715
+#: src/components/blog/PostDrawer.tsx:716
 msgid "Defaults to the excerpt"
 msgstr "Por defecto: el extracto"
 
-#: src/components/blog/PostDrawer.tsx:720
+#: src/components/blog/PostDrawer.tsx:721
 msgid "Defaults to the featured image"
 msgstr "Por defecto: la imagen destacada"
 
@@ -8647,11 +8661,11 @@ msgstr "Eliminó la categoría del blog <0>{target}</0>"
 msgid "Deleted the blog post <0>{target}</0>"
 msgstr "Eliminó la entrada del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:44
+#: src/components/logs/auditPhrases.ts:45
 msgid "Deleted the contact <0>{target}</0>"
 msgstr "Eliminó el contacto <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:52
+#: src/components/logs/auditPhrases.ts:53
 msgid "Deleted the list <0>{target}</0>"
 msgstr "Eliminó la lista <0>{target}</0>"
 
@@ -8659,27 +8673,27 @@ msgstr "Eliminó la lista <0>{target}</0>"
 msgid "Deleted the newsletter <0>{target}</0>"
 msgstr "Eliminó la newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:62
+#: src/components/logs/auditPhrases.ts:64
 msgid "Deleted the saved block <0>{target}</0>"
 msgstr "Eliminó el bloque guardado <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:55
+#: src/components/logs/auditPhrases.ts:57
 msgid "Deleted the segment <0>{target}</0>"
 msgstr "Eliminó el segmento <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:65
+#: src/components/logs/auditPhrases.ts:67
 msgid "Deleted the template <0>{target}</0>"
 msgstr "Eliminó la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:68
+#: src/components/logs/auditPhrases.ts:70
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "Eliminó la notificación transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:79
+#: src/components/logs/auditPhrases.ts:81
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "Eliminó el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:92
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Eliminó el espacio de trabajo <0>{target}</0>"
 
@@ -8816,7 +8830,7 @@ msgstr "Vista de escritorio (100%)"
 msgid "Detail"
 msgstr "Detalle"
 
-#: src/components/blog/PostDrawer.tsx:849
+#: src/components/blog/PostDrawer.tsx:850
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "Detalles"
@@ -9235,7 +9249,7 @@ msgstr "Descargar las filas con error"
 #~ msgstr "{0} archivo(s) descargado(s)"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
-#: src/components/blog/PostDrawer.tsx:758
+#: src/components/blog/PostDrawer.tsx:759
 #: src/components/blog/PostsTable.tsx:348
 #: src/components/blog/ThemeEditorDrawer.tsx:483
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:199
@@ -9637,7 +9651,7 @@ msgstr "Editar permisos"
 msgid "Edit Permissions for {0}"
 msgstr "Editar permisos para {0}"
 
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:842
 msgid "Edit post"
 msgstr "Editar artículo"
 
@@ -9701,7 +9715,7 @@ msgstr "Edita el asunto en la plantilla"
 msgid "Edit the template"
 msgstr "Editar la plantilla"
 
-#: src/components/blog/PostDrawer.tsx:1070
+#: src/components/blog/PostDrawer.tsx:1071
 msgid "Edit the title in Details"
 msgstr "Editar el título en Detalles"
 
@@ -9745,7 +9759,7 @@ msgstr "Editar conexión de Zapier"
 #~ msgstr "Marcado editable"
 
 #. placeholder {0}: relative(post.updated_at)
-#: src/components/blog/PostDrawer.tsx:763
+#: src/components/blog/PostDrawer.tsx:764
 #: src/components/blog/PostsTable.tsx:272
 msgid "Edited {0}"
 msgstr "Editado {0}"
@@ -10832,7 +10846,7 @@ msgstr "Valor exacto"
 msgid "exactly"
 msgstr "exactamente"
 
-#: src/components/blog/PostDrawer.tsx:954
+#: src/components/blog/PostDrawer.tsx:955
 msgid "Excerpt"
 msgstr "Extracto"
 
@@ -10969,7 +10983,7 @@ msgstr "Exportar el registro de auditoría como CSV o NDJSON"
 msgid "Export to CSV"
 msgstr "Exportar a CSV"
 
-#: src/components/logs/auditPhrases.ts:45
+#: src/components/logs/auditPhrases.ts:46
 msgid "Exported contacts"
 msgstr "Exportó contactos"
 
@@ -11083,7 +11097,7 @@ msgid "Failed to activate automation"
 msgstr "Error al activar automatización"
 
 #. placeholder {0}: error.message
-#: src/components/contacts/sheet/ContactListsCard.tsx:67
+#: src/components/contacts/sheet/ContactListsCard.tsx:87
 msgid "Failed to add to list: {0}"
 msgstr "Error al añadir a la lista: {0}"
 
@@ -11595,7 +11609,7 @@ msgid "Failed to update permissions"
 msgstr "Error al actualizar permisos"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:536
+#: src/components/blog/PostDrawer.tsx:537
 msgid "Failed to update post: {0}"
 msgstr "Error al actualizar publicación: {0}"
 
@@ -11604,7 +11618,7 @@ msgid "Failed to update segment"
 msgstr "Error al actualizar segmento"
 
 #. placeholder {0}: error.message
-#: src/components/contacts/sheet/ContactListsCard.tsx:83
+#: src/components/contacts/sheet/ContactListsCard.tsx:104
 msgid "Failed to update status: {0}"
 msgstr "Error al actualizar el estado: {0}"
 
@@ -11658,8 +11672,8 @@ msgstr "Favicon"
 #~ msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 #~ msgstr "Favicon para tu blog. Recomendado: 32x32px o 192x192px PNG"
 
-#: src/components/blog/PostDrawer.tsx:963
-#: src/components/blog/PostDrawer.tsx:973
+#: src/components/blog/PostDrawer.tsx:964
+#: src/components/blog/PostDrawer.tsx:974
 msgid "Featured image"
 msgstr "Imagen destacada"
 
@@ -11965,7 +11979,7 @@ msgstr "Fijo una vez creado: las llamadas a la API lo envían"
 msgid "Fixed once created: its posts' links depend on it"
 msgstr "Fijo una vez creado: los enlaces de sus artículos dependen de él"
 
-#: src/components/blog/PostDrawer.tsx:938
+#: src/components/blog/PostDrawer.tsx:939
 msgid "Fixed once created: links to the post may already be shared"
 msgstr "Fijo una vez creado: puede que ya se hayan compartido enlaces al artículo"
 
@@ -12034,7 +12048,7 @@ msgstr "Sigue al nombre hasta que lo edites"
 msgid "Follows the name until you edit it. Lowercase letters, numbers and underscores"
 msgstr "Sigue al nombre hasta que lo edites. Letras minúsculas, números y guiones bajos"
 
-#: src/components/blog/PostDrawer.tsx:941
+#: src/components/blog/PostDrawer.tsx:942
 msgid "Follows the title until you edit it"
 msgstr "Sigue al título hasta que lo edites"
 
@@ -12909,7 +12923,7 @@ msgstr "Cuánto piensa un modelo de razonamiento. Predeterminado para otros mode
 msgid "How the category page appears in search results"
 msgstr "Cómo aparece la página de la categoría en los resultados de búsqueda"
 
-#: src/components/blog/PostDrawer.tsx:1000
+#: src/components/blog/PostDrawer.tsx:1001
 msgid "How the post appears in search results"
 msgstr "Cómo aparece el artículo en los resultados de búsqueda"
 
@@ -13392,11 +13406,11 @@ msgstr "Notas importantes"
 #~ msgid "Imported {0} contacts ({1} failed, see details below)"
 #~ msgstr "Importados {0} contactos ({1} fallidos, ver detalles abajo)"
 
-#: src/components/logs/auditPhrases.ts:46
+#: src/components/logs/auditPhrases.ts:47
 msgid "Imported contacts"
 msgstr "Importó contactos"
 
-#: src/components/logs/auditPhrases.ts:47
+#: src/components/logs/auditPhrases.ts:48
 msgid "Imported custom events"
 msgstr "Importó eventos personalizados"
 
@@ -13853,7 +13867,7 @@ msgstr "Invitar miembro"
 msgid "Invite your team"
 msgstr "Invita a tu equipo"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:96
 msgid "Invited <0>{target}</0>"
 msgstr "Invitó a <0>{target}</0>"
 
@@ -14084,7 +14098,7 @@ msgstr "Entró en el segmento {chip}"
 msgid "Joined segment {segment}"
 msgstr "Se unió al segmento {segment}"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:97
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "Se unió con la invitación <0>{target}</0>"
 
@@ -14170,6 +14184,10 @@ msgstr "Conserva el enlace para darse de baja: {UNSUBSCRIBE_VARIABLE}."
 #: src/components/contacts/csv-import/ImportProgress.tsx:74
 msgid "Keep this tab open"
 msgstr "Mantén esta pestaña abierta"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:72
+msgid "Keep unsubscribed"
+msgstr "Mantener dado de baja"
 
 #: src/components/logs/AuditLogTab.tsx:614
 msgid "Kept for the deployment default"
@@ -14958,7 +14976,7 @@ msgstr "Lista actualizada"
 #: src/components/contacts/ContactsRail.tsx:75
 #: src/components/contacts/ContactsTable.tsx:220
 #: src/components/contacts/csv-import/ColumnsStep.tsx:221
-#: src/components/contacts/sheet/ContactListsCard.tsx:126
+#: src/components/contacts/sheet/ContactListsCard.tsx:168
 #: src/components/logs/labels.ts:17
 #: src/components/settings/permissionLabels.ts:8
 #: src/components/templates/DeleteTemplateModal.tsx:44
@@ -15064,7 +15082,7 @@ msgstr "Cargando configuración..."
 #~ msgid "Loading stats..."
 #~ msgstr "Cargando estadísticas..."
 
-#: src/components/blog/PostDrawer.tsx:1087
+#: src/components/blog/PostDrawer.tsx:1088
 msgid "Loading template..."
 msgstr "Cargando plantilla..."
 
@@ -15169,7 +15187,7 @@ msgid "Lowercase"
 msgstr "Minúsculas"
 
 #: src/components/blog/CategoryDrawer.tsx:268
-#: src/components/blog/PostDrawer.tsx:940
+#: src/components/blog/PostDrawer.tsx:941
 msgid "Lowercase letters, numbers and hyphens"
 msgstr "Minúsculas, números y guiones"
 
@@ -15639,7 +15657,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "Medio"
 
-#: src/components/blog/PostDrawer.tsx:913
+#: src/components/blog/PostDrawer.tsx:914
 msgid "min"
 msgstr "min"
 
@@ -16132,8 +16150,8 @@ msgstr "Nuevo código mágico enviado a tu correo"
 msgid "New notification"
 msgstr "Nueva notificación"
 
-#: src/components/blog/PostDrawer.tsx:749
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:750
+#: src/components/blog/PostDrawer.tsx:842
 #: src/components/blog/PostsTable.tsx:547
 msgid "New post"
 msgstr "Nuevo artículo"
@@ -16250,7 +16268,7 @@ msgstr "Siguiente paso"
 
 #: src/components/automations/edges/edgeLabel.ts:34
 #: src/components/blog/PostDrawer.tsx:307
-#: src/components/blog/PostDrawer.tsx:587
+#: src/components/blog/PostDrawer.tsx:588
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/useBroadcastActions.tsx:174
 #: src/components/broadcasts/useBroadcastActions.tsx:180
@@ -16552,7 +16570,7 @@ msgstr "Sin errores"
 msgid "No failure"
 msgstr "Sin fallos"
 
-#: src/components/blog/PostDrawer.tsx:978
+#: src/components/blog/PostDrawer.tsx:979
 msgid "No featured image"
 msgstr "Sin imagen destacada"
 
@@ -17159,7 +17177,7 @@ msgid "Not counted beyond {countMax}"
 msgstr "No se cuentan más allá de {countMax}"
 
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:752
+#: src/components/blog/PostDrawer.tsx:753
 #: src/components/blog/ThemeEditorDrawer.tsx:479
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
@@ -17272,6 +17290,14 @@ msgstr "no suscritos"
 #: src/components/contacts/bulk-update/useBulkUpdateRun.ts:89
 msgid "Not subscribed to this list"
 msgstr "No suscrito a esta lista"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:80
+msgid "Not subscribed: this address bounced on {name}"
+msgstr "No suscrito: esta dirección rebotó en {name}"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:81
+msgid "Not subscribed: this contact reported emails from {name} as spam"
+msgstr "No suscrito: este contacto marcó los emails de {name} como spam"
 
 #: src/components/web_analytics/filters/ConditionResultRow.tsx:43
 msgid "Not tested"
@@ -17426,12 +17452,16 @@ msgid "notifuse-…"
 msgstr "notifuse-…"
 
 #: src/components/broadcasts/compose/PreviewPanel.tsx:102
-#: src/components/broadcasts/compose/SendingCard.tsx:88
-#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
 #: src/components/broadcasts/detail/EngagementChart.tsx:74
 #: src/components/templates/TemplateSettingsAside.tsx:105
 #: src/components/templates/TemplateSettingsAside.tsx:130
 #: src/components/templates/TemplateTranslationsTab.tsx:417
+msgid "Now"
+msgstr "Ahora"
+
+#: src/components/broadcasts/compose/SendingCard.tsx:88
+#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
+msgctxt "send"
 msgid "Now"
 msgstr "Ahora"
 
@@ -17633,7 +17663,7 @@ msgstr "En la tarjeta y en cada selector de remitente"
 msgid "On the card, and on the notifications it creates"
 msgstr "En la tarjeta y en las notificaciones que crea"
 
-#: src/components/blog/PostDrawer.tsx:1041
+#: src/components/blog/PostDrawer.tsx:1042
 msgid "On this page"
 msgstr "En esta página"
 
@@ -18765,7 +18795,7 @@ msgstr "Opciones de reproducción"
 msgid "Playback Options"
 msgstr "Opciones de reproducción"
 
-#: src/components/blog/PostDrawer.tsx:990
+#: src/components/blog/PostDrawer.tsx:991
 msgid "Please add at least one author"
 msgstr "Por favor, añade al menos un autor"
 
@@ -18777,7 +18807,7 @@ msgstr "Por favor, añade al menos un remitente antes de guardar"
 #~ msgid "Please check the form for errors"
 #~ msgstr "Por favor, verifica el formulario en busca de errores"
 
-#: src/components/blog/PostDrawer.tsx:863
+#: src/components/blog/PostDrawer.tsx:864
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:378
 msgid "Please check the form for errors."
 msgstr "Por favor, verifica el formulario en busca de errores."
@@ -18838,7 +18868,7 @@ msgstr "Por favor, introduce un nombre"
 msgid "Please enter a notification name"
 msgstr "Por favor, introduce un nombre de notificación"
 
-#: src/components/blog/PostDrawer.tsx:888
+#: src/components/blog/PostDrawer.tsx:889
 msgid "Please enter a post title"
 msgstr "Por favor, introduce un título de publicación"
 
@@ -18855,7 +18885,7 @@ msgstr "Por favor, introduce un límite de envío"
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:260
-#: src/components/blog/PostDrawer.tsx:929
+#: src/components/blog/PostDrawer.tsx:930
 msgid "Please enter a slug"
 msgstr "Por favor, introduce un slug"
 
@@ -18925,7 +18955,7 @@ msgstr "Por favor, introduce una dirección de correo"
 msgid "Please enter integration name"
 msgstr "Por favor, introduce el nombre de integración"
 
-#: src/components/blog/PostDrawer.tsx:911
+#: src/components/blog/PostDrawer.tsx:912
 msgid "Please enter reading time"
 msgstr "Por favor, introduce el tiempo de lectura"
 
@@ -18950,7 +18980,7 @@ msgstr "¡Por favor introduce el código mágico!"
 msgid "Please input your email!"
 msgstr "¡Por favor introduce tu correo!"
 
-#: src/components/blog/PostDrawer.tsx:898
+#: src/components/blog/PostDrawer.tsx:899
 msgid "Please select a category"
 msgstr "Por favor, selecciona una categoría"
 
@@ -18974,7 +19004,7 @@ msgstr "Por favor, selecciona un tipo de objetivo"
 msgid "Please select a JSON file"
 msgstr "Por favor, selecciona un archivo JSON"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:203
+#: src/components/contacts/sheet/ContactListsCard.tsx:249
 #: src/components/segment/form_leaf.tsx:416
 msgid "Please select a list"
 msgstr "Por favor, selecciona una lista"
@@ -18992,7 +19022,7 @@ msgstr "Por favor, selecciona una lista"
 msgid "Please select a page size"
 msgstr "Por favor, selecciona un tamaño de página"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:231
+#: src/components/contacts/sheet/ContactListsCard.tsx:277
 #: src/components/segment/form_leaf.tsx:440
 msgid "Please select a status"
 msgstr "Por favor, selecciona un estado"
@@ -19091,7 +19121,7 @@ msgstr "Posición X"
 msgid "Position Y"
 msgstr "Posición Y"
 
-#: src/components/blog/PostDrawer.tsx:883
+#: src/components/blog/PostDrawer.tsx:884
 #: src/components/blog/PostsTable.tsx:290
 #: src/components/blog/ThemeEditorDrawer.tsx:430
 msgid "Post"
@@ -19109,7 +19139,7 @@ msgstr "Publicación eliminada exitosamente"
 msgid "Post published successfully"
 msgstr "Publicación publicada exitosamente"
 
-#: src/components/blog/PostDrawer.tsx:892
+#: src/components/blog/PostDrawer.tsx:893
 msgid "Post title"
 msgstr "Título de publicación"
 
@@ -19556,7 +19586,7 @@ msgstr "Publica este registro para {shownName}"
 msgid "Publish this theme"
 msgstr "Publicar este tema"
 
-#: src/components/blog/PostDrawer.tsx:754
+#: src/components/blog/PostDrawer.tsx:755
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
 #: src/components/blog/PostsTable.tsx:433
@@ -19669,6 +19699,29 @@ msgstr "Contenido sin procesar"
 #: src/components/settings/integrations/EmailProviderCard.tsx:204
 msgid "Re-register webhooks"
 msgstr "Volver a registrar webhooks"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:71
+#: src/components/contacts/sheet/ContactListsCard.tsx:124
+msgid "Re-subscribe"
+msgstr "Volver a suscribir"
+
+#. placeholder {0}: contact.email
+#. placeholder {1}: listName(subscription.list_id)
+#: src/components/contacts/sheet/ContactListsCard.tsx:119
+msgid "Re-subscribe {0} to {1}?"
+msgstr "¿Volver a suscribir a {0} en {1}?"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:132
+msgid "Re-subscribe…"
+msgstr "Volver a suscribir…"
+
+#: src/components/logs/auditPhrases.ts:44
+msgid "Re-subscribed the contact <0>{target}</0> after they opted out"
+msgstr "Volvió a suscribir al contacto <0>{target}</0> tras su baja"
+
+#: src/components/logs/auditPhrases.ts:54
+msgid "Re-subscribed the contact <0>{target}</0> after they unsubscribed"
+msgstr "Volvió a suscribir al contacto <0>{target}</0> tras darse de baja"
 
 #: src/components/analytics/GetStartedChecklist.tsx:385
 msgid "Reach your audience"
@@ -19862,7 +19915,7 @@ msgstr "Lee la guía de configuración de Zapier"
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:910
+#: src/components/blog/PostDrawer.tsx:911
 msgid "Reading time"
 msgstr "Tiempo de lectura"
 
@@ -19911,7 +19964,7 @@ msgstr "Esfuerzo de razonamiento"
 msgid "Rebuild segment"
 msgstr "Reconstruir segmento"
 
-#: src/components/logs/auditPhrases.ts:56
+#: src/components/logs/auditPhrases.ts:58
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "Recalculó el segmento <0>{target}</0>"
 
@@ -20026,11 +20079,11 @@ msgstr "Registrar o sobrescribir un evento personalizado en un contacto"
 #~ msgid "Record web navigation on the contact timeline"
 #~ msgstr ""
 
-#: src/components/logs/auditPhrases.ts:48
+#: src/components/logs/auditPhrases.ts:49
 msgid "Recording resumed"
 msgstr "Registro reanudado"
 
-#: src/components/logs/auditPhrases.ts:49
+#: src/components/logs/auditPhrases.ts:50
 msgid "Recording stopped: no valid licence"
 msgstr "Registro detenido: sin licencia válida"
 
@@ -20059,8 +20112,8 @@ msgstr "URI de redirección copiada"
 
 #: src/components/automations/AutomationEditor.tsx:482
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:793
-#: src/components/blog/PostDrawer.tsx:796
+#: src/components/blog/PostDrawer.tsx:794
+#: src/components/blog/PostDrawer.tsx:797
 #: src/components/email_builder/EmailBuilder.tsx:1126
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
@@ -20168,11 +20221,11 @@ msgstr "¿Regenerar secreto?"
 msgid "Regenerate the key of {domain}?"
 msgstr "¿Regenerar la clave de {domain}?"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:99
 msgid "Regenerated a DKIM key of <0>{target}</0>"
 msgstr "Regeneró una clave DKIM de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:80
+#: src/components/logs/auditPhrases.ts:82
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Regeneró el secreto del webhook <0>{target}</0>"
 
@@ -20181,7 +20234,11 @@ msgstr "Regeneró el secreto del webhook <0>{target}</0>"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:757
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:760
 #: src/components/settings/integrations/providerDetails.ts:145
+msgid "Region"
+msgstr "Región"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:358
+msgctxt "geo"
 msgid "Region"
 msgstr "Región"
 
@@ -20218,7 +20275,7 @@ msgstr "Registra los webhooks para configurar el reenvío de respuestas y luego 
 msgid "Register webhooks?"
 msgstr "¿Registrar webhooks?"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:85
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Registró los webhooks del proveedor de <0>{target}</0>"
 
@@ -20270,7 +20327,7 @@ msgstr "Recarga la página para actualizar tus bloques guardados."
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
-#: src/components/contacts/sheet/ContactListsCard.tsx:113
+#: src/components/contacts/sheet/ContactListsCard.tsx:155
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:77
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/LogoInput.tsx:111
@@ -20285,7 +20342,7 @@ msgstr "Quitar"
 
 #. placeholder {0}: contact.email
 #. placeholder {1}: listName(subscription.list_id)
-#: src/components/contacts/sheet/ContactListsCard.tsx:112
+#: src/components/contacts/sheet/ContactListsCard.tsx:154
 msgid "Remove {0} from {1}?"
 msgstr "¿Quitar a {0} de {1}?"
 
@@ -20343,8 +20400,8 @@ msgstr "Quitar el filtro Segmentos"
 #: src/components/automations/nodeTypes.ts:31
 #: src/components/contacts/BulkActionsBar.tsx:86
 #: src/components/contacts/BulkActionsBar.tsx:149
-#: src/components/contacts/sheet/ContactListsCard.tsx:107
-#: src/components/contacts/sheet/ContactListsCard.tsx:111
+#: src/components/contacts/sheet/ContactListsCard.tsx:149
+#: src/components/contacts/sheet/ContactListsCard.tsx:153
 #: src/pages/ContactsPage.tsx:284
 msgid "Remove from list"
 msgstr "Quitar de la lista"
@@ -20422,7 +20479,7 @@ msgstr "Eliminar la variante {letter}"
 msgid "Removed"
 msgstr "Eliminado"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:93
 msgid "Removed a DKIM domain from <0>{target}</0>"
 msgstr "Eliminó un dominio DKIM de <0>{target}</0>"
 
@@ -20434,11 +20491,11 @@ msgstr "Eliminado de {list}"
 msgid "Removed from {name}"
 msgstr "Eliminado de {name}"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:94
 msgid "Removed the integration <0>{target}</0>"
 msgstr "Quitó la integración <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:98
 msgid "Removed the member <0>{target}</0>"
 msgstr "Quitó al miembro <0>{target}</0>"
 
@@ -20463,7 +20520,7 @@ msgstr "Renombrar una categoría o cambiar su slug"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Renombrar las etiquetas de los campos de contacto personalizados del espacio de trabajo"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:102
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "Renombró los campos personalizados de <0>{target}</0>"
 
@@ -21257,7 +21314,7 @@ msgstr "Guardar como nueva versión"
 #~ msgstr "Guardar bloque"
 
 #: src/components/blog/CategoryDrawer.tsx:205
-#: src/components/blog/PostDrawer.tsx:822
+#: src/components/blog/PostDrawer.tsx:823
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
@@ -21382,7 +21439,7 @@ msgstr "Bloques guardados ({savedCount})"
 msgid "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 msgstr "Los bloques guardados se pueden usar en todas las plantillas del espacio de trabajo. Las plantillas que ya contienen este bloque no cambian."
 
-#: src/components/logs/auditPhrases.ts:61
+#: src/components/logs/auditPhrases.ts:63
 msgid "Saved the block <0>{target}</0>"
 msgstr "Guardó el bloque <0>{target}</0>"
 
@@ -21411,7 +21468,7 @@ msgstr "Programar o enviar inmediatamente un envío masivo a toda su audiencia"
 msgid "Schedule timezone"
 msgstr "Zona horaria de la programación"
 
-#: src/components/blog/PostDrawer.tsx:756
+#: src/components/blog/PostDrawer.tsx:757
 #: src/components/blog/PostsTable.tsx:346
 #: src/components/blog/PostsTable.tsx:434
 #: src/components/broadcasts/compose/SendingCard.tsx:39
@@ -21496,7 +21553,7 @@ msgstr "Buscar un modelo"
 
 #: src/components/blog/category/CategoryChecks.tsx:33
 #: src/components/blog/post/PostChecks.tsx:13
-#: src/components/blog/PostDrawer.tsx:1112
+#: src/components/blog/PostDrawer.tsx:1113
 msgid "Search and share"
 msgstr "Búsqueda y compartir"
 
@@ -21777,7 +21834,7 @@ msgstr "Árbol de segmento restablecido"
 #: src/components/contacts/contactColumns.ts:61
 #: src/components/contacts/ContactsRail.tsx:117
 #: src/components/contacts/ContactsTable.tsx:259
-#: src/components/contacts/sheet/ContactListsCard.tsx:258
+#: src/components/contacts/sheet/ContactListsCard.tsx:309
 #: src/components/logs/labels.ts:18
 #: src/components/settings/permissionLabels.ts:18
 #: src/services/api/errors.ts:93
@@ -21820,7 +21877,7 @@ msgstr "Selecciona un bloque para editar sus atributos"
 msgid "Select a broadcast"
 msgstr "Selecciona un envío masivo"
 
-#: src/components/blog/PostDrawer.tsx:901
+#: src/components/blog/PostDrawer.tsx:902
 msgid "Select a category"
 msgstr "Selecciona una categoría"
 
@@ -21844,7 +21901,7 @@ msgstr "Selecciona un archivo"
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:197
 #: src/components/contacts/BulkUpdateDrawer.tsx:323
-#: src/components/contacts/sheet/ContactListsCard.tsx:207
+#: src/components/contacts/sheet/ContactListsCard.tsx:253
 #: src/components/segment/form_leaf.tsx:422
 msgid "Select a list"
 msgstr "Selecciona una lista"
@@ -22033,7 +22090,7 @@ msgstr "Selecciona idioma..."
 msgid "Select list"
 msgstr "Seleccionar lista"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:202
+#: src/components/contacts/sheet/ContactListsCard.tsx:248
 msgid "Select List"
 msgstr "Seleccionar lista"
 
@@ -22846,7 +22903,7 @@ msgstr "Establecer solo cuando esté vacío"
 msgid "Set Publication Date"
 msgstr "Establecer fecha de publicación"
 
-#: src/components/logs/auditPhrases.ts:50
+#: src/components/logs/auditPhrases.ts:51
 msgid "Set the licence <0>{target}</0>"
 msgstr "Estableció la licencia <0>{target}</0>"
 
@@ -22870,7 +22927,7 @@ msgstr "Configurar un proveedor de email"
 msgid "Set up sending"
 msgstr "Configura el envío"
 
-#: src/components/logs/auditPhrases.ts:60
+#: src/components/logs/auditPhrases.ts:62
 msgid "Set up this Notifuse installation"
 msgstr "Configuró esta instalación de Notifuse"
 
@@ -23102,7 +23159,7 @@ msgstr "Se muestra arriba en la página de la categoría"
 msgid "Shown if"
 msgstr "Visible si"
 
-#: src/components/blog/PostDrawer.tsx:955
+#: src/components/blog/PostDrawer.tsx:956
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "Se muestra en las listas de artículos, y como descripción si no hay meta descripción"
 
@@ -23176,7 +23233,7 @@ msgstr "Firmado · registro ausente {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
 #~ msgid "Signed in as <0>{target}</0>"
 #~ msgstr "Inició sesión como <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:75
 msgid "Signed in as root <0>{target}</0>"
 msgstr "Inició sesión como root <0>{target}</0>"
 
@@ -23184,8 +23241,8 @@ msgstr "Inició sesión como root <0>{target}</0>"
 #~ msgid "Signed in with"
 #~ msgstr "Sesión iniciada con"
 
-#: src/components/logs/auditPhrases.ts:71
-#: src/components/logs/auditPhrases.ts:72
+#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:74
 msgid "Signed in with single sign-on"
 msgstr "Inició sesión con inicio de sesión único"
 
@@ -23193,7 +23250,7 @@ msgstr "Inició sesión con inicio de sesión único"
 #~ msgid "Signed in with single sign-on as <0>{target}</0>"
 #~ msgstr "Inició sesión con inicio de sesión único como <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:70
+#: src/components/logs/auditPhrases.ts:72
 msgid "Signed out"
 msgstr "Cerró la sesión"
 
@@ -23235,12 +23292,12 @@ msgstr "Simple"
 #~ msgstr "Desde"
 
 #. placeholder {0}: matched.format('ll')
-#: src/components/contacts/sheet/ContactListsCard.tsx:287
+#: src/components/contacts/sheet/ContactListsCard.tsx:338
 msgid "since {0}"
 msgstr "desde el {0}"
 
 #. placeholder {0}: dayjs(subscription.created_at).tz(timezone).format('ll')
-#: src/components/contacts/sheet/ContactListsCard.tsx:182
+#: src/components/contacts/sheet/ContactListsCard.tsx:224
 msgid "Since {0}"
 msgstr "Desde {0}"
 
@@ -23338,18 +23395,18 @@ msgstr "Espacios"
 
 #: src/components/blog/CategoryDrawer.tsx:252
 #: src/components/blog/CategoryDrawer.tsx:256
-#: src/components/blog/PostDrawer.tsx:921
-#: src/components/blog/PostDrawer.tsx:925
+#: src/components/blog/PostDrawer.tsx:922
+#: src/components/blog/PostDrawer.tsx:926
 msgid "Slug"
 msgstr "Slug"
 
 #: src/components/blog/CategoryDrawer.tsx:262
-#: src/components/blog/PostDrawer.tsx:934
+#: src/components/blog/PostDrawer.tsx:935
 msgid "Slug must be less than 100 characters"
 msgstr "El slug debe tener menos de 100 caracteres"
 
 #: src/components/blog/CategoryDrawer.tsx:261
-#: src/components/blog/PostDrawer.tsx:932
+#: src/components/blog/PostDrawer.tsx:933
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "El slug solo debe contener letras minúsculas, números y guiones"
 
@@ -23572,10 +23629,14 @@ msgstr "Alguien ha guardado la versión {0} mientras editabas (tú partiste de l
 msgid "Something went wrong"
 msgstr "Algo salió mal"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:273
 #: src/components/logs/InboundWebhooksTab.tsx:176
 #: src/components/logs/InboundWebhooksTab.tsx:254
 #: src/components/logs/InboundWebhooksTab.tsx:386
+msgid "Source"
+msgstr "Origen"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:273
+msgctxt "traffic"
 msgid "Source"
 msgstr "Origen"
 
@@ -23733,7 +23794,7 @@ msgstr "Empieza a escribir..."
 #~ msgid "Start Upload"
 #~ msgstr "Iniciar subida"
 
-#: src/components/blog/PostDrawer.tsx:1094
+#: src/components/blog/PostDrawer.tsx:1095
 msgid "Start writing your blog post..."
 msgstr "Empieza a escribir tu publicación de blog..."
 
@@ -23755,7 +23816,7 @@ msgstr "Iniciado"
 msgid "Started from “{0}”"
 msgstr "Basada en «{0}»"
 
-#: src/components/logs/auditPhrases.ts:77
+#: src/components/logs/auditPhrases.ts:79
 msgid "Started the web analytics backfill"
 msgstr "Inició el relleno de la analítica web"
 
@@ -23843,7 +23904,7 @@ msgid "Step status"
 msgstr "Estado del paso"
 
 #: src/components/automations/list/AutomationsTable.tsx:151
-#: src/components/blog/PostDrawer.tsx:847
+#: src/components/blog/PostDrawer.tsx:848
 #: src/components/templates/TemplateDrawerBar.tsx:89
 msgid "Steps"
 msgstr "Pasos"
@@ -24008,7 +24069,7 @@ msgstr "El asunto, el texto de vista previa y la respuesta provienen de cada pla
 msgid "Submitting batch request to the server..."
 msgstr "Enviando la solicitud por lotes al servidor..."
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/contacts/sheet/ContactListsCard.tsx:238
 #: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "Suscribirse"
@@ -24021,12 +24082,12 @@ msgstr "Suscribir una dirección a cualquier lista, pública o no, y crear o sob
 msgid "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
 msgstr "Suscribir los contactos importados a listas: solo se requiere cuando la importación nombra listas (también necesita escritura de Contactos)"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:132
-#: src/components/contacts/sheet/ContactListsCard.tsx:136
+#: src/components/contacts/sheet/ContactListsCard.tsx:174
+#: src/components/contacts/sheet/ContactListsCard.tsx:178
 msgid "Subscribe to list"
 msgstr "Suscribir a una lista"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:192
+#: src/components/contacts/sheet/ContactListsCard.tsx:234
 msgid "Subscribe to List"
 msgstr "Suscribirse a lista"
 
@@ -24111,11 +24172,11 @@ msgstr "ID de suscripción"
 #~ msgstr "Lista de suscripción"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:49
-#: src/components/contacts/sheet/ContactListsCard.tsx:230
+#: src/components/contacts/sheet/ContactListsCard.tsx:276
 msgid "Subscription Status"
 msgstr "Estado de suscripción"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:79
+#: src/components/contacts/sheet/ContactListsCard.tsx:100
 msgid "Subscription status updated successfully"
 msgstr "Estado de suscripción actualizado exitosamente"
 
@@ -24257,7 +24318,7 @@ msgstr "Configuración del sistema"
 msgid "System SMTP"
 msgstr "SMTP del sistema"
 
-#: src/components/blog/PostDrawer.tsx:1037
+#: src/components/blog/PostDrawer.tsx:1038
 msgid "Table of Contents"
 msgstr "Tabla de contenidos"
 
@@ -25606,6 +25667,10 @@ msgstr "¡La configuración del espacio de trabajo ha sido actualizada!"
 msgid "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
 msgstr "El registro de auditoría del workspace: quién cambió qué, desde dónde y si estaba permitido. Los propietarios siempre lo leen; un miembro o una clave API solo con este permiso."
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:122
+msgid "Their address bounced on this list. Only re-subscribe them if it works again. They get no confirmation email."
+msgstr "Su dirección rebotó en esta lista. Vuelve a suscribirlo solo si funciona de nuevo. No recibe ningún email de confirmación."
+
 #: src/components/blog/PostsTable.tsx:536
 msgid "Theme"
 msgstr "Tema"
@@ -25677,6 +25742,14 @@ msgstr "Estos contactos se suscribirán a la lista seleccionada (estado: activo)
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:48
 msgid "These styles were edited by hand. Edit them in the mj-style block."
 msgstr "Estos estilos se editaron a mano. Edítalos en el bloque mj-style."
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:70
+msgid "They stay unsubscribed. Only re-subscribe them if they asked you to. They get no confirmation email."
+msgstr "Sigue dado de baja. Vuelve a suscribirlo solo si te lo ha pedido. No recibe ningún email de confirmación."
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:123
+msgid "They unsubscribed from this list. Only re-subscribe them if they asked you to. They get no confirmation email."
+msgstr "Se dio de baja de esta lista. Vuelve a suscribirlo solo si te lo ha pedido. No recibe ningún email de confirmación."
 
 #: src/components/broadcasts/useBroadcastActions.tsx:184
 msgid "They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time."
@@ -25799,11 +25872,11 @@ msgstr "Esta categoría aún no se ha creado."
 #~ msgid "This console is read-only: single sign-on is enabled and this deployment's licence does not include it."
 #~ msgstr ""
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:264
+#: src/components/contacts/sheet/ContactListsCard.tsx:315
 msgid "This contact is in no segment"
 msgstr "Este contacto no está en ningún segmento"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:149
+#: src/components/contacts/sheet/ContactListsCard.tsx:191
 msgid "This contact is not subscribed to any lists"
 msgstr "Este contacto no está suscrito a ninguna lista"
 
@@ -25995,8 +26068,8 @@ msgstr "Este permiso no controla ningún endpoint hoy en día."
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "Este permiso todavía no se aplica, así que siempre está concedido. No se puede desactivar."
 
-#: src/components/blog/PostDrawer.tsx:1104
-#: src/components/blog/PostDrawer.tsx:1106
+#: src/components/blog/PostDrawer.tsx:1105
+#: src/components/blog/PostDrawer.tsx:1107
 msgid "This post"
 msgstr "Este artículo"
 
@@ -26328,7 +26401,7 @@ msgstr "Zona horaria:"
 #~ msgid "Tips for fixing these errors:"
 #~ msgstr "Consejos para corregir estos errores:"
 
-#: src/components/blog/PostDrawer.tsx:886
+#: src/components/blog/PostDrawer.tsx:887
 #: src/components/blog/PostsTable.tsx:565
 #: src/components/settings/BlogSettings.tsx:253
 #: src/components/settings/BlogSettings.tsx:390
@@ -26344,7 +26417,7 @@ msgstr "El título es obligatorio"
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr "El título debe tener {MAX_TITLE_LENGTH} caracteres o menos"
 
-#: src/components/blog/PostDrawer.tsx:889
+#: src/components/blog/PostDrawer.tsx:890
 msgid "Title must be less than 500 characters"
 msgstr "El título debe tener menos de 500 caracteres"
 
@@ -26887,11 +26960,11 @@ msgstr "Activar o desactivar el blog y cambiar su título, su SEO, su paginació
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Activar o desactivar las analíticas web y cambiar sus dominios permitidos, filtros, etiquetas de dimensiones personalizadas e identificación por enlace de correo"
 
-#: src/components/logs/auditPhrases.ts:58
+#: src/components/logs/auditPhrases.ts:60
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "Activó el aislamiento de tenants de Amazon SES para <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:83
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Activó o desactivó el webhook <0>{target}</0>"
 
@@ -26963,8 +27036,8 @@ msgstr "Entiende la calidad de las referencias"
 
 #: src/components/automations/AutomationEditor.tsx:479
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:784
-#: src/components/blog/PostDrawer.tsx:787
+#: src/components/blog/PostDrawer.tsx:785
+#: src/components/blog/PostDrawer.tsx:788
 #: src/components/email_builder/EmailBuilder.tsx:1052
 #: src/components/email_builder/EmailBuilder.tsx:1119
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
@@ -27092,8 +27165,8 @@ msgstr "Despublicó la entrada del blog <0>{target}</0>"
 
 #: src/components/automations/AutomationEditor.tsx:463
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:584
-#: src/components/blog/PostDrawer.tsx:761
+#: src/components/blog/PostDrawer.tsx:585
+#: src/components/blog/PostDrawer.tsx:762
 #: src/components/blog/ThemeEditorDrawer.tsx:485
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
@@ -27219,7 +27292,7 @@ msgstr "Sin título"
 msgid "Untitled automation"
 msgstr "Automatización sin título"
 
-#: src/components/blog/PostDrawer.tsx:1075
+#: src/components/blog/PostDrawer.tsx:1076
 msgid "Untitled post"
 msgstr "Artículo sin título"
 
@@ -27261,7 +27334,7 @@ msgstr "Actualizar enlace"
 #~ msgid "Update segment"
 #~ msgstr "Actualizar segmento"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:218
+#: src/components/contacts/sheet/ContactListsCard.tsx:264
 msgid "Update Status"
 msgstr "Actualizar estado"
 
@@ -27326,11 +27399,11 @@ msgstr "Actualizó la entrada del blog <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "Actualizó el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:107
 msgid "Updated the integration <0>{target}</0>"
 msgstr "Actualizó la integración <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:53
+#: src/components/logs/auditPhrases.ts:55
 msgid "Updated the list <0>{target}</0>"
 msgstr "Actualizó la lista <0>{target}</0>"
 
@@ -27342,11 +27415,11 @@ msgstr "Actualizó la newsletter <0>{target}</0>"
 msgid "Updated the preview text"
 msgstr "Texto de vista previa actualizado"
 
-#: src/components/logs/auditPhrases.ts:63
+#: src/components/logs/auditPhrases.ts:65
 msgid "Updated the saved block <0>{target}</0>"
 msgstr "Actualizó el bloque guardado <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:57
+#: src/components/logs/auditPhrases.ts:59
 msgid "Updated the segment <0>{target}</0>"
 msgstr "Actualizó el segmento <0>{target}</0>"
 
@@ -27358,23 +27431,23 @@ msgstr "Asunto actualizado"
 msgid "Updated the subject and the preview text"
 msgstr "Asunto y texto de vista previa actualizados"
 
-#: src/components/logs/auditPhrases.ts:59
+#: src/components/logs/auditPhrases.ts:61
 msgid "Updated the system settings"
 msgstr "Actualizó la configuración del sistema"
 
-#: src/components/logs/auditPhrases.ts:66
+#: src/components/logs/auditPhrases.ts:68
 msgid "Updated the template <0>{target}</0>"
 msgstr "Actualizó la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:69
+#: src/components/logs/auditPhrases.ts:71
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "Actualizó la notificación transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:84
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Actualizó el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:106
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Actualizó la configuración del espacio de trabajo <0>{target}</0>"
 
@@ -27874,7 +27947,7 @@ msgstr "Variantes"
 msgid "Verification code"
 msgstr "Código de verificación"
 
-#: src/components/logs/auditPhrases.ts:75
+#: src/components/logs/auditPhrases.ts:77
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Verificó el código de inicio de sesión de <0>{target}</0>"
 
@@ -27993,7 +28066,7 @@ msgstr "Ver mensajes"
 msgid "View page"
 msgstr "Ver página"
 
-#: src/components/blog/PostDrawer.tsx:812
+#: src/components/blog/PostDrawer.tsx:813
 msgid "View post"
 msgstr "Ver artículo"
 
@@ -28460,7 +28533,7 @@ msgstr "Cuando se comparte un enlace al blog"
 msgid "When a link to the category is shared"
 msgstr "Cuando se comparte un enlace a la categoría"
 
-#: src/components/blog/PostDrawer.tsx:1006
+#: src/components/blog/PostDrawer.tsx:1007
 msgid "When a link to the post is shared"
 msgstr "Cuando se comparte un enlace al artículo"
 
@@ -28757,7 +28830,7 @@ msgstr "Sin email válido"
 msgid "Without its own text, this language receives the automatic version."
 msgstr "Sin texto propio, este idioma recibe la versión automática."
 
-#: src/components/blog/PostDrawer.tsx:1108
+#: src/components/blog/PostDrawer.tsx:1109
 msgid "Words"
 msgstr "Palabras"
 
@@ -28876,7 +28949,7 @@ msgstr ""
 #~ msgid "Wrapper Attributes"
 #~ msgstr "Atributos del contenedor"
 
-#: src/components/blog/PostDrawer.tsx:850
+#: src/components/blog/PostDrawer.tsx:851
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -28933,7 +29006,7 @@ msgstr "Anual"
 
 #: src/components/automations/edges/edgeLabel.ts:33
 #: src/components/blog/PostDrawer.tsx:306
-#: src/components/blog/PostDrawer.tsx:586
+#: src/components/blog/PostDrawer.tsx:587
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/useBroadcastActions.tsx:199
 #: src/components/contacts/ContactUpsertDrawer.tsx:559
@@ -29107,7 +29180,7 @@ msgstr "No tienes permiso de escritura para las analíticas web"
 msgid "You have unsaved changes."
 msgstr "Tienes cambios sin guardar."
 
-#: src/components/blog/PostDrawer.tsx:585
+#: src/components/blog/PostDrawer.tsx:586
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Tienes cambios sin guardar. ¿Estás seguro de que quieres cerrar este cajón?"
 

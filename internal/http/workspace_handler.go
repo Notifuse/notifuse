@@ -88,6 +88,7 @@ func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/workspaces.setBlogSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetBlogSettings))))
 	mux.Handle("/api/workspaces.setWebAnalyticsSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetWebAnalyticsSettings))))
 	mux.Handle("/api/workspaces.setAuditLogSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetAuditLogSettings))))
+	mux.Handle("/api/workspaces.setMCPSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetMCPSettings))))
 
 	// Public invitation routes (no authentication required)
 	mux.Handle("/api/workspaces.verifyInvitationToken", http.HandlerFunc(h.handleVerifyInvitationToken))
@@ -264,16 +265,18 @@ func (h *WorkspaceHandler) handleUpdate(w http.ResponseWriter, r *http.Request) 
 		req.Settings,
 	)
 	if err != nil {
+		// Before writeServiceError, which answers a validation error with its "validation
+		// error: " prefix: this endpoint has always sent the bare message (e.g., DNS
+		// verification failed).
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
+			return
+		}
 		if writeServiceError(w, err, "You are not allowed to update this workspace") {
 			return
 		}
 		if writeStaleCredential(w, err) {
-			return
-		}
-		// Check if it's a validation error (e.g., DNS verification failed)
-		var validationErr domain.ValidationError
-		if errors.As(err, &validationErr) {
-			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
 			return
 		}
 		WriteJSONError(w, "Failed to update workspace", http.StatusInternalServerError)
@@ -557,6 +560,45 @@ func (h *WorkspaceHandler) handleSetAuditLogSettings(w http.ResponseWriter, r *h
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status":  "success",
 		"message": "Audit log settings updated successfully",
+	})
+}
+
+// handleSetMCPSettings switches MCP access to the workspace on or off. Owners
+// only; answers the stored settings.
+// POST /api/workspaces.setMCPSettings
+func (h *WorkspaceHandler) handleSetMCPSettings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.SetMCPSettingsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	workspaceID, settings, err := req.Validate()
+	if err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	stored, err := h.workspaceService.SetMCPSettings(r.Context(), workspaceID, settings)
+	if err != nil {
+		if writeValidationError(w, err) {
+			return
+		}
+		if writeServiceError(w, err, "Failed to set MCP settings") {
+			return
+		}
+		h.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to set MCP settings")
+		WriteJSONError(w, "Failed to set MCP settings", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"mcp": stored,
 	})
 }
 

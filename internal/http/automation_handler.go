@@ -384,6 +384,16 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 		if writeAutomationNotFound(w, err) {
 			return
 		}
+		// A configuration that cannot go live: the bare message, as create and update send it.
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
+			return
+		}
+		// An automation whose status refuses the action (409).
+		if writeServiceError(w, err, "Failed to activate automation") {
+			return
+		}
 		WriteJSONError(w, "Failed to activate automation", http.StatusInternalServerError)
 		return
 	}
@@ -443,6 +453,10 @@ func (h *AutomationHandler) handlePause(w http.ResponseWriter, r *http.Request) 
 		if writeAutomationNotFound(w, err) {
 			return
 		}
+		// An automation whose status refuses the action (409), or whose configuration does (400).
+		if writeServiceError(w, err, "Failed to pause automation") {
+			return
+		}
 		WriteJSONError(w, "Failed to pause automation", http.StatusInternalServerError)
 		return
 	}
@@ -466,10 +480,11 @@ func (h *AutomationHandler) handleGetContactNodeExecutions(w http.ResponseWriter
 
 	contactAutomation, nodeExecutions, err := h.service.GetContactNodeExecutions(r.Context(), req.WorkspaceID, req.AutomationID, req.Email)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to get contact node executions")
-		if writePermissionError(w, err) {
+		// An unknown or deleted automation, or a contact it never enrolled: 404.
+		if writeServiceError(w, err, "Failed to get contact node executions") {
 			return
 		}
+		h.logger.WithField("error", err.Error()).Error("Failed to get contact node executions")
 		WriteJSONError(w, "Failed to get contact node executions", http.StatusInternalServerError)
 		return
 	}

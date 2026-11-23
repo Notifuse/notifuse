@@ -292,6 +292,11 @@ func (h *ListHandler) handleStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ListHandler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
+	// Audited only when a contact who had opted out was subscribed again, which the
+	// service marks; every other call, refusals and malformed requests included, is
+	// data plane and skipped.
+	defer skipAuditUnlessResubscribed(r)
+
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

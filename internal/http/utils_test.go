@@ -804,3 +804,56 @@ func TestWriteTemplateRenderError(t *testing.T) {
 	assert.False(t, writeTemplateRenderError(other, errors.New("failed to send notification through any channel")))
 	assert.Equal(t, 0, other.Body.Len())
 }
+
+// The caller's request meeting the object as it is: an object that is not there 404, a state
+// that refuses the action 409 with invalid_state, an identifier already taken 409 with
+// already_exists, bad input 400. Each is matched through a wrap, as services return them.
+func TestWriteServiceError_TypedRequestErrors(t *testing.T) {
+	testCases := []struct {
+		name         string
+		err          error
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "not found",
+			err:          fmt.Errorf("failed to get notification: %w", &domain.ErrNotFound{Entity: "transactional_notification", ID: "welcome"}),
+			expectedCode: http.StatusNotFound,
+			expectedBody: `{"error": "transactional_notification not found with ID: welcome"}`,
+		},
+		{
+			name:         "invalid state",
+			err:          fmt.Errorf("schedule: %w", domain.NewInvalidStateError("broadcast", "b1", "schedule", "processing")),
+			expectedCode: http.StatusConflict,
+			expectedBody: `{
+				"error": "cannot schedule broadcast b1: its status is processing",
+				"invalid_state": {"entity": "broadcast", "id": "b1", "action": "schedule", "status": "processing"}
+			}`,
+		},
+		{
+			name:         "already exists",
+			err:          fmt.Errorf("failed to create segment: %w", domain.NewAlreadyExistsError("segment", "vip", false)),
+			expectedCode: http.StatusConflict,
+			expectedBody: `{
+				"error": "segment vip already exists",
+				"already_exists": {"entity": "segment", "id": "vip", "deleted": false}
+			}`,
+		},
+		{
+			name:         "validation error",
+			err:          fmt.Errorf("invalid request: %w", domain.NewValidationError("invalid segment tree: branch must have at least one leaf")),
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"error": "validation error: invalid segment tree: branch must have at least one leaf"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			require.True(t, writeServiceError(rr, tc.err, "fallback"))
+			assert.Equal(t, tc.expectedCode, rr.Code)
+			assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+			assert.JSONEq(t, tc.expectedBody, rr.Body.String())
+		})
+	}
+}

@@ -355,7 +355,7 @@ export function WebAnalyticsSettings({
             </SettingsRow>
             {geoEnabled ? (
               <>
-                <SettingsRow label={t`Region`} help={t`The region or state`}>
+                <SettingsRow label={t({ message: 'Region', context: 'geo' })} help={t`The region or state`}>
                   <Form.Item name="geo_store_region" valuePropName="checked">
                     <Switch aria-label={t`Store the region`} />
                   </Form.Item>

@@ -51,7 +51,10 @@ func TestAuditCatalogue_ExcludesTheDataPlane(t *testing.T) {
 	// The exclusions that matter most: the routes an integration can hit
 	// thousands of times a minute. If one of these ever became audited the log
 	// would turn into a firehose.
-	for _, route := range []string{"contacts.upsert", "customEvents.upsert", "transactional.send", "lists.subscribe"} {
+	// lists.subscribe is no longer here: it is classified as audited so that a
+	// re-subscription forced with the resubscribe flag leaves a trace, and its
+	// handler skips every other call (AuditResubscribedListIDs).
+	for _, route := range []string{"contacts.upsert", "customEvents.upsert", "transactional.send"} {
 		_, excluded := AuditExcludedRoutes[route]
 		assert.True(t, excluded, "%s must stay excluded", route)
 		_, audited := AuditedActions[route]
@@ -196,4 +199,15 @@ func TestTheConsoleHasALabelForEveryAuditCategory(t *testing.T) {
 	for _, category := range AuditCategories {
 		assert.Regexp(t, `(?m)^\s+`+category+`: msg`+"`", block, "the console has no label for the %s category", category)
 	}
+}
+
+func TestAuditCatalogue_MCPSwitchIsAuditedLikeTheOtherWorkspaceSetters(t *testing.T) {
+	spec, ok := AuditedActions["workspaces.setMCPSettings"]
+	require.True(t, ok, "switching MCP off or on is an owner's control-plane change")
+	assert.Equal(t, AuditActionSpec{Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"}, spec)
+
+	_, read := AuditLoggedReads["workspaces.setMCPSettings"]
+	assert.False(t, read)
+	_, excluded := AuditExcludedRoutes["workspaces.setMCPSettings"]
+	assert.False(t, excluded)
 }

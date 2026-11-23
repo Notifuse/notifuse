@@ -25,6 +25,13 @@ import (
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 )
 
+// updateWorkspaceSQL matches the full workspace save. It pins the clauses that keep
+// the stored MCP switch, which only SetMCPSettings writes, and the stored DKIM keys,
+// which only UpdateDKIMKeys writes.
+const updateWorkspaceSQL = `(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE\s+WHEN workspaces\.settings \? 'dkim_keys'\s+THEN jsonb_set\(\s+CASE WHEN workspaces\.settings \? 'mcp' THEN jsonb_set\(\$2::jsonb, '\{mcp\}', workspaces\.settings->'mcp'\) ELSE \$2::jsonb - 'mcp' END,\s+'\{dkim_keys\}', workspaces\.settings->'dkim_keys', true\)\s+ELSE \(CASE WHEN workspaces\.settings \? 'mcp' THEN jsonb_set\(\$2::jsonb, '\{mcp\}', workspaces\.settings->'mcp'\) ELSE \$2::jsonb - 'mcp' END\) - 'dkim_keys'\s+END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`
+
+const setMCPSettingsSQL = `UPDATE workspaces\s+SET settings = jsonb_set\(COALESCE\(settings, '\{\}'::jsonb\), '\{mcp\}', \$2::jsonb\), updated_at = \$3\s+WHERE id = \$1`
+
 // mockConnectionManager is a simple mock for testing
 type mockConnectionManager struct {
 	workspaceDBs map[string]*sql.DB
@@ -675,7 +682,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 		Integrations: []domain.Integration{},
 	}
 
-	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(updateWorkspaceSQL).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -684,7 +691,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Equal(t, "supersecret", w.Settings.SecretKey)
 
 	// not found (0 rows affected)
-	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(updateWorkspaceSQL).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "missing").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -695,7 +702,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 
 	// db error during update
-	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(updateWorkspaceSQL).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnError(fmt.Errorf("update failed"))
 
@@ -704,7 +711,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Contains(t, err.Error(), "update failed")
 
 	// error getting affected rows
-	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(updateWorkspaceSQL).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("rows affected error")))
 
@@ -777,7 +784,7 @@ func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 		defer cleanup()
 		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
 
-		mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+		mock.ExpectExec(updateWorkspaceSQL).
 			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -790,7 +797,7 @@ func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 		defer cleanup()
 		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
 
-		mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+		mock.ExpectExec(updateWorkspaceSQL).
 			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -807,7 +814,7 @@ func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 		defer cleanup()
 		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
 
-		mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+		mock.ExpectExec(updateWorkspaceSQL).
 			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -1187,4 +1194,31 @@ func TestWorkspaceRepository_GetSystemConnection(t *testing.T) {
 		assert.NotNil(t, systemDB)
 		assert.Equal(t, db, systemDB)
 	})
+}
+
+func TestWorkspaceRepository_SetMCPSettings(t *testing.T) {
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+
+	repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key", newMockConnectionManager(db))
+
+	t.Run("writes the switch alone", func(t *testing.T) {
+		mock.ExpectExec(setMCPSettingsSQL).
+			WithArgs("ws1", []byte(`{"disabled":true}`), sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.SetMCPSettings(context.Background(), "ws1", &domain.MCPSettings{Disabled: true}))
+	})
+
+	t.Run("an unknown workspace is not found", func(t *testing.T) {
+		mock.ExpectExec(setMCPSettingsSQL).
+			WithArgs("missing", []byte(`{"disabled":false}`), sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.SetMCPSettings(context.Background(), "missing", &domain.MCPSettings{})
+		var notFound *domain.ErrWorkspaceNotFound
+		require.ErrorAs(t, err, &notFound)
+	})
+
+	require.NoError(t, mock.ExpectationsWereMet())
 }

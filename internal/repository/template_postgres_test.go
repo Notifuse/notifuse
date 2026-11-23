@@ -46,6 +46,11 @@ func (m *MockWorkspaceRepository) Create(ctx context.Context, workspace *domain.
 	return args.Error(0)
 }
 
+func (m *MockWorkspaceRepository) SetMCPSettings(ctx context.Context, workspaceID string, settings *domain.MCPSettings) error {
+	args := m.Called(ctx, workspaceID, settings)
+	return args.Error(0)
+}
+
 func (m *MockWorkspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {
 	args := m.Called(ctx, id)
 	ws, _ := args.Get(0).(*domain.Workspace)

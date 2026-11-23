@@ -56,7 +56,7 @@ func TestWorkspaceRepository_Update_KeepsStoredDKIMKeys(t *testing.T) {
 	// sends are merged with the row's dkim_keys under its lock. This pins that shape;
 	// the integration test checks it against PostgreSQL.
 	repo, mock := newDKIMRepo(t)
-	mock.ExpectExec(`(?s)SET name = \$1,\s+settings = CASE\s+WHEN workspaces\.settings \? 'dkim_keys'\s+THEN jsonb_set\(\$2::jsonb, '\{dkim_keys\}', workspaces\.settings->'dkim_keys', true\)\s+ELSE \$2::jsonb - 'dkim_keys'\s+END`).
+	mock.ExpectExec(updateWorkspaceSQL).
 		WillReturnError(errors.New("stop here"))
 
 	w := &domain.Workspace{ID: "ws-1", Name: "Acme", Settings: domain.WorkspaceSettings{

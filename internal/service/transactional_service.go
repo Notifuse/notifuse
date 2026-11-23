@@ -596,7 +596,7 @@ func (s *TransactionalNotificationService) SendNotification(
 	notification, err := s.transactionalRepo.Get(ctx, workspaceID, params.ID)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return "", fmt.Errorf("notification not found: %w", err)
+		return "", fmt.Errorf("failed to get notification: %w", err)
 	}
 
 	span.AddAttributes(

@@ -495,6 +495,10 @@ type WorkspaceSettings struct {
 	// stored ones whatever this field holds. Never opened by AfterLoad.
 	DKIMKeys []DKIMKey `json:"dkim_keys,omitempty"`
 
+	// MCP is the workspace's MCP switch; nil means enabled. Written only through
+	// workspaces.setMCPSettings: UpdateWorkspace never copies it from a body.
+	MCP *MCPSettings `json:"mcp,omitempty"`
+
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
 
@@ -1154,6 +1158,8 @@ type PendingInvitation struct {
 
 type WorkspaceRepository interface {
 	Create(ctx context.Context, workspace *Workspace) error
+	// SetMCPSettings writes the MCP switch alone; Update keeps the stored one.
+	SetMCPSettings(ctx context.Context, workspaceID string, settings *MCPSettings) error
 	GetByID(ctx context.Context, id string) (*Workspace, error)
 	GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*Workspace, error)
 	// ListCustomEndpoints returns the custom endpoint URL of every workspace that has
@@ -1352,6 +1358,9 @@ type WorkspaceServiceInterface interface {
 	// (gated by web_analytics:write; recomputes the filters version).
 	SetWebAnalyticsSettings(ctx context.Context, workspaceID string, settings *WebAnalyticsSettings) error
 	SetAuditLogSettings(ctx context.Context, workspaceID string, settings *AuditLogSettings) error
+	// SetMCPSettings switches MCP access to the workspace (owners only) and
+	// returns the stored settings.
+	SetMCPSettings(ctx context.Context, workspaceID string, settings *MCPSettings) (*MCPSettings, error)
 }
 
 // Request/Response types

@@ -12,7 +12,7 @@ import type { Segment } from '../../../services/api/segment'
 import type { List, UserPermissions, Workspace } from '../../../services/api/types'
 import { Panel, Pill, useNumberFormat } from '../../layout'
 import { segmentDotColor } from '../../segment/segmentColor'
-import { LIST_STATUS_LABEL, LIST_STATUS_TONE } from '../contactDisplay'
+import { LIST_STATUS_LABEL, LIST_STATUS_TONE, canResubscribe, contactListStatusOptions } from '../contactDisplay'
 import { CountBadge } from './SheetSection'
 
 type Subscription = Contact['contact_lists'][number]
@@ -25,8 +25,6 @@ export interface ContactListsCardProps {
   /** A subscription changed: the sheet reads the contact, its activity and the table again. */
   onChanged: () => void
 }
-
-const STATUSES = ['active', 'pending', 'unsubscribed', 'bounced', 'complained'] as const
 
 /** The contact's list subscriptions, with subscribe, change status and remove. */
 export function ContactListsCard({
@@ -53,30 +51,53 @@ export function ContactListsCard({
   const timezone = workspace.settings?.timezone || 'UTC'
 
   const subscribe = useMutation({
-    mutationFn: (listId: string) =>
+    mutationFn: (values: { listId: string; resubscribe?: boolean }) =>
       listsApi.subscribe({
         workspace_id: workspace.id,
         contact: { email: contact.email } as Contact,
-        list_ids: [listId]
+        list_ids: [values.listId],
+        ...(values.resubscribe ? { resubscribe: true } : {})
       }),
-    onSuccess: () => {
-      message.success(t`Contact added to list successfully`)
+    onSuccess: (response, values) => {
       setSubscribeOpen(false)
       onChanged()
+      const status = response.contact_lists?.find((cl) => cl.list_id === values.listId)?.status
+      const name = listName(values.listId)
+      // The server keeps an earlier opt-out: say so rather than report a subscription.
+      if (status === 'unsubscribed') {
+        modal.confirm({
+          title: t`${contact.email} unsubscribed from ${name}`,
+          content: t`They stay unsubscribed. Only re-subscribe them if they asked you to. They get no confirmation email.`,
+          okText: t`Re-subscribe`,
+          cancelText: t`Keep unsubscribed`,
+          onOk: () => subscribe.mutateAsync({ listId: values.listId, resubscribe: true })
+        })
+        return
+      }
+      if (status === 'bounced' || status === 'complained') {
+        message.warning(
+          status === 'bounced'
+            ? t`Not subscribed: this address bounced on ${name}`
+            : t`Not subscribed: this contact reported emails from ${name} as spam`
+        )
+        return
+      }
+      message.success(t`Contact added to list successfully`)
     },
     onError: (error: Error) => message.error(t`Failed to add to list: ${error.message}`)
   })
 
   const updateStatus = useMutation({
-    mutationFn: (values: { listId: string; status: string }) =>
+    mutationFn: (values: { listId: string; status: string; resubscribe?: boolean }) =>
       contactListApi.updateStatus({
         workspace_id: workspace.id,
         email: contact.email,
         list_id: values.listId,
-        status: values.status
+        status: values.status,
+        ...(values.resubscribe ? { resubscribe: true } : {})
       }),
-    onSuccess: () => {
-      message.success(t`Subscription status updated successfully`)
+    onSuccess: (_, values) => {
+      message.success(values.resubscribe ? t`Contact re-subscribed` : t`Subscription status updated successfully`)
       setStatusOf(null)
       onChanged()
     },
@@ -93,15 +114,36 @@ export function ContactListsCard({
     onError: (error: Error) => message.error(error.message)
   })
 
+  const confirmResubscribe = (subscription: Subscription) =>
+    modal.confirm({
+      title: t`Re-subscribe ${contact.email} to ${listName(subscription.list_id)}?`,
+      content:
+        subscription.status === 'bounced'
+          ? t`Their address bounced on this list. Only re-subscribe them if it works again. They get no confirmation email.`
+          : t`They unsubscribed from this list. Only re-subscribe them if they asked you to. They get no confirmation email.`,
+      okText: t`Re-subscribe`,
+      cancelText: t`Cancel`,
+      onOk: () =>
+        updateStatus.mutateAsync({ listId: subscription.list_id, status: 'active', resubscribe: true })
+    })
+
   const menu = (subscription: Subscription): MenuProps['items'] => [
-    {
-      key: 'status',
-      label: t`Change status…`,
-      onClick: () => {
-        statusForm.setFieldsValue({ status: subscription.status })
-        setStatusOf(subscription)
-      }
-    },
+    ...(canResubscribe(subscription.status)
+      ? [{ key: 'resubscribe', label: t`Re-subscribe…`, onClick: () => confirmResubscribe(subscription) }]
+      : []),
+    // A complaint is final: there is no status to move it to.
+    ...(contactListStatusOptions(subscription.status).length > 1
+      ? [
+          {
+            key: 'status',
+            label: t`Change status…`,
+            onClick: () => {
+              statusForm.setFieldsValue({ status: subscription.status })
+              setStatusOf(subscription)
+            }
+          }
+        ]
+      : []),
     {
       key: 'remove',
       label: t`Remove from list`,
@@ -196,7 +238,11 @@ export function ContactListsCard({
         okText={t`Subscribe`}
         confirmLoading={subscribe.isPending}
       >
-        <Form form={subscribeForm} layout="vertical" onFinish={(values) => subscribe.mutate(values.list_id)}>
+        <Form
+          form={subscribeForm}
+          layout="vertical"
+          onFinish={(values) => subscribe.mutate({ listId: values.list_id })}
+        >
           <Form.Item
             name="list_id"
             label={t`Select List`}
@@ -230,7 +276,12 @@ export function ContactListsCard({
             label={t`Subscription Status`}
             rules={[{ required: true, message: t`Please select a status` }]}
           >
-            <Select options={STATUSES.map((value) => ({ value, label: i18n._(LIST_STATUS_LABEL[value]) }))} />
+            <Select
+              options={contactListStatusOptions(statusOf?.status ?? 'active').map((value) => ({
+                value,
+                label: i18n._(LIST_STATUS_LABEL[value])
+              }))}
+            />
           </Form.Item>
         </Form>
       </Modal>

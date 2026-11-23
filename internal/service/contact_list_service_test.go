@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -263,7 +265,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			UpdateContactListStatus(gomock.Any(), workspaceID, email, listID, newStatus).
 			Return(nil)
 
-		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus, false)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.True(t, result.Success)
@@ -276,7 +278,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			AuthenticateUserForWorkspace(ctx, workspaceID).
 			Return(ctx, nil, nil, errors.New("auth error"))
 
-		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus, false)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
@@ -290,7 +292,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
 			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
 
-		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus, false)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.True(t, result.Success)
@@ -315,7 +317,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			UpdateContactListStatus(gomock.Any(), workspaceID, email, listID, newStatus).
 			Return(errors.New("update error"))
 
-		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus, false)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
@@ -441,13 +443,13 @@ func TestContactListService_PermissionEnforcement(t *testing.T) {
 		{"UpdateContactListStatus without lists write", member(readOnly, full),
 			domain.PermissionResourceLists, domain.PermissionTypeWrite,
 			func(s *ContactListService, ctx context.Context) error {
-				_, err := s.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusActive)
+				_, err := s.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusActive, false)
 				return err
 			}},
 		{"UpdateContactListStatus with lists write but without contacts write", member(writeOnly, readOnly),
 			domain.PermissionResourceContacts, domain.PermissionTypeWrite,
 			func(s *ContactListService, ctx context.Context) error {
-				_, err := s.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusActive)
+				_, err := s.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusActive, false)
 				return err
 			}},
 		{"RemoveContactFromList without lists write", member(readOnly, full),
@@ -480,4 +482,130 @@ func TestContactListService_PermissionEnforcement(t *testing.T) {
 			require.Equal(t, tc.permission, permErr.Permission)
 		})
 	}
+}
+
+// A status change never takes a contact out of an opt-out implicitly, and the
+// resubscribe flag does so for the caller it is meant for. The audit entry is kept only
+// when a row actually left an opt-out.
+func TestContactListService_UpdateContactListStatus_OptOuts(t *testing.T) {
+	const (
+		workspaceID = "workspace123"
+		email       = "test@example.com"
+		listID      = "list123"
+	)
+	consoleUser := &domain.User{Type: domain.UserTypeUser}
+	apiKey := &domain.User{Type: domain.UserTypeAPIKey}
+
+	tests := []struct {
+		name        string
+		user        *domain.User
+		stored      domain.ContactListStatus
+		status      domain.ContactListStatus
+		resubscribe bool
+		// expectUpdate: the plain guarded update runs; expectResubscribe: the
+		// resubscribe write runs, with this clearBounce.
+		expectUpdate      bool
+		expectResubscribe *bool
+		wantOptedOut      domain.ContactListStatus
+		wantAudited       bool
+	}{
+		{name: "unsubscribed to active without the flag is refused", user: apiKey,
+			stored: domain.ContactListStatusUnsubscribed, status: domain.ContactListStatusActive,
+			wantOptedOut: domain.ContactListStatusUnsubscribed},
+		{name: "unsubscribed to pending without the flag is refused", user: consoleUser,
+			stored: domain.ContactListStatusUnsubscribed, status: domain.ContactListStatusPending,
+			wantOptedOut: domain.ContactListStatusUnsubscribed},
+		{name: "bounced to unsubscribed is refused", user: consoleUser,
+			stored: domain.ContactListStatusBounced, status: domain.ContactListStatusUnsubscribed,
+			wantOptedOut: domain.ContactListStatusBounced},
+		{name: "complained to bounced is refused", user: consoleUser,
+			stored: domain.ContactListStatusComplained, status: domain.ContactListStatusBounced,
+			wantOptedOut: domain.ContactListStatusComplained},
+		{name: "unsubscribed to complained is allowed", user: apiKey,
+			stored: domain.ContactListStatusUnsubscribed, status: domain.ContactListStatusComplained,
+			expectUpdate: true},
+		{name: "active to unsubscribed is allowed", user: apiKey,
+			stored: domain.ContactListStatusActive, status: domain.ContactListStatusUnsubscribed,
+			expectUpdate: true},
+		{name: "the flag on an active row is a plain update", user: apiKey,
+			stored: domain.ContactListStatusPending, status: domain.ContactListStatusActive, resubscribe: true,
+			expectUpdate: true},
+		{name: "an API key re-subscribes an unsubscribed contact", user: apiKey,
+			stored: domain.ContactListStatusUnsubscribed, status: domain.ContactListStatusActive, resubscribe: true,
+			expectResubscribe: boolPtr(false), wantAudited: true},
+		{name: "a console user clears a bounce", user: consoleUser,
+			stored: domain.ContactListStatusBounced, status: domain.ContactListStatusActive, resubscribe: true,
+			expectResubscribe: boolPtr(true), wantAudited: true},
+		{name: "an API key cannot clear a bounce", user: apiKey,
+			stored: domain.ContactListStatusBounced, status: domain.ContactListStatusActive, resubscribe: true,
+			wantOptedOut: domain.ContactListStatusBounced},
+		{name: "nobody clears a complaint", user: consoleUser,
+			stored: domain.ContactListStatusComplained, status: domain.ContactListStatusActive, resubscribe: true,
+			wantOptedOut: domain.ContactListStatusComplained},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo, mockAuthService, _, _, service, ctrl := setupTest(t)
+			defer ctrl.Finish()
+
+			record := domain.NewAuditRecord("", "", "")
+			ctx := domain.WithAuditRecord(context.Background(), record)
+
+			mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+				Return(ctx, tt.user, contactListFullAccess(), nil)
+			mockRepo.EXPECT().GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
+				Return(&domain.ContactList{Email: email, ListID: listID, Status: tt.stored}, nil)
+			if tt.expectUpdate {
+				mockRepo.EXPECT().UpdateContactListStatus(gomock.Any(), workspaceID, email, listID, tt.status).Return(nil)
+			}
+			if tt.expectResubscribe != nil {
+				mockRepo.EXPECT().ResubscribeContactToList(gomock.Any(), workspaceID, gomock.Any(), *tt.expectResubscribe).
+					DoAndReturn(func(_ context.Context, _ string, cl *domain.ContactList, _ bool) (bool, error) {
+						assert.Equal(t, domain.ContactListStatusActive, cl.Status)
+						assert.Equal(t, email, cl.Email)
+						assert.Equal(t, listID, cl.ListID)
+						return true, nil
+					})
+			}
+
+			result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, tt.status, tt.resubscribe)
+
+			if tt.wantOptedOut != "" {
+				var optedOut *domain.ErrContactListOptedOut
+				require.ErrorAs(t, err, &optedOut)
+				assert.Equal(t, tt.wantOptedOut, optedOut.Status)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				assert.True(t, result.Success)
+			}
+			// The service marks a re-subscription; the handler drops every other entry.
+			assert.Equal(t, tt.wantAudited, record.HasMetadata(domain.AuditResubscribedListIDs))
+		})
+	}
+}
+
+// A complaint recorded between the read and the resubscribe write is reported, not
+// overwritten.
+func TestContactListService_UpdateContactListStatus_ResubscribeLosesRace(t *testing.T) {
+	mockRepo, mockAuthService, _, _, service, ctrl := setupTest(t)
+	defer ctrl.Finish()
+	ctx := context.Background()
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, "ws").
+		Return(ctx, &domain.User{Type: domain.UserTypeAPIKey}, contactListFullAccess(), nil)
+	gomock.InOrder(
+		mockRepo.EXPECT().GetContactListByIDs(gomock.Any(), "ws", "a@example.com", "l").
+			Return(&domain.ContactList{Status: domain.ContactListStatusUnsubscribed}, nil),
+		mockRepo.EXPECT().ResubscribeContactToList(gomock.Any(), "ws", gomock.Any(), false).Return(false, nil),
+		// Read whatever deleted_at: the row may have been removed meanwhile.
+		mockRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), "ws", "a@example.com", "l").
+			Return(&domain.ContactList{Status: domain.ContactListStatusComplained, DeletedAt: &time.Time{}}, nil),
+	)
+
+	_, err := service.UpdateContactListStatus(ctx, "ws", "a@example.com", "l", domain.ContactListStatusActive, true)
+	var optedOut *domain.ErrContactListOptedOut
+	require.ErrorAs(t, err, &optedOut)
+	assert.Equal(t, domain.ContactListStatusComplained, optedOut.Status)
 }

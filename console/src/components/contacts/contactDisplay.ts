@@ -38,3 +38,23 @@ export const LIST_STATUS_LABEL: Record<string, MessageDescriptor> = {
   bounced: msg`Bounced`,
   complained: msg`Complained`
 }
+
+const LIST_STATUSES = ['active', 'pending', 'unsubscribed', 'bounced', 'complained'] as const
+
+const OPT_OUTS: readonly string[] = ['unsubscribed', 'bounced', 'complained']
+
+/**
+ * The statuses "Change status" offers from the current one, as the server allows them: a
+ * contact who opted out only moves to a stronger opt-out (unsubscribed, then bounced, then
+ * complained). Bringing them back is "Re-subscribe", which says what it overrides.
+ */
+export function contactListStatusOptions(current: string): string[] {
+  const rank = OPT_OUTS.indexOf(current)
+  if (rank < 0) return [...LIST_STATUSES]
+  return OPT_OUTS.slice(rank)
+}
+
+/** Whether "Re-subscribe" applies: an unsubscribe, or a bounce once the address works again. */
+export function canResubscribe(status: string): boolean {
+  return status === 'unsubscribed' || status === 'bounced'
+}

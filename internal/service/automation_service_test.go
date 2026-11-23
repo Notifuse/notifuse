@@ -1037,8 +1037,7 @@ func TestAutomationService_Activate(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)
 
 		err := service.Activate(ctx, workspaceID, automationID)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "already live")
+		requireInvalidState(t, err, "automation", automationID, "activate", string(domain.AutomationStatusLive))
 	})
 
 	t.Run("email nodes with no list_id - rejected", func(t *testing.T) {
@@ -1060,8 +1059,7 @@ func TestAutomationService_Activate(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)
 
 		err := service.Activate(ctx, workspaceID, automationID)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "cannot activate automation with email nodes when list_id is not set")
+		requireValidationError(t, err, "cannot activate automation with email nodes when list_id is not set")
 	})
 
 	t.Run("email nodes with list_id - allowed", func(t *testing.T) {
@@ -1302,8 +1300,7 @@ func TestAutomationService_Pause(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)
 
 		err := service.Pause(ctx, workspaceID, automationID)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "not live")
+		requireInvalidState(t, err, "automation", automationID, "pause", string(domain.AutomationStatusDraft))
 	})
 }
 
@@ -1346,6 +1343,7 @@ func TestAutomationService_GetContactNodeExecutions(t *testing.T) {
 			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(createTestAutomationService(automationID, workspaceID), nil)
 		mockRepo.EXPECT().GetContactAutomationByEmail(ctx, workspaceID, automationID, email).Return(contactAutomation, nil)
 		mockRepo.EXPECT().GetNodeExecutions(ctx, workspaceID, "ca-123").Return(nodeExecutions, nil)
 
@@ -1373,12 +1371,34 @@ func TestAutomationService_GetContactNodeExecutions(t *testing.T) {
 			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
-		mockRepo.EXPECT().GetContactAutomationByEmail(ctx, workspaceID, automationID, email).Return(nil, errors.New("not found"))
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(createTestAutomationService(automationID, workspaceID), nil)
+		mockRepo.EXPECT().GetContactAutomationByEmail(ctx, workspaceID, automationID, email).
+			Return(nil, &domain.ErrNotFound{Entity: "contact_automation", ID: email})
 
 		ca, entries, err := service.GetContactNodeExecutions(ctx, workspaceID, automationID, email)
-		assert.Error(t, err)
 		assert.Nil(t, ca)
 		assert.Nil(t, entries)
+		requireNotFound(t, err, "contact_automation", email)
+	})
+
+	// An unknown or deleted automation (GetByID excludes deleted ones) is not found before any
+	// journey is read: the journeys a deleted automation left behind are not served.
+	t.Run("unknown or deleted automation", func(t *testing.T) {
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).
+			Return(nil, &domain.ErrNotFound{Entity: "automation", ID: automationID})
+		mockRepo.EXPECT().GetContactAutomationByEmail(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		ca, entries, err := service.GetContactNodeExecutions(ctx, workspaceID, automationID, email)
+		assert.Nil(t, ca)
+		assert.Nil(t, entries)
+		requireNotFound(t, err, "automation", automationID)
 	})
 }
 
@@ -1495,8 +1515,7 @@ func TestAutomationService_Pause_OrderingAndCompensation(t *testing.T) {
 		repo.EXPECT().DropAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 		err := svc.Pause(ctx, workspaceID, automationID)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "not live")
+		requireInvalidState(t, err, "automation", automationID, "pause", string(domain.AutomationStatusDraft))
 	})
 
 	// The row stays paused: the scheduler and the executor both stop at it, and the leftover

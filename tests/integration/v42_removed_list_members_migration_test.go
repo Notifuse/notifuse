@@ -470,13 +470,12 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, "/unsubscribe")
 
-		// Subscribing again after an unsubscribe asks for double opt-in.
-		status, body := post(t, "/api/lists.subscribe", map[string]interface{}{
-			"workspace_id": workspace.ID,
-			"contact":      map[string]interface{}{"email": resub},
-			"list_ids":     []string{resubList.ID},
-		})
-		require.Equal(t, http.StatusOK, status, "lists.subscribe: %s", body)
+		// No route moves an unsubscribed row to pending any more, but the trigger this
+		// migration compiles must still report the transition, so it is written directly.
+		_, err = db.ExecContext(bg,
+			`UPDATE contact_lists SET status = 'pending', updated_at = NOW() WHERE email = $1 AND list_id = $2`,
+			resub, resubList.ID)
+		require.NoError(t, err)
 
 		deliveries := b24Deliveries(t, db, pendingSubscription, resub)
 		require.Len(t, deliveries, 1)

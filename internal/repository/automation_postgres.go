@@ -1012,7 +1012,7 @@ func (r *AutomationRepository) GetContactAutomationByEmail(ctx context.Context, 
 		&ca.LastRetryAt, &ca.MaxRetries,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("contact automation not found for email: %s", email)
+		return nil, &domain.ErrNotFound{Entity: "contact_automation", ID: email}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contact automation by email: %w", err)

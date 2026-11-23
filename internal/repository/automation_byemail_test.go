@@ -38,7 +38,9 @@ func TestAutomationRepository_GetContactAutomationByEmail_Contract(t *testing.T)
 
 		ca, err := repo.GetContactAutomationByEmail(ctx, "ws-1", "auto-1", "ghost@example.com")
 		assert.Nil(t, ca)
-		require.EqualError(t, err, "contact automation not found for email: ghost@example.com")
+		var notFound *domain.ErrNotFound
+		require.ErrorAs(t, err, &notFound)
+		assert.Equal(t, domain.ErrNotFound{Entity: "contact_automation", ID: "ghost@example.com"}, *notFound)
 		assert.NotErrorIs(t, err, sql.ErrNoRows)
 	})
 

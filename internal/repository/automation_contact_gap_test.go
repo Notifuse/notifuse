@@ -62,12 +62,14 @@ func TestGapGetContactAutomationTxErrors(t *testing.T) {
 func TestGapGetContactAutomationByEmailErrors(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
-	t.Run("not found uses the exact email-bearing message", func(t *testing.T) {
+	t.Run("not found is an ErrNotFound naming the email", func(t *testing.T) {
 		_, mock, repo := setupAutomationMock(t)
 		mock.ExpectQuery("FROM contact_automations").WithArgs("auto-1", "ghost@example.com").
 			WillReturnRows(sqlmock.NewRows(gapCACols))
 		_, err := repo.GetContactAutomationByEmail(ctx, "ws-1", "auto-1", "ghost@example.com")
-		require.EqualError(t, err, "contact automation not found for email: ghost@example.com")
+		var notFound *domain.ErrNotFound
+		require.ErrorAs(t, err, &notFound)
+		assert.Equal(t, domain.ErrNotFound{Entity: "contact_automation", ID: "ghost@example.com"}, *notFound)
 	})
 	t.Run("generic error and unmarshal error are distinctly wrapped", func(t *testing.T) {
 		_, mock, repo := setupAutomationMock(t)

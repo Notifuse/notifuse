@@ -841,6 +841,46 @@ type WebhookNodeConfig struct {
 	Secret *string `json:"secret,omitempty"` // Optional: becomes Authorization: Bearer <secret>
 }
 
+// webhookSecretKey is the key of WebhookNodeConfig.Secret in a node's stored config.
+const webhookSecretKey = "secret"
+
+// WithoutWebhookSecrets returns a copy of the automation whose webhook nodes carry no secret,
+// for a caller who may read automations but not write them: the secret is a bearer credential
+// for the webhook's endpoint, and reading an automation is not a reason to hold it. A writer
+// keeps it, since the console edits it and a writer could capture it anyway by changing the URL.
+//
+// The automation itself is left untouched, so an object a cache or another caller holds is
+// never changed. Nodes other than webhooks are shared with it, not copied.
+func (a *Automation) WithoutWebhookSecrets() *Automation {
+	if a == nil {
+		return nil
+	}
+	redacted := *a
+	if a.Nodes == nil {
+		return &redacted
+	}
+	redacted.Nodes = make([]*AutomationNode, len(a.Nodes))
+	for i, node := range a.Nodes {
+		if node == nil || node.Type != NodeTypeWebhook {
+			redacted.Nodes[i] = node
+			continue
+		}
+		if _, ok := node.Config[webhookSecretKey]; !ok {
+			redacted.Nodes[i] = node
+			continue
+		}
+		nodeCopy := *node
+		nodeCopy.Config = make(map[string]interface{}, len(node.Config)-1)
+		for key, value := range node.Config {
+			if key != webhookSecretKey {
+				nodeCopy.Config[key] = value
+			}
+		}
+		redacted.Nodes[i] = &nodeCopy
+	}
+	return &redacted
+}
+
 // Validate validates the webhook node config
 func (c WebhookNodeConfig) Validate() error {
 	if c.URL == "" {

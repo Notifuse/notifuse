@@ -101,11 +101,7 @@ func (h *TransactionalNotificationHandler) handleGet(w http.ResponseWriter, r *h
 
 	notification, err := h.service.GetNotification(r.Context(), req.WorkspaceID, req.ID)
 	if err != nil {
-		if writePermissionError(w, err) {
-			return
-		}
-		if strings.Contains(err.Error(), "not found") {
-			WriteJSONError(w, "Notification not found", http.StatusNotFound)
+		if writeServiceError(w, err, "Failed to get notification") {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get transactional notification")
@@ -138,7 +134,7 @@ func (h *TransactionalNotificationHandler) handleCreate(w http.ResponseWriter, r
 
 	notification, err := h.service.CreateNotification(r.Context(), req.WorkspaceID, req.Notification)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to create notification") {
 			return
 		}
 
@@ -178,14 +174,7 @@ func (h *TransactionalNotificationHandler) handleUpdate(w http.ResponseWriter, r
 
 	notification, err := h.service.UpdateNotification(r.Context(), req.WorkspaceID, req.ID, req.Updates)
 	if err != nil {
-		if writePermissionError(w, err) {
-			return
-		}
-		if writeValidationError(w, err) {
-			return
-		}
-		if strings.Contains(err.Error(), "not found") {
-			WriteJSONError(w, "Notification not found", http.StatusNotFound)
+		if writeServiceError(w, err, "Failed to update notification") {
 			return
 		}
 		if strings.Contains(err.Error(), "invalid template") {
@@ -221,14 +210,7 @@ func (h *TransactionalNotificationHandler) handleDelete(w http.ResponseWriter, r
 	}
 
 	if err := h.service.DeleteNotification(r.Context(), req.WorkspaceID, req.ID); err != nil {
-		if writePermissionError(w, err) {
-			return
-		}
-		if writeValidationError(w, err) {
-			return
-		}
-		if strings.Contains(err.Error(), "not found") {
-			WriteJSONError(w, "Notification not found", http.StatusNotFound)
+		if writeServiceError(w, err, "Failed to delete notification") {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to delete transactional notification")
@@ -265,6 +247,13 @@ func (h *TransactionalNotificationHandler) handleSend(w http.ResponseWriter, r *
 			return
 		}
 		if writeTemplateRenderError(w, err) {
+			return
+		}
+		// A notification ID that names nothing is found by type. It keeps the 400 the send has
+		// always answered and the OpenAPI spec documents, where transactional.get answers 404.
+		var notFound *domain.ErrNotFound
+		if errors.As(err, &notFound) {
+			WriteJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 

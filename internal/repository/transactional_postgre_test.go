@@ -13,6 +13,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -130,7 +131,33 @@ func TestTransactionalNotificationRepository_Create(t *testing.T) {
 		err := repo.Create(ctx, workspaceID, notification)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to create transactional notification")
+		var exists *domain.AlreadyExistsError
+		assert.False(t, errors.As(err, &exists), "only a unique violation is an ID already taken")
 	})
+
+	// The ID is the primary key, and a deleted notification keeps its row: the create of a
+	// taken ID says whether the row holding it is live or deleted.
+	for _, deleted := range []bool{false, true} {
+		name := "an ID held by a live notification"
+		if deleted {
+			name = "an ID held by a deleted notification"
+		}
+		t.Run(name, func(t *testing.T) {
+			mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+			mock.ExpectExec(`INSERT INTO transactional_notifications`).
+				WillReturnError(&pq.Error{Code: "23505", Constraint: "transactional_notifications_pkey"})
+			mock.ExpectQuery(`SELECT deleted_at IS NOT NULL FROM transactional_notifications WHERE id = \$1`).
+				WithArgs(notification.ID).
+				WillReturnRows(sqlmock.NewRows([]string{"deleted"}).AddRow(deleted))
+
+			err := repo.Create(ctx, workspaceID, notification)
+
+			var exists *domain.AlreadyExistsError
+			require.ErrorAs(t, err, &exists)
+			assert.Equal(t, domain.AlreadyExistsError{Entity: "transactional_notification", ID: notification.ID, Deleted: deleted}, *exists)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
 
 func TestTransactionalNotificationRepository_Update(t *testing.T) {
@@ -216,7 +243,9 @@ func TestTransactionalNotificationRepository_Update(t *testing.T) {
 
 		err := repo.Update(ctx, workspaceID, notification)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "transactional notification not found")
+		var notFound *domain.ErrNotFound
+		require.ErrorAs(t, err, &notFound)
+		assert.Equal(t, domain.ErrNotFound{Entity: "transactional_notification", ID: notification.ID}, *notFound)
 	})
 
 	t.Run("rows affected error", func(t *testing.T) {
@@ -309,7 +338,9 @@ func TestTransactionalNotificationRepository_Get(t *testing.T) {
 		result, err := repo.Get(ctx, workspaceID, notificationID)
 		require.Error(t, err)
 		require.Nil(t, result)
-		require.Contains(t, err.Error(), "transactional notification not found")
+		var notFound *domain.ErrNotFound
+		require.ErrorAs(t, err, &notFound)
+		assert.Equal(t, domain.ErrNotFound{Entity: "transactional_notification", ID: notificationID}, *notFound)
 	})
 
 	t.Run("workspace connection error", func(t *testing.T) {
@@ -621,7 +652,9 @@ func TestTransactionalNotificationRepository_Delete(t *testing.T) {
 
 		err := repo.Delete(ctx, workspaceID, notificationID)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "transactional notification not found")
+		var notFound *domain.ErrNotFound
+		require.ErrorAs(t, err, &notFound)
+		assert.Equal(t, domain.ErrNotFound{Entity: "transactional_notification", ID: notificationID}, *notFound)
 	})
 
 	t.Run("rows affected error", func(t *testing.T) {

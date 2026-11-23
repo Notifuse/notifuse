@@ -1566,3 +1566,60 @@ func TestSegmentHandler_HandlePreviewValueErrorWithoutCulprit(t *testing.T) {
 		"value_error": {"column": "", "path": [], "type": "", "email": "", "value": ""}
 	}`, rr.Body.String())
 }
+
+// A tree the service refuses and an ID already taken are the caller's request, not a fault:
+// 400 and 409, where both answered 500.
+func TestSegmentHandler_TypedServiceErrors(t *testing.T) {
+	createBody := `{"workspace_id":"workspace123","id":"vip","name":"VIP","color":"blue","timezone":"UTC",` +
+		`"tree":{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[]}}}}`
+
+	t.Run("create with a tree the builder cannot compile answers 400", func(t *testing.T) {
+		mockService, _, handler := setupSegmentHandlerTest(t)
+		mockService.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).
+			Return(nil, domain.NewValidationError("invalid segment tree: invalid field name: no_such_field"))
+
+		rr := httptest.NewRecorder()
+		handler.handleCreate(rr, httptest.NewRequest(http.MethodPost, "/api/segments.create", strings.NewReader(createBody)))
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.JSONEq(t, `{"error":"validation error: invalid segment tree: invalid field name: no_such_field"}`, rr.Body.String())
+	})
+
+	t.Run("create of an ID a deleted segment holds answers 409", func(t *testing.T) {
+		mockService, _, handler := setupSegmentHandlerTest(t)
+		mockService.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).
+			Return(nil, fmt.Errorf("failed to create segment: %w", domain.NewAlreadyExistsError("segment", "vip", true)))
+
+		rr := httptest.NewRecorder()
+		handler.handleCreate(rr, httptest.NewRequest(http.MethodPost, "/api/segments.create", strings.NewReader(createBody)))
+
+		assert.Equal(t, http.StatusConflict, rr.Code)
+		assert.JSONEq(t, `{
+			"error": "segment vip already exists and was deleted: its identifier cannot be reused",
+			"already_exists": {"entity": "segment", "id": "vip", "deleted": true}
+		}`, rr.Body.String())
+	})
+
+	t.Run("update with a tree the builder cannot compile answers 400", func(t *testing.T) {
+		mockService, _, handler := setupSegmentHandlerTest(t)
+		mockService.EXPECT().UpdateSegment(gomock.Any(), gomock.Any()).
+			Return(nil, domain.NewValidationError("invalid segment tree: invalid field name: no_such_field"))
+
+		rr := httptest.NewRecorder()
+		handler.handleUpdate(rr, httptest.NewRequest(http.MethodPost, "/api/segments.update", strings.NewReader(createBody)))
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("preview of a tree that does not validate answers 400", func(t *testing.T) {
+		mockService, _, handler := setupSegmentHandlerTest(t)
+		mockService.EXPECT().PreviewSegment(gomock.Any(), "workspace123", gomock.Any(), 10).
+			Return(nil, domain.NewValidationError("invalid segment tree: invalid tree node kind: nope (must be 'branch' or 'leaf')"))
+
+		body := `{"workspace_id":"workspace123","tree":{"kind":"nope"}}`
+		rr := httptest.NewRecorder()
+		handler.handlePreview(rr, httptest.NewRequest(http.MethodPost, "/api/segments.preview", strings.NewReader(body)))
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}

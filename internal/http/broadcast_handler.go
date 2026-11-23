@@ -298,7 +298,7 @@ func (h *BroadcastHandler) HandleSchedule(w http.ResponseWriter, r *http.Request
 
 	err := h.service.ScheduleBroadcast(r.Context(), &req)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to schedule broadcast") {
 			return
 		}
 		if writeSenderError(w, err) {
@@ -386,7 +386,7 @@ func (h *BroadcastHandler) HandlePause(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.PauseBroadcast(r.Context(), &req)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to pause broadcast") {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -424,7 +424,7 @@ func (h *BroadcastHandler) HandleResume(w http.ResponseWriter, r *http.Request) 
 
 	err := h.service.ResumeBroadcast(r.Context(), &req)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to resume broadcast") {
 			return
 		}
 		if writeSenderError(w, err) {
@@ -465,7 +465,7 @@ func (h *BroadcastHandler) HandleCancel(w http.ResponseWriter, r *http.Request) 
 
 	err := h.service.CancelBroadcast(r.Context(), &req)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to cancel broadcast") {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -546,7 +546,7 @@ func (h *BroadcastHandler) HandleSendToIndividual(w http.ResponseWriter, r *http
 
 	err := h.service.SendToIndividual(r.Context(), &req)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to send broadcast to individual") {
 			return
 		}
 		if writeSenderError(w, err) {
@@ -590,7 +590,7 @@ func (h *BroadcastHandler) HandleDelete(w http.ResponseWriter, r *http.Request) 
 
 	err := h.service.DeleteBroadcast(r.Context(), &req)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to delete broadcast") {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -663,7 +663,12 @@ func (h *BroadcastHandler) HandleSelectWinner(w http.ResponseWriter, r *http.Req
 
 	err := h.service.SelectWinner(r.Context(), req.WorkspaceID, req.ID, req.TemplateID)
 	if err != nil {
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to select winner") {
+			return
+		}
+		var notFound *domain.ErrBroadcastNotFound
+		if errors.As(err, &notFound) {
+			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
 			return
 		}
 		h.logger.WithFields(map[string]interface{}{
