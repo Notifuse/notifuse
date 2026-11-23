@@ -10,9 +10,9 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: `lists.subscribe` and `contactLists.updateStatus` accept `resubscribe: true` to bring back a contact who unsubscribed from a list: they become active with no confirmation email, and the audit log records it. Without the flag, `lists.subscribe` now leaves an unsubscribed contact unsubscribed and sends nothing, where it used to set them to pending with a confirmation email and make them active on a second call. If your integration re-subscribes contacts on purpose, add the flag. In the console, a list row on the contact page offers Re-subscribe, which can also clear a bounce once the address works again.
 
-- **Feature**: Notifuse can now sign with DKIM the emails sent through an SMTP integration. In **Settings** → **Domains**, an owner adds a sending domain and publishes the TXT record Notifuse shows, and signing starts as soon as Notifuse finds the record. The signature covers the one-click unsubscribe headers. Notifuse checks the records every hour, and stops signing with a key whose record is missing or wrong in 3 checks an hour apart.
+- **Feature**: SMTP integrations can sign their emails with DKIM. Add the sending domain in **Settings** → **Domains** and publish the TXT record shown: signing starts once Notifuse finds it.
 
-- **Fix**: An SMTP sender on an internationalized domain, such as `news@bücher.de`, now goes out with its domain in ASCII form (`xn--bcher-kva.de`). Notifuse sent the domain as raw UTF-8, which strict mail servers refuse.
+- **Fix**: SMTP senders on an internationalized domain (`news@bücher.de`) now go out in ASCII form. Notifuse sent raw UTF-8, which strict mail servers refuse.
 
 - **Fix**: Nothing re-subscribes a contact who opted out of a list any more. An automation's add-to-list step and `contactLists.updateStatus` could set an unsubscribed contact back to active, and the console could also revive a bounced or complained one. The add-to-list step now leaves them as they are and says so in its output, and a status change out of an opt-out returns 409. A form post with the address of a contact who unsubscribed no longer sets them to pending: it only sends the list's confirmation email, whose link brings them back.
 
