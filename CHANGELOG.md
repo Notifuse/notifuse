@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [44.1] - unreleased
+## [45.0] - unreleased
 
 - **Feature**: The web analytics dashboard opens with an Automated traffic card. It counts the sessions that load a page and never send a second signal, which is how crawlers, AI agents and headless browsers behave. The card shows their share of all sessions, its change since the comparison period, and the landing pages, browsers and countries they come from. The new Traffic Type dimension (`human` or `automated`) filters any report, and `analytics.query` gains the `automated_sessions` and `automated_share` measures. The demo workspace now has automated traffic too, with one overnight crawl.
 
