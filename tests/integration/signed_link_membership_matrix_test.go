@@ -233,12 +233,14 @@ func TestSignedLinkMembershipStateMatrix(t *testing.T) {
 			"none":                 {http.StatusOK, "active"},
 			"active":               {http.StatusOK, "active"},
 			"pending":              {http.StatusOK, "active"},
-			"unsubscribed":         {http.StatusOK, "pending"},
+			// A signed request is the contact's own: it brings them back at once, as the
+			// confirmation click of a double opt-in would.
+			"unsubscribed":         {http.StatusOK, "active"},
 			"bounced":              {http.StatusOK, "bounced"},
 			"complained":           {http.StatusOK, "complained"},
 			"removed active":       {http.StatusOK, "active"},
 			"removed pending":      {http.StatusOK, "active"},
-			"removed unsubscribed": {http.StatusOK, "pending"},
+			"removed unsubscribed": {http.StatusOK, "active"},
 			"removed bounced":      {http.StatusOK, "removed bounced"},
 			"removed complained":   {http.StatusOK, "removed complained"},
 		},

@@ -1823,7 +1823,7 @@
     "/api/contactLists.updateStatus": {
       "post": {
         "summary": "Update contact list subscription status",
-        "description": "Updates the subscription status of a contact in a specific list. Can set status to active, pending, unsubscribed, bounced, or complained.\n\n**Note:** This endpoint only modifies **existing** list memberships. It does not add a contact to a list. To add a contact to a list, use the `/subscribe` endpoint (for public lists) or the `/api/contacts.import` endpoint (for any list, requires authentication).\n",
+        "description": "Updates the subscription status of a contact in a specific list. Can set status to active, pending, unsubscribed, bounced, or complained.\n\nA contact who opted out keeps their opt-out. From `unsubscribed`, the status can only move to `bounced` or `complained`; from `bounced`, only to `complained`; `complained` is final. Other changes return `409` with the stored status.\n\nTo subscribe an `unsubscribed` contact again, send `status: active` with `resubscribe: true`. The audit log records it. An API key can't clear `bounced`; a user signed in to the console can, once the address works again.\n\n**Note:** This endpoint only modifies **existing** list memberships. It does not add a contact to a list. To add a contact to a list, use the `/subscribe` endpoint (for public lists) or the `/api/contacts.import` endpoint (for any list, requires authentication).\n",
         "operationId": "updateContactListStatus",
         "security": [
           {
@@ -1902,6 +1902,35 @@
                 },
                 "example": {
                   "error": "contact list not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The contact opted out of the list and the change would undo it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "What was refused and what would be allowed"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "unsubscribed",
+                        "bounced",
+                        "complained"
+                      ],
+                      "description": "The status the contact keeps"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "the contact unsubscribed from this list: set resubscribe to true to subscribe them again",
+                  "status": "unsubscribed"
                 }
               }
             }
@@ -8033,7 +8062,7 @@
     "/subscribe": {
       "post": {
         "summary": "Subscribe to email lists",
-        "description": "Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication.\n\n**Important:** This endpoint subscribes contacts to **public lists** only. To add a contact to a private list, use the authenticated `/api/lists.subscribe` endpoint with a bearer token. A valid `email_hmac` in the contact object only lets the contact confirm a pending double opt-in on a private list: it never adds them to one, nor back to one they left.\n\nIf the list has double opt-in enabled, a confirmation email will be sent.\n",
+        "description": "Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication.\n\n**Important:** This endpoint subscribes contacts to **public lists** only. To add a contact to a private list, use the authenticated `/api/lists.subscribe` endpoint with a bearer token. A valid `email_hmac` in the contact object only lets the contact confirm a pending double opt-in on a private list: it never adds them to one, nor back to one they left.\n\nIf the list has double opt-in enabled, a confirmation email will be sent.\n\nA contact who unsubscribed from a list stays unsubscribed after a request without `email_hmac`: when the list has a double opt-in template, they get the confirmation email, and its link subscribes them again. A request with a valid `email_hmac` subscribes them again at once. This endpoint ignores `resubscribe`.\n",
         "operationId": "subscribeToLists",
         "security": [],
         "requestBody": {
@@ -8115,7 +8144,7 @@
     "/api/lists.subscribe": {
       "post": {
         "summary": "Subscribe to email lists (authenticated)",
-        "description": "Subscribe a contact to one or more email lists. This is an authenticated endpoint that requires a bearer token.\n\nUnlike the public `/subscribe` endpoint, this endpoint can subscribe contacts to **any list** (public or private) as long as the authenticated user has write permission on lists.\n\n**Note:** Double opt-in is bypassed for authenticated requests. Contacts are immediately set to `active` status regardless of the list's double opt-in setting. This allows administrators to manually add contacts without requiring email confirmation.\n",
+        "description": "Subscribe a contact to one or more email lists. This is an authenticated endpoint that requires a bearer token.\n\nUnlike the public `/subscribe` endpoint, this endpoint can subscribe contacts to **any list** (public or private) as long as the authenticated user has write permission on lists.\n\n**Note:** Authenticated requests skip double opt-in, since you may have collected consent outside Notifuse: a new or `pending` subscription is set to `active` whatever the list's setting.\n\nA contact who unsubscribed from a list stays `unsubscribed`. No email is sent, and `contact_lists` in the response reports that status. Send `resubscribe: true` to subscribe them again: they become `active` with no confirmation email, and the audit log records it. Do this only when the contact asked for it. Bounced and complained contacts are never changed.\n",
         "operationId": "subscribeToListsAuthenticated",
         "security": [
           {
@@ -8144,6 +8173,13 @@
                       "type": "boolean",
                       "description": "Whether the subscription was successful",
                       "example": true
+                    },
+                    "contact_lists": {
+                      "type": "array",
+                      "description": "One entry per requested list, with the status the contact ended up in. A contact who unsubscribed and was not re-subscribed is reported as `unsubscribed`.",
+                      "items": {
+                        "$ref": "#/components/schemas/ContactList"
+                      }
                     }
                   }
                 }
@@ -9390,6 +9426,11 @@
               "product_updates"
             ],
             "minItems": 1
+          },
+          "resubscribe": {
+            "type": "boolean",
+            "default": false,
+            "description": "Set to `true` to subscribe a contact who unsubscribed from a list again. They become `active` with no confirmation email. Without it they stay `unsubscribed`. It never changes `bounced` or `complained`, and the public `/subscribe` endpoint ignores it."
           }
         }
       },
@@ -9815,6 +9856,11 @@
             ],
             "description": "New subscription status",
             "example": "active"
+          },
+          "resubscribe": {
+            "type": "boolean",
+            "default": false,
+            "description": "With `status` set to `active`, subscribes an `unsubscribed` contact again. A user signed in to the console can also clear `bounced`; an API key can't. `complained` never changes."
           }
         }
       },

@@ -116,6 +116,14 @@ export interface SubscribeToListsRequest {
   workspace_id: string
   contact: Contact
   list_ids: string[]
+  /** Sets a contact who unsubscribed back to active; without it they stay unsubscribed. */
+  resubscribe?: boolean
+}
+
+/** The membership each requested list ended up in. */
+export interface SubscribeToListsResponse {
+  success: boolean
+  contact_lists?: { list_id: string; status: string }[]
 }
 
 export const listsApi = {
@@ -161,7 +169,7 @@ export const listsApi = {
     return api.get<GetListStatsResponse>(`/api/lists.stats?${searchParams.toString()}`)
   },
 
-  subscribe: async (params: SubscribeToListsRequest): Promise<{ success: boolean }> => {
+  subscribe: async (params: SubscribeToListsRequest): Promise<SubscribeToListsResponse> => {
     return api.post('/api/lists.subscribe', params)
   }
 }

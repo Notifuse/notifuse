@@ -152,7 +152,10 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 		assert.Equal(t, "complained", getStatus(t, email))
 	})
 
-	t.Run("unsubscribed contact re-subscribes to pending", func(t *testing.T) {
+	// An anonymous form post can carry anyone's address, so it never undoes an unsubscribe.
+	// The list has no confirmation template, so nothing is sent either; the signed link of
+	// the contact's own emails brings them back.
+	t.Run("unsubscribed contact: the anonymous form changes nothing, the signed link re-subscribes", func(t *testing.T) {
 		email := fmt.Sprintf("unsub-%d@example.com", time.Now().UnixNano())
 		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
 		require.NoError(t, err)
@@ -165,10 +168,14 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		resp := subscribe(t, email, "")
-		defer func() { _ = resp.Body.Close() }()
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		_ = resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "the public endpoint answers 200 whatever the status")
+		assert.Equal(t, "unsubscribed", getStatus(t, email))
 
-		assert.Equal(t, "pending", getStatus(t, email))
+		resp = subscribe(t, email, domain.ComputeEmailHMAC(email, workspace.Settings.SecretKey))
+		_ = resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "active", getStatus(t, email))
 	})
 
 	t.Run("new contact subscribe creates subscription", func(t *testing.T) {

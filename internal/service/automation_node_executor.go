@@ -853,21 +853,31 @@ func (e *AddToListNodeExecutor) Execute(ctx context.Context, params NodeExecutio
 		UpdatedAt: now,
 	}
 
-	// A contact already in the list is updated in place, and a bounced or complained one is left
-	// as it is, both without an error: an error is a write that did not happen. Failing the step
-	// keeps the journey on it, and the executor retries it.
+	// A contact already in the list is updated in place, and an unsubscribed, bounced or
+	// complained one is left as it is, all without an error: an error is a write that did not
+	// happen. Failing the step keeps the journey on it, and the executor retries it. An
+	// automation never re-subscribes a contact who opted out.
 	err = e.contactListRepo.AddContactToList(ctx, params.WorkspaceID, contactList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add contact to list %s: %w", config.ListID, err)
 	}
 
+	output := map[string]interface{}{
+		"list_id": config.ListID,
+		"status":  config.Status,
+	}
+	// Read back, so the run shows a contact the node left opted out rather than the status
+	// it asked for. Best effort: the write is done, and a failed read must not replay it.
+	stored, readErr := e.contactListRepo.GetContactListIncludingRemoved(ctx, params.WorkspaceID, contactList.Email, config.ListID)
+	if readErr == nil && stored != nil && domain.IsOptOutContactListStatus(stored.Status) {
+		output["status"] = string(stored.Status)
+		output["skipped"] = "opted_out"
+	}
+
 	return &NodeExecutionResult{
 		NextNodeID: params.Node.NextNodeID,
 		Status:     domain.ContactAutomationStatusActive,
-		Output: buildNodeOutput(domain.NodeTypeAddToList, map[string]interface{}{
-			"list_id": config.ListID,
-			"status":  config.Status,
-		}),
+		Output:     buildNodeOutput(domain.NodeTypeAddToList, output),
 	}, nil
 }
 

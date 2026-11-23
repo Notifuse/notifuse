@@ -34,6 +34,32 @@ func IsTerminalContactListStatus(status ContactListStatus) bool {
 	return status == ContactListStatusBounced || status == ContactListStatusComplained
 }
 
+// IsOptOutContactListStatus reports whether a status records that the contact must not be
+// mailed on the list: an unsubscribe, a bounce or a complaint. Nothing writes a contact
+// out of one of them implicitly; see ContactListStatusTransitionAllowed.
+func IsOptOutContactListStatus(status ContactListStatus) bool {
+	return status == ContactListStatusUnsubscribed || IsTerminalContactListStatus(status)
+}
+
+// ContactListStatusTransitionAllowed reports whether a plain status change, one that does
+// not ask to re-subscribe, may move a row from one status to another. A row that is not
+// opted out may go anywhere. An opted-out row may only move to a stronger opt-out:
+// unsubscribed to bounced or complained, bounced to complained. A complaint is final.
+// Leaving an opt-out for active is a re-subscription, which only an explicit
+// resubscribe flag performs (ResubscribeContactToList).
+func ContactListStatusTransitionAllowed(from, to ContactListStatus) bool {
+	if from == to || !IsOptOutContactListStatus(from) {
+		return true
+	}
+	switch from {
+	case ContactListStatusUnsubscribed:
+		return IsTerminalContactListStatus(to)
+	case ContactListStatusBounced:
+		return to == ContactListStatusComplained
+	}
+	return false
+}
+
 // ContactList represents the relationship between a contact and a list
 type ContactList struct {
 	Email     string            `json:"email"`
@@ -255,6 +281,10 @@ type UpdateContactListStatusRequest struct {
 	Email       string `json:"email"`
 	ListID      string `json:"list_id"`
 	Status      string `json:"status"`
+	// Resubscribe sets an unsubscribed row back to active, which a plain status change
+	// refuses. Only with status active. A console user may also clear a bounce this
+	// way; an API key may not, and nobody can clear a complaint.
+	Resubscribe bool `json:"resubscribe,omitempty"`
 }
 
 func (r *UpdateContactListStatusRequest) Validate() (workspaceID string, list *ContactList, err error) {
@@ -294,6 +324,10 @@ func (r *UpdateContactListStatusRequest) Validate() (workspaceID string, list *C
 
 	if !validStatus {
 		return "", nil, fmt.Errorf("invalid status: %s", r.Status)
+	}
+
+	if r.Resubscribe && r.Status != string(ContactListStatusActive) {
+		return "", nil, fmt.Errorf("resubscribe requires status %q", ContactListStatusActive)
 	}
 
 	return r.WorkspaceID, &ContactList{
@@ -341,15 +375,24 @@ type ContactListService interface {
 	GetListsByEmail(ctx context.Context, workspaceID string, email string) ([]*ContactList, error)
 
 	// UpdateContactListStatus updates the status of a contact on a list
-	UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status ContactListStatus) (*UpdateContactListStatusResult, error)
+	// A change out of an opt-out returns ErrContactListOptedOut, unless resubscribe
+	// asks for one the caller may make.
+	UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status ContactListStatus, resubscribe bool) (*UpdateContactListStatusResult, error)
 
 	// RemoveContactFromList removes a contact from a list
 	RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error
 }
 
 type ContactListRepository interface {
-	// AddContactToList adds a contact to a list
+	// AddContactToList adds a contact to a list. A row that is unsubscribed, bounced or
+	// complained keeps its status: the write is skipped without an error.
 	AddContactToList(ctx context.Context, workspaceID string, contactList *ContactList) error
+
+	// ResubscribeContactToList writes contactList's status over an unsubscribed row, and
+	// over a bounced one when clearBounce is set, never over a complaint. It is the one
+	// way out of an opt-out, for the contact's own subscription and the explicit
+	// resubscribe flag. It reports whether a row was written.
+	ResubscribeContactToList(ctx context.Context, workspaceID string, contactList *ContactList, clearBounce bool) (bool, error)
 
 	// BulkAddContactsToLists adds multiple contacts to multiple lists in a single operation
 	BulkAddContactsToLists(ctx context.Context, workspaceID string, emails []string, listIDs []string, status ContactListStatus) error
@@ -369,6 +412,8 @@ type ContactListRepository interface {
 	GetListsByEmail(ctx context.Context, workspaceID string, email string) ([]*ContactList, error)
 
 	// UpdateContactListStatus updates the status of a contact on a list
+	// A row that is opted out only moves to a stronger opt-out
+	// (ContactListStatusTransitionAllowed); otherwise ErrContactListOptedOut.
 	UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status ContactListStatus) error
 
 	// MarkContactListUnsubscribed records a contact's opt-out on their row on the list
@@ -394,6 +439,23 @@ type ErrContactListNotFound struct {
 
 func (e *ErrContactListNotFound) Error() string {
 	return e.Message
+}
+
+// ErrContactListOptedOut is a status change refused because the contact opted out of the
+// list: the row stays in Status. The handler answers 409.
+type ErrContactListOptedOut struct {
+	Status ContactListStatus
+}
+
+func (e *ErrContactListOptedOut) Error() string {
+	switch e.Status {
+	case ContactListStatusUnsubscribed:
+		return "the contact unsubscribed from this list: set resubscribe to true to subscribe them again"
+	case ContactListStatusBounced:
+		return "the contact's address bounced on this list: only a console user can re-subscribe them"
+	default:
+		return fmt.Sprintf("the contact is %s on this list, which cannot be changed", e.Status)
+	}
 }
 
 // UpdateContactListStatusResult represents the result of updating a contact list status

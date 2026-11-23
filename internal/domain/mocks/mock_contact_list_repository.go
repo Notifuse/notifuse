@@ -167,6 +167,21 @@ func (mr *MockContactListRepositoryMockRecorder) RemoveContactFromList(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveContactFromList", reflect.TypeOf((*MockContactListRepository)(nil).RemoveContactFromList), arg0, arg1, arg2, arg3)
 }
 
+// ResubscribeContactToList mocks base method.
+func (m *MockContactListRepository) ResubscribeContactToList(arg0 context.Context, arg1 string, arg2 *domain.ContactList, arg3 bool) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResubscribeContactToList", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResubscribeContactToList indicates an expected call of ResubscribeContactToList.
+func (mr *MockContactListRepositoryMockRecorder) ResubscribeContactToList(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResubscribeContactToList", reflect.TypeOf((*MockContactListRepository)(nil).ResubscribeContactToList), arg0, arg1, arg2, arg3)
+}
+
 // UpdateContactListStatus mocks base method.
 func (m *MockContactListRepository) UpdateContactListStatus(arg0 context.Context, arg1, arg2, arg3 string, arg4 domain.ContactListStatus) error {
 	m.ctrl.T.Helper()

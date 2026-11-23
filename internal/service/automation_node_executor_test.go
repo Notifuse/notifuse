@@ -2577,6 +2577,9 @@ func TestAddToListNodeExecutor_Execute_Success(t *testing.T) {
 	mockContactListRepo.EXPECT().
 		AddContactToList(gomock.Any(), "ws1", gomock.Any()).
 		Return(nil)
+	mockContactListRepo.EXPECT().
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "test@example.com", "list123").
+		Return(&domain.ContactList{Status: domain.ContactListStatusActive}, nil)
 
 	executor := NewAddToListNodeExecutor(mockContactListRepo)
 
@@ -2607,6 +2610,49 @@ func TestAddToListNodeExecutor_Execute_Success(t *testing.T) {
 	assert.Equal(t, "list123", result.Output["list_id"])
 	assert.Equal(t, "active", result.Output["status"])
 	assert.NotContains(t, result.Output, "error")
+}
+
+// An automation never re-subscribes a contact who opted out. The repository keeps the
+// row, and the node's output says so instead of reporting the status it asked for; a failed
+// read-back leaves the output as asked, since the write itself succeeded.
+func TestAddToListNodeExecutor_Execute_OptedOutContactIsLeftAlone(t *testing.T) {
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{ID: "add_to_list1", Type: domain.NodeTypeAddToList, NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{"list_id": "list123", "status": "active"}},
+		Contact: &domain.ContactAutomation{ID: "ca1", ContactEmail: "test@example.com"},
+	}
+	for _, stored := range []domain.ContactListStatus{
+		domain.ContactListStatusUnsubscribed, domain.ContactListStatusBounced, domain.ContactListStatusComplained,
+	} {
+		t.Run(string(stored), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			repo := mocks.NewMockContactListRepository(ctrl)
+			repo.EXPECT().AddContactToList(gomock.Any(), "ws1", gomock.Any()).Return(nil)
+			repo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), "ws1", "test@example.com", "list123").
+				Return(&domain.ContactList{Status: stored}, nil)
+			repo.EXPECT().ResubscribeContactToList(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+			result, err := NewAddToListNodeExecutor(repo).Execute(context.Background(), params)
+			require.NoError(t, err)
+			assert.Equal(t, "next_node", *result.NextNodeID)
+			assert.Equal(t, string(stored), result.Output["status"])
+			assert.Equal(t, "opted_out", result.Output["skipped"])
+		})
+	}
+
+	t.Run("a failed read-back keeps the step successful", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockContactListRepository(ctrl)
+		repo.EXPECT().AddContactToList(gomock.Any(), "ws1", gomock.Any()).Return(nil)
+		repo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), "ws1", "test@example.com", "list123").
+			Return(nil, errors.New("connection reset"))
+
+		result, err := NewAddToListNodeExecutor(repo).Execute(context.Background(), params)
+		require.NoError(t, err)
+		assert.Equal(t, "active", result.Output["status"])
+		assert.NotContains(t, result.Output, "skipped")
+	})
 }
 
 func TestAddToListNodeExecutor_Execute_RepositoryError(t *testing.T) {

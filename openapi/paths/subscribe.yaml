@@ -7,6 +7,8 @@
       **Important:** This endpoint subscribes contacts to **public lists** only. To add a contact to a private list, use the authenticated `/api/lists.subscribe` endpoint with a bearer token. A valid `email_hmac` in the contact object only lets the contact confirm a pending double opt-in on a private list: it never adds them to one, nor back to one they left.
 
       If the list has double opt-in enabled, a confirmation email will be sent.
+
+      A contact who unsubscribed from a list stays unsubscribed after a request without `email_hmac`: when the list has a double opt-in template, they get the confirmation email, and its link subscribes them again. A request with a valid `email_hmac` subscribes them again at once. This endpoint ignores `resubscribe`.
     operationId: subscribeToLists
     security: []
     requestBody:
@@ -63,7 +65,9 @@
 
       Unlike the public `/subscribe` endpoint, this endpoint can subscribe contacts to **any list** (public or private) as long as the authenticated user has write permission on lists.
 
-      **Note:** Double opt-in is bypassed for authenticated requests. Contacts are immediately set to `active` status regardless of the list's double opt-in setting. This allows administrators to manually add contacts without requiring email confirmation.
+      **Note:** Authenticated requests skip double opt-in, since you may have collected consent outside Notifuse: a new or `pending` subscription is set to `active` whatever the list's setting.
+
+      A contact who unsubscribed from a list stays `unsubscribed`. No email is sent, and `contact_lists` in the response reports that status. Send `resubscribe: true` to subscribe them again: they become `active` with no confirmation email, and the audit log records it. Do this only when the contact asked for it. Bounced and complained contacts are never changed.
     operationId: subscribeToListsAuthenticated
     security:
       - BearerAuth: []
@@ -85,6 +89,11 @@
                   type: boolean
                   description: Whether the subscription was successful
                   example: true
+                contact_lists:
+                  type: array
+                  description: One entry per requested list, with the status the contact ended up in. A contact who unsubscribed and was not re-subscribed is reported as `unsubscribed`.
+                  items:
+                    $ref: '../components/schemas/contact.yaml#/ContactList'
       '400':
         description: Bad request - validation failed
         content:
