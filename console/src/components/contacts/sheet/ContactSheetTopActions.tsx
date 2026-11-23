@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { Button, Tooltip } from 'antd'
 import { RefreshCw, Trash2 } from 'lucide-react'
@@ -25,9 +25,11 @@ export function ContactSheetTopActions({
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const fetching = useIsFetching({ queryKey: contactKey(workspaceId, email) }) > 0
-  const [forgetOptOuts, setForgetOptOuts] = useState(false)
-  // A box ticked for one contact never carries over to the next one the sheet shows.
-  useEffect(() => setForgetOptOuts(false), [email])
+  // Tied to the address it was ticked for: a box ticked for one contact never carries over
+  // to the next one the sheet shows.
+  const [forgetFor, setForgetFor] = useState<string | null>(null)
+  const forgetOptOuts = forgetFor === email
+  const setForgetOptOuts = (checked: boolean) => setForgetFor(checked ? email : null)
 
   // The contact and everything the sheet reads about it.
   const refresh = () => {

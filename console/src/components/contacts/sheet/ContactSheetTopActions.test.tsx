@@ -81,6 +81,26 @@ describe('ContactSheetTopActions', () => {
     expect(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' })).not.toBeChecked()
   })
 
+  it('does not carry « also forget their unsubscribes » over to the next contact', async () => {
+    const queryClient = new QueryClient()
+    const onDelete = vi.fn()
+    const ui = (email: string) => (
+      <QueryClientProvider client={queryClient}>
+        <App>
+          <ContactSheetTopActions workspaceId="ws" email={email} canWriteContacts onDelete={onDelete} />
+        </App>
+      </QueryClientProvider>
+    )
+    const { rerender } = render(ui('ann@x.com'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete contact' }))
+    const popover = (await screen.findByText(WARNING)).closest('.ant-popover') as HTMLElement
+    fireEvent.click(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' }))
+    expect(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' })).toBeChecked()
+
+    rerender(ui('bob@x.com'))
+    expect(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' })).not.toBeChecked()
+  })
+
   it('does not delete when the popconfirm is cancelled', async () => {
     const { onDelete } = renderActions()
     fireEvent.click(screen.getByRole('button', { name: 'Delete contact' }))
