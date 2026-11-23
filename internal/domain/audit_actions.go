@@ -359,6 +359,13 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"workspaces.verifyInvitationToken": {},
 }
 
+// MCPAuditedActions are the routes in AuditExcludedRoutes whose MCP tool still
+// writes a row: every MCP tool that is not a read is recorded under its API
+// route's action name, and a route the API does not audit takes its category
+// and target type from here. The audit middleware never reads this table, so
+// the same route called on /api/ stays unrecorded.
+var MCPAuditedActions = map[string]AuditActionSpec{}
+
 // AuditSystemActions are written by the server itself, outside any request.
 var AuditSystemActions = map[string]AuditActionSpec{
 	"audit.purged":             {Category: AuditCategoryAudit, TargetType: AuditTargetAuditLog},

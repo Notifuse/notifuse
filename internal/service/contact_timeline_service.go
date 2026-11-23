@@ -27,20 +27,9 @@ func NewContactTimelineService(repo domain.ContactTimelineRepository, authServic
 	}
 }
 
-// timelineEntityPermissions names, for the entity types that carry more than the contact,
-// the resource a member must be able to read to see them. Provider events (bounces,
-// complaints) carry the message's template and ID, so they go with message history.
-var timelineEntityPermissions = map[string]domain.PermissionResource{
-	domain.TimelineEntityMessageHistory:      domain.PermissionResourceMessageHistory,
-	domain.TimelineEntityInboundWebhookEvent: domain.PermissionResourceMessageHistory,
-	domain.TimelineEntityWebhookEvent:        domain.PermissionResourceMessageHistory,
-	domain.TimelineEntityWebSession:          domain.PermissionResourceWebAnalytics,
-	domain.TimelineEntityWebPage:             domain.PermissionResourceWebAnalytics,
-}
-
 // timelinePublicEntityTypes are the entity types that carry nothing beyond the contact, so
 // reading contacts is enough. Every type of domain.TimelineEntityTypes is in this list or in
-// timelineEntityPermissions (TestTimelineEntityTypes_AllClassified).
+// domain.TimelineEntityPermissions (TestTimelineEntityTypes_AllClassified).
 var timelinePublicEntityTypes = []string{
 	domain.TimelineEntityContact,
 	domain.TimelineEntityContactList,
@@ -67,7 +56,7 @@ func (s *ContactTimelineService) List(ctx context.Context, workspaceID string, e
 	}
 
 	readable := func(entityType string) bool {
-		resource, gated := timelineEntityPermissions[entityType]
+		resource, gated := domain.TimelineEntityPermissions[entityType]
 		return !gated || userWorkspace.HasPermission(resource, domain.PermissionTypeRead)
 	}
 

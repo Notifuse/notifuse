@@ -27,6 +27,7 @@ import (
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1184,6 +1185,53 @@ func TestAppInitHandlers(t *testing.T) {
 		req := httptest.NewRequest("GET", route, nil)
 		_, pattern := mux.Handler(req)
 		assert.Equal(t, route, pattern, "Route should be registered: %s", route)
+	}
+
+	// /mcp is mounted inside the mux, and with MCP_ENABLED off it answers a JSON
+	// 404 rather than the console redirect the root handler gives unknown paths.
+	for route, wantPattern := range map[string]string{"/mcp": "/mcp", "/mcp/": "/mcp/", "/mcp/x": "/mcp/"} {
+		_, pattern := mux.Handler(httptest.NewRequest(http.MethodPost, route, nil))
+		assert.Equal(t, wantPattern, pattern, "Route should be registered: %s", route)
+	}
+	rec := httptest.NewRecorder()
+	app.GetHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+}
+
+// The MCP limits are enforced, not only named: a missing policy would refuse
+// every MCP request, since the rate limiter fails closed.
+func TestAppInitServices_SetsTheMCPRateLimits(t *testing.T) {
+	mockDB, _, err := setupTestDBMock()
+	require.NoError(t, err)
+	defer func() { _ = mockDB.Close() }()
+
+	cfg := createTestConfig()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+	require.NoError(t, pkgDatabase.InitializeConnectionManager(cfg, mockDB))
+	defer pkgDatabase.ResetConnectionManager()
+	require.NoError(t, app.InitRepositories())
+	require.NoError(t, app.InitServices())
+
+	limiter := app.(*App).rateLimiter
+	for namespace, want := range map[string]ratelimiter.RatePolicy{
+		"mcp":           {MaxAttempts: 120, Window: time.Minute},
+		"mcp_send":      {MaxAttempts: 30, Window: time.Minute},
+		"mcp_auth_fail": {MaxAttempts: 60, Window: time.Minute},
+	} {
+		got, ok := limiter.Policy(namespace)
+		require.True(t, ok, "%s has no policy", namespace)
+		assert.Equal(t, want, got, namespace)
 	}
 }
 

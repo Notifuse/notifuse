@@ -30,6 +30,10 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
 
+- **Fix**: `broadcasts.list` no longer repeats or skips broadcasts created at the same instant when it pages: they are ordered by creation date, then by ID.
+
+- **Fix**: `contacts.list` no longer answers 500 when asked for the page after a contact whose email contains `~`. The cursor joins a date and an email with that character, and the email's own `~` broke it.
+
 ## [44.0] - 2026-11-19
 
 ### Before you upgrade
