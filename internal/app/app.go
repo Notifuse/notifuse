@@ -134,6 +134,7 @@ type App struct {
 	customEventRepo               domain.CustomEventRepository
 	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
 	webhookDeliveryRepo           domain.WebhookDeliveryRepository
+	contactErasureRepo            domain.ContactErasureRepository
 	automationRepo                domain.AutomationRepository
 	emailQueueRepo                domain.EmailQueueRepository
 	webAnalyticsRepo              domain.WebAnalyticsRepository
@@ -186,6 +187,7 @@ type App struct {
 	licenseService                   *service.LicenseService
 	auditLogService                  *service.AuditLogService
 	auditLogPurgeWorker              *service.AuditLogPurgeWorker
+	dataRetentionWorker              *service.DataRetentionWorker
 	dkimKeyStore                     *service.DKIMKeyStore
 	dkimService                      *service.DKIMService
 	dkimVerificationWorker           *service.DKIMVerificationWorker
@@ -650,6 +652,7 @@ func (a *App) InitRepositories() error {
 	a.annotationRepo = repository.NewAnnotationRepository(a.workspaceRepo)
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
 	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo, a.logger)
+	a.contactErasureRepo = repository.NewContactErasureRepository(a.workspaceRepo)
 
 	// Create trigger generator for automation repository
 	queryBuilder := service.NewQueryBuilder()
@@ -721,6 +724,7 @@ func (a *App) InitServices() error {
 	})
 	a.auditLogService.Init(context.Background())
 	a.auditLogPurgeWorker = service.NewAuditLogPurgeWorker(a.auditLogService, a.logger)
+	a.dataRetentionWorker = service.NewDataRetentionWorker(a.workspaceRepo, a.contactErasureRepo, a.logger)
 
 	var err error
 
@@ -890,6 +894,7 @@ func (a *App) InitServices() error {
 		a.contactSegmentQueueRepo,
 		a.logger,
 	)
+	a.contactService.SetErasureRepository(a.contactErasureRepo)
 
 	// Initialize contact list service
 	a.contactListService = service.NewContactListService(
@@ -1949,6 +1954,13 @@ func (a *App) Start() error {
 	// consults the licence, so it runs in every licence state and in demo mode.
 	if a.auditLogPurgeWorker != nil {
 		go a.auditLogPurgeWorker.Start(a.GetShutdownContext())
+	}
+
+	// Data retention housekeeping: daily, after its own initial delay. It only deletes
+	// (the opt-out hashes of deleted contacts after three years), so like the audit purge
+	// it never consults the licence and runs in every licence state.
+	if a.dataRetentionWorker != nil {
+		go a.dataRetentionWorker.Start(a.GetShutdownContext())
 	}
 
 	// DKIM record checks: hourly, one instance at a time. Not in demo mode, which

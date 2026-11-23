@@ -116,6 +116,9 @@ func TestV42Migration_FrozenTimelineFunctionIsTheSharedOneWithoutTheLinkStep(t *
 
 	shared := schema.TrackMessageHistoryChangesFunction()
 	require.Len(t, linkStep.FindAllString(shared, -1), 1)
+	// The v45 early return for an erased contact's messages is not in v42's body either.
+	require.Equal(t, 1, strings.Count(shared, schema.ErasedContactStep))
+	shared = strings.Replace(shared, schema.ErasedContactStep, "", 1)
 	assert.NotContains(t, v42TrackMessageHistoryChangesFn, "link_clicked")
 	assert.Equal(t, collapse(v42TrackMessageHistoryChangesFn), collapse(linkStep.ReplaceAllString(shared, "")))
 }

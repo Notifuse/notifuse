@@ -113,15 +113,14 @@ func TestMessageHistoryRedactionFiresNoTriggerFanout(t *testing.T) {
 
 	type stamps struct {
 		sent, delivered, opened, clicked, bounced, complained, unsubscribed string
-		statusInfo                                                          string
 	}
 	readStamps := func(id string) stamps {
 		var s stamps
 		require.NoError(t, wsDB.QueryRow(`
 			SELECT sent_at::text, delivered_at::text, opened_at::text, clicked_at::text,
-			       bounced_at::text, complained_at::text, unsubscribed_at::text, status_info
+			       bounced_at::text, complained_at::text, unsubscribed_at::text
 			FROM message_history WHERE id = $1`, id).Scan(
-			&s.sent, &s.delivered, &s.opened, &s.clicked, &s.bounced, &s.complained, &s.unsubscribed, &s.statusInfo))
+			&s.sent, &s.delivered, &s.opened, &s.clicked, &s.bounced, &s.complained, &s.unsubscribed))
 		return s
 	}
 	before := readStamps(victimMsgID)
@@ -155,6 +154,13 @@ func TestMessageHistoryRedactionFiresNoTriggerFanout(t *testing.T) {
 			"broadcast stats sum these columns — moving one rewrites the broadcast's history")
 	})
 
+	// status_info is cleared with the address: a bounce or send error quotes the recipient.
+	// The early return of track_message_history_changes keeps the clearing out of the
+	// timeline, which the next subtest checks.
+	t.Run("the error text quoting the recipient is cleared", func(t *testing.T) {
+		assert.Equal(t, 1, count(t, `SELECT count(*) FROM message_history WHERE id = $1 AND status_info IS NULL`, victimMsgID))
+	})
+
 	t.Run("broadcast stats are unchanged", func(t *testing.T) {
 		assert.Equal(t, 2, count(t, `SELECT count(*) FROM message_history WHERE broadcast_id = 'b-1'`),
 			"the redacted send left the broadcast")
@@ -175,13 +181,18 @@ func TestMessageHistoryRedactionFiresNoTriggerFanout(t *testing.T) {
 			"the erasure grew the timeline instead of shrinking it")
 	})
 
+	// The victim's own email.sent delivery, queued before the deletion, carries their
+	// address and is deleted with them; the bystander's stays.
 	t.Run("the webhook trigger fanned out nothing", func(t *testing.T) {
-		assert.Equal(t, 2, count(t, `SELECT count(*) FROM webhook_deliveries WHERE event_type = 'email.sent'`),
-			"the redaction UPDATE re-announced the send")
+		assert.Equal(t, 1, count(t, `SELECT count(*) FROM webhook_deliveries WHERE event_type = 'email.sent'`),
+			"the redaction UPDATE re-announced the send, or the erasure took the bystander's delivery")
+		assert.Equal(t, 1, count(t, `SELECT count(*) FROM webhook_deliveries WHERE event_type = 'email.sent' AND payload->>'email' = $1`, bystander),
+			"the bystander's delivery is not the erasure's to delete")
 		assert.Zero(t, count(t, `SELECT count(*) FROM webhook_deliveries WHERE event_type LIKE 'email.%' AND event_type != 'email.sent'`),
 			"the redaction UPDATE announced an engagement event that never happened — and its payload carries the address")
-		assert.Equal(t, deliveriesBefore+1, count(t, `SELECT count(*) FROM webhook_deliveries`),
-			"contact.deleted is the only event the erasure should add")
+		assert.Equal(t, deliveriesBefore, count(t, `SELECT count(*) FROM webhook_deliveries`),
+			"contact.deleted is the only event the erasure adds, and it takes the victim's email.sent")
+		assert.Equal(t, 1, count(t, `SELECT count(*) FROM webhook_deliveries WHERE event_type = 'contact.deleted'`))
 	})
 
 	t.Run("the subscription-status trigger stayed put", func(t *testing.T) {

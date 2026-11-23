@@ -65,17 +65,17 @@ func (mr *MockContactServiceMockRecorder) CountContacts(arg0, arg1 interface{}) 
 }
 
 // DeleteContact mocks base method.
-func (m *MockContactService) DeleteContact(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockContactService) DeleteContact(arg0 context.Context, arg1, arg2 string, arg3 domain.DeleteContactOptions) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteContact", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeleteContact", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteContact indicates an expected call of DeleteContact.
-func (mr *MockContactServiceMockRecorder) DeleteContact(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockContactServiceMockRecorder) DeleteContact(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContact", reflect.TypeOf((*MockContactService)(nil).DeleteContact), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContact", reflect.TypeOf((*MockContactService)(nil).DeleteContact), arg0, arg1, arg2, arg3)
 }
 
 // GetContactByEmail mocks base method.

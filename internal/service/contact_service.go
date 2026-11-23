@@ -26,7 +26,18 @@ type ContactService struct {
 	customEventRepo         domain.CustomEventRepository
 	segmentRepo             domain.SegmentRepository
 	contactSegmentQueueRepo domain.ContactSegmentQueueRepository
-	logger                  logger.Logger
+	// erasureRepo holds the erasure steps no other repository owns: automation journeys,
+	// webhook deliveries carrying the address, opt-out hashes. Set by
+	// SetErasureRepository; app wiring always supplies it.
+	erasureRepo domain.ContactErasureRepository
+	logger      logger.Logger
+}
+
+// SetErasureRepository supplies the erasure steps that span tables no other repository
+// owns. A setter rather than another positional constructor argument, which the comment on
+// NewContactService warns against.
+func (s *ContactService) SetErasureRepository(repo domain.ContactErasureRepository) {
+	s.erasureRepo = repo
 }
 
 // NewContactService takes its dependencies positionally, which is defensible at
@@ -160,7 +171,7 @@ func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContact
 	return response, nil
 }
 
-func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, email string) error {
+func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, email string, opts domain.DeleteContactOptions) error {
 	// Normalize email for consistent lookups
 	email = domain.NormalizeEmail(email)
 
@@ -206,6 +217,23 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 	if err := s.inboundWebhookEventRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
 		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete webhook events: %v", err))
 		return fmt.Errorf("failed to delete webhook events: %w", err)
+	}
+
+	// The contact's opt-outs survive them as hashes, written by the same statement that
+	// deletes their contact_lists rows: a later import of the address must not subscribe
+	// someone who unsubscribed, bounced or complained. Fatal: deleting the rows without
+	// the hashes would forget the opt-outs for good. With forget_opt_outs, nothing is kept,
+	// not even a hash an earlier, interrupted attempt recorded.
+	if s.erasureRepo != nil {
+		if opts.ForgetOptOuts {
+			if err := s.erasureRepo.ForgetOptOutHashes(ctx, workspaceID, email); err != nil {
+				s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to forget opt-out hashes: %v", err))
+				return fmt.Errorf("failed to forget opt-out hashes: %w", err)
+			}
+		} else if _, err := s.erasureRepo.DeleteListRowsKeepingOptOuts(ctx, workspaceID, email, domain.OptOutHashSourceDelete); err != nil {
+			s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to record opt-out hashes: %v", err))
+			return fmt.Errorf("failed to record opt-out hashes: %w", err)
+		}
 	}
 
 	if err := s.contactListRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
@@ -292,6 +320,29 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 		if err := s.contactSegmentQueueRepo.RemoveFromQueue(ctx, workspaceID, email); err != nil {
 			s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to remove contact from the segment queue: %v", err))
 			return fmt.Errorf("failed to remove contact from the segment queue: %w", err)
+		}
+	}
+
+	// Their automation journeys (step executions cascade) and trigger log: the journey
+	// context holds the triggering event, and step outputs the address. After the segment
+	// step: its segment.left timeline rows start the automations listening for them, which
+	// would enrol the contact again under their erased address. The step statistics of the
+	// automations drop by this contact; the enrolled counter does not.
+	if s.erasureRepo != nil {
+		if err := s.erasureRepo.DeleteJourneysForEmail(ctx, workspaceID, email); err != nil {
+			s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete automation journeys: %v", err))
+			return fmt.Errorf("failed to delete automation journeys: %w", err)
+		}
+	}
+
+	// Webhook deliveries that carry the address and were queued before the deletion: a
+	// contact.updated, list.* or custom event delivery would ship the data after the
+	// erasure. The contact.deleted and segment.left deliveries the deletion itself queued
+	// are kept: they are how subscribers learn of it.
+	if s.erasureRepo != nil {
+		if _, err := s.erasureRepo.DeleteWebhookDeliveriesForEmail(ctx, workspaceID, email); err != nil {
+			s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete webhook deliveries: %v", err))
+			return fmt.Errorf("failed to delete webhook deliveries: %w", err)
 		}
 	}
 

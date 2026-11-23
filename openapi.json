@@ -1719,7 +1719,7 @@
     "/api/contacts.delete": {
       "post": {
         "summary": "Delete a contact",
-        "description": "Deletes a contact from the workspace by email address. This action is permanent and cannot be undone.",
+        "description": "Deletes a contact from the workspace by email address. This action is permanent and cannot be undone.\n\nThe contact, their list subscriptions, timeline, custom events, segment memberships and automation journeys are deleted. Their messages are kept for newsletter statistics, with the address, the message data, cc, bcc, subject and error texts removed. Attachment files that only this contact received are deleted.\n\nThe lists the contact unsubscribed from, bounced on or complained about are remembered for 3 years as a keyed hash of the address, with nothing else. If the address comes back (an import, an upsert, a form), those statuses are put back on the lists that still exist. Set `forget_opt_outs` to `true` to keep nothing.\n",
         "operationId": "deleteContact",
         "security": [
           {
@@ -9727,6 +9727,11 @@
             "format": "email",
             "description": "Email address of the contact to delete",
             "example": "user@example.com"
+          },
+          "forget_opt_outs": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also forget the lists the contact unsubscribed from, bounced on or complained about, which are otherwise kept as a hash for 3 years and put back if the address returns. For test data, or when the person asked that nothing remain."
           }
         }
       },

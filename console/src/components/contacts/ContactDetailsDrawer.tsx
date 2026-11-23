@@ -29,7 +29,7 @@ export interface ContactDetailsDrawerProps {
   /** Loads 50 more rows, as « Load 50 more » does. */
   onLoadMore: () => void
   /** Deletes the contact, once confirmed in the bar's popconfirm. */
-  onDelete: (email: string) => void
+  onDelete: (email: string, forgetOptOuts: boolean) => void
 }
 
 interface PendingNext {

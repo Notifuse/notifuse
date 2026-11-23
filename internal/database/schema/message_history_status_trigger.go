@@ -89,6 +89,17 @@ func ApplyMessageStatusToContactListsFunction() string {
 // track_message_history_changes(). The v42 freeze test cuts the step out by it.
 const LinkClickedStepAnchor = "-- Link clicks: one entry per link newly clicked through a verified token"
 
+// ErasedContactStep is the early return of track_message_history_changes for a message of
+// an erased contact (the address replaced by DELETED_EMAIL), added in v45: the redaction
+// itself clears status_info, whose old text quotes the recipient and would otherwise be
+// copied into a new email.updated entry. Exported so the tests of the older migrations can
+// remove it, as they remove the link step, to compare with the body they froze.
+const ErasedContactStep = `
+				-- A message of an erased contact writes nothing (see ErasedContactStep)
+				IF NEW.contact_email = 'DELETED_EMAIL' THEN
+					RETURN NEW;
+				END IF;`
+
 // TrackMessageHistoryChangesFunction returns track_message_history_changes(), the function
 // message_history_changes_trigger runs after every insert and update of message_history. It
 // writes the message's contact_timeline entries (email.sent, email.opened,
@@ -145,8 +156,8 @@ const LinkClickedStepAnchor = "-- Link clicks: one entry per link newly clicked 
 //
 // Two paths install it: the new-workspace path (internal/database/init.go) and the v44
 // migration. internal/migrations/v7.go, v8.go, v36.go and v42.go carry the bodies this one
-// replaced and stay frozen. Apart from the status step (v42) and the link step (v44), this
-// body is v36's.
+// replaced and stay frozen. Apart from the status step (v42), the link step (v44) and the
+// early return for an erased contact's messages (v45), this body is v36's.
 func TrackMessageHistoryChangesFunction() string {
 	return `CREATE OR REPLACE FUNCTION track_message_history_changes()
 		RETURNS TRIGGER AS $$
@@ -160,7 +171,7 @@ func TrackMessageHistoryChangesFunction() string {
 				changes_json := jsonb_build_object('template_id', jsonb_build_object('new', NEW.template_id), 'template_version', jsonb_build_object('new', NEW.template_version), 'channel', jsonb_build_object('new', NEW.channel), 'broadcast_id', jsonb_build_object('new', NEW.broadcast_id), 'sent_at', jsonb_build_object('new', NEW.sent_at));
 				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
 				VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.sent', NEW.id, changes_json, NEW.updated_at);
-			ELSIF TG_OP = 'UPDATE' THEN
+			ELSIF TG_OP = 'UPDATE' THEN` + ErasedContactStep + `
 				op := 'update';
 				-- A new complaint or hard bounce sets the list status before any timeline entry
 				-- is written: the contact_lists row is locked before the contact_segment_queue row,

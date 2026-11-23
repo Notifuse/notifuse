@@ -201,7 +201,7 @@ func (h *ContactHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteContact(r.Context(), req.WorkspaceID, req.Email); err != nil {
+	if err := h.service.DeleteContact(r.Context(), req.WorkspaceID, req.Email, domain.DeleteContactOptions{ForgetOptOuts: req.ForgetOptOuts}); err != nil {
 		if strings.Contains(err.Error(), "contact not found") {
 			WriteJSONError(w, "Contact not found", http.StatusNotFound)
 			return
