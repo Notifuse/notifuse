@@ -117,6 +117,27 @@ func TestBroadcastHandlers_InvalidStateAnswers409(t *testing.T) {
 	}
 }
 
+// A delete refused while the broadcast's emails are still queued answers 409, and the reason
+// that tells the caller to cancel first reaches both the message and the state object.
+func TestBroadcastHandlers_DeleteRefusalCarriesItsReason(t *testing.T) {
+	handler, service, _, ctrl := setupBroadcastHandler(t)
+	defer ctrl.Finish()
+	service.EXPECT().DeleteBroadcast(gomock.Any(), &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}).
+		Return(&domain.InvalidStateError{Entity: "broadcast", ID: "b1", Action: "delete", Status: "paused",
+			Reason: "Cancel it first: cancelling empties its email queue."})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/broadcasts.delete", strings.NewReader(`{"workspace_id":"w1","id":"b1"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.HandleDelete(w, req)
+
+	require.Equal(t, http.StatusConflict, w.Code)
+	assert.JSONEq(t, `{
+		"error": "cannot delete broadcast b1: its status is paused. Cancel it first: cancelling empties its email queue.",
+		"invalid_state": {"entity":"broadcast","id":"b1","action":"delete","status":"paused","reason":"Cancel it first: cancelling empties its email queue."}
+	}`, w.Body.String())
+}
+
 // A variation the broadcast does not have answers 404 where it answered 500.
 func TestBroadcastHandlers_UnknownVariationAnswers404(t *testing.T) {
 	for _, c := range broadcastStateCases() {

@@ -1392,24 +1392,13 @@ func (s *Server) cancelBroadcast(ctx context.Context, call *Call) (any, error) {
 	return out, nil
 }
 
-// undeletableBroadcastStatuses are the statuses of a broadcast whose task can
-// still queue emails or whose queued emails wait for a resume: deleting it
-// touches neither, so emails could still go out for a broadcast nobody can
-// see, or wait forever. Cancelling it first drops them.
-var undeletableBroadcastStatuses = []domain.BroadcastStatus{
-	domain.BroadcastStatusProcessing,
-	domain.BroadcastStatusPaused,
-	domain.BroadcastStatusTesting,
-	domain.BroadcastStatusTestCompleted,
-	domain.BroadcastStatusWinnerSelected,
-}
-
 func (s *Server) deleteBroadcastTool() *Tool {
 	return &Tool{
 		Name:  "delete_broadcast",
 		Title: "Delete broadcast",
 		Description: "Deletes a broadcast for good. Messages already sent keep their history. This cannot be undone, so confirm with the user first. " +
 			"A broadcast that is sending, paused or in an A/B test answers invalid_state, and so does one whose queue still holds emails to send: cancel it with cancel_broadcast first. " +
+			"A scheduled broadcast answers invalid_state too: it has to be unscheduled first, which removes its send task (the console's Unschedule action or the broadcasts.unschedule API endpoint). " +
 			"Returns not_found for a broadcast that does not exist, which is also what a repeated call answers.",
 		Class:       ClassDestructive,
 		Pairs:       []Pair{broadcastsWrite},
@@ -1438,31 +1427,9 @@ func (s *Server) deleteBroadcast(ctx context.Context, call *Call) (any, error) {
 		return nil, &domain.ErrBroadcastNotFound{ID: id}
 	}
 	call.Audit.SetTarget("", "", broadcast.Name)
-	status := string(broadcast.Status)
-	if slices.Contains(undeletableBroadcastStatuses, broadcast.Status) {
-		return nil, &ToolError{
-			Code:    CodeInvalidState,
-			Message: fmt.Sprintf("broadcast %s is %s: cancel it with cancel_broadcast before deleting it", id, status),
-			Status:  status,
-		}
-	}
-	// A broadcast past its sending, or one that failed, can still have emails
-	// in its queue, which the worker would send after the broadcast is gone.
-	counts, err := s.deps.Queue.GetSourceCounts(ctx, call.WorkspaceID, domain.EmailQueueSourceBroadcast, id)
-	if err != nil {
-		return nil, err
-	}
-	if counts == nil {
-		counts = &domain.EmailQueueSourceCounts{}
-	}
-	if waiting := counts.Pending + counts.Processing + counts.Paused + counts.FailedRetrying; waiting > 0 {
-		return nil, &ToolError{
-			Code:    CodeInvalidState,
-			Message: fmt.Sprintf("broadcast %s still has %d emails in its queue: cancel it with cancel_broadcast, or wait until they are sent, before deleting it", id, waiting),
-			Status:  status,
-		}
-	}
-
+	// The service refuses a broadcast that can still send, or whose queue still
+	// holds emails, under the broadcast's row lock: its InvalidStateError answers
+	// invalid_state with the status it read.
 	var req domain.DeleteBroadcastRequest
 	if err := requestFromJSON(map[string]any{"workspace_id": call.WorkspaceID, "id": id}, &req); err != nil {
 		return nil, validationError("invalid arguments: %v", err)
