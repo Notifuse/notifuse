@@ -47,6 +47,15 @@ describe('LicenceGateNotice', () => {
     ).toBeInTheDocument()
   })
 
+  it('sells instance branding from the Agency plan and says the saved brand is kept', () => {
+    renderNotice('branding', { entitlements: entitlements(['rbac', 'template_i18n']) })
+
+    expect(
+      screen.getByText('Instance branding requires a Notifuse Agency licence.')
+    ).toBeInTheDocument()
+    expect(screen.getByText(/saved brand comes back/i)).toBeInTheDocument()
+  })
+
   it('offers one button, to the workspace licence settings, whoever is looking', () => {
     // The licence page already offers root the key box and the price list, and already tells a
     // member who to ask; the block repeats neither, and never shows "Buy" to someone who cannot

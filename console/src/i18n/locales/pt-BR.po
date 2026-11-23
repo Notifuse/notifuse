@@ -707,11 +707,11 @@ msgstr "{ariaLabel}: unidade"
 msgid "{bounced, plural, one {# address} other {# addresses}}"
 msgstr "{bounced, plural, one {# endereço} other {# endereços}}"
 
-#: src/services/api/licenseErrors.ts:118
+#: src/services/api/licenseErrors.ts:119
 msgid "{capability} requires a Notifuse {tier} licence."
 msgstr ""
 
-#: src/services/api/licenseErrors.ts:120
+#: src/services/api/licenseErrors.ts:121
 msgid "{capability} requires a Notifuse licence."
 msgstr ""
 
@@ -5201,7 +5201,7 @@ msgstr "Rótulo do Botão"
 msgid "Button width"
 msgstr "Largura do botão"
 
-#: src/components/settings/LicenseSettings.tsx:221
+#: src/components/settings/LicenseSettings.tsx:222
 msgid "Buy a licence"
 msgstr ""
 
@@ -5458,7 +5458,7 @@ msgstr "Não é possível fazer upload em modo somente leitura"
 msgid "Canonical URL"
 msgstr "URL Canônica"
 
-#: src/components/settings/LicenseSettings.tsx:187
+#: src/components/settings/LicenseSettings.tsx:188
 msgid "Capabilities"
 msgstr ""
 
@@ -6347,7 +6347,7 @@ msgstr "Portas comuns: 587 (STARTTLS), 465 (TLS implícito), 25 (sem criptografi
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Portas comuns: 587 (TLS), 465 (SSL), 25 (não criptografado)"
 
-#: src/components/settings/LicenseSettings.tsx:181
+#: src/components/settings/LicenseSettings.tsx:182
 msgid "Community"
 msgstr ""
 
@@ -10989,7 +10989,7 @@ msgstr "Todos os campos da visita"
 msgid "Every imported contact is added to these lists."
 msgstr "Cada contato importado é adicionado a estas listas."
 
-#: src/components/license/LicenceGateNotice.tsx:64
+#: src/components/license/LicenceGateNotice.tsx:65
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
 msgstr ""
 
@@ -11013,7 +11013,7 @@ msgstr "Toda vez"
 #~ msgid "Every workspace plus deployment-level events — sign-ins, the licence, the system settings. Visible to root users only."
 #~ msgstr "Todos os workspaces mais os eventos no nível do deployment — logins, a licença, as configurações do sistema. Visível apenas para usuários root."
 
-#: src/components/license/LicenceGateNotice.tsx:66
+#: src/components/license/LicenceGateNotice.tsx:67
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
 msgstr ""
 
@@ -11133,7 +11133,7 @@ msgstr ""
 msgid "Expired, in grace period"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:183
+#: src/components/settings/LicenseSettings.tsx:184
 msgid "Expires"
 msgstr ""
 
@@ -13927,17 +13927,26 @@ msgstr "Dentro da coluna"
 msgid "Install"
 msgstr "Instalar"
 
-#: src/components/settings/LicenseSettings.tsx:226
+#: src/components/settings/LicenseSettings.tsx:227
 msgid "Install a licence key"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:242
+#: src/components/settings/LicenseSettings.tsx:243
 msgid "Install licence key"
 msgstr ""
 
 #: src/components/web_analytics/InstallOverlay.tsx:68
 msgid "Install the tracking snippet"
 msgstr "Instalar o snippet de rastreamento"
+
+#: src/components/settings/LicenseSettings.tsx:140
+#: src/services/api/licenseErrors.ts:54
+msgid "Instance branding"
+msgstr "Identidade da instância"
+
+#: src/components/license/LicenceGateNotice.tsx:58
+msgid "Instance branding requires a Notifuse {tier} licence."
+msgstr "A identidade da instância exige uma licença Notifuse {tier}."
 
 #: src/components/integrations/FirecrawlIntegration.tsx:87
 #: src/components/integrations/LLMIntegration.tsx:176
@@ -14836,7 +14845,7 @@ msgstr "Biblioteca"
 
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:66
-#: src/components/settings/LicenseSettings.tsx:162
+#: src/components/settings/LicenseSettings.tsx:163
 #: src/components/settings/SettingsSidebar.tsx:73
 msgid "Licence"
 msgstr "Licença"
@@ -14854,7 +14863,7 @@ msgid "Licensed capability"
 msgstr ""
 
 #. placeholder {0}: entitlements.org
-#: src/components/settings/LicenseSettings.tsx:157
+#: src/components/settings/LicenseSettings.tsx:158
 msgid "Licensed to {0}"
 msgstr ""
 
@@ -17652,7 +17661,7 @@ msgstr "Nada nos últimos 7 dias"
 msgid "Nothing in this period"
 msgstr "Nada neste período"
 
-#: src/components/license/LicenceGateNotice.tsx:67
+#: src/components/license/LicenceGateNotice.tsx:68
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "Nada está sendo registrado e nada é recusado: esta página, a exportação e a configuração de retenção continuam disponíveis, e as entradas registradas enquanto uma licença cobria os logs de auditoria continuam legíveis."
 
@@ -18735,7 +18744,7 @@ msgstr "Sessões anteriores"
 msgid "Paste it in Supabase › Authentication › Hooks"
 msgstr "Cole em Supabase › Authentication › Hooks"
 
-#: src/components/settings/LicenseSettings.tsx:228
+#: src/components/settings/LicenseSettings.tsx:229
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
 msgstr ""
 
@@ -19094,7 +19103,7 @@ msgstr "Fixar a barra lateral"
 msgid "Plain text (only safe behind a TLS-terminating proxy)"
 msgstr "Texto puro (só é seguro atrás de um proxy que termine o TLS)"
 
-#: src/components/settings/LicenseSettings.tsx:180
+#: src/components/settings/LicenseSettings.tsx:181
 msgid "Plan"
 msgstr ""
 
@@ -20517,7 +20526,7 @@ msgstr "Referenciadores"
 #: src/components/messages/MessageHistoryTable.tsx:434
 #: src/components/settings/DomainsSettings.tsx:408
 #: src/components/settings/DomainsSettings.tsx:412
-#: src/components/settings/LicenseSettings.tsx:176
+#: src/components/settings/LicenseSettings.tsx:177
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
 #: src/pages/ContactsPage.tsx:721
@@ -22906,7 +22915,7 @@ msgstr "Tarefa de envio"
 msgid "Sending test webhook..."
 msgstr "Enviando webhook de teste..."
 
-#: src/components/license/LicenceGateNotice.tsx:65
+#: src/components/license/LicenceGateNotice.tsx:66
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr ""
 
@@ -24345,7 +24354,7 @@ msgstr "As estatísticas aparecem quando o broadcast começa a ser enviado"
 #: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/BlogSettings.tsx:332
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:61
-#: src/components/settings/LicenseSettings.tsx:169
+#: src/components/settings/LicenseSettings.tsx:170
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
 #: src/components/web_analytics/filters/FilterTable.tsx:310
@@ -26397,7 +26406,7 @@ msgstr "Este contato não está em nenhum segmento"
 msgid "This contact is not subscribed to any lists"
 msgstr "Este contato não está inscrito em nenhuma lista"
 
-#: src/services/api/licenseErrors.ts:111
+#: src/services/api/licenseErrors.ts:112
 msgid "This deployment has reached the number of workspaces its licence allows. Existing workspaces are unaffected; a licence with a higher limit allows more."
 msgstr ""
 
@@ -27397,7 +27406,7 @@ msgstr "Traduzir para {name}"
 msgid "Translations"
 msgstr "Traduções"
 
-#: src/components/license/LicenceGateNotice.tsx:68
+#: src/components/license/LicenceGateNotice.tsx:69
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
 msgstr ""
 
@@ -27735,7 +27744,7 @@ msgstr "Segmento desconhecido ({id})"
 #~ msgid "Unknown status"
 #~ msgstr "Status desconhecido"
 
-#: src/components/settings/LicenseSettings.tsx:144
+#: src/components/settings/LicenseSettings.tsx:145
 msgid "Unlimited"
 msgstr ""
 
@@ -29436,6 +29445,10 @@ msgstr "Com:"
 msgid "Within"
 msgstr "Dentro de"
 
+#: src/components/license/LicenceGateNotice.tsx:70
+msgid "Without a licence, this instance shows the Notifuse identity. Your saved brand comes back when a licence covers it."
+msgstr "Sem licença, esta instância mostra a identidade da Notifuse. Sua marca salva volta quando uma licença a cobre."
+
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
 msgstr "Sem uma lista, o email de teste não tem link de descadastro válido nem cabeçalho List-Unsubscribe."
@@ -29554,8 +29567,8 @@ msgstr "A escrita de Workspace é bem mais restrita do que o nome sugere: o úni
 msgid "Workspace:"
 msgstr "Workspace:"
 
-#: src/components/settings/LicenseSettings.tsx:186
-#: src/services/api/licenseErrors.ts:54
+#: src/components/settings/LicenseSettings.tsx:187
+#: src/services/api/licenseErrors.ts:55
 msgid "Workspaces"
 msgstr ""
 

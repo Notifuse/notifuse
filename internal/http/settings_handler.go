@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/Notifuse/notifuse/pkg/branding"
 	"github.com/Notifuse/notifuse/pkg/license"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
@@ -55,6 +57,32 @@ type SystemSettingsData struct {
 	// RequireTwoFactor makes every person on the instance pass a second factor. On GET it
 	// is the value in force, REQUIRE_TWO_FACTOR included.
 	RequireTwoFactor bool `json:"require_two_factor"`
+	// Instance branding, as stored (not the identity currently shown, which depends on the
+	// licence). An absent key keeps the stored value, "" clears it, null is refused.
+	BrandingName         string `json:"branding_name"`
+	BrandingLogoURL      string `json:"branding_logo_url"`
+	BrandingIconURL      string `json:"branding_icon_url"`
+	BrandingHideHelpMenu bool   `json:"branding_hide_help_menu"`
+}
+
+// brandingRequestKeys are the branding keys of a settings.update body. A null value for any of
+// them is refused: absent and "" already say "keep" and "clear", and a null would silently mean
+// "keep" through json.Decode.
+var brandingRequestKeys = []string{
+	branding.FieldName, branding.FieldLogoURL, branding.FieldIconURL, branding.FieldHideHelpMenu,
+}
+
+// maxSettingsBodyBytes bounds a settings.update body, which carries certificates at most.
+const maxSettingsBodyBytes = 1 << 20
+
+// SettingsUpdateResponse answers a successful settings.update. BootID names the process that
+// saved; the console waits for /api/setup.status to report another boot ID together with the
+// saved BrandingRevision before it treats the restart as done.
+type SettingsUpdateResponse struct {
+	Success          bool   `json:"success"`
+	Message          string `json:"message"`
+	BootID           string `json:"boot_id,omitempty"`
+	BrandingRevision string `json:"branding_revision"`
 }
 
 // TwoFactorSettings is what the Security panel shows beside the switch.
@@ -72,7 +100,13 @@ type SystemSettingsResponse struct {
 	Settings     SystemSettingsData `json:"settings"`
 	EnvOverrides map[string]bool    `json:"env_overrides"`
 	TwoFactor    TwoFactorSettings  `json:"two_factor"`
+	// BrandingError is set when the stored instance brand cannot be read. The branding fields
+	// are then empty; saving branding values, or clearing them, replaces the stored row.
+	BrandingError string `json:"branding_error,omitempty"`
 }
+
+// brandingUnreadableMessage is the BrandingError text.
+const brandingUnreadableMessage = "The stored instance branding cannot be read. Saving branding values, or clearing them, replaces it."
 
 // Error code of a root user turning on the requirement without meeting it.
 const twoFactorRequiredForRootCode = "two_factor_required_for_root"
@@ -149,6 +183,15 @@ type SettingsHandler struct {
 	requireTwoFactorEnv string
 	// retentionDefaults serves dataRetention.getDefaults and setDefaults; nil answers 503.
 	retentionDefaults retentionDefaultsService
+	// bootID is the identifier /api/setup.status reports for this process, shared with the
+	// setup handler rather than drawn again, so the two endpoints name the same process.
+	bootID string
+}
+
+// SetBootID shares the setup handler's boot identifier with settings.update, whose response
+// names the process that saved.
+func (h *SettingsHandler) SetBootID(bootID string) {
+	h.bootID = bootID
 }
 
 // retentionDefaultsService is what the settings handler needs from DataRetentionService.
@@ -372,6 +415,13 @@ func (h *SettingsHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		OIDCButtonLabel:     sysConfig.OIDCButtonLabel,
 		OIDCAutoCreateUsers: sysConfig.OIDCAutoCreateUsers,
 		OIDCAllowedDomains:  sysConfig.OIDCAllowedDomains,
+		// The stored value, which systemSettingsFromConfig also carries: without it, a form that
+		// saves what it was shown would reset the retention to 0 (keep forever).
+		AuditLogsRetentionDays: sysConfig.AuditLogsRetentionDays,
+		BrandingName:           sysConfig.BrandingName,
+		BrandingLogoURL:        sysConfig.BrandingLogoURL,
+		BrandingIconURL:        sysConfig.BrandingIconURL,
+		BrandingHideHelpMenu:   sysConfig.BrandingHideHelpMenu,
 	}
 
 	envOverrides := h.setupService.GetEnvOverrides()
@@ -488,9 +538,14 @@ func (h *SettingsHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		usersWithout = []string{}
 	}
 
+	brandingError := ""
+	if sysConfig.BrandingUnreadable {
+		brandingError = brandingUnreadableMessage
+	}
 	response := SystemSettingsResponse{
-		Settings:     settings,
-		EnvOverrides: envOverrides,
+		BrandingError: brandingError,
+		Settings:      settings,
+		EnvOverrides:  envOverrides,
 		TwoFactor: TwoFactorSettings{
 			Required:     settings.RequireTwoFactor,
 			FromEnv:      h.requireTwoFactorEnv != "",
@@ -536,7 +591,36 @@ func systemSettingsFromConfig(c *service.SystemConfig) SystemSettingsData {
 		OIDCAutoCreateUsers:     c.OIDCAutoCreateUsers,
 		OIDCAllowedDomains:      c.OIDCAllowedDomains,
 		RequireTwoFactor:        c.RequireTwoFactor != nil && *c.RequireTwoFactor,
+		BrandingName:            c.BrandingName,
+		BrandingLogoURL:         c.BrandingLogoURL,
+		BrandingIconURL:         c.BrandingIconURL,
+		BrandingHideHelpMenu:    c.BrandingHideHelpMenu,
 	}
+}
+
+// inspectBrandingKeys answers 400 when a branding key is present with a null value, and reports
+// whether it did and whether the body carries any branding key at all.
+func inspectBrandingKeys(w http.ResponseWriter, body []byte) (rejected, present bool) {
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(body, &keys); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return true, false
+	}
+	// json.Unmarshal matches keys case-insensitively, so this check does too: a
+	// "Branding_Name": null must not slip through as a silent "keep".
+	for bodyKey, raw := range keys {
+		for _, key := range brandingRequestKeys {
+			if !strings.EqualFold(bodyKey, key) {
+				continue
+			}
+			present = true
+			if strings.TrimSpace(string(raw)) == "null" {
+				WriteJSONError(w, fmt.Sprintf("%s must not be null: omit it to keep the stored value", key), http.StatusBadRequest)
+				return true, present
+			}
+		}
+	}
+	return false, present
 }
 
 // handleUpdate updates system settings and triggers a server restart
@@ -575,7 +659,16 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if h.requireTwoFactorEnv != "" {
 		reqData.RequireTwoFactor = h.requireTwoFactorEnv == "true"
 	}
-	if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxSettingsBodyBytes+1))
+	if err != nil || len(body) > maxSettingsBodyBytes {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	rejected, brandingKeysPresent := inspectBrandingKeys(w, body)
+	if rejected {
+		return
+	}
+	if err := json.Unmarshal(body, &reqData); err != nil {
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -641,6 +734,13 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		OIDCButtonLabel:         reqData.OIDCButtonLabel,
 		OIDCAutoCreateUsers:     reqData.OIDCAutoCreateUsers,
 		OIDCAllowedDomains:      reqData.OIDCAllowedDomains,
+		BrandingName:            reqData.BrandingName,
+		BrandingLogoURL:         reqData.BrandingLogoURL,
+		BrandingIconURL:         reqData.BrandingIconURL,
+		BrandingHideHelpMenu:    reqData.BrandingHideHelpMenu,
+		// An unreadable stored brand is replaced only by a save that carries branding keys;
+		// any other save leaves the row as it is, for the operator to see and repair.
+		KeepStoredBranding: currentConfig.BrandingUnreadable && !brandingKeysPresent,
 	}
 
 	// The two-factor requirement: written only when the body changes it. When
@@ -684,6 +784,16 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.settingService.SetSystemConfig(ctx, newConfig, h.secretKey); err != nil {
+		// Refusals are checked before the first write, so none of these left anything saved,
+		// and none restarts the process.
+		var fieldErr *branding.FieldError
+		if errors.As(err, &fieldErr) {
+			WriteJSONError(w, fieldErr.Error(), http.StatusBadRequest)
+			return
+		}
+		if writePermissionError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err).Error("Failed to save system settings")
 		WriteJSONError(w, fmt.Sprintf("Failed to save settings: %v", err), http.StatusInternalServerError)
 		return
@@ -697,9 +807,17 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		audit.SetChanges(domain.AuditDiff(currentConfig, newConfig))
 	}
 
-	response := map[string]interface{}{
-		"success": true,
-		"message": "Settings saved successfully. Server is restarting...",
+	savedBranding := branding.Branding{
+		Name:         newConfig.BrandingName,
+		LogoURL:      newConfig.BrandingLogoURL,
+		IconURL:      newConfig.BrandingIconURL,
+		HideHelpMenu: newConfig.BrandingHideHelpMenu,
+	}
+	response := SettingsUpdateResponse{
+		Success:          true,
+		Message:          "Settings saved successfully. Server is restarting...",
+		BootID:           h.bootID,
+		BrandingRevision: savedBranding.Revision(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

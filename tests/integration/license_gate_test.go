@@ -54,6 +54,7 @@ func TestLicenseGates(t *testing.T) {
 			domain.FeatureSSO,
 			domain.FeatureAuditLogs,
 			domain.FeatureTemplateI18n,
+			domain.FeatureBranding,
 		} {
 			assert.True(t, ent.Has(f), "the harness licence must carry %q", f)
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/golang/mock/gomock"
@@ -19,6 +20,9 @@ func newStoringSetupService(t *testing.T, env *service.EnvironmentConfig, users 
 
 	stored := make(map[string]string)
 	settingRepo := mocks.NewMockSettingRepository(ctrl)
+	// No brand is stored: the wizard reads it to carry it over.
+	settingRepo.EXPECT().Get(gomock.Any(), service.InstanceBrandingSettingKey).
+		Return(nil, &domain.ErrSettingNotFound{Key: service.InstanceBrandingSettingKey}).AnyTimes()
 	settingRepo.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().
 		DoAndReturn(func(_ context.Context, key, value string) error {
 			stored[key] = value
@@ -28,7 +32,7 @@ func newStoringSetupService(t *testing.T, env *service.EnvironmentConfig, users 
 	userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil).Times(users)
 
 	svc := service.NewSetupService(
-		service.NewSettingService(settingRepo),
+		service.NewSettingService(settingRepo, nil),
 		&service.UserService{},
 		userRepo,
 		&mockLogger{},

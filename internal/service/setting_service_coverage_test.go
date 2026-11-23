@@ -85,13 +85,14 @@ var covFullSetOrder = []string{
 	"oidc_enabled", "oidc_issuer_url", "oidc_client_id", "oidc_redirect_uri",
 	"oidc_scopes", "oidc_button_label", "oidc_auto_create_users",
 	"oidc_allowed_domains", "encrypted_oidc_client_secret",
+	InstanceBrandingSettingKey,
 }
 
 func TestSettingServiceCoverage_SetSystemConfig_FullSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	store := newCovSettingStore(ctrl, "", nil)
-	svc := NewSettingService(store.mock)
+	svc := NewSettingService(store.mock, nil)
 	ctx := context.Background()
 
 	require.NoError(t, svc.SetSystemConfig(ctx, covFullSystemConfig(), testSecretKey))
@@ -144,7 +145,7 @@ func TestSettingServiceCoverage_SetSystemConfig_MinimalConfigSkipsOptionalKeys(t
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	store := newCovSettingStore(ctrl, "", nil)
-	svc := NewSettingService(store.mock)
+	svc := NewSettingService(store.mock, nil)
 
 	require.NoError(t, svc.SetSystemConfig(context.Background(), &SystemConfig{
 		IsInstalled: false, AuditLogsRetentionDays: 0, // 0 = keep forever, valid
@@ -179,7 +180,7 @@ func TestSettingServiceCoverage_SetSystemConfig_FailurePerKey(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			store := newCovSettingStore(ctrl, key, sentinel)
-			svc := NewSettingService(store.mock)
+			svc := NewSettingService(store.mock, nil)
 
 			err := svc.SetSystemConfig(ctx, covFullSystemConfig(), testSecretKey)
 			require.Error(t, err)
@@ -206,7 +207,7 @@ func TestSettingServiceCoverage_SetSystemConfig_FailurePerKey(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			store := newCovSettingStore(ctrl, tc.key, sentinel)
-			svc := NewSettingService(store.mock)
+			svc := NewSettingService(store.mock, nil)
 
 			err := svc.SetSystemConfig(ctx, &SystemConfig{
 				IsInstalled: true, AuditLogsRetentionDays: domain.DefaultAuditLogRetentionDays,
@@ -227,7 +228,7 @@ func TestSettingServiceCoverage_SetSystemConfig_InvalidRetentionStopsBeforeWriti
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			store := newCovSettingStore(ctrl, "", nil)
-			svc := NewSettingService(store.mock)
+			svc := NewSettingService(store.mock, nil)
 
 			cfg := covFullSystemConfig()
 			cfg.AuditLogsRetentionDays = days
@@ -235,11 +236,8 @@ func TestSettingServiceCoverage_SetSystemConfig_InvalidRetentionStopsBeforeWriti
 			require.Error(t, err)
 			// Returned unwrapped: the validation error itself, verbatim.
 			assert.EqualError(t, err, "retention_days must be 0 (keep forever) or between 30 and 3650")
-			// Everything before the retention check was written; nothing after it was.
-			assert.Contains(t, store.order, "check_for_updates")
-			assert.NotContains(t, store.order, domain.AuditLogsRetentionSettingKey)
-			assert.NotContains(t, store.order, "smtp_bridge_enabled")
-			assert.NotContains(t, store.order, "oidc_enabled")
+			// Validated before the first write: a refused save leaves every setting as it was.
+			assert.Empty(t, store.order)
 		})
 	}
 
@@ -248,7 +246,7 @@ func TestSettingServiceCoverage_SetSystemConfig_InvalidRetentionStopsBeforeWriti
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			store := newCovSettingStore(ctrl, "", nil)
-			svc := NewSettingService(store.mock)
+			svc := NewSettingService(store.mock, nil)
 			cfg := covFullSystemConfig()
 			cfg.AuditLogsRetentionDays = days
 			require.NoError(t, svc.SetSystemConfig(ctx, cfg, testSecretKey))
@@ -300,7 +298,7 @@ func TestSettingServiceCoverage_GetSystemConfig_FullInstalledConfig(t *testing.T
 		repo.settings[key] = enc
 	}
 
-	svc := NewSettingService(repo)
+	svc := NewSettingService(repo, nil)
 	cfg, err := svc.GetSystemConfig(ctx, testSecretKey)
 	require.NoError(t, err)
 
@@ -350,7 +348,7 @@ func TestSettingServiceCoverage_GetSystemConfig_DecryptFailures(t *testing.T) {
 			repo := NewMockSettingRepository()
 			repo.settings["is_installed"] = "true"
 			repo.settings[tc.key] = "not-valid-hex-cov"
-			svc := NewSettingService(repo)
+			svc := NewSettingService(repo, nil)
 
 			cfg, err := svc.GetSystemConfig(ctx, testSecretKey)
 			require.Error(t, err)
@@ -371,7 +369,7 @@ func TestSettingServiceCoverage_GetSystemConfig_ParsingEdges(t *testing.T) {
 	t.Run("retention below the floor keeps the deployment default", func(t *testing.T) {
 		repo := base()
 		repo.settings[domain.AuditLogsRetentionSettingKey] = "10"
-		cfg, err := NewSettingService(repo).GetSystemConfig(ctx, testSecretKey)
+		cfg, err := NewSettingService(repo, nil).GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.Equal(t, domain.DefaultAuditLogRetentionDays, cfg.AuditLogsRetentionDays)
 	})
@@ -379,7 +377,7 @@ func TestSettingServiceCoverage_GetSystemConfig_ParsingEdges(t *testing.T) {
 	t.Run("retention with surrounding spaces is trimmed and accepted", func(t *testing.T) {
 		repo := base()
 		repo.settings[domain.AuditLogsRetentionSettingKey] = " 45 "
-		cfg, err := NewSettingService(repo).GetSystemConfig(ctx, testSecretKey)
+		cfg, err := NewSettingService(repo, nil).GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.Equal(t, 45, cfg.AuditLogsRetentionDays)
 	})
@@ -387,7 +385,7 @@ func TestSettingServiceCoverage_GetSystemConfig_ParsingEdges(t *testing.T) {
 	t.Run("non-numeric retention keeps the deployment default", func(t *testing.T) {
 		repo := base()
 		repo.settings[domain.AuditLogsRetentionSettingKey] = "cov-not-a-number"
-		cfg, err := NewSettingService(repo).GetSystemConfig(ctx, testSecretKey)
+		cfg, err := NewSettingService(repo, nil).GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.Equal(t, domain.DefaultAuditLogRetentionDays, cfg.AuditLogsRetentionDays)
 	})
@@ -396,7 +394,7 @@ func TestSettingServiceCoverage_GetSystemConfig_ParsingEdges(t *testing.T) {
 		repo := base()
 		repo.settings["smtp_port"] = ""
 		repo.settings["smtp_bridge_port"] = "cov-not-a-port"
-		cfg, err := NewSettingService(repo).GetSystemConfig(ctx, testSecretKey)
+		cfg, err := NewSettingService(repo, nil).GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.Equal(t, 587, cfg.SMTPPort)
 		assert.Equal(t, 0, cfg.SMTPBridgePort)
@@ -405,13 +403,13 @@ func TestSettingServiceCoverage_GetSystemConfig_ParsingEdges(t *testing.T) {
 	t.Run("smtp_use_tls is false only for the literal string false", func(t *testing.T) {
 		repo := base()
 		repo.settings["smtp_use_tls"] = "yes"
-		cfg, err := NewSettingService(repo).GetSystemConfig(ctx, testSecretKey)
+		cfg, err := NewSettingService(repo, nil).GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.True(t, cfg.SMTPUseTLS)
 
 		repo2 := base()
 		repo2.settings["smtp_use_tls"] = "false"
-		cfg2, err := NewSettingService(repo2).GetSystemConfig(ctx, testSecretKey)
+		cfg2, err := NewSettingService(repo2, nil).GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.False(t, cfg2.SMTPUseTLS)
 	})
@@ -423,7 +421,7 @@ func TestSettingServiceCoverage_GetSystemConfig_ParsingEdges(t *testing.T) {
 		repo.settings["smtp_bridge_enabled"] = "TRUE"
 		repo.settings["oidc_enabled"] = "on"
 		repo.settings["oidc_auto_create_users"] = "yes"
-		cfg, err := NewSettingService(repo).GetSystemConfig(ctx, testSecretKey)
+		cfg, err := NewSettingService(repo, nil).GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.False(t, cfg.TelemetryEnabled)
 		assert.False(t, cfg.CheckForUpdates)

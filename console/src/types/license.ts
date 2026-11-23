@@ -24,7 +24,8 @@ export const LICENSE_FEATURES = [
   'ses_tenant',
   'sso',
   'audit_logs',
-  'template_i18n'
+  'template_i18n',
+  'branding'
 ] as const
 
 export type LicenseFeature = (typeof LICENSE_FEATURES)[number]
@@ -80,7 +81,8 @@ export const LICENSE_REQUIRED_TIER: Record<LicenseFeature, string> = {
   ses_tenant: 'Studio',
   sso: 'Enterprise',
   audit_logs: 'Enterprise',
-  template_i18n: 'Studio'
+  template_i18n: 'Studio',
+  branding: 'Agency'
 }
 
 // The page the Additional Use Grant pins by URL. Restated from internal/http/utils.go, which

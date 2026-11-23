@@ -42,12 +42,34 @@ var devLicense struct {
 // not trust the dev signing key, i.e. it was built without -tags licdev.
 func DevLicenseKey() (string, error) {
 	devLicense.once.Do(func() {
-		devLicense.key, devLicense.err = mintDevLicense()
+		devLicense.key, devLicense.err = mintDevLicense(allDevFeatures())
 	})
 	return devLicense.key, devLicense.err
 }
 
-func mintDevLicense() (string, error) {
+// allDevFeatures lists every feature this build knows how to gate. A feature added to domain
+// without a line here stays unlicensed in the suite, and its gate answers 402 the first time an
+// integration test reaches it — the same shape as the failure that produced this file, so the
+// list is worth keeping complete.
+func allDevFeatures() []domain.Feature {
+	return []domain.Feature{
+		domain.FeatureRBAC,
+		domain.FeatureSESTenant,
+		domain.FeatureSSO,
+		domain.FeatureAuditLogs,
+		domain.FeatureTemplateI18n,
+		domain.FeatureBranding,
+	}
+}
+
+// MintDevLicense mints a fresh licence carrying only the given features, for a test that needs a
+// deployment licensed for some capabilities and not others. It is not cached: every call signs a
+// new key. Like DevLicenseKey, it fails on a binary built without -tags licdev.
+func MintDevLicense(features ...domain.Feature) (string, error) {
+	return mintDevLicense(features)
+}
+
+func mintDevLicense(features []domain.Feature) (string, error) {
 	priv, err := loadDevSigningKey()
 	if err != nil {
 		return "", err
@@ -55,22 +77,12 @@ func mintDevLicense() (string, error) {
 
 	now := time.Now()
 	raw, err := license.Mint(priv, &license.Claims{
-		V:    license.SchemaVersion,
-		LID:  "lic_integration_suite",
-		Org:  "Notifuse integration suite",
-		Sub:  "test@example.com",
-		Tier: "enterprise",
-		// Every feature this build knows how to gate. A feature added to domain without a
-		// line here stays unlicensed in the suite, and its gate answers 402 the first time
-		// an integration test reaches it — the same shape as the failure that produced
-		// this file, so the list is worth keeping complete.
-		Feat: []string{
-			string(domain.FeatureRBAC),
-			string(domain.FeatureSESTenant),
-			string(domain.FeatureSSO),
-			string(domain.FeatureAuditLogs),
-			string(domain.FeatureTemplateI18n),
-		},
+		V:     license.SchemaVersion,
+		LID:   "lic_integration_suite",
+		Org:   "Notifuse integration suite",
+		Sub:   "test@example.com",
+		Tier:  "enterprise",
+		Feat:  featureStrings(features),
 		MaxWS: domain.UnlimitedWorkspaces,
 		// Issued an hour ago so a runner whose clock runs ahead of the minting host is
 		// still inside MaxClockSkew; a year of validity so the suite never trips the
@@ -90,6 +102,14 @@ func mintDevLicense() (string, error) {
 			"test-integration target in the Makefile", err)
 	}
 	return raw, nil
+}
+
+func featureStrings(features []domain.Feature) []string {
+	out := make([]string, 0, len(features))
+	for _, f := range features {
+		out = append(out, string(f))
+	}
+	return out
 }
 
 // loadDevSigningKey reads the committed dev key pair. The path is derived from this

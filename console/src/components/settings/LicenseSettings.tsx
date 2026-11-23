@@ -136,7 +136,8 @@ export function LicenseSettings() {
     ses_tenant: t`SES tenant isolation`,
     sso: t`Single sign-on (SSO)`,
     audit_logs: t`Audit logs`,
-    template_i18n: t`Template translations`
+    template_i18n: t`Template translations`,
+    branding: t`Instance branding`
   }
 
   const quota =

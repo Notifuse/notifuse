@@ -38,6 +38,9 @@ func newCovSetupHarness(t *testing.T, env *service.EnvironmentConfig) *covSetupH
 	t.Cleanup(ctrl.Finish)
 
 	settingRepo := mocks.NewMockSettingRepository(ctrl)
+	// No brand is stored: the wizard reads it to carry it over.
+	settingRepo.EXPECT().Get(gomock.Any(), service.InstanceBrandingSettingKey).
+		Return(nil, &domain.ErrSettingNotFound{Key: service.InstanceBrandingSettingKey}).AnyTimes()
 	settingRepo.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().
 		DoAndReturn(func(_ context.Context, key, value string) error {
 			h.setOrder = append(h.setOrder, key)
@@ -56,7 +59,7 @@ func newCovSetupHarness(t *testing.T, env *service.EnvironmentConfig) *covSetupH
 		})
 
 	h.svc = service.NewSetupService(
-		service.NewSettingService(settingRepo),
+		service.NewSettingService(settingRepo, nil),
 		&service.UserService{},
 		userRepo,
 		&mockLogger{},

@@ -93,7 +93,7 @@ func setupSettingsHandlerWithRootEmail(t *testing.T, rootEmail string) (*Setting
 	t.Helper()
 
 	settingRepo := newMockSettingRepository()
-	settingService := service.NewSettingService(settingRepo)
+	settingService := service.NewSettingService(settingRepo, nil)
 	userSvc := newMockUserServiceForSettings()
 	shutdowner := newMockAppShutdowner()
 
@@ -362,7 +362,7 @@ func TestSettingsHandler_Get_MaskedSensitiveFields(t *testing.T) {
 func TestSettingsHandler_Get_EnvOverrides(t *testing.T) {
 	// Create handler with env config that has some values
 	settingRepo := newMockSettingRepository()
-	settingService := service.NewSettingService(settingRepo)
+	settingService := service.NewSettingService(settingRepo, nil)
 	userSvc := newMockUserServiceForSettings()
 	shutdowner := newMockAppShutdowner()
 
@@ -433,7 +433,7 @@ func TestSettingsHandler_Get_EnvOverride_UsesLiveRootEmail(t *testing.T) {
 	const resolvedRootEmails = "root@example.com,second@example.com"
 
 	settingRepo := newMockSettingRepository()
-	settingService := service.NewSettingService(settingRepo)
+	settingService := service.NewSettingService(settingRepo, nil)
 	userSvc := newMockUserServiceForSettings()
 	shutdowner := newMockAppShutdowner()
 
@@ -493,7 +493,7 @@ func TestSettingsHandler_Get_EnvOverride_UsesLiveRootEmail(t *testing.T) {
 // masked even when sourced from the env override.
 func TestSettingsHandler_Get_EnvOverride_AllFieldsUseLiveValues(t *testing.T) {
 	settingRepo := newMockSettingRepository()
-	settingService := service.NewSettingService(settingRepo)
+	settingService := service.NewSettingService(settingRepo, nil)
 	userSvc := newMockUserServiceForSettings()
 	shutdowner := newMockAppShutdowner()
 

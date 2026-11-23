@@ -40,6 +40,25 @@ type Config struct {
 	APIEndpoint  string
 	UseTLS       bool
 	EHLOHostname string
+	// BrandName returns the name system emails print where they would print Notifuse: the
+	// instance brand while a licence covers it. It is called at each send, so a brand or a
+	// licence that changes needs no new mailer. nil or "" means DefaultBrandName.
+	BrandName func() string
+}
+
+// DefaultBrandName is the name system emails print when no instance brand applies.
+const DefaultBrandName = "Notifuse"
+
+// ResolveBrandName calls a brand-name source and falls back to DefaultBrandName when there is
+// none or it answers "".
+func ResolveBrandName(source func() string) string {
+	if source == nil {
+		return DefaultBrandName
+	}
+	if name := source(); name != "" {
+		return name
+	}
+	return DefaultBrandName
 }
 
 // SMTPMailer implements the Mailer interface using SMTP
@@ -54,6 +73,11 @@ func NewSMTPMailer(config *Config) *SMTPMailer {
 		config:   config,
 		testMode: false,
 	}
+}
+
+// BrandName is the name this mailer prints where it would print Notifuse.
+func (m *SMTPMailer) BrandName() string {
+	return ResolveBrandName(m.config.BrandName)
 }
 
 // NewTestSMTPMailer creates a new SMTP mailer in test mode (won't connect to SMTP server)
@@ -384,11 +408,24 @@ func selectSMTPAuthType(useTLS bool) mail.SMTPAuthType {
 }
 
 // ConsoleMailer is a development implementation that just logs emails
-type ConsoleMailer struct{}
+type ConsoleMailer struct {
+	brandName func() string
+}
 
 // NewConsoleMailer creates a new console mailer for development
 func NewConsoleMailer() *ConsoleMailer {
 	return &ConsoleMailer{}
+}
+
+// NewConsoleMailerWithBrand creates a development mailer that prints the instance brand, like
+// the SMTP mailer given the same source in Config.BrandName.
+func NewConsoleMailerWithBrand(brandName func() string) *ConsoleMailer {
+	return &ConsoleMailer{brandName: brandName}
+}
+
+// BrandName is the name this mailer prints where it would print Notifuse.
+func (m *ConsoleMailer) BrandName() string {
+	return ResolveBrandName(m.brandName)
 }
 
 // SendWorkspaceInvitation logs the invitation details to console

@@ -22,7 +22,7 @@ func TestSetupService_Initialize_UsesPrimaryRootEmail(t *testing.T) {
 	defer ctrl.Finish()
 
 	settingRepo := NewMockSettingRepository()
-	settingService := NewSettingService(settingRepo)
+	settingService := NewSettingService(settingRepo, nil)
 	userRepo := domainmocks.NewMockUserRepository(ctrl)
 
 	envConfig := &EnvironmentConfig{RootEmail: "primary@example.com,second@example.com"}
@@ -62,4 +62,34 @@ func TestSetupService_Initialize_UsesPrimaryRootEmail(t *testing.T) {
 	stored, err := settingRepo.Get(context.Background(), "root_email")
 	require.NoError(t, err)
 	assert.Equal(t, "primary@example.com,second@example.com", stored.Value, "the full root email list should be persisted")
+}
+
+// The wizard has no branding fields. Run again on a database that holds a brand (is_installed
+// set back to false to redo SMTP, for example), it must keep that brand, even without a licence.
+func TestSetupService_Initialize_KeepsAStoredBrand(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	settingRepo := NewMockSettingRepository()
+	stored := `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true}`
+	settingRepo.settings[InstanceBrandingSettingKey] = stored
+	settingService := NewSettingService(settingRepo, nil)
+	userRepo := domainmocks.NewMockUserRepository(ctrl)
+	userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+
+	setupService := NewSetupService(settingService, &UserService{}, userRepo, logger.NewLogger(),
+		"test-secret-key", nil, &EnvironmentConfig{RootEmail: "root@example.com"})
+
+	require.NoError(t, setupService.Initialize(context.Background(), &SetupConfig{
+		APIEndpoint:   "https://api.example.com",
+		SMTPHost:      "smtp.example.com",
+		SMTPPort:      587,
+		SMTPFromEmail: "noreply@example.com",
+	}))
+
+	got, err := settingService.GetInstanceBranding(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "Acme", got.Name)
+	assert.Equal(t, "https://cdn.example.com/l.png", got.LogoURL)
+	assert.True(t, got.HideHelpMenu)
 }

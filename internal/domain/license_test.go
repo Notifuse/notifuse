@@ -27,6 +27,8 @@ func TestFeatureIsValid(t *testing.T) {
 		{"ses_tenant is a feature this build gates", FeatureSESTenant, true},
 		{"sso is a feature this build gates", FeatureSSO, true},
 		{"audit_logs is a feature this build gates", FeatureAuditLogs, true},
+		{"template_i18n is a feature this build gates", FeatureTemplateI18n, true},
+		{"branding is a feature this build gates", FeatureBranding, true},
 		{"a feature name this build does not know is rejected", Feature("web_analytics"), false},
 		{"the empty feature is rejected", Feature(""), false},
 		{"a known name in the wrong case is rejected", Feature("RBAC"), false},
@@ -49,6 +51,8 @@ func TestFeatureWireStrings(t *testing.T) {
 		assert.Equal(t, "ses_tenant", string(FeatureSESTenant))
 		assert.Equal(t, "sso", string(FeatureSSO))
 		assert.Equal(t, "audit_logs", string(FeatureAuditLogs))
+		assert.Equal(t, "template_i18n", string(FeatureTemplateI18n))
+		assert.Equal(t, "branding", string(FeatureBranding))
 	})
 
 	t.Run("the wire value of every licence state is frozen", func(t *testing.T) {
@@ -73,6 +77,7 @@ func TestEntitlementsHas(t *testing.T) {
 	t.Run("reports false for a feature the licence omits", func(t *testing.T) {
 		assert.False(t, granted.Has(FeatureSSO))
 		assert.False(t, granted.Has(FeatureAuditLogs))
+		assert.False(t, granted.Has(FeatureBranding))
 	})
 
 	t.Run("reports false for a feature name this build does not know", func(t *testing.T) {
@@ -97,6 +102,7 @@ func TestEntitlementsHas(t *testing.T) {
 		assert.False(t, zero.Has(FeatureSESTenant))
 		assert.False(t, zero.Has(FeatureSSO))
 		assert.False(t, zero.Has(FeatureAuditLogs))
+		assert.False(t, zero.Has(FeatureBranding))
 		assert.False(t, zero.Licensed())
 	})
 }
@@ -151,6 +157,8 @@ func TestCommunityEntitlements(t *testing.T) {
 		assert.False(t, ent.Has(FeatureSESTenant))
 		assert.False(t, ent.Has(FeatureSSO))
 		assert.False(t, ent.Has(FeatureAuditLogs))
+		assert.False(t, ent.Has(FeatureTemplateI18n))
+		assert.False(t, ent.Has(FeatureBranding))
 	})
 
 	t.Run("carries no licensee identity and no expiry", func(t *testing.T) {
@@ -238,6 +246,12 @@ func TestErrFeatureNotLicensed(t *testing.T) {
 			feature:      FeatureAuditLogs,
 			requiredTier: "Enterprise",
 			message:      "Audit logs require a Notifuse Enterprise licence.",
+		},
+		{
+			name:         "instance branding is sold from the agency plan",
+			feature:      FeatureBranding,
+			requiredTier: "Agency",
+			message:      "Instance branding requires a Notifuse licence (Agency or above).",
 		},
 	}
 
@@ -594,7 +608,7 @@ func TestTheConsoleNamesTheSameTierTheServerDoes(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, f := range []Feature{
-		FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n,
+		FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n, FeatureBranding,
 	} {
 		entry := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(string(f)) + `: '([A-Za-z]+)'`)
 		match := entry.FindSubmatch(source)
