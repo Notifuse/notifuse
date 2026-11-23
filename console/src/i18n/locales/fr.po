@@ -24152,7 +24152,7 @@ msgstr "L'authentification unique ne peut pas créer de compte pour votre domain
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "L'authentification unique a échoué. Veuillez réessayer ou utiliser un code magique."
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:41
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "L'authentification unique (SSO) est activée, et la licence de ce déploiement ne la couvre pas."
 
@@ -26411,7 +26411,7 @@ msgstr "Le serveur n'a renvoyé aucun modèle"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "Le site refuse d'être affiché à l'intérieur d'une autre page, ce qui est un paramètre de sécurité courant. Ouvrez-le dans un nouvel onglet pour le voir."
 
-#: src/components/license/SsoLicenceNotice.tsx:45
+#: src/components/license/SsoLicenceNotice.tsx:42
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
 msgstr "Le bouton SSO reste masqué sur la page de connexion tant qu'une licence qui le couvre n'est pas installée. Chacun se connecte avec un code de connexion en attendant : personne n'est enfermé dehors, et aucune session n'a été interrompue."
 

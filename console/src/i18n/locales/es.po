@@ -24152,7 +24152,7 @@ msgstr "El inicio de sesión único no puede crear una cuenta para tu dominio de
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "El inicio de sesión único ha fallado. Inténtalo de nuevo o usa un código mágico."
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:41
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "El inicio de sesión único está activado, pero la licencia de este despliegue no lo incluye."
 
@@ -26411,7 +26411,7 @@ msgstr "El servidor no devolvió ninguna plantilla"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "El sitio se niega a mostrarse dentro de otra página, lo cual es una configuración de seguridad habitual. Ábrelo en una pestaña nueva para verlo."
 
-#: src/components/license/SsoLicenceNotice.tsx:45
+#: src/components/license/SsoLicenceNotice.tsx:42
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
 msgstr "El botón de SSO sigue oculto en la página de inicio de sesión hasta que se instale una licencia que lo incluya. Mientras tanto, todos entran con un código de inicio de sesión: nadie se queda sin acceso y no se ha cerrado ninguna sesión."
 

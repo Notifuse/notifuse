@@ -24152,7 +24152,7 @@ msgstr "シングルサインオンでは、お使いのメールドメインの
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "シングルサインオンに失敗しました。もう一度お試しいただくか、マジックコードをご利用ください。"
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:41
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "シングルサインオンがオンになっていますが、このデプロイメントのライセンスには含まれていません。"
 
@@ -26411,7 +26411,7 @@ msgstr "サーバーからテンプレートが返されませんでした"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "このサイトは他のページ内での表示を拒否しています。これは一般的なセキュリティ設定です。表示するには新しいタブで開いてください。"
 
-#: src/components/license/SsoLicenceNotice.tsx:45
+#: src/components/license/SsoLicenceNotice.tsx:42
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
 msgstr "SSOを含むライセンスがインストールされるまで、サインインページにSSOボタンは表示されません。それまでは全員がログインコードでサインインします。サインインできなくなる人はおらず、終了したセッションもありません。"
 

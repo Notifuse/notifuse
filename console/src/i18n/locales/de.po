@@ -24152,7 +24152,7 @@ msgstr "Single Sign-On kann für Ihre E-Mail-Domain kein Konto erstellen. Wenn S
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "Single Sign-On fehlgeschlagen. Bitte versuchen Sie es erneut oder verwenden Sie einen Magic Code."
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:41
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "Single Sign-on ist eingeschaltet, aber die Lizenz dieses Deployments umfasst es nicht."
 
@@ -26411,7 +26411,7 @@ msgstr "Der Server hat keine Vorlage zurückgegeben"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "Die Website verweigert die Anzeige innerhalb einer anderen Seite, was eine übliche Sicherheitseinstellung ist. Öffnen Sie sie in einem neuen Tab, um sie zu sehen."
 
-#: src/components/license/SsoLicenceNotice.tsx:45
+#: src/components/license/SsoLicenceNotice.tsx:42
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
 msgstr "Die SSO-Schaltfläche bleibt auf der Anmeldeseite verborgen, bis eine Lizenz installiert ist, die SSO umfasst. Bis dahin melden sich alle mit einem Anmeldecode an. Niemand wird ausgesperrt, und keine Sitzung wurde beendet."
 

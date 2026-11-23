@@ -24152,7 +24152,7 @@ msgstr "L'inici de sessió únic no pot crear un compte per al vostre domini de 
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "L'inici de sessió únic ha fallat. Torneu-ho a provar o utilitzeu un codi màgic."
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:41
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "L'inici de sessió únic està activat, però la llicència d'aquest desplegament no l'inclou."
 
@@ -26411,7 +26411,7 @@ msgstr "El servidor no ha retornat cap plantilla"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "El lloc es nega a mostrar-se dins d'una altra pàgina, cosa que és un paràmetre de seguretat habitual. Obriu-lo en una pestanya nova per veure'l."
 
-#: src/components/license/SsoLicenceNotice.tsx:45
+#: src/components/license/SsoLicenceNotice.tsx:42
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
 msgstr "El botó d'SSO queda amagat a la pàgina d'inici de sessió fins que s'instal·li una llicència que l'inclogui. Mentrestant, tothom entra amb un codi d'inici de sessió: ningú no queda bloquejat i no s'ha tancat cap sessió."
 
