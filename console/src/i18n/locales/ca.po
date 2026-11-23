@@ -383,6 +383,11 @@ msgstr "{0, plural, one {Vols eliminar # fitxer seleccionat?} other {Vols elimin
 msgid "{0, plural, one {Delete the folder {name} and its # file?} other {Delete the folder {name} and its # files?}}"
 msgstr "{0, plural, one {Vols eliminar la carpeta {name} i el seu # fitxer?} other {Vols eliminar la carpeta {name} i els seus # fitxers?}}"
 
+#. placeholder {0}: leaf.retention.days
+#: src/components/segment/segmentSummary.ts:229
+msgid "{0, plural, one {Deleted as inactive within # day} other {Deleted as inactive within # days}}"
+msgstr "{0, plural, one {S'eliminarà per inactivitat d'aquí a # dia} other {S'eliminarà per inactivitat d'aquí a # dies}}"
+
 #. placeholder {0}: checkedFiles.length
 #: src/components/file_manager/FileExplorer.tsx:396
 msgid "{0, plural, one {Downloaded # file} other {Downloaded # files}}"
@@ -871,6 +876,10 @@ msgstr "{days, plural, one {{0} vs # dia anterior} other {{1} vs # dies anterior
 msgid "{days, plural, one {{shown} vs prev. # d} other {{shown} vs prev. # d}}"
 msgstr "{days, plural, one {{shown} vs # d ant.} other {{shown} vs # d ant.}}"
 
+#: src/components/segment/ConditionSentence.tsx:281
+msgid "{days, plural, one {# day} other {# days}}"
+msgstr "{days, plural, one {# dia} other {# dies}}"
+
 #. placeholder {0}: int(kpis.contacts.added)
 #. placeholder {1}: int(kpis.contacts.added)
 #: src/components/analytics/DashboardKpis.tsx:266
@@ -1138,7 +1147,7 @@ msgstr "Codi {language} copiat al porta-retalls!"
 msgid "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
 msgstr "{LAST_SENT_DAYS, plural, one {Cap enviament correcte l'últim # dia} other {Cap enviament correcte els últims # dies}}"
 
-#: src/components/automations/config/ConditionsField.tsx:106
+#: src/components/automations/config/ConditionsField.tsx:110
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr "{leafCount, plural, one {# condició} other {# condicions}}"
 
@@ -1723,7 +1732,7 @@ msgid "1 block hidden by its condition with this test data."
 msgstr "1 bloc ocult per la seva condició amb aquestes dades de prova."
 
 #: src/components/segment/segmentSummary.ts:208
-#: src/components/segment/segmentSummary.ts:229
+#: src/components/segment/segmentSummary.ts:234
 msgid "1 condition"
 msgstr "1 condició"
 
@@ -1897,7 +1906,7 @@ msgstr "90 dies"
 msgid "900 - Black"
 msgstr "900 - Negre"
 
-#: src/components/segment/input.tsx:435
+#: src/components/segment/input.tsx:440
 msgid "A branch condition is required..."
 msgstr "Es requereix una condició de branca..."
 
@@ -1929,6 +1938,10 @@ msgstr "Un clic obre la vista prèvia; un doble clic fa servir el model directam
 #: src/components/templates/TemplateSelectorModal.tsx:216
 msgid "A click previews a template; a double click uses it."
 msgstr "Un clic mostra la vista prèvia d'una plantilla; un doble clic la fa servir."
+
+#: src/components/segment/form_leaf.tsx:898
+msgid "A click, a reply or a visit moves the contact's date forward, and the contact leaves the segment. Exempt contacts never match."
+msgstr "Un clic, una resposta o una visita endarrereixen la data del contacte, que surt del segment. Els contactes exempts no hi coincideixen mai."
 
 #: src/components/templates/TemplateSettingsStep.tsx:77
 msgid "A closing Liquid tag ({CLOSE_TAG}) comes before its opening tag ({OPEN_TAG})"
@@ -1978,7 +1991,7 @@ msgstr "Un valor d'un contacte a {field} no és un nombre."
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "S’insereix una còpia. Els canvis posteriors al bloc desat no la modifiquen."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:405
+#: src/components/automations/config/TriggerConfigForm.tsx:407
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un recompte d'activitat passada inclou l'esdeveniment que dispara l'automatització, de manera que \"almenys 3 obertures\" inscriu el contacte a la tercera obertura."
 
@@ -2122,7 +2135,7 @@ msgstr "Una imatge quadrada, mostrada al costat del nom de l'espai de treball"
 #~ msgid "A tree is required"
 #~ msgstr "Es requereix un arbre"
 
-#: src/components/segment/input.tsx:537
+#: src/components/segment/input.tsx:542
 msgid "A value is required..."
 msgstr "Es requereix un valor..."
 
@@ -2420,7 +2433,7 @@ msgstr "Filtres actius"
 #~ msgstr "Subscriptor actiu"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:310
-#: src/components/segment/form_leaf.tsx:486
+#: src/components/segment/form_leaf.tsx:488
 #: src/components/segment/input.tsx:66
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
@@ -2526,7 +2539,7 @@ msgstr "Afegir anotació"
 msgid "Add at least one condition."
 msgstr "Afegeix almenys una condició."
 
-#: src/components/segment/form_leaf.tsx:346
+#: src/components/segment/form_leaf.tsx:348
 msgid "Add at least one filter"
 msgstr "Afegeix almenys un filtre"
 
@@ -2624,7 +2637,7 @@ msgstr "Afegir domini"
 msgid "Add endpoint"
 msgstr "Afegeix un punt final"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:394
+#: src/components/automations/config/TriggerConfigForm.tsx:396
 msgid "Add entry conditions"
 msgstr "Afegir condicions d'entrada"
 
@@ -2805,20 +2818,20 @@ msgstr "S'afegeixen a les dades de prova de la plantilla. Un enviament les ha de
 msgid "Additional context about this event"
 msgstr "Context addicional sobre aquest esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:105
+#: src/components/automations/config/TriggerConfigForm.tsx:106
 #: src/components/contacts/contactColumns.ts:69
 #: src/components/contacts/ContactsTable.tsx:341
 msgid "Address"
 msgstr "Adreça"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:107
+#: src/components/automations/config/TriggerConfigForm.tsx:108
 #: src/components/contacts/csv-import/contactFields.ts:33
 #: src/components/contacts/sheet/contactFieldLabels.ts:28
 #: src/components/segment/segmentLabels.ts:26
 msgid "Address Line 1"
 msgstr "Línia d'adreça 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:108
+#: src/components/automations/config/TriggerConfigForm.tsx:109
 #: src/components/contacts/csv-import/contactFields.ts:34
 #: src/components/contacts/sheet/contactFieldLabels.ts:29
 #: src/components/segment/segmentLabels.ts:27
@@ -2904,7 +2917,7 @@ msgstr "Després del codi que t'enviem per correu, Notifuse demana un segon codi
 msgid "After your first send"
 msgstr "Després del teu primer enviament"
 
-#: src/components/segment/form_leaf.tsx:742
+#: src/components/segment/form_leaf.tsx:744
 msgid "Aggregate"
 msgstr "Agregar"
 
@@ -2975,7 +2988,7 @@ msgstr "Alinear a la dreta"
 msgid "Alignment"
 msgstr "Alineació"
 
-#: src/components/segment/input.tsx:448
+#: src/components/segment/input.tsx:453
 msgid "all"
 msgstr "totes les"
 
@@ -3306,16 +3319,16 @@ msgstr "ID d'àncora"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:66
 #: src/components/segment/ConditionSentence.tsx:166
-#: src/components/segment/ConditionSentence.tsx:305
-#: src/components/segment/form_leaf.tsx:778
+#: src/components/segment/ConditionSentence.tsx:315
+#: src/components/segment/form_leaf.tsx:780
 #: src/components/segment/segmentSummary.ts:214
-#: src/components/segment/segmentSummary.ts:242
+#: src/components/segment/segmentSummary.ts:247
 msgid "and"
 msgstr "I"
 
 #: src/components/segment/ConditionSentence.tsx:141
 #: src/components/segment/input_dimension_filters.tsx:58
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:445
 msgid "AND"
 msgstr "I"
 
@@ -3379,16 +3392,16 @@ msgstr "Qualsevol"
 msgid "Any API key"
 msgstr "Qualsevol clau API"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:371
-#: src/components/segment/form_leaf.tsx:601
+#: src/components/automations/config/TriggerConfigForm.tsx:372
+#: src/components/segment/form_leaf.tsx:603
 msgid "Any broadcast"
 msgstr "Qualsevol difusió"
 
-#: src/components/segment/form_leaf.tsx:729
+#: src/components/segment/form_leaf.tsx:731
 msgid "Any event"
 msgstr "Qualsevol esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:336
+#: src/components/automations/config/TriggerConfigForm.tsx:337
 msgid "Any field change triggers automation"
 msgstr "Qualsevol canvi de camp activa l'automatització"
 
@@ -3396,7 +3409,7 @@ msgstr "Qualsevol canvi de camp activa l'automatització"
 msgid "Any goal"
 msgstr "Qualsevol objectiu"
 
-#: src/components/segment/form_leaf.tsx:726
+#: src/components/segment/form_leaf.tsx:728
 msgid "Any goal name"
 msgstr "Qualsevol nom d'objectiu"
 
@@ -3416,10 +3429,10 @@ msgstr "Qualsevol enviament"
 msgid "Any SMTP server, basic or OAuth2 login"
 msgstr "Qualsevol servidor SMTP, inici de sessió bàsic o OAuth2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:380
 #: src/components/automations/config/TriggerConfigForm.tsx:381
-#: src/components/segment/form_leaf.tsx:582
-#: src/components/segment/form_leaf.tsx:583
+#: src/components/automations/config/TriggerConfigForm.tsx:382
+#: src/components/segment/form_leaf.tsx:584
+#: src/components/segment/form_leaf.tsx:585
 msgid "Any template"
 msgstr "Qualsevol plantilla"
 
@@ -3847,7 +3860,7 @@ msgstr "com a mínim"
 msgid "At least {0}"
 msgstr "Com a mínim {0}"
 
-#: src/components/segment/input.tsx:449
+#: src/components/segment/input.tsx:454
 msgid "at least one"
 msgstr "almenys una de les"
 
@@ -4503,7 +4516,7 @@ msgid "Best TimeScore"
 msgstr "Millor TimeScore"
 
 #: src/components/segment/ConditionSentence.tsx:164
-#: src/components/segment/ConditionSentence.tsx:303
+#: src/components/segment/ConditionSentence.tsx:313
 #: src/components/segment/segmentLabels.ts:231
 #: src/components/segment/segmentLabels.ts:294
 msgid "between"
@@ -4512,6 +4525,10 @@ msgstr "Entre"
 #: src/components/segment/segmentSummary.ts:135
 msgid "between {first} and {second}"
 msgstr "entre el {first} i el {second}"
+
+#: src/components/segment/form_leaf.tsx:882
+msgid "Between 1 and 365 days"
+msgstr "Entre 1 i 365 dies"
 
 #: src/components/templates/gallery/labels.ts:28
 msgid "Billing"
@@ -4980,11 +4997,11 @@ msgstr "Recupera els contactes inactius amb una oferta."
 msgid "broadcast"
 msgstr "difusió"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:366
+#: src/components/automations/config/TriggerConfigForm.tsx:367
 #: src/components/broadcasts/BroadcastsTable.tsx:243
 #: src/components/messages/MessageHistoryTable.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:255
-#: src/components/segment/form_leaf.tsx:591
+#: src/components/segment/form_leaf.tsx:593
 #: src/components/templates/TemplateSelectorModal.tsx:707
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:64
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:120
@@ -5326,7 +5343,7 @@ msgstr "No es pot provar al navegador"
 #: src/components/automations/AutomationEditor.tsx:390
 #: src/components/automations/AutomationEditor.tsx:400
 #: src/components/automations/AutomationEditor.tsx:414
-#: src/components/automations/config/ConditionsField.tsx:124
+#: src/components/automations/config/ConditionsField.tsx:128
 #: src/components/automations/list/AutomationsTable.tsx:72
 #: src/components/automations/list/AutomationsTable.tsx:79
 #: src/components/automations/list/AutomationsTable.tsx:90
@@ -5385,8 +5402,8 @@ msgstr "No es pot provar al navegador"
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/lists/ListDrawer.tsx:579
-#: src/components/segment/form_leaf.tsx:204
-#: src/components/segment/input.tsx:311
+#: src/components/segment/form_leaf.tsx:206
+#: src/components/segment/input.tsx:315
 #: src/components/segment/SegmentDrawer.tsx:306
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
@@ -6118,7 +6135,7 @@ msgid "Clicked in an email"
 msgstr "Ha fet clic en un correu"
 
 #: src/components/logs/MessagesTab.tsx:297
-#: src/components/segment/form_leaf.tsx:610
+#: src/components/segment/form_leaf.tsx:612
 msgid "Clicked link"
 msgstr "Enllaç clicat"
 
@@ -6126,7 +6143,7 @@ msgstr "Enllaç clicat"
 msgid "clicked link contains"
 msgstr "l'enllaç clicat conté"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:356
+#: src/components/automations/config/TriggerConfigForm.tsx:357
 msgid "Clicked link contains"
 msgstr "L'enllaç clicat conté"
 
@@ -6181,7 +6198,7 @@ msgstr "Clics per dia"
 msgid "Clicks tracking consent"
 msgstr "Consentiment de seguiment de clics"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:118
+#: src/components/automations/config/TriggerConfigForm.tsx:119
 msgid "Clicks Tracking Consent"
 msgstr "Consentiment de seguiment de clics"
 
@@ -6437,7 +6454,7 @@ msgstr "Compareu aquest període amb l'anterior i expliqueu els factors principa
 msgid "Compare TimeScore across campaign sources"
 msgstr "Comparar el TimeScore entre fonts de campanya"
 
-#: src/components/segment/form_leaf.tsx:757
+#: src/components/segment/form_leaf.tsx:759
 msgid "Comparison"
 msgstr "Comparació"
 
@@ -6513,7 +6530,7 @@ msgstr "Completat"
 msgid "Complete days up to yesterday, in the workspace's time zone ({timezone})"
 msgstr "Dies complets fins ahir, a la zona horària de l'espai de treball ({timezone})"
 
-#: src/components/segment/form_leaf.tsx:161
+#: src/components/segment/form_leaf.tsx:163
 msgid "Complete or remove the unfinished filters"
 msgstr "Completa o elimina els filtres inacabats"
 
@@ -6568,7 +6585,7 @@ msgstr "Condició"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:364
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:107
 #: src/components/segment/FilterRow.tsx:203
-#: src/components/segment/input.tsx:518
+#: src/components/segment/input.tsx:523
 msgid "Condition"
 msgstr "Condició"
 
@@ -6686,7 +6703,7 @@ msgstr "Configurant {0}"
 
 #: src/components/contacts/BulkActionsBar.tsx:191
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:206
-#: src/components/segment/form_leaf.tsx:207
+#: src/components/segment/form_leaf.tsx:209
 #: src/components/two_factor/SetupWizard.tsx:149
 msgid "Confirm"
 msgstr "Confirmar"
@@ -6881,7 +6898,7 @@ msgstr "El contacte no està subscrit a aquesta llista"
 msgid "Contact not found"
 msgstr "No s'ha trobat el contacte"
 
-#: src/components/segment/form_leaf.tsx:337
+#: src/components/segment/form_leaf.tsx:339
 #: src/components/segment/input.tsx:64
 #: src/components/segment/table_tag.tsx:20
 msgid "Contact property"
@@ -6939,7 +6956,7 @@ msgstr "Els contactes que ja són a l'espai de treball s'identifiquen pel correu
 msgid "Contacts can subscribe or unsubscribe from the notification center."
 msgstr "Els contactes s'hi poden subscriure o donar-se'n de baixa des del centre de notificacions."
 
-#: src/components/segment/input.tsx:465
+#: src/components/segment/input.tsx:470
 msgid "Contacts matching"
 msgstr "Contactes que compleixen"
 
@@ -6958,6 +6975,10 @@ msgstr "Els contactes no subscrits a aquesta llista s'ometen."
 #: src/components/broadcasts/compose/AudienceCard.tsx:84
 msgid "Contacts of the list who belong to any of these segments. Leave empty for the whole list."
 msgstr "Contactes de la llista que pertanyen a algun d'aquests segments. Deixeu-ho buit per a tota la llista."
+
+#: src/components/segment/input.tsx:76
+msgid "Contacts the inactive-contact retention deletes soon"
+msgstr "Els contactes que la conservació de contactes inactius eliminarà aviat"
 
 #: src/components/settings/data_retention/categoryText.ts:18
 msgid "Contacts who have not clicked, replied, confirmed or visited for this long. They are deleted with their history; their unsubscribes are kept as hashes for 3 years."
@@ -7015,7 +7036,7 @@ msgstr "Fons del contenidor"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
-#: src/components/segment/form_leaf.tsx:611
+#: src/components/segment/form_leaf.tsx:613
 #: src/components/segment/segmentLabels.ts:221
 #: src/components/web_analytics/lib/filterCatalog.ts:222
 #: src/components/web_analytics/lib/filterLabels.ts:12
@@ -7159,7 +7180,7 @@ msgstr "Copiar URL"
 #~ msgid "Copy Webhook endpoint"
 #~ msgstr "Copiar punt final del webhook"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:94
+#: src/components/automations/config/TriggerConfigForm.tsx:95
 msgid "Core Fields"
 msgstr "Camps principals"
 
@@ -7441,7 +7462,7 @@ msgstr "S'està comptant…"
 msgid "Countries"
 msgstr "Països"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:109
+#: src/components/automations/config/TriggerConfigForm.tsx:110
 #: src/components/contacts/contactColumns.ts:66
 #: src/components/contacts/contactFilterFields.ts:32
 #: src/components/contacts/ContactsTable.tsx:329
@@ -7975,27 +7996,27 @@ msgstr "Mida de fons personalitzada"
 msgid "Custom date {number}"
 msgstr "Data personalitzada {number}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:144
+#: src/components/automations/config/TriggerConfigForm.tsx:145
 msgid "Custom Date 1"
 msgstr "Data personalitzada 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:145
+#: src/components/automations/config/TriggerConfigForm.tsx:146
 msgid "Custom Date 2"
 msgstr "Data personalitzada 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:146
+#: src/components/automations/config/TriggerConfigForm.tsx:147
 msgid "Custom Date 3"
 msgstr "Data personalitzada 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:147
+#: src/components/automations/config/TriggerConfigForm.tsx:148
 msgid "Custom Date 4"
 msgstr "Data personalitzada 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:148
+#: src/components/automations/config/TriggerConfigForm.tsx:149
 msgid "Custom Date 5"
 msgstr "Data personalitzada 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:142
+#: src/components/automations/config/TriggerConfigForm.tsx:143
 msgid "Custom Date Fields"
 msgstr "Camps de data personalitzats"
 
@@ -8110,27 +8131,27 @@ msgstr "JSON personalitzat {num}"
 msgid "Custom JSON {number}"
 msgstr "JSON personalitzat {number}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:154
+#: src/components/automations/config/TriggerConfigForm.tsx:155
 msgid "Custom JSON 1"
 msgstr "JSON personalitzat 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:155
+#: src/components/automations/config/TriggerConfigForm.tsx:156
 msgid "Custom JSON 2"
 msgstr "JSON personalitzat 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:156
+#: src/components/automations/config/TriggerConfigForm.tsx:157
 msgid "Custom JSON 3"
 msgstr "JSON personalitzat 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:157
+#: src/components/automations/config/TriggerConfigForm.tsx:158
 msgid "Custom JSON 4"
 msgstr "JSON personalitzat 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:158
+#: src/components/automations/config/TriggerConfigForm.tsx:159
 msgid "Custom JSON 5"
 msgstr "JSON personalitzat 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:152
+#: src/components/automations/config/TriggerConfigForm.tsx:153
 msgid "Custom JSON Fields"
 msgstr "Camps JSON personalitzats"
 
@@ -8142,27 +8163,27 @@ msgstr "Camps JSON personalitzats"
 msgid "Custom number {number}"
 msgstr "Nombre personalitzat {number}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:134
+#: src/components/automations/config/TriggerConfigForm.tsx:135
 msgid "Custom Number 1"
 msgstr "Número personalitzat 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:135
+#: src/components/automations/config/TriggerConfigForm.tsx:136
 msgid "Custom Number 2"
 msgstr "Número personalitzat 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:136
+#: src/components/automations/config/TriggerConfigForm.tsx:137
 msgid "Custom Number 3"
 msgstr "Número personalitzat 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:137
+#: src/components/automations/config/TriggerConfigForm.tsx:138
 msgid "Custom Number 4"
 msgstr "Número personalitzat 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:138
+#: src/components/automations/config/TriggerConfigForm.tsx:139
 msgid "Custom Number 5"
 msgstr "Número personalitzat 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:132
+#: src/components/automations/config/TriggerConfigForm.tsx:133
 msgid "Custom Number Fields"
 msgstr "Camps de número personalitzats"
 
@@ -8207,27 +8228,27 @@ msgstr "Remitent personalitzat, del proveïdor de correu de màrqueting"
 msgid "Custom sender, from the transactional email provider"
 msgstr "Remitent personalitzat, del proveïdor de correu transaccional"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:124
+#: src/components/automations/config/TriggerConfigForm.tsx:125
 msgid "Custom String 1"
 msgstr "Cadena personalitzada 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:125
+#: src/components/automations/config/TriggerConfigForm.tsx:126
 msgid "Custom String 2"
 msgstr "Cadena personalitzada 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:126
+#: src/components/automations/config/TriggerConfigForm.tsx:127
 msgid "Custom String 3"
 msgstr "Cadena personalitzada 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:127
+#: src/components/automations/config/TriggerConfigForm.tsx:128
 msgid "Custom String 4"
 msgstr "Cadena personalitzada 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:128
+#: src/components/automations/config/TriggerConfigForm.tsx:129
 msgid "Custom String 5"
 msgstr "Cadena personalitzada 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:122
+#: src/components/automations/config/TriggerConfigForm.tsx:123
 msgid "Custom String Fields"
 msgstr "Camps de cadena personalitzats"
 
@@ -8277,6 +8298,8 @@ msgstr "Dades"
 msgid "Data feeds"
 msgstr "Fluxos de dades"
 
+#: src/components/segment/form_leaf.tsx:872
+#: src/components/segment/input.tsx:68
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:44
 #: src/components/settings/SettingsSidebar.tsx:61
 msgid "Data retention"
@@ -8324,12 +8347,14 @@ msgstr "Dia"
 #: src/components/segment/ConditionSentence.tsx:158
 #: src/components/segment/FilterValueInput.tsx:141
 #: src/components/segment/FilterValueInput.tsx:146
-#: src/components/segment/form_leaf.tsx:250
+#: src/components/segment/form_leaf.tsx:252
+#: src/components/segment/form_leaf.tsx:886
 #: src/components/settings/data_retention/PeriodInput.tsx:54
 msgid "days"
 msgstr "Dies"
 
 #: src/components/automations/config/DelayConfigForm.tsx:17
+#: src/components/segment/form_leaf.tsx:884
 msgid "Days"
 msgstr "Dies"
 
@@ -8533,7 +8558,7 @@ msgstr "Retard"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:309
+#: src/components/segment/input.tsx:313
 #: src/components/settings/DomainsSettings.tsx:139
 #: src/components/settings/DomainsSettings.tsx:356
 #: src/components/settings/Integrations.tsx:271
@@ -8903,6 +8928,10 @@ msgstr "Eliminada"
 #: src/components/file_manager/fileManager.tsx:577
 #~ msgid "Deleted {deletedCount}, failed {failedCount}"
 #~ msgstr "Eliminat(s) {deletedCount}, fallat(s) {failedCount}"
+
+#: src/components/segment/segmentSummary.ts:230
+#~ msgid "Deleted as inactive within {days} days"
+#~ msgstr "S'eliminarà per inactivitat d'aquí a {days} dies"
 
 #: src/components/settings/data_retention/RetentionPreviewModal.tsx:156
 msgid "Deleted data stays in your database backups until they expire."
@@ -9372,7 +9401,7 @@ msgstr "La verificació DNS evita l'ocupació de dominis"
 #~ msgid "Do you really want to remove this branch?"
 #~ msgstr "Esteu segur que voleu treure aquesta branca?"
 
-#: src/components/segment/input.tsx:301
+#: src/components/segment/input.tsx:305
 msgid "Do you really want to remove this condition?"
 msgstr "Esteu segur que voleu treure aquesta condició?"
 
@@ -9381,7 +9410,7 @@ msgstr "Esteu segur que voleu treure aquesta condició?"
 #~ msgid "Do you really want to remove this filter?"
 #~ msgstr "Esteu segur que voleu treure aquest filtre?"
 
-#: src/components/segment/input.tsx:301
+#: src/components/segment/input.tsx:305
 msgid "Do you really want to remove this group?"
 msgstr "Segur que vols eliminar aquest grup?"
 
@@ -9474,7 +9503,7 @@ msgstr "No fer seguiment d'obertures i clics en aquest broadcast"
 
 #: src/components/analytics/GetStartedChecklist.tsx:312
 #: src/components/analytics/GetStartedChecklist.tsx:439
-#: src/components/automations/config/ConditionsField.tsx:142
+#: src/components/automations/config/ConditionsField.tsx:146
 #: src/components/contacts/BulkUpdateDrawer.tsx:189
 #: src/components/contacts/BulkUpdateDrawer.tsx:245
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:195
@@ -9627,8 +9656,8 @@ msgstr "Comerç electrònic"
 msgid "e.g. {0}"
 msgstr "p. ex. {0}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:360
-#: src/components/segment/form_leaf.tsx:619
+#: src/components/automations/config/TriggerConfigForm.tsx:361
+#: src/components/segment/form_leaf.tsx:621
 msgid "e.g. /pricing"
 msgstr "p. ex. /preus"
 
@@ -9728,7 +9757,7 @@ msgstr "p. ex., La meva integració Supabase"
 msgid "e.g., Product Updates"
 msgstr "p. ex., Actualitzacions de producte"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:321
+#: src/components/automations/config/TriggerConfigForm.tsx:322
 msgid "e.g., purchase"
 msgstr "p. ex., compra"
 
@@ -9780,7 +9809,7 @@ msgstr "Cada variació conserva el remitent de la seva plantilla, tret que en tr
 #~ msgid "edit"
 #~ msgstr "Editar"
 
-#: src/components/automations/config/ConditionsField.tsx:112
+#: src/components/automations/config/ConditionsField.tsx:116
 #: src/components/blog/BlogSidebar.tsx:119
 #: src/components/blog/PostsTable.tsx:234
 #: src/components/blog/PostsTable.tsx:238
@@ -9789,8 +9818,8 @@ msgstr "Cada variació conserva el remitent de la seva plantilla, tret que en tr
 #: src/components/contacts/ContactsTable.tsx:93
 #: src/components/email_builder/EmailBuilder.tsx:1138
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
-#: src/components/segment/input.tsx:389
-#: src/components/segment/input.tsx:393
+#: src/components/segment/input.tsx:394
+#: src/components/segment/input.tsx:398
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -10366,7 +10395,7 @@ msgstr "Plantilles de correu en tots els idiomes, i els blocs de plantilla reuti
 msgid "Email tracking"
 msgstr "Seguiment dels correus"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:115
+#: src/components/automations/config/TriggerConfigForm.tsx:116
 msgid "Email Tracking Consent"
 msgstr "Consentiment de seguiment d'emails"
 
@@ -10382,7 +10411,7 @@ msgstr "Amplada del correu"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Les amplades de correu superiors a 650px poden no mostrar-se correctament en alguns clients de correu"
 
-#: src/components/segment/input.tsx:71
+#: src/components/segment/input.tsx:72
 msgid "Email, country, language, custom fields, tracking consent…"
 msgstr "Correu, país, idioma, camps personalitzats, consentiment de seguiment…"
 
@@ -10397,8 +10426,8 @@ msgstr "Correu:"
 #: src/components/contacts/BulkUpdateDrawer.tsx:399
 #: src/components/contacts/BulkUpdateDrawer.tsx:407
 #: src/components/contacts/sheet/ContactActivityTab.tsx:36
-#: src/components/segment/form_leaf.tsx:520
-#: src/components/segment/form_leaf.tsx:521
+#: src/components/segment/form_leaf.tsx:522
+#: src/components/segment/form_leaf.tsx:523
 msgid "Emails"
 msgstr "Correus"
 
@@ -10444,7 +10473,7 @@ msgstr "Correus enviats"
 msgid "Emails sent per day"
 msgstr "Correus enviats per dia"
 
-#: src/components/segment/input.tsx:73
+#: src/components/segment/input.tsx:74
 msgid "Emails sent, opened, clicked… pages viewed and website visits"
 msgstr "Correus enviats, oberts, clicats… pàgines vistes i visites al lloc"
 
@@ -10473,7 +10502,7 @@ msgstr "Buit"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Columna buida. Afegiu contingut de text, botó o imatge."
 
-#: src/components/segment/input.tsx:482
+#: src/components/segment/input.tsx:487
 msgid "Empty: add a condition or a subgroup."
 msgstr "Buit: afegeix una condició o un subgrup."
 
@@ -10846,7 +10875,7 @@ msgstr "Introdueix el codi de la teva aplicació d'autenticació."
 msgid "Enter the code shown in the app"
 msgstr "Introdueix el codi que mostra l'aplicació"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:318
+#: src/components/automations/config/TriggerConfigForm.tsx:319
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
 msgstr "Introduïu el nom de l'esdeveniment personalitzat (p. ex., 'compra', 'registre')"
 
@@ -10902,7 +10931,7 @@ msgstr "Les entrades més antigues s'eliminen un cop al dia. Deixeu-ho buit per 
 msgid "Entry"
 msgstr "Entrada"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:392
+#: src/components/automations/config/TriggerConfigForm.tsx:394
 msgid "Entry conditions"
 msgstr "Condicions d'entrada"
 
@@ -11012,7 +11041,7 @@ msgstr "Errors"
 #~ msgid "Errors ({0} of {1} shown)"
 #~ msgstr "Errors ({0} de {1} mostrats)"
 
-#: src/components/segment/ConditionSentence.tsx:294
+#: src/components/segment/ConditionSentence.tsx:304
 msgid "event"
 msgstr "esdeveniment"
 
@@ -11055,11 +11084,11 @@ msgstr "ID de l'esdeveniment"
 msgid "Event invitation"
 msgstr "Invitació a un esdeveniment"
 
-#: src/components/segment/form_leaf.tsx:729
+#: src/components/segment/form_leaf.tsx:731
 msgid "event name"
 msgstr "nom de l'esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:316
+#: src/components/automations/config/TriggerConfigForm.tsx:317
 msgid "Event Name"
 msgstr "Nom de l'esdeveniment"
 
@@ -11111,8 +11140,8 @@ msgid "Every condition and every operation has a value"
 msgstr "Cada condició i cada operació té un valor"
 
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:333
-msgid "Every day at 05:00, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance."
-msgstr "Cada dia a les 05:00, Notifuse elimina o anonimitza el que supera el seu període. «Desactivat» ho conserva tot. Un canvi que elimina més espera 7 dies, així que encara es pot cancel·lar. Els valors suggerits segueixen les recomanacions de la CNIL."
+msgid "Every day at 05:00 UTC, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance."
+msgstr "Cada dia a les 05:00 UTC, Notifuse elimina o anonimitza el que supera el seu període. «Desactivat» ho conserva tot. Un canvi que elimina més espera 7 dies, així que encara es pot cancel·lar. Els valors suggerits segueixen les recomanacions de la CNIL."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:236
 msgid "Every domain"
@@ -11366,7 +11395,7 @@ msgstr "Exportant tots els contactes"
 #~ msgid "Exports the current filter, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
 #~ msgstr "Exporta el filtre actual, fins a {AUDIT_LOG_EXPORT_MAX_ROWS} files"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:99
+#: src/components/automations/config/TriggerConfigForm.tsx:100
 #: src/components/contacts/contactFilterFields.ts:23
 #: src/components/contacts/csv-import/contactFields.ts:26
 #: src/components/contacts/ExportContactsModal.tsx:66
@@ -12244,7 +12273,7 @@ msgstr "Condicions de filtre"
 msgid "Filtered by"
 msgstr "Filtrat per"
 
-#: src/components/segment/form_leaf.tsx:631
+#: src/components/segment/form_leaf.tsx:633
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:237
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -12328,7 +12357,7 @@ msgstr "Primera visita identificada"
 msgid "First line of the contact's address"
 msgstr "Primera línia de l'adreça del contacte"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:96
+#: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
 #: src/components/contacts/ContactsTable.tsx:325
@@ -12898,7 +12927,7 @@ msgid "Go to Sign In"
 msgstr "Anar a iniciar sessió"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:311
-#: src/components/segment/form_leaf.tsx:683
+#: src/components/segment/form_leaf.tsx:685
 #: src/components/segment/input.tsx:67
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
@@ -12923,8 +12952,8 @@ msgstr "Tauler d'objectius"
 msgid "Goal dashboard: {goalName}"
 msgstr "Tauler de l'objectiu: {goalName}"
 
-#: src/components/segment/ConditionSentence.tsx:288
-#: src/components/segment/form_leaf.tsx:726
+#: src/components/segment/ConditionSentence.tsx:298
+#: src/components/segment/form_leaf.tsx:728
 msgid "goal name"
 msgstr "nom de l'objectiu"
 
@@ -13074,7 +13103,7 @@ msgstr "Graella"
 msgid "Groove"
 msgstr "Groove"
 
-#: src/components/segment/input.tsx:528
+#: src/components/segment/input.tsx:533
 msgid "Group"
 msgstr "Grup"
 
@@ -13106,7 +13135,7 @@ msgstr "Grup al qual pertany el canal d'adquisició"
 msgid "Group width"
 msgstr "Amplada del grup"
 
-#: src/components/segment/input.tsx:472
+#: src/components/segment/input.tsx:477
 msgid "Group:"
 msgstr "Grup:"
 
@@ -13143,13 +13172,13 @@ msgstr "Ha tingut un correu rebotat"
 #~ msgid "has not"
 #~ msgstr "no té"
 
-#: src/components/segment/ConditionSentence.tsx:283
-#: src/components/segment/form_leaf.tsx:702
+#: src/components/segment/ConditionSentence.tsx:293
+#: src/components/segment/form_leaf.tsx:704
 msgid "has not reached"
 msgstr "no ha assolit"
 
-#: src/components/segment/ConditionSentence.tsx:283
-#: src/components/segment/form_leaf.tsx:701
+#: src/components/segment/ConditionSentence.tsx:293
+#: src/components/segment/form_leaf.tsx:703
 msgid "has reached"
 msgstr "ha assolit"
 
@@ -13328,8 +13357,8 @@ msgstr "Com funciona:"
 msgid "How long to wait before proceeding to the next step"
 msgstr "Quant de temps esperar abans de procedir al pas següent"
 
-#: src/components/segment/form_leaf.tsx:538
-#: src/components/segment/form_leaf.tsx:543
+#: src/components/segment/form_leaf.tsx:540
+#: src/components/segment/form_leaf.tsx:545
 msgid "How many"
 msgstr "Quantes"
 
@@ -14355,7 +14384,7 @@ msgid "is greater than or equal to"
 msgstr "és més gran o igual que"
 
 #: src/components/segment/ConditionSentence.tsx:208
-#: src/components/segment/form_leaf.tsx:407
+#: src/components/segment/form_leaf.tsx:409
 msgid "is in"
 msgstr "està a"
 
@@ -14377,7 +14406,7 @@ msgid "is not empty"
 msgstr "no està buit"
 
 #: src/components/segment/ConditionSentence.tsx:208
-#: src/components/segment/form_leaf.tsx:408
+#: src/components/segment/form_leaf.tsx:410
 msgid "is not in"
 msgstr "no està a"
 
@@ -14386,7 +14415,7 @@ msgstr "no està a"
 msgid "is not set"
 msgstr "no està definit"
 
-#: src/components/segment/input.tsx:72
+#: src/components/segment/input.tsx:73
 msgid "Is or is not in a list, with a status"
 msgstr "És o no és en una llista, amb un estat"
 
@@ -14708,7 +14737,7 @@ msgstr "Camí d'aterratge"
 msgid "Landing URL"
 msgstr "URL d'aterratge"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:101
+#: src/components/automations/config/TriggerConfigForm.tsx:102
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/contactColumns.ts:67
 #: src/components/contacts/contactFilterFields.ts:28
@@ -14826,7 +14855,7 @@ msgstr "Última hora"
 #~ msgid "Last modified"
 #~ msgstr "Última modificació"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:97
+#: src/components/automations/config/TriggerConfigForm.tsx:98
 #: src/components/contacts/contactColumns.ts:63
 #: src/components/contacts/contactFilterFields.ts:25
 #: src/components/contacts/ContactsTable.tsx:326
@@ -14912,7 +14941,7 @@ msgstr "Deixeu-ho buit per derivar-la del punt final API. Indiqueu-la quan la cr
 msgid "Leave empty to keep the template's sender. Only the senders of the marketing email integration are offered."
 msgstr "Deixa-ho buit per conservar el remitent de la plantilla. Només s'ofereixen els remitents de la integració d'email de màrqueting."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:332
+#: src/components/automations/config/TriggerConfigForm.tsx:333
 msgid "Leave empty to trigger on any field change"
 msgstr "Deixeu buit per activar amb qualsevol canvi de camp"
 
@@ -15248,7 +15277,7 @@ msgstr "El Liquid col·locat entre els blocs d’una secció o d’una columna p
 
 #: src/components/automations/config/AddToListConfigForm.tsx:32
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:26
-#: src/components/automations/config/TriggerConfigForm.tsx:274
+#: src/components/automations/config/TriggerConfigForm.tsx:275
 #: src/components/automations/describeTrigger.ts:32
 #: src/components/automations/EditorSettings.tsx:38
 #: src/components/automations/list/AutomationsTable.tsx:184
@@ -15360,7 +15389,7 @@ msgstr "Estat a la llista"
 msgid "List Status"
 msgstr "Estat de la llista"
 
-#: src/components/segment/form_leaf.tsx:393
+#: src/components/segment/form_leaf.tsx:395
 #: src/components/segment/input.tsx:65
 #: src/components/segment/table_tag.tsx:25
 msgid "List subscription"
@@ -15942,7 +15971,7 @@ msgstr "L'interval màxim és de 2 anys. Les dates es llegeixen en {timezone}."
 msgid "Me"
 msgstr "Jo"
 
-#: src/components/segment/form_leaf.tsx:733
+#: src/components/segment/form_leaf.tsx:735
 msgid "Measure"
 msgstr "Mesura"
 
@@ -16517,7 +16546,7 @@ msgstr "Noms que gestioneu vosaltres mateixos a AWS"
 #~ msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 #~ msgstr "Donar nom a una ranura la canvia de nom a tot arreu on apareix: taulers, el selector d'exploració i les regles d'atribució."
 
-#: src/components/segment/form_leaf.tsx:724
+#: src/components/segment/form_leaf.tsx:726
 msgid "Narrowed to"
 msgstr "Restringit a"
 
@@ -16902,10 +16931,14 @@ msgstr "No hi ha dades de ciutat"
 msgid "No comparison"
 msgstr "Sense comparació"
 
-#: src/components/automations/config/ConditionsField.tsx:92
+#: src/components/automations/config/ConditionsField.tsx:96
 #: src/components/automations/nodes/FilterNode.tsx:44
 msgid "No conditions"
 msgstr "Sense condicions"
+
+#: src/components/segment/form_leaf.tsx:894
+msgid "No contact is deleted as inactive in this workspace: until a period is set in Settings > Data retention, this condition matches nobody."
+msgstr "En aquest espai de treball no s'elimina cap contacte per inactivitat: mentre no es defineixi un període a Configuració > Conservació de dades, aquesta condició no coincideix amb ningú."
 
 #: src/components/analytics/NewContactsTable.tsx:83
 msgid "No contact yet"
@@ -17344,8 +17377,8 @@ msgid "No rule matches this visit"
 msgstr "Cap regla coincideix amb aquesta visita"
 
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:432
-msgid "No run yet. The first one starts at 05:00."
-msgstr "Encara no hi ha cap execució. La primera comença a les 05:00."
+msgid "No run yet. The first one starts at 05:00 UTC."
+msgstr "Encara no hi ha cap execució. La primera comença a les 05:00 UTC."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1200
 #~ msgid "No sample values available"
@@ -17958,6 +17991,10 @@ msgstr "Notifuse està llegint l'activitat passada de l'historial. Fins que no a
 msgid "Notifuse is ready"
 msgstr "Notifuse està a punt"
 
+#: src/components/segment/form_leaf.tsx:890
+msgid "Notifuse is still reading past activity from history: until it finishes, this condition matches nobody."
+msgstr "Notifuse encara està llegint l'activitat passada de l'historial: fins que acabi, aquesta condició no coincideix amb ningú."
+
 #: src/components/two_factor/RecoveryCodesList.tsx:25
 msgid "Notifuse recovery codes"
 msgstr "Codis de recuperació de Notifuse"
@@ -18012,7 +18049,7 @@ msgstr "Nul"
 msgid "Number"
 msgstr "Número"
 
-#: src/components/segment/form_leaf.tsx:248
+#: src/components/segment/form_leaf.tsx:250
 msgid "Number of days"
 msgstr "Nombre de dies"
 
@@ -18118,11 +18155,11 @@ msgstr "D'un usuari d'IAM autoritzat a enviar amb SES"
 #~ msgid "of emails sent that day"
 #~ msgstr "dels correus enviats aquell dia"
 
-#: src/components/segment/input.tsx:474
+#: src/components/segment/input.tsx:479
 msgid "of the conditions"
 msgstr "condicions"
 
-#: src/components/segment/input.tsx:467
+#: src/components/segment/input.tsx:472
 msgid "of the following conditions"
 msgstr "condicions següents"
 
@@ -18271,7 +18308,7 @@ msgstr "Només un propietari pot canviar la configuració d'emmagatzematge"
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr "Aquí només apareixen els clics registrats des que es va activar el seguiment per enllaç; els clics anteriors segueixen comptant per al total de clics de la variació."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:393
+#: src/components/automations/config/TriggerConfigForm.tsx:395
 msgid "Only enroll contacts matching these conditions."
 msgstr "Inscriure només els contactes que coincideixin amb aquestes condicions."
 
@@ -18291,12 +18328,12 @@ msgstr "Només per a una regla de recepció que configureu vosaltres; registrar 
 #~ msgid "Only goals from visitors identified with identify() are recorded. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
 #~ msgstr ""
 
-#: src/components/automations/config/TriggerConfigForm.tsx:366
+#: src/components/automations/config/TriggerConfigForm.tsx:367
 msgid "Only links in emails of this broadcast."
 msgstr "Només els enllaços dels emails d'aquesta difusió."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:375
-#: src/components/automations/config/TriggerConfigForm.tsx:382
+#: src/components/automations/config/TriggerConfigForm.tsx:376
+#: src/components/automations/config/TriggerConfigForm.tsx:383
 msgid "Only links in emails sent with this template."
 msgstr "Només els enllaços dels emails enviats amb aquesta plantilla."
 
@@ -18604,7 +18641,7 @@ msgstr "Obre aquest correu al navegador. L'enllaç s'emplena a les difusions i a
 msgid "Opens tracking consent"
 msgstr "Consentiment de seguiment d'obertures"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:117
+#: src/components/automations/config/TriggerConfigForm.tsx:118
 msgid "Opens Tracking Consent"
 msgstr "Consentiment de seguiment d'obertures"
 
@@ -18717,12 +18754,12 @@ msgstr "Opcions"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:122
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
-#: src/components/segment/segmentSummary.ts:242
+#: src/components/segment/segmentSummary.ts:247
 #: src/pages/SignInPage.tsx:330
 msgid "or"
 msgstr "o"
 
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:445
 msgid "OR"
 msgstr "O"
 
@@ -18940,7 +18977,7 @@ msgstr "Marc pare"
 msgid "Part of an email"
 msgstr "Part d'un correu"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:357
+#: src/components/automations/config/TriggerConfigForm.tsx:358
 msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any link."
 msgstr "Part de l'URL de l'enllaç, sense distingir majúscules i minúscules. Deixeu-ho buit per començar amb qualsevol enllaç."
 
@@ -19244,7 +19281,7 @@ msgstr "Permisos"
 msgid "Permissions updated successfully"
 msgstr "Permisos actualitzats correctament"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:98
+#: src/components/automations/config/TriggerConfigForm.tsx:99
 #: src/components/contacts/contactColumns.ts:65
 #: src/components/contacts/contactFilterFields.ts:27
 #: src/components/contacts/ContactsTable.tsx:328
@@ -19580,7 +19617,7 @@ msgstr "Si us plau, seleccioneu una data"
 #~ msgid "Please select a field"
 #~ msgstr "Si us plau, seleccioneu un camp"
 
-#: src/components/segment/form_leaf.tsx:709
+#: src/components/segment/form_leaf.tsx:711
 msgid "Please select a goal type"
 msgstr "Si us plau, seleccioneu un tipus d'objectiu"
 
@@ -19589,7 +19626,7 @@ msgid "Please select a JSON file"
 msgstr "Si us plau, seleccioneu un fitxer JSON"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:249
-#: src/components/segment/form_leaf.tsx:416
+#: src/components/segment/form_leaf.tsx:418
 msgid "Please select a list"
 msgstr "Si us plau, seleccioneu una llista"
 
@@ -19607,7 +19644,7 @@ msgid "Please select a page size"
 msgstr "Si us plau, seleccioneu una mida de pàgina"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:277
-#: src/components/segment/form_leaf.tsx:440
+#: src/components/segment/form_leaf.tsx:442
 msgid "Please select a status"
 msgstr "Si us plau, seleccioneu un estat"
 
@@ -19628,7 +19665,7 @@ msgstr "Si us plau, seleccioneu una hora"
 msgid "Please select a timezone"
 msgstr "Si us plau, seleccioneu un fus horari"
 
-#: src/components/segment/form_leaf.tsx:737
+#: src/components/segment/form_leaf.tsx:739
 msgid "Please select aggregate"
 msgstr "Si us plau, seleccioneu agregat"
 
@@ -19636,7 +19673,7 @@ msgstr "Si us plau, seleccioneu agregat"
 msgid "Please select an email template"
 msgstr "Si us plau, seleccioneu una plantilla de correu"
 
-#: src/components/segment/form_leaf.tsx:495
+#: src/components/segment/form_leaf.tsx:497
 msgid "Please select an event type"
 msgstr "Si us plau, seleccioneu un tipus d'esdeveniment"
 
@@ -19656,7 +19693,7 @@ msgstr "Si us plau, seleccioneu un proveïdor OAuth2"
 msgid "Please select at least one event type"
 msgstr "Si us plau, seleccioneu com a mínim un tipus d'esdeveniment"
 
-#: src/components/segment/form_leaf.tsx:752
+#: src/components/segment/form_leaf.tsx:754
 msgid "Please select operator"
 msgstr "Si us plau, seleccioneu operador"
 
@@ -19739,7 +19776,7 @@ msgstr "Publicació desprogramada"
 msgid "Post updated successfully"
 msgstr "Publicació actualitzada correctament"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:111
+#: src/components/automations/config/TriggerConfigForm.tsx:112
 #: src/components/contacts/csv-import/contactFields.ts:35
 #: src/components/contacts/sheet/contactFieldLabels.ts:32
 #: src/components/segment/segmentLabels.ts:28
@@ -20100,7 +20137,7 @@ msgstr "Perfil actualitzat: {diffs}"
 msgid "Progress"
 msgstr "Progrés"
 
-#: src/components/segment/form_leaf.tsx:813
+#: src/components/segment/form_leaf.tsx:815
 msgid "Properties"
 msgstr "Propietats"
 
@@ -20212,7 +20249,7 @@ msgstr "Ha publicat el tema del blog <0>{target}</0>"
 msgid "Purchase"
 msgstr "Compra"
 
-#: src/components/segment/input.tsx:74
+#: src/components/segment/input.tsx:75
 msgid "Purchases, sign-ups, leads… count them or add up their value"
 msgstr "Compres, registres, leads… comptar-los o sumar-ne el valor"
 
@@ -20960,8 +20997,8 @@ msgstr "Vols tornar a carregar l'automatització?"
 msgid "Reload the page to update your saved blocks."
 msgstr "Torna a carregar la pàgina per actualitzar els teus blocs desats."
 
-#: src/components/automations/config/ConditionsField.tsx:123
-#: src/components/automations/config/ConditionsField.tsx:128
+#: src/components/automations/config/ConditionsField.tsx:127
+#: src/components/automations/config/ConditionsField.tsx:132
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
@@ -21010,7 +21047,7 @@ msgstr "Treure un contacte d'una llista (també necessita escriptura de Contacte
 msgid "Remove a contact from a list (also needs Lists write)"
 msgstr "Treure un contacte d'una llista (també necessita escriptura de Llistes)"
 
-#: src/components/automations/config/ConditionsField.tsx:120
+#: src/components/automations/config/ConditionsField.tsx:124
 msgid "Remove conditions"
 msgstr "Treure condicions"
 
@@ -21083,8 +21120,8 @@ msgstr "Vols suprimir la condició de visualització?"
 msgid "Remove this author?"
 msgstr "Eliminar aquest autor?"
 
-#: src/components/segment/input.tsx:313
 #: src/components/segment/input.tsx:317
+#: src/components/segment/input.tsx:321
 msgid "Remove this condition"
 msgstr "Elimina aquesta condició"
 
@@ -21095,8 +21132,8 @@ msgstr "Elimina aquesta condició"
 msgid "Remove this filter"
 msgstr "Elimina aquest filtre"
 
-#: src/components/segment/input.tsx:313
 #: src/components/segment/input.tsx:317
+#: src/components/segment/input.tsx:321
 msgid "Remove this group"
 msgstr "Elimina aquest grup"
 
@@ -22387,7 +22424,7 @@ msgstr "Cercant: \"{0}\""
 msgid "Second line of the contact's address"
 msgstr "Segona línia de l'adreça del contacte"
 
-#: src/components/segment/form_leaf.tsx:788
+#: src/components/segment/form_leaf.tsx:790
 msgid "Second value must be greater than first value"
 msgstr "El segon valor ha de ser més gran que el primer valor"
 
@@ -22520,7 +22557,7 @@ msgstr "Mostra les novetats"
 msgid "See who clicked"
 msgstr "Mostra qui hi ha clicat"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:295
+#: src/components/automations/config/TriggerConfigForm.tsx:296
 #: src/components/automations/describeTrigger.ts:46
 #: src/components/contacts/ExportContactsModal.tsx:119
 #: src/components/contacts/sheet/describeActivity.tsx:225
@@ -22629,7 +22666,7 @@ msgstr "Selecciona un fitxer"
 #: src/components/contacts/BulkActionsBar.tsx:201
 #: src/components/contacts/BulkUpdateDrawer.tsx:323
 #: src/components/contacts/sheet/ContactListsCard.tsx:253
-#: src/components/segment/form_leaf.tsx:422
+#: src/components/segment/form_leaf.tsx:424
 msgid "Select a list"
 msgstr "Seleccioneu una llista"
 
@@ -22641,7 +22678,7 @@ msgstr "Seleccioneu una llista per habilitar nodes de correu"
 #: src/components/automations/config/AddToListConfigForm.tsx:37
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:27
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:31
-#: src/components/automations/config/TriggerConfigForm.tsx:279
+#: src/components/automations/config/TriggerConfigForm.tsx:280
 msgid "Select a list..."
 msgstr "Seleccioneu una llista..."
 
@@ -22657,7 +22694,7 @@ msgstr "Seleccioneu un model"
 msgid "Select a section"
 msgstr "Selecciona una secció"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:300
+#: src/components/automations/config/TriggerConfigForm.tsx:301
 msgid "Select a segment..."
 msgstr "Seleccioneu un segment..."
 
@@ -22689,7 +22726,7 @@ msgstr "Seleccioneu una integració de correu"
 msgid "Select an event type"
 msgstr "Seleccioneu un tipus d'esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:261
+#: src/components/automations/config/TriggerConfigForm.tsx:262
 msgid "Select an event..."
 msgstr "Seleccioneu un esdeveniment..."
 
@@ -22764,7 +22801,7 @@ msgstr "Seleccionar plantilla de correu"
 msgid "Select email template..."
 msgstr "Seleccionar plantilla de correu..."
 
-#: src/components/segment/form_leaf.tsx:502
+#: src/components/segment/form_leaf.tsx:504
 msgid "Select event"
 msgstr "Seleccionar esdeveniment"
 
@@ -22842,7 +22879,7 @@ msgstr "Seleccionar llistes (opcional)"
 msgid "Select segments (optional)"
 msgstr "Seleccionar segments (opcional)"
 
-#: src/components/segment/form_leaf.tsx:446
+#: src/components/segment/form_leaf.tsx:448
 msgid "Select status"
 msgstr "Seleccionar estat"
 
@@ -22866,7 +22903,7 @@ msgstr "Seleccionar plantilla"
 msgid "Select the email template to send"
 msgstr "Seleccioneu la plantilla de correu per enviar"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:249
+#: src/components/automations/config/TriggerConfigForm.tsx:250
 msgid "Select the event that will trigger this automation"
 msgstr "Seleccioneu l'esdeveniment que activarà aquesta automatització"
 
@@ -22884,11 +22921,11 @@ msgstr "Seleccionar fus horari"
 msgid "Select timezone..."
 msgstr "Seleccionar zona horària..."
 
-#: src/components/segment/form_leaf.tsx:714
+#: src/components/segment/form_leaf.tsx:716
 msgid "Select type"
 msgstr "Seleccionar tipus"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:276
+#: src/components/automations/config/TriggerConfigForm.tsx:277
 msgid "Select which list this trigger applies to"
 msgstr "Seleccioneu a quina llista s'aplica aquest activador"
 
@@ -22904,7 +22941,7 @@ msgstr "Seleccioneu en quina llista comprovar l'estat del contacte"
 msgid "Select which list to remove the contact from"
 msgstr "Seleccioneu de quina llista eliminar el contacte"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:297
+#: src/components/automations/config/TriggerConfigForm.tsx:298
 msgid "Select which segment this trigger applies to"
 msgstr "Seleccioneu a quin segment s'aplica aquest activador"
 
@@ -24438,7 +24475,7 @@ msgstr "Origen"
 #~ msgid "source {0} not found"
 #~ msgstr "origen {0} no trobat"
 
-#: src/components/segment/input.tsx:334
+#: src/components/segment/input.tsx:338
 msgid "source {source} not found"
 msgstr "no s'ha trobat la font {source}"
 
@@ -24625,7 +24662,7 @@ msgstr "Inici"
 msgid "Starts as soon as you send it"
 msgstr "Comença tan bon punt l'envieu"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:353
+#: src/components/automations/config/TriggerConfigForm.tsx:354
 msgid "Starts the first time a contact clicks each link of an email. A click on an email this automation sent does not start it again."
 msgstr "Comença la primera vegada que un contacte clica cada enllaç d'un email. Un clic en un email enviat per aquesta automatització no la torna a iniciar."
 
@@ -24650,7 +24687,7 @@ msgstr "STARTTLS al {port}"
 msgid "STARTTLS required"
 msgstr "STARTTLS obligatori"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:110
+#: src/components/automations/config/TriggerConfigForm.tsx:111
 #: src/components/contacts/csv-import/contactFields.ts:36
 #: src/components/contacts/sheet/contactFieldLabels.ts:31
 #: src/components/segment/segmentLabels.ts:29
@@ -25215,14 +25252,14 @@ msgstr "Aviseu els vostres sistemes quan alguna cosa canviï"
 msgid "template"
 msgstr "plantilla"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:375
+#: src/components/automations/config/TriggerConfigForm.tsx:376
 #: src/components/broadcasts/compose/ContentCard.tsx:131
 #: src/components/lists/ListHeader.tsx:71
 #: src/components/logs/MessageDetail.tsx:681
 #: src/components/logs/MessagesTab.tsx:474
 #: src/components/messages/MessageHistoryTable.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:242
-#: src/components/segment/form_leaf.tsx:578
+#: src/components/segment/form_leaf.tsx:580
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
 #: src/pages/TemplatesPage.tsx:379
@@ -25875,7 +25912,8 @@ msgstr "El període de comparació com a columnes addicionals"
 msgid "The confirmation email each new subscriber receives"
 msgstr "El correu de confirmació que rep cada nou subscriptor"
 
-#: src/components/segment/form_leaf.tsx:688
+#: src/components/segment/form_leaf.tsx:690
+#: src/components/segment/form_leaf.tsx:877
 msgid "The contact"
 msgstr "El contacte"
 
@@ -25939,7 +25977,7 @@ msgstr "Els contactes es queden a l'espai de treball i es poden tornar a subscri
 msgid "The count failed."
 msgstr "El recompte ha fallat."
 
-#: src/components/segment/form_leaf.tsx:201
+#: src/components/segment/form_leaf.tsx:203
 msgid "The count follows what you write."
 msgstr "El recompte segueix el que escrius."
 
@@ -26409,7 +26447,7 @@ msgstr "La plantilla d'aquest missatge no està disponible"
 msgid "The template has no unsubscribe link ({languages})"
 msgstr "La plantilla no té enllaç de baixa ({languages})"
 
-#: src/components/segment/form_leaf.tsx:584
+#: src/components/segment/form_leaf.tsx:586
 msgid "The template of the emails this condition counts"
 msgstr "La plantilla dels correus que compta aquesta condició"
 
@@ -26494,7 +26532,7 @@ msgstr "L'URL del webhook apunta a una adreça privada o interna ({host}), a la 
 msgid "The webhook will stop receiving events."
 msgstr "El webhook deixarà de rebre esdeveniments."
 
-#: src/components/automations/config/ConditionsField.tsx:121
+#: src/components/automations/config/ConditionsField.tsx:125
 msgid "The whole condition tree will be deleted."
 msgstr "S'eliminarà tot l'arbre de condicions."
 
@@ -26772,7 +26810,7 @@ msgstr "Aquest correu s'envia només en HTML"
 #~ msgid "This email will be used for the root administrator account"
 #~ msgstr "Aquest correu s'utilitzarà per al compte d'administrador arrel"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:413
+#: src/components/automations/config/TriggerConfigForm.tsx:415
 msgid "This event fires often. These conditions are evaluated for every matching event."
 msgstr "Aquest esdeveniment es dispara sovint. Aquestes condicions s'avaluen per a cada esdeveniment coincident."
 
@@ -26780,10 +26818,10 @@ msgstr "Aquest esdeveniment es dispara sovint. Aquestes condicions s'avaluen per
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Aquesta funcionalitat fa una sol·licitud HTTP per a cada destinatari abans d'enviar el seu email. Això pot alentir significativament el processament del broadcast. Si la sol·licitud del feed falla després dels reintents, el broadcast es posarà en pausa automàticament."
 
-#: src/components/segment/form_leaf.tsx:217
-#: src/components/segment/form_leaf.tsx:402
-#: src/components/segment/form_leaf.tsx:553
-#: src/components/segment/form_leaf.tsx:667
+#: src/components/segment/form_leaf.tsx:219
+#: src/components/segment/form_leaf.tsx:404
+#: src/components/segment/form_leaf.tsx:555
+#: src/components/segment/form_leaf.tsx:669
 msgid "This field is required"
 msgstr "Aquest camp és obligatori"
 
@@ -27206,7 +27244,7 @@ msgstr "Patrons horaris"
 msgid "Timeline entries older than this are deleted."
 msgstr "S'eliminen les entrades de la cronologia més antigues que aquest període."
 
-#: src/components/segment/form_leaf.tsx:557
+#: src/components/segment/form_leaf.tsx:559
 msgid "times"
 msgstr "vegades"
 
@@ -27255,7 +27293,7 @@ msgstr "El TimeScore és la mediana del temps d'interacció de les sessions huma
 #~ msgid "Timestamp"
 #~ msgstr "Marca de temps"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:100
+#: src/components/automations/config/TriggerConfigForm.tsx:101
 #: src/components/blog/PublishModal.tsx:184
 #: src/components/broadcasts/compose/SendingCard.tsx:116
 #: src/components/broadcasts/compose/SendingCard.tsx:118
@@ -27778,11 +27816,11 @@ msgstr "Prova"
 msgid "Trigger"
 msgstr "Disparador"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:247
+#: src/components/automations/config/TriggerConfigForm.tsx:248
 msgid "Trigger Event"
 msgstr "Esdeveniment activador"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:331
+#: src/components/automations/config/TriggerConfigForm.tsx:332
 msgid "Trigger on specific field changes"
 msgstr "Activar amb canvis de camp específics"
 
@@ -28840,7 +28878,7 @@ msgstr "Error de validació"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:254
-#: src/components/segment/form_leaf.tsx:769
+#: src/components/segment/form_leaf.tsx:771
 #: src/components/settings/DomainsSettings.tsx:336
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
@@ -28858,7 +28896,7 @@ msgstr "Valor"
 msgid "Value {value}"
 msgstr "Valor {value}"
 
-#: src/components/segment/form_leaf.tsx:799
+#: src/components/segment/form_leaf.tsx:801
 msgid "Value 2"
 msgstr "Valor 2"
 
@@ -29395,8 +29433,8 @@ msgid "Webhooks registered successfully"
 msgstr "Webhooks registrats correctament"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:139
-#: src/components/segment/form_leaf.tsx:527
-#: src/components/segment/form_leaf.tsx:528
+#: src/components/segment/form_leaf.tsx:529
+#: src/components/segment/form_leaf.tsx:530
 #: src/components/settings/GeneralSettings.tsx:228
 #: src/components/settings/GeneralSettings.tsx:344
 msgid "Website"
@@ -29493,7 +29531,7 @@ msgstr "Benvingut a l'Editor de correu!"
 msgid "Welcomes a new subscriber with three first steps."
 msgstr "Dona la benvinguda a un nou subscriptor amb tres primers passos."
 
-#: src/components/segment/form_leaf.tsx:491
+#: src/components/segment/form_leaf.tsx:493
 msgid "What"
 msgstr "Què"
 
@@ -29522,9 +29560,9 @@ msgstr "El que elimina aquesta política"
 msgid "What's new since {current}"
 msgstr "Novetats des de la {current}"
 
-#: src/components/segment/form_leaf.tsx:224
-#: src/components/segment/form_leaf.tsx:560
-#: src/components/segment/form_leaf.tsx:807
+#: src/components/segment/form_leaf.tsx:226
+#: src/components/segment/form_leaf.tsx:562
+#: src/components/segment/form_leaf.tsx:809
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:40
 msgid "When"
 msgstr "Quan"
@@ -29690,6 +29728,11 @@ msgstr "Per què ha canviat el trànsit?"
 msgid "Width"
 msgstr "Amplada"
 
+#: src/components/segment/ConditionSentence.tsx:280
+#: src/components/segment/form_leaf.tsx:878
+msgid "will be deleted as inactive within"
+msgstr "s'eliminarà per inactivitat d'aquí a"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:444
 msgid "will be deleted, with their history"
 msgstr "s'eliminaran, amb el seu historial"
@@ -29797,7 +29840,7 @@ msgstr "Sense cap condició, aquesta regla coincideix amb totes les visites."
 msgid "With no condition, this rule runs on every session."
 msgstr "Sense cap condició, aquesta regla s'executa a cada sessió."
 
-#: src/components/segment/ConditionSentence.tsx:317
+#: src/components/segment/ConditionSentence.tsx:327
 msgid "with properties"
 msgstr "amb propietats"
 
@@ -29806,7 +29849,7 @@ msgstr "amb propietats"
 #~ msgstr "Amb estadístiques"
 
 #: src/components/segment/ConditionSentence.tsx:212
-#: src/components/segment/form_leaf.tsx:436
+#: src/components/segment/form_leaf.tsx:438
 msgid "with status"
 msgstr "amb estat"
 

@@ -4,7 +4,7 @@ import { Button, DatePicker, Form, Input, InputNumber, Segmented, Select } from 
 import type { FormInstance } from 'antd'
 import { useForm } from 'antd/lib/form/Form'
 import { faUser, faFolderOpen } from '@fortawesome/free-regular-svg-icons'
-import { faMousePointer, faBullseye } from '@fortawesome/free-solid-svg-icons'
+import { faMousePointer, faBullseye, faHourglass } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import {
   DimensionFilter,
@@ -15,6 +15,8 @@ import {
 } from '../../services/api/segment'
 import dayjs, { Dayjs } from 'dayjs'
 import { useLingui } from '@lingui/react/macro'
+import { useQuery } from '@tanstack/react-query'
+import { dataRetentionApi, dataRetentionQueryKey } from '../../services/api/dataRetention'
 import { InputDimensionFilters } from './input_dimension_filters'
 import { timelineChangesSchema } from './table_schemas'
 import { InputEventPropertyFilters } from './input_event_property_filters'
@@ -826,6 +828,76 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
             </Form.Item>
           </EditorLine>
         </div>
+      </EditorShell>
+    </Form>
+  )
+}
+
+/**
+ * The data retention condition: the contacts the inactive-contact category deletes within N
+ * days. A segment of them, with an automation on segment.joined, sends a re-permission email; a
+ * click resets the clock and the contact leaves the segment.
+ */
+export const LeafRetentionForm = (props: LeafFormProps) => {
+  const { t } = useLingui()
+  const [form] = useForm()
+  const onValuesChange = useLeafDraft(props, form)
+  const { confirm } = useConfirm(props, form)
+  const onSubmit = confirm(() => true)
+  const policy = useQuery({
+    queryKey: dataRetentionQueryKey(props.workspaceId ?? ''),
+    queryFn: () => dataRetentionApi.get(props.workspaceId ?? ''),
+    enabled: !!props.workspaceId
+  })
+  const contactsOff =
+    policy.data && (policy.data.in_force.inactive_contacts ?? 0) === 0 && !(policy.data.pending_days?.inactive_contacts ?? 0)
+
+  return (
+    <Form
+      component="div"
+      layout="vertical"
+      form={form}
+      initialValues={props.editingNodeLeaf.leaf}
+      onValuesChange={onValuesChange}
+    >
+      <Form.Item name="source" noStyle>
+        <Input hidden />
+      </Form.Item>
+      <Form.Item name={['retention', 'operator']} noStyle>
+        <Input hidden />
+      </Form.Item>
+      <EditorShell
+        tone="retention"
+        icon={faHourglass}
+        title={t`Data retention`}
+        onCancel={props.cancelOrDeleteNode}
+        onConfirm={onSubmit}
+        showsDraftHint={!!props.onDraftChange}
+      >
+        <EditorLine label={t`The contact`}>
+          <span className="text-sm text-ink-2">{t`will be deleted as inactive within`}</span>
+          <Form.Item
+            noStyle
+            name={['retention', 'days']}
+            rules={[{ required: true, type: 'integer', min: 1, max: 365, message: t`Between 1 and 365 days` }]}
+          >
+            <InputNumber size="small" min={1} max={365} precision={0} style={{ width: 88 }} aria-label={t`Days`} />
+          </Form.Item>
+          <span className="text-sm text-ink-2">{t`days`}</span>
+        </EditorLine>
+        {policy.data && !policy.data.backfill_ready ? (
+          <p className="m-0 text-xs text-warning-fg">
+            {t`Notifuse is still reading past activity from history: until it finishes, this condition matches nobody.`}
+          </p>
+        ) : contactsOff ? (
+          <p className="m-0 text-xs text-warning-fg">
+            {t`No contact is deleted as inactive in this workspace: until a period is set in Settings > Data retention, this condition matches nobody.`}
+          </p>
+        ) : (
+          <p className="m-0 text-xs text-ink-3">
+            {t`A click, a reply or a visit moves the contact's date forward, and the contact leaves the segment. Exempt contacts never match.`}
+          </p>
+        )}
       </EditorShell>
     </Form>
   )

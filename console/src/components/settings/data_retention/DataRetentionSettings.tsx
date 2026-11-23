@@ -330,7 +330,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
 
       <Panel title={t`Periods`}>
         <Text type="secondary" className="mb-3 block">
-          {t`Every day at 05:00, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance.`}
+          {t`Every day at 05:00 UTC, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance.`}
         </Text>
         <Table<RetentionCategorySpec>
           rowKey="category"
@@ -429,7 +429,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
           pagination={false}
           columns={runColumns}
           dataSource={view.runs}
-          locale={{ emptyText: t`No run yet. The first one starts at 05:00.` }}
+          locale={{ emptyText: t`No run yet. The first one starts at 05:00 UTC.` }}
           scroll={{ x: true }}
         />
       </Panel>

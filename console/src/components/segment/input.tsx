@@ -26,7 +26,7 @@ import {
   LeafActionForm,
   LeafContactForm,
   LeafContactListForm,
-  LeafCustomEventsGoalForm
+  LeafCustomEventsGoalForm, LeafRetentionForm
 } from './form_leaf'
 import { ConditionIcon, type ConditionTone } from './conditionUi'
 import { ConditionSentence } from './ConditionSentence'
@@ -64,14 +64,16 @@ const SOURCE_TITLES: Record<string, MessageDescriptor> = {
   contacts: msg`Contact property`,
   contact_lists: msg`List subscription`,
   contact_timeline: msg`Activity`,
-  custom_events_goals: msg`Goal`
+  custom_events_goals: msg`Goal`,
+  retention: msg`Data retention`
 }
 
 const SOURCE_DESCRIPTIONS: Record<string, MessageDescriptor> = {
   contacts: msg`Email, country, language, custom fields, tracking consent…`,
   contact_lists: msg`Is or is not in a list, with a status`,
   contact_timeline: msg`Emails sent, opened, clicked… pages viewed and website visits`,
-  custom_events_goals: msg`Purchases, sign-ups, leads… count them or add up their value`
+  custom_events_goals: msg`Purchases, sign-ups, leads… count them or add up their value`,
+  retention: msg`Contacts the inactive-contact retention deletes soon`
 }
 
 // The rail and the AND / OR pill of each nesting level, written whole for Tailwind.
@@ -210,6 +212,8 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       leaf.contact_list = { operator: 'in', list_id: '', status: undefined }
     } else if (source === 'contacts') {
       leaf.contact = { filters: [] as DimensionFilter[] }
+    } else if (source === 'retention') {
+      leaf.retention = { operator: 'expires_within_days', days: 30 }
     } else if (source === 'custom_events_goals') {
       leaf.custom_events_goal = {
         goal_type: '*', // All goal types by default
@@ -355,6 +359,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       if (source === 'contacts') return <LeafContactForm {...formProps} />
       if (source === 'contact_lists') return <LeafContactListForm {...formProps} lists={props.lists || []} />
       if (source === 'custom_events_goals') return <LeafCustomEventsGoalForm {...formProps} />
+      if (source === 'retention') return <LeafRetentionForm {...formProps} workspaceId={props.workspaceId} />
       return (
         <LeafActionForm {...formProps} workspaceId={props.workspaceId} canReadTemplates={props.canReadTemplates} />
       )

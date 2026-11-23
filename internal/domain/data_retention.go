@@ -497,6 +497,16 @@ type DataRetentionRepository interface {
 	// refuses the current and the next month.
 	DropWebAnalyticsMonth(ctx context.Context, workspaceID string, month time.Time, now time.Time) error
 
+	// WriteContactPolicyMirror writes the inactive-contact policy the workspace's SQL function
+	// contact_retention_expires_at reads (D13), and marks the segments that use the expiring-soon
+	// condition for a rebuild.
+	WriteContactPolicyMirror(ctx context.Context, workspaceID string, mirror ContactPolicyMirror) error
+
+	// SegmentsUsingRetentionCondition returns those of the given segments whose tree holds the
+	// expiring-soon condition: they cannot be exempt, or their members would leave and join
+	// again at every rebuild.
+	SegmentsUsingRetentionCondition(ctx context.Context, workspaceID string, segmentIDs []string) ([]string, error)
+
 	// CustomEventNames returns the distinct custom event names the workspace has received,
 	// sorted, at most limit: what the policy can designate as engagement.
 	CustomEventNames(ctx context.Context, workspaceID string, limit int) ([]string, error)
@@ -518,6 +528,19 @@ type DataRetentionRepository interface {
 	ListRuns(ctx context.Context, workspaceID string, limit int) ([]*RetentionRun, error)
 }
 
+func sameSet(a, b []string) bool {
+	x, y := sortedSet(a), sortedSet(b)
+	if len(x) != len(y) {
+		return false
+	}
+	for i := range x {
+		if x[i] != y[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // ErrRetentionExemptionUnavailable: an exempt list or segment is gone, or a segment is being
 // rebuilt, so its members cannot be told apart: the contact category stops for this run.
 var ErrRetentionExemptionUnavailable = errors.New("an exempt list or segment is unavailable")
@@ -527,3 +550,43 @@ var ErrRetentionExemptionUnavailable = errors.New("an exempt list or segment is 
 type ErrRetentionConflict struct{ Message string }
 
 func (e *ErrRetentionConflict) Error() string { return e.Message }
+
+// ContactPolicyMirror is the inactive-contact policy as the workspace database sees it (D13):
+// the period in force with its exemptions and engagement event names, and the period that
+// waits with its own, and when it applies.
+type ContactPolicyMirror struct {
+	Days                 int
+	ExemptListIDs        []string
+	ExemptSegmentIDs     []string
+	EngagementEventNames []string
+
+	PendingDays                 int
+	PendingAt                   *time.Time
+	PendingExemptListIDs        []string
+	PendingExemptSegmentIDs     []string
+	PendingEngagementEventNames []string
+}
+
+// ContactPolicyMirrorAt is the mirror of what is in force and what waits at now.
+func ContactPolicyMirrorAt(settings *DataRetentionSettings, defaults *RetentionDefaults, now time.Time) ContactPolicyMirror {
+	inForce, pending, at := RetentionInForce(settings, defaults, now)
+	mirror := ContactPolicyMirror{
+		Days:                 inForce.Days[RetentionInactiveContacts],
+		ExemptListIDs:        inForce.ExemptListIDs,
+		ExemptSegmentIDs:     inForce.ExemptSegmentIDs,
+		EngagementEventNames: inForce.EngagementEventNames,
+	}
+	// What waits, whenever anything about inactive contacts waits: a period, but also an
+	// exemption or an engagement event removed, which deletes more with the same period.
+	if pending != nil && at != nil && (pending.Days[RetentionInactiveContacts] != mirror.Days ||
+		!sameSet(pending.ExemptListIDs, inForce.ExemptListIDs) ||
+		!sameSet(pending.ExemptSegmentIDs, inForce.ExemptSegmentIDs) ||
+		!sameSet(pending.EngagementEventNames, inForce.EngagementEventNames)) {
+		mirror.PendingDays = pending.Days[RetentionInactiveContacts]
+		mirror.PendingAt = at
+		mirror.PendingExemptListIDs = pending.ExemptListIDs
+		mirror.PendingExemptSegmentIDs = pending.ExemptSegmentIDs
+		mirror.PendingEngagementEventNames = pending.EngagementEventNames
+	}
+	return mirror
+}

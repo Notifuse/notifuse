@@ -273,6 +273,21 @@ func (mr *MockDataRetentionRepositoryMockRecorder) Requeue(arg0, arg1, arg2 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Requeue", reflect.TypeOf((*MockDataRetentionRepository)(nil).Requeue), arg0, arg1, arg2)
 }
 
+// SegmentsUsingRetentionCondition mocks base method.
+func (m *MockDataRetentionRepository) SegmentsUsingRetentionCondition(arg0 context.Context, arg1 string, arg2 []string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SegmentsUsingRetentionCondition", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SegmentsUsingRetentionCondition indicates an expected call of SegmentsUsingRetentionCondition.
+func (mr *MockDataRetentionRepositoryMockRecorder) SegmentsUsingRetentionCondition(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SegmentsUsingRetentionCondition", reflect.TypeOf((*MockDataRetentionRepository)(nil).SegmentsUsingRetentionCondition), arg0, arg1, arg2)
+}
+
 // TryLock mocks base method.
 func (m *MockDataRetentionRepository) TryLock(arg0 context.Context, arg1 string) (func(), bool, error) {
 	m.ctrl.T.Helper()
@@ -302,4 +317,18 @@ func (m *MockDataRetentionRepository) WebAnalyticsMonthsBefore(arg0 context.Cont
 func (mr *MockDataRetentionRepositoryMockRecorder) WebAnalyticsMonthsBefore(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WebAnalyticsMonthsBefore", reflect.TypeOf((*MockDataRetentionRepository)(nil).WebAnalyticsMonthsBefore), arg0, arg1, arg2)
+}
+
+// WriteContactPolicyMirror mocks base method.
+func (m *MockDataRetentionRepository) WriteContactPolicyMirror(arg0 context.Context, arg1 string, arg2 domain.ContactPolicyMirror) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteContactPolicyMirror", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteContactPolicyMirror indicates an expected call of WriteContactPolicyMirror.
+func (mr *MockDataRetentionRepositoryMockRecorder) WriteContactPolicyMirror(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteContactPolicyMirror", reflect.TypeOf((*MockDataRetentionRepository)(nil).WriteContactPolicyMirror), arg0, arg1, arg2)
 }
