@@ -125,6 +125,20 @@ type WorkspaceDKIMMetadata struct {
 	Keys        []DKIMKey
 }
 
+// DKIMKeysMutation is what a DKIMKeysMutator decided.
+type DKIMKeysMutation struct {
+	// Keys replace the stored keys when Changed.
+	Keys    []DKIMKey
+	Changed bool
+	// TouchUpdatedAt moves the workspace's updated_at: a key created, regenerated or
+	// deleted, or a status change. Not a check that only moved last_checked_at.
+	TouchUpdatedAt bool
+}
+
+// DKIMKeysMutator decides, under the workspace row lock, how the stored keys change.
+// integrations are as stored (credentials encrypted), for the senders of each.
+type DKIMKeysMutator func(keys []DKIMKey, integrations Integrations) (DKIMKeysMutation, error)
+
 // DKIMDomainUser is an integration with a sender on a domain.
 type DKIMDomainUser struct {
 	IntegrationID   string `json:"integration_id"`

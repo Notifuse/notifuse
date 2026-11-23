@@ -675,7 +675,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 		Integrations: []domain.Integration{},
 	}
 
-	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -684,7 +684,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Equal(t, "supersecret", w.Settings.SecretKey)
 
 	// not found (0 rows affected)
-	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "missing").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -695,7 +695,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 
 	// db error during update
-	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnError(fmt.Errorf("update failed"))
 
@@ -704,7 +704,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Contains(t, err.Error(), "update failed")
 
 	// error getting affected rows
-	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+	mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
 		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("rows affected error")))
 
@@ -777,7 +777,7 @@ func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 		defer cleanup()
 		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
 
-		mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+		mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
 			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -790,7 +790,7 @@ func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 		defer cleanup()
 		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
 
-		mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+		mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
 			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -807,7 +807,7 @@ func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 		defer cleanup()
 		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
 
-		mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+		mock.ExpectExec(`(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE.*\$2::jsonb.*END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
 			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 

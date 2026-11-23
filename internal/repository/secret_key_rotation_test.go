@@ -14,6 +14,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/dkim"
 )
 
 const (
@@ -166,6 +167,50 @@ func TestRotateSecretKey(t *testing.T) {
 		_, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
 
 		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// Loading a workspace never opens its DKIM keys, so the rotation checks them itself.
+	t.Run("DKIM private keys are re-encrypted, and one no key opens rolls back", func(t *testing.T) {
+		privPEM, _, err := dkim.GenerateRSA2048()
+		require.NoError(t, err)
+		settingsWith := func(dkimKey string) string {
+			return fmt.Sprintf(`{"encrypted_secret_key": %q, "dkim_keys": [{"domain": "acme.io", "encrypted_private_key": %q}]}`,
+				encryptFor(t, "ws-key", rotationCurrentKey), dkimKey)
+		}
+
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectBegin()
+		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(rotationWorkspaceQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "settings", "integrations"}).
+				AddRow("aaa", []byte(settingsWith(encryptFor(t, privPEM, rotationPreviousKey))), nil))
+		mock.ExpectExec(rotationWorkspaceWrite).
+			WithArgs(document(func(tree any) bool {
+				return opensWithOnly{want: privPEM}.Match(at(tree, "dkim_keys", 0, "encrypted_private_key"))
+			}), nil, "aaa").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+		mock.ExpectCommit()
+
+		_, err = RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
+		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+
+		db, mock, cleanup2 := testutil.SetupMockDB(t)
+		defer cleanup2()
+		mock.ExpectBegin()
+		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(rotationWorkspaceQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "settings", "integrations"}).
+				AddRow("aaa", []byte(settingsWith(encryptFor(t, privPEM, "a-key-nobody-has-any-more-32-bytes"))), nil))
+		mock.ExpectRollback()
+
+		_, err = RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace aaa")
+		assert.Contains(t, err.Error(), "acme.io")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 

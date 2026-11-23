@@ -379,9 +379,19 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
+	// dkim_keys has a single writer, UpdateDKIMKeys: the copy of the settings the caller
+	// read earlier never replaces the stored keys, so a settings save cannot undo a key
+	// created, verified or downgraded meanwhile. The row is re-read under its lock, so
+	// the keys kept are the last committed ones.
 	query := `
 		UPDATE workspaces
-		SET name = $1, settings = $2, integrations = $3, updated_at = $4
+		SET name = $1,
+			settings = CASE
+				WHEN workspaces.settings ? 'dkim_keys'
+					THEN jsonb_set($2::jsonb, '{dkim_keys}', workspaces.settings->'dkim_keys', true)
+				ELSE $2::jsonb - 'dkim_keys'
+			END,
+			integrations = $3, updated_at = $4
 		WHERE id = $5
 	`
 	result, err := r.systemDB.ExecContext(ctx, query,

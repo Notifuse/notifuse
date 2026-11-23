@@ -75,6 +75,24 @@ func (m *MockWorkspaceRepository) PatchIntegrationSESSettings(ctx context.Contex
 	return args.Error(0)
 }
 
+func (m *MockWorkspaceRepository) UpdateDKIMKeys(ctx context.Context, workspaceID string, mutate domain.DKIMKeysMutator) ([]domain.DKIMKey, error) {
+	args := m.Called(ctx, workspaceID, mutate)
+	keys, _ := args.Get(0).([]domain.DKIMKey)
+	return keys, args.Error(1)
+}
+
+func (m *MockWorkspaceRepository) GetWorkspaceDKIMKeys(ctx context.Context, workspaceID string) ([]domain.DKIMKey, error) {
+	args := m.Called(ctx, workspaceID)
+	keys, _ := args.Get(0).([]domain.DKIMKey)
+	return keys, args.Error(1)
+}
+
+func (m *MockWorkspaceRepository) ListWorkspacesDKIMMetadata(ctx context.Context) ([]domain.WorkspaceDKIMMetadata, error) {
+	args := m.Called(ctx)
+	result, _ := args.Get(0).([]domain.WorkspaceDKIMMetadata)
+	return result, args.Error(1)
+}
+
 func (m *MockWorkspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {
 	args := m.Called(ctx, workspace)
 	return args.Error(0)
