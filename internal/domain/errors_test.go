@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -434,6 +435,25 @@ func TestInvalidStateError(t *testing.T) {
 	var target *InvalidStateError
 	if !errors.As(fmt.Errorf("failed to pause broadcast: %w", err), &target) || target != err {
 		t.Error("errors.As must find an InvalidStateError through a wrap")
+	}
+}
+
+func TestInvalidStateError_Reason(t *testing.T) {
+	err := &InvalidStateError{Entity: "broadcast", ID: "b1", Action: "delete", Status: "paused", Reason: "Cancel it first."}
+
+	if got, want := err.Error(), "cannot delete broadcast b1: its status is paused. Cancel it first."; got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
+	}
+	body, jsonErr := json.Marshal(err)
+	if jsonErr != nil {
+		t.Fatal(jsonErr)
+	}
+	if got, want := string(body), `{"entity":"broadcast","id":"b1","action":"delete","status":"paused","reason":"Cancel it first."}`; got != want {
+		t.Errorf("JSON = %s, want %s", got, want)
+	}
+	body, _ = json.Marshal(NewInvalidStateError("broadcast", "b1", "pause", "draft"))
+	if got, want := string(body), `{"entity":"broadcast","id":"b1","action":"pause","status":"draft"}`; got != want {
+		t.Errorf("JSON without a reason = %s, want %s", got, want)
 	}
 }
 

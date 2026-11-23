@@ -202,16 +202,21 @@ type EmailQueueRepository interface {
 	// the only record of who was not reached and the only thing a retry can revive.
 	MarkAsPermanentlyFailed(ctx context.Context, workspaceID string, entryID string, errorMsg string) error
 
-	// ResetTerminallyFailedBySource puts every abandoned entry for a source back in
-	// the queue with a fresh attempt budget, rebound to integrationID. Returns how
-	// many were requeued.
+	// ResetTerminallyFailedBySourceTx puts every abandoned entry for a source back in
+	// the queue with a fresh attempt budget, rebound to integrationID, inside the
+	// caller's transaction. Returns how many were requeued.
 	//
 	// Deliberately narrow: an entry still retrying is on its way back by itself, and
 	// resetting its counter mid-flight would give it more tries than the policy allows.
 	// The rebinding matters because an entry carries the integration it was enqueued
 	// with, and swapping the provider out is often the very fix that makes a retry
 	// worth attempting.
-	ResetTerminallyFailedBySource(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string, integrationID string) (int64, error)
+	ResetTerminallyFailedBySourceTx(ctx context.Context, tx *sql.Tx, sourceType EmailQueueSourceType, sourceID string, integrationID string) (int64, error)
+
+	// DeleteTerminallyFailedBySourceTx deletes every abandoned entry for a source,
+	// inside the caller's transaction. Deleting a broadcast uses it so that no row
+	// outlives the broadcast it belongs to. Returns the number of rows deleted.
+	DeleteTerminallyFailedBySourceTx(ctx context.Context, tx *sql.Tx, sourceType EmailQueueSourceType, sourceID string) (int64, error)
 
 	// DeleteTerminallyFailedOlderThan sweeps abandoned entries past the retention
 	// window. They hold one recipient's compiled email, so they cannot be kept
@@ -231,6 +236,9 @@ type EmailQueueRepository interface {
 	// GetSourceCounts breaks a source's rows down by what they are waiting on, in
 	// one round trip. This is the authority on whether a broadcast has finished.
 	GetSourceCounts(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string) (*EmailQueueSourceCounts, error)
+
+	// GetSourceCountsTx is the transactional variant of GetSourceCounts.
+	GetSourceCountsTx(ctx context.Context, tx *sql.Tx, sourceType EmailQueueSourceType, sourceID string) (*EmailQueueSourceCounts, error)
 
 	// ListActiveSourcesByIntegration returns the distinct sources that still have
 	// live rows on one integration. Used to find what an outage on that integration

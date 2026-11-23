@@ -535,6 +535,18 @@ var pausableBroadcastStatuses = []domain.BroadcastStatus{
 	domain.BroadcastStatusWinnerSelected,
 }
 
+// undeletableBroadcastStatuses are the statuses of a broadcast whose task can still queue
+// emails, or whose queued emails wait for a resume. Deleting it touches neither, so emails
+// could still go out for a broadcast nobody can see, or wait forever. Cancelling it first
+// empties its queue.
+var undeletableBroadcastStatuses = []domain.BroadcastStatus{
+	domain.BroadcastStatusProcessing,
+	domain.BroadcastStatusPaused,
+	domain.BroadcastStatusTesting,
+	domain.BroadcastStatusTestCompleted,
+	domain.BroadcastStatusWinnerSelected,
+}
+
 // cancellableBroadcastStatuses are the statuses a broadcast can be cancelled from: scheduled,
 // paused, or sending.
 var cancellableBroadcastStatuses = append([]domain.BroadcastStatus{
@@ -1206,24 +1218,72 @@ func (s *BroadcastService) DeleteBroadcast(ctx context.Context, request *domain.
 		return err
 	}
 
-	// Retrieve the broadcast to check its status
-	broadcast, err := s.repo.GetBroadcast(ctx, request.WorkspaceID, request.ID)
-	if err != nil {
-		s.logger.Error("Failed to get broadcast for deletion")
-		return err
-	}
+	// The status, the queue and the delete are read and written under the broadcast's
+	// row lock, so a cancel, pause or resume cannot change either between the check and
+	// the delete.
+	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
+		broadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
+		if err != nil {
+			s.logger.Error("Failed to get broadcast for deletion")
+			return err
+		}
 
-	// Broadcasts in 'sending' status cannot be deleted
-	if broadcast.Status == domain.BroadcastStatusProcessing {
-		err := domain.NewInvalidStateError("broadcast", broadcast.ID, "delete", string(broadcast.Status))
-		s.logger.Error("Cannot delete broadcast with sending status")
-		return err
-	}
+		// Its send task would outlive it; unscheduling removes the task.
+		if broadcast.Status == domain.BroadcastStatusScheduled {
+			s.logger.Error("Cannot delete a scheduled broadcast")
+			return &domain.InvalidStateError{
+				Entity: "broadcast", ID: broadcast.ID, Action: "delete", Status: string(broadcast.Status),
+				Reason: "Unschedule it first: unscheduling removes its send task.",
+			}
+		}
 
-	// Delete the broadcast
-	err = s.repo.DeleteBroadcast(ctx, request.WorkspaceID, request.ID)
+		if slices.Contains(undeletableBroadcastStatuses, broadcast.Status) {
+			s.logger.Error("Cannot delete a broadcast that can still send")
+			return &domain.InvalidStateError{
+				Entity: "broadcast", ID: broadcast.ID, Action: "delete", Status: string(broadcast.Status),
+				Reason: "Cancel it first: cancelling empties its email queue.",
+			}
+		}
+
+		// The queue worker sends a row without looking at its broadcast, and nothing
+		// resumes a paused row once the broadcast is gone. Rows given up on send
+		// nothing and do not count.
+		counts, err := s.emailQueueRepo.GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcast.ID)
+		if err != nil {
+			s.logger.Error("Failed to count the broadcast's queued emails")
+			return err
+		}
+		if waiting := counts.InFlight(); waiting > 0 {
+			noun := "emails"
+			if waiting == 1 {
+				noun = "email"
+			}
+			reason := fmt.Sprintf("Its email queue still holds %d %s to send: ", waiting, noun)
+			// Cancelling removes every waiting row but leaves those being sent.
+			if slices.Contains(cancellableBroadcastStatuses, broadcast.Status) && waiting > counts.Processing {
+				reason += "cancel it first, which empties the queue."
+			} else {
+				reason += "wait for the queue to empty."
+			}
+			s.logger.Error("Cannot delete a broadcast whose emails are still queued")
+			return &domain.InvalidStateError{
+				Entity: "broadcast", ID: broadcast.ID, Action: "delete", Status: string(broadcast.Status),
+				Reason: reason,
+			}
+		}
+
+		// The rows given up on would otherwise stay in the queue with no broadcast.
+		if _, err := s.emailQueueRepo.DeleteTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcast.ID); err != nil {
+			s.logger.Error("Failed to delete the broadcast's abandoned queue rows")
+			return err
+		}
+		if err := s.repo.DeleteBroadcastTx(ctx, tx, request.WorkspaceID, request.ID); err != nil {
+			s.logger.Error("Failed to delete broadcast from repository")
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		s.logger.Error("Failed to delete broadcast from repository")
 		return err
 	}
 
@@ -1351,62 +1411,72 @@ func (s *BroadcastService) RetryFailedRecipients(ctx context.Context, request *d
 		return 0, err
 	}
 
-	broadcast, err := s.repo.GetBroadcast(ctx, request.WorkspaceID, request.ID)
+	// The checks and the reset run under the broadcast's row lock, the one a delete
+	// takes too, so a delete cannot commit between them and leave requeued emails for
+	// a broadcast that no longer exists.
+	var requeued int64
+	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
+		broadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
+		if err != nil {
+			s.logger.WithField("broadcast_id", request.ID).Error("Failed to get broadcast for retry")
+			return err
+		}
+
+		// A paused broadcast is resumed, not retried: resetting entries underneath a pause
+		// would start sending again while the operator believes it is stopped. Every other
+		// state either has not finished enqueueing or was deliberately abandoned.
+		if broadcast.Status != domain.BroadcastStatusProcessed && broadcast.Status != domain.BroadcastStatusFailed {
+			return &domain.ErrBroadcastRetryNotAllowed{
+				Reason: fmt.Sprintf("only a broadcast that has finished sending can be retried, current status: %s", broadcast.Status),
+			}
+		}
+
+		// Retrying is for a queue that has stopped, not one still working. Requeueing
+		// mid-flight would reset attempt counters underneath the worker and could send to
+		// recipients it is about to reach anyway.
+		counts, err := s.emailQueueRepo.GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, request.ID)
+		if err != nil {
+			return fmt.Errorf("failed to read broadcast queue counts: %w", err)
+		}
+		if counts.InFlight() > 0 {
+			return &domain.ErrBroadcastRetryNotAllowed{
+				Reason: fmt.Sprintf("this broadcast is still sending: %d messages are still queued", counts.InFlight()),
+			}
+		}
+		if counts.FailedTerminal == 0 {
+			return nil
+		}
+
+		// The provider has to be there to retry into. Same guard as the send path: a
+		// workspace that lost its marketing provider would requeue into nothing.
+		workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
+		if err != nil {
+			return err
+		}
+		emailProvider, integrationID, err := workspace.GetEmailProviderWithIntegrationID(true)
+		if err != nil {
+			return fmt.Errorf("failed to get email provider: %w", err)
+		}
+		if emailProvider == nil {
+			return &domain.ErrBroadcastRetryNotAllowed{
+				Reason: "no marketing email provider configured for this workspace",
+			}
+		}
+
+		// Rebind the requeued rows to the marketing provider as it stands now. They carry
+		// the integration they were enqueued with, and the reason a retry is being asked
+		// for is often that the old provider is the thing that broke — swapping it out is
+		// the fix, and without this the retry would go straight back to an integration
+		// that may no longer exist, spend all three fresh attempts on
+		// "integration not found" and abandon the recipients a second time.
+		requeued, err = s.emailQueueRepo.ResetTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, request.ID, integrationID)
+		if err != nil {
+			return fmt.Errorf("failed to requeue failed recipients: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		s.logger.WithField("broadcast_id", request.ID).Error("Failed to get broadcast for retry")
 		return 0, err
-	}
-
-	// A paused broadcast is resumed, not retried: resetting entries underneath a pause
-	// would start sending again while the operator believes it is stopped. Every other
-	// state either has not finished enqueueing or was deliberately abandoned.
-	if broadcast.Status != domain.BroadcastStatusProcessed && broadcast.Status != domain.BroadcastStatusFailed {
-		return 0, &domain.ErrBroadcastRetryNotAllowed{
-			Reason: fmt.Sprintf("only a broadcast that has finished sending can be retried, current status: %s", broadcast.Status),
-		}
-	}
-
-	// Retrying is for a queue that has stopped, not one still working. Requeueing
-	// mid-flight would reset attempt counters underneath the worker and could send to
-	// recipients it is about to reach anyway.
-	counts, err := s.emailQueueRepo.GetSourceCounts(ctx, request.WorkspaceID, domain.EmailQueueSourceBroadcast, request.ID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to read broadcast queue counts: %w", err)
-	}
-	if counts.InFlight() > 0 {
-		return 0, &domain.ErrBroadcastRetryNotAllowed{
-			Reason: fmt.Sprintf("this broadcast is still sending: %d messages are still queued", counts.InFlight()),
-		}
-	}
-	if counts.FailedTerminal == 0 {
-		return 0, nil
-	}
-
-	// The provider has to be there to retry into. Same guard as the send path: a
-	// workspace that lost its marketing provider would requeue into nothing.
-	workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
-	if err != nil {
-		return 0, err
-	}
-	emailProvider, integrationID, err := workspace.GetEmailProviderWithIntegrationID(true)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get email provider: %w", err)
-	}
-	if emailProvider == nil {
-		return 0, &domain.ErrBroadcastRetryNotAllowed{
-			Reason: "no marketing email provider configured for this workspace",
-		}
-	}
-
-	// Rebind the requeued rows to the marketing provider as it stands now. They carry
-	// the integration they were enqueued with, and the reason a retry is being asked
-	// for is often that the old provider is the thing that broke — swapping it out is
-	// the fix, and without this the retry would go straight back to an integration
-	// that may no longer exist, spend all three fresh attempts on
-	// "integration not found" and abandon the recipients a second time.
-	requeued, err := s.emailQueueRepo.ResetTerminallyFailedBySource(ctx, request.WorkspaceID, domain.EmailQueueSourceBroadcast, request.ID, integrationID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to requeue failed recipients: %w", err)
 	}
 
 	s.logger.WithFields(map[string]interface{}{

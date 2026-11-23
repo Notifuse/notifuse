@@ -3,7 +3,7 @@
 // HTTP handler in internal/http resolves the credential before any JSON-RPC
 // message reaches this package. A few readers reach repositories directly
 // (ContactReader, MembershipReader, SegmentReader, BroadcastReader,
-// QueueReader, NotificationReader, AutomationReader, BlogCategoryReader), for the state a write tool reads first;
+// NotificationReader, AutomationReader, BlogCategoryReader), for the state a write tool reads first;
 // they run only after the wrapper's pre-check.
 package mcp
 
@@ -162,13 +162,6 @@ type BroadcastReader interface {
 	GetBroadcast(ctx context.Context, workspaceID, broadcastID string) (*domain.Broadcast, error)
 }
 
-// QueueReader counts a source's rows in the email queue without a permission
-// check of its own. delete_broadcast calls it, once the pre-check has granted
-// broadcasts:write, to refuse a broadcast whose queue still holds emails.
-type QueueReader interface {
-	GetSourceCounts(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string) (*domain.EmailQueueSourceCounts, error)
-}
-
 // TransactionalService is the part of the transactional notification service
 // the tools call.
 type TransactionalService interface {
@@ -277,7 +270,6 @@ type Deps struct {
 	Templates        TemplateService
 	Broadcasts       BroadcastService
 	BroadcastRows    BroadcastReader
-	Queue            QueueReader
 	Transactional    TransactionalService
 	NotificationRows NotificationReader
 	Messages         MessageHistoryService

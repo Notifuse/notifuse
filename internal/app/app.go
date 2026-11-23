@@ -1928,7 +1928,6 @@ func (a *App) InitHandlers() error {
 		Templates:        a.templateService,
 		Broadcasts:       a.broadcastService,
 		BroadcastRows:    a.broadcastRepo,
-		Queue:            a.emailQueueRepo,
 		Transactional:    a.transactionalNotificationService,
 		NotificationRows: a.transactionalNotificationRepo,
 		Messages:         a.messageHistoryService,

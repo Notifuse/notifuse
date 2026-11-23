@@ -50,7 +50,6 @@ type fixture struct {
 	templates   *mocks.MockTemplateService
 	broadcasts  *mocks.MockBroadcastService
 	bcastRows   *mocks.MockBroadcastRepository
-	queue       *mocks.MockEmailQueueRepository
 	notifs      *mocks.MockTransactionalNotificationService
 	notifRows   *mocks.MockTransactionalNotificationRepository
 	messages    *mocks.MockMessageHistoryService
@@ -89,7 +88,6 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 		templates:   mocks.NewMockTemplateService(ctrl),
 		broadcasts:  mocks.NewMockBroadcastService(ctrl),
 		bcastRows:   mocks.NewMockBroadcastRepository(ctrl),
-		queue:       mocks.NewMockEmailQueueRepository(ctrl),
 		notifs:      mocks.NewMockTransactionalNotificationService(ctrl),
 		notifRows:   mocks.NewMockTransactionalNotificationRepository(ctrl),
 		messages:    mocks.NewMockMessageHistoryService(ctrl),
@@ -123,7 +121,6 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 		Templates:        f.templates,
 		Broadcasts:       f.broadcasts,
 		BroadcastRows:    f.bcastRows,
-		Queue:            f.queue,
 		Transactional:    f.notifs,
 		NotificationRows: f.notifRows,
 		Messages:         f.messages,
