@@ -649,6 +649,13 @@ func TestInitializeWorkspaceDatabase_MessageHistoryRecentFailureIndexes(t *testi
 	}
 }
 
+// A fresh workspace creates the unique external_id index as v45 creates it on existing ones.
+func TestInitializeWorkspaceDatabase_CreatesTheExternalIDIndex(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	assert.Equal(t, schema.MessageHistoryExternalIDIndex,
+		rec.statementContaining(t, " "+schema.MessageHistoryExternalIDIndexName+" "))
+}
+
 // A fresh workspace creates broadcasts.test_paused_seconds as v44 adds it to existing ones.
 func TestInitializeWorkspaceDatabase_CreatesTheTestPauseColumn(t *testing.T) {
 	rec := recordWorkspaceSchema(t)

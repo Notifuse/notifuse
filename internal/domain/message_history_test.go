@@ -3,6 +3,8 @@ package domain
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
@@ -1504,4 +1506,15 @@ func TestMessageListParams_ClickedURL(t *testing.T) {
 		p.ClickedURL += "a"
 		assert.Error(t, p.Validate())
 	})
+}
+
+// The message names the key, and the error survives wrapping for the service to find.
+func TestErrExternalIDTaken(t *testing.T) {
+	err := fmt.Errorf("failed to create message history: %w", &ErrExternalIDTaken{ExternalID: "order-981"})
+	var taken *ErrExternalIDTaken
+	require.True(t, errors.As(err, &taken))
+	assert.Equal(t, "order-981", taken.ExternalID)
+	assert.Equal(t, `external_id "order-981" is already held by another message`, taken.Error())
+	// The transactional.send handler answers 400 to any error saying "not found".
+	assert.NotContains(t, err.Error(), "not found")
 }

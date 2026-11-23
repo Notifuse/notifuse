@@ -198,6 +198,49 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to create message history")
 	})
+
+	// The unique index on external_id refusing the row is the outcome a concurrent send with
+	// the same key gets: the service answers with the message that holds it.
+	t.Run("external_id held by another message", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectExec(`INSERT INTO message_history`).
+			WillReturnError(&pq.Error{Code: "23505", Constraint: "idx_message_history_external_id"})
+
+		err := repo.Create(ctx, workspaceID, testSecretKey, message)
+		var taken *domain.ErrExternalIDTaken
+		require.ErrorAs(t, err, &taken)
+		assert.Equal(t, *message.ExternalID, taken.ExternalID)
+	})
+
+	// Any other unique violation, such as a reused id, is not a duplicate send.
+	t.Run("conflict on the id stays an error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectExec(`INSERT INTO message_history`).
+			WillReturnError(&pq.Error{Code: "23505", Constraint: "message_history_pkey"})
+
+		err := repo.Create(ctx, workspaceID, testSecretKey, message)
+		require.Error(t, err)
+		var taken *domain.ErrExternalIDTaken
+		assert.False(t, errors.As(err, &taken))
+		assert.Contains(t, err.Error(), "failed to create message history")
+	})
+
+	// An empty external_id is no key: it is stored as NULL, which the unique index leaves out,
+	// so two sends with "" both write their message.
+	t.Run("an empty external_id is stored as NULL", func(t *testing.T) {
+		empty := createSampleMessageHistory()
+		empty.ExternalID = new(string)
+		args := []driver.Value{empty.ID, nil}
+		for i := 0; i < 25; i++ {
+			args = append(args, sqlmock.AnyArg())
+		}
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectExec(`INSERT INTO message_history`).WithArgs(args...).WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.Create(ctx, workspaceID, testSecretKey, empty))
+		require.NotNil(t, empty.ExternalID, "the caller's message is left as it was")
+	})
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
@@ -273,7 +316,8 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 		result, err := repo.GetByExternalID(ctx, workspaceID, testSecretKey, externalID)
 		require.Error(t, err)
 		require.Nil(t, result)
-		require.Contains(t, err.Error(), "message history with external_id ext-123 not found")
+		require.ErrorIs(t, err, domain.ErrMessageHistoryNotFound)
+		require.Contains(t, err.Error(), "ext-123")
 	})
 
 	t.Run("workspace connection error", func(t *testing.T) {
@@ -314,6 +358,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, result)
 		require.Contains(t, err.Error(), "failed to get message history by external_id")
+		assert.NotErrorIs(t, err, domain.ErrMessageHistoryNotFound, "a failed read is not a missing message")
 	})
 }
 
@@ -2631,4 +2676,13 @@ func TestMessageHistoryRepository_ListMessages_AutomationFilter(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
+}
+
+// Create and Upsert both write an empty external_id as NULL, so it never meets the unique index.
+func TestStoredExternalID(t *testing.T) {
+	empty, key := "", "order-1"
+	assert.Nil(t, storedExternalID(nil))
+	assert.Nil(t, storedExternalID(&empty))
+	require.NotNil(t, storedExternalID(&key))
+	assert.Equal(t, "order-1", *storedExternalID(&key))
 }

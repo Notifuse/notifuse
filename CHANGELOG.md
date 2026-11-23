@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: SMTP integrations can sign their emails with DKIM. Add the sending domain in **Settings** → **Domains** and publish the TXT record shown: signing starts once Notifuse finds it.
 
+- **Fix**: Two `transactional.send` calls with the same `external_id` that arrive together no longer both send. One email goes out, and both calls get its message ID. On upgrade, an `external_id` held by several messages stays with the oldest one, and an empty `external_id` counts as no key. With several Notifuse nodes, stop the others before upgrading: the upgrade briefly locks the message history and gives up after 5 seconds.
+
 - **Fix**: Segments could stop updating on their own. After four failed runs in a row, the task that recomputes a workspace's segments as contacts change, or the one that rebuilds date-based segments each morning, stopped for good, and segments then changed only on a manual rebuild. These tasks now keep retrying, and the first task run after the upgrade restarts any that stopped or were deleted.
 
 - **Fix**: SMTP senders on an internationalized domain (`news@bücher.de`) now go out in ASCII form. Notifuse sent raw UTF-8, which strict mail servers refuse.

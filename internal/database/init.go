@@ -308,6 +308,8 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
+		// The key transactional.send deduplicates on, unique among the messages that carry one.
+		schema.MessageHistoryExternalIDIndex,
 		`CREATE TABLE IF NOT EXISTS transactional_notifications (
 			id VARCHAR(32) NOT NULL PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,

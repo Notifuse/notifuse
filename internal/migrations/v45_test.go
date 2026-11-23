@@ -52,8 +52,10 @@ func TestV45Migration_MatchesTheCodeVersion(t *testing.T) {
 		"config.VERSION (%v) and the highest registered migration (%v) must agree", code, highest)
 }
 
-// Both parts are, so far, the data retention parts, run in full (v45_data_retention_test.go
-// pins their statements): sqlmock fails on any statement it was not told to expect. Each
+// The system part is the data retention part. The workspace part is the data retention part,
+// then the unique external_id part, each run in full (v45_data_retention_test.go and
+// v45_external_id_test.go pin their statements): sqlmock fails on any statement it was not
+// told to expect. Each
 // project adds its own expectations here.
 func TestV45Migration_Parts(t *testing.T) {
 	m := &V45Migration{}
@@ -68,6 +70,9 @@ func TestV45Migration_Parts(t *testing.T) {
 	}
 	require.NoError(t, m.UpdateSystem(context.Background(), &config.Config{}, db))
 	for _, statement := range dataRetentionWorkspaceV45Statements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	for _, statement := range externalIDWorkspaceV45Statements() {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	require.NoError(t, m.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
