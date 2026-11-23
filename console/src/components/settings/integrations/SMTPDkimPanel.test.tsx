@@ -76,7 +76,8 @@ describe('SMTPDkimPanel', () => {
     expect(api.get).toHaveBeenCalledWith('/api/workspaces.listDKIMDomains?workspace_id=ws-1')
 
     expect(screen.getAllByText('acme.io')).toHaveLength(1)
-    expect(within(rowOf('acme.io')).getByText('sel-acme.io')).toBeInTheDocument()
+    expect(within(rowOf('acme.io')).getByText('Signed')).toBeInTheDocument()
+    expect(screen.queryByText('sel-acme.io')).toBeNull()
     expect(within(rowOf('support.acme.io')).getByText('No key: sent unsigned')).toBeInTheDocument()
     expect(within(rowOf('pending.io')).getByText('DNS not found: sent unsigned')).toBeInTheDocument()
     expect(within(rowOf('wrong.io')).getByText('Wrong key: sent unsigned')).toBeInTheDocument()

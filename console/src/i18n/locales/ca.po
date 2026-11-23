@@ -2167,11 +2167,11 @@ msgstr "Sobre el consentiment"
 msgid "About display conditions"
 msgstr "Sobre les condicions de visualització"
 
-#: src/components/settings/DomainsSettings.tsx:369
+#: src/components/settings/DomainsSettings.tsx:401
 msgid "About DKIM keys"
 msgstr "Sobre les claus DKIM"
 
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:92
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:87
 msgid "About DKIM signing"
 msgstr "Sobre la signatura DKIM"
 
@@ -2200,8 +2200,8 @@ msgid "About system email delivery"
 msgstr "Sobre l'enviament de correus del sistema"
 
 #: src/components/settings/DomainsSettings.tsx:398
-msgid "About the DNS record"
-msgstr "Sobre el registre DNS"
+#~ msgid "About the DNS record"
+#~ msgstr "Sobre el registre DNS"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:361
 msgid "About the email column"
@@ -2437,7 +2437,7 @@ msgstr "Afegeix una propietat"
 #~ msgid "Add a provider"
 #~ msgstr "Afegeix un proveïdor"
 
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:71
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:66
 msgid "Add a sender to see whether its domain is signed."
 msgstr "Afegiu un remitent per veure si el seu domini està signat."
 
@@ -2554,8 +2554,8 @@ msgstr "Afegir capçalera personalitzada"
 msgid "Add dimension"
 msgstr "Afegir dimensió"
 
-#: src/components/settings/DomainsSettings.tsx:208
-#: src/components/settings/DomainsSettings.tsx:422
+#: src/components/settings/DomainsSettings.tsx:230
+#: src/components/settings/DomainsSettings.tsx:438
 msgid "Add domain"
 msgstr "Afegir domini"
 
@@ -2645,7 +2645,7 @@ msgstr "Afegir etiquetes..."
 msgid "Add teammates, or create an API key for your app."
 msgstr "Afegeix membres o crea una clau API per a la teva aplicació."
 
-#: src/components/settings/DomainsSettings.tsx:329
+#: src/components/settings/DomainsSettings.tsx:290
 msgid "Add the domain of your senders to sign their emails with DKIM."
 msgstr "Afegiu el domini dels vostres remitents per signar els seus correus amb DKIM."
 
@@ -3135,7 +3135,7 @@ msgstr "Amazon SES"
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, en una regió que admeti la recepció de correu)"
 
-#: src/components/settings/DomainsSettings.tsx:370
+#: src/components/settings/DomainsSettings.tsx:402
 msgid "Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. Notifuse checks a record every hour until it finds it, then once a day, and every hour again after a failed check. A published key stops signing after {DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart."
 msgstr "Amazon SES, Mailgun, SendGrid i els altres proveïdors API signen pel seu costat, així que aquestes claus només s'apliquen a les integracions SMTP. Una clau signa quan es troba el seu registre DNS, i només per al seu domini exacte: una clau a acme.io no signa news.acme.io. Notifuse comprova un registre cada hora fins que el troba, després un cop al dia, i de nou cada hora després d'una comprovació fallida. Una clau publicada deixa de signar després de {DKIM_DOWNGRADE_THRESHOLD} comprovacions fallides, amb una hora d'interval."
 
@@ -3784,7 +3784,7 @@ msgstr "Cal com a mínim un correu arrel"
 msgid "at most"
 msgstr "com a màxim"
 
-#: src/components/settings/DomainsSettings.tsx:399
+#: src/components/settings/DomainsSettings.tsx:327
 msgid "At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email."
 msgstr "Al vostre proveïdor DNS, afegiu un registre TXT amb aquest nom i aquest valor. Notifuse comença a signar tan bon punt el troba. Mantingueu el registre mentre el domini enviï correus."
 
@@ -5235,9 +5235,9 @@ msgstr "No es pot provar al navegador"
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:386
-#: src/components/settings/DomainsSettings.tsx:112
-#: src/components/settings/DomainsSettings.tsx:132
-#: src/components/settings/DomainsSettings.tsx:427
+#: src/components/settings/DomainsSettings.tsx:121
+#: src/components/settings/DomainsSettings.tsx:140
+#: src/components/settings/DomainsSettings.tsx:443
 #: src/components/settings/EditPermissionsDrawer.tsx:101
 #: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
@@ -5602,7 +5602,7 @@ msgstr "Comproveu la jerarquia MJML i que cada etiqueta estigui tancada."
 msgid "Check the server logs, then reload this page. Your configuration is already saved."
 msgstr "Reviseu els registres del servidor i després torneu a carregar aquesta pàgina. La configuració ja està desada."
 
-#: src/components/settings/DomainsSettings.tsx:149
+#: src/components/settings/DomainsSettings.tsx:169
 msgid "Checked {ago}"
 msgstr "Comprovat {ago}"
 
@@ -7088,11 +7088,11 @@ msgstr "No s'han pogut carregar les difusions"
 msgid "Couldn't load the deliveries"
 msgstr "No s'han pogut carregar els lliuraments"
 
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:81
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:76
 msgid "Couldn't load the DKIM keys of this workspace."
 msgstr "No s'han pogut carregar les claus DKIM d'aquest espai de treball."
 
-#: src/components/settings/DomainsSettings.tsx:315
+#: src/components/settings/DomainsSettings.tsx:276
 msgid "Couldn't load the domains"
 msgstr "No s'han pogut carregar els dominis"
 
@@ -7381,7 +7381,7 @@ msgstr "Crea la categoria"
 msgid "Create First Theme"
 msgstr "Crear primer tema"
 
-#: src/components/settings/DomainsSettings.tsx:426
+#: src/components/settings/DomainsSettings.tsx:442
 msgid "Create key"
 msgstr "Crear clau"
 
@@ -7542,6 +7542,7 @@ msgstr "Creeu la vostra primera plantilla per començar"
 #: src/components/logs/MessageDetail.tsx:276
 #: src/components/logs/MessagesTab.tsx:476
 #: src/components/logs/OutgoingWebhooksTab.tsx:408
+#: src/components/settings/DomainsSettings.tsx:346
 #: src/components/settings/WebhookDetail.tsx:503
 #: src/components/settings/WorkspaceMembers.tsx:304
 #: src/components/transactional/TransactionalDetail.tsx:431
@@ -8271,9 +8272,8 @@ msgstr "Retard"
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
 #: src/components/segment/input.tsx:309
-#: src/components/settings/DomainsSettings.tsx:131
-#: src/components/settings/DomainsSettings.tsx:275
-#: src/components/settings/DomainsSettings.tsx:278
+#: src/components/settings/DomainsSettings.tsx:139
+#: src/components/settings/DomainsSettings.tsx:356
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -8547,7 +8547,7 @@ msgstr "Eliminar la carpeta buida {name}?"
 msgid "Delete the folder {name} and its files?"
 msgstr "Vols eliminar la carpeta {name} i els seus fitxers?"
 
-#: src/components/settings/DomainsSettings.tsx:129
+#: src/components/settings/DomainsSettings.tsx:137
 msgid "Delete the key of {domain}?"
 msgstr "Eliminar la clau de {domain}?"
 
@@ -9037,16 +9037,16 @@ msgstr "Amplada del divisor"
 #~ msgid "Divider Width"
 #~ msgstr "Amplada del divisor"
 
-#: src/components/settings/DomainsSettings.tsx:220
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:91
+#: src/components/settings/DomainsSettings.tsx:247
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:86
 msgid "DKIM"
 msgstr "DKIM"
 
-#: src/components/settings/DomainsSettings.tsx:368
+#: src/components/settings/DomainsSettings.tsx:400
 msgid "DKIM keys"
 msgstr "Claus DKIM"
 
-#: src/components/settings/DomainsSettings.tsx:190
+#: src/components/settings/DomainsSettings.tsx:163
 msgid "DNS not found · not signing yet"
 msgstr "DNS no trobat · encara no signa"
 
@@ -9054,11 +9054,12 @@ msgstr "DNS no trobat · encara no signa"
 msgid "DNS not found: sent unsigned"
 msgstr "DNS no trobat: s'envia sense signar"
 
+#: src/components/settings/DomainsSettings.tsx:324
 #: src/components/settings/GeneralSettings.tsx:192
 msgid "DNS record"
 msgstr "Registre DNS"
 
-#: src/components/settings/DomainsSettings.tsx:85
+#: src/components/settings/DomainsSettings.tsx:90
 msgid "DNS record found. Emails from {domain} are now signed."
 msgstr "Registre DNS trobat. Els correus de {domain} ara es signen."
 
@@ -9126,8 +9127,8 @@ msgid "doesn't equal"
 msgstr "no és igual a"
 
 #: src/components/segment/segmentLabels.ts:89
-#: src/components/settings/DomainsSettings.tsx:216
-#: src/components/settings/DomainsSettings.tsx:434
+#: src/components/settings/DomainsSettings.tsx:243
+#: src/components/settings/DomainsSettings.tsx:450
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:746
@@ -9153,7 +9154,7 @@ msgstr "Domini on va començar la visita, al qual pertany el camí"
 msgid "Domain the visitor arrived from"
 msgstr "Domini d'on prové el visitant"
 
-#: src/components/settings/DomainsSettings.tsx:360
+#: src/components/settings/DomainsSettings.tsx:392
 #: src/components/settings/SettingsSidebar.tsx:66
 msgid "Domains"
 msgstr "Dominis"
@@ -14206,14 +14207,14 @@ msgid "Kept in this browser for 7 days. Drop the same file to pick up where it s
 msgstr "Es desen en aquest navegador durant 7 dies. Deixa anar el mateix fitxer per continuar on es va aturar."
 
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:62
-msgid "Key"
-msgstr "Clau"
+#~ msgid "Key"
+#~ msgstr "Clau"
 
 #: src/components/settings/DomainsSettings.tsx:68
-msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
-msgstr "Clau creada per a {createdDomain}. Publiqueu el seu registre DNS per començar a signar."
+#~ msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
+#~ msgstr "Clau creada per a {createdDomain}. Publiqueu el seu registre DNS per començar a signar."
 
-#: src/components/settings/DomainsSettings.tsx:138
+#: src/components/settings/DomainsSettings.tsx:146
 msgid "Key of {domain} deleted"
 msgstr "Clau de {domain} eliminada"
 
@@ -14357,6 +14358,10 @@ msgstr "Darrer canvi"
 #: src/components/contacts/TrackingConsent.tsx:148
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "Darrer canvi {changedAt} des de {changedFrom}"
+
+#: src/components/settings/DomainsSettings.tsx:248
+msgid "Last check"
+msgstr "Última comprovació"
 
 #: src/components/blog/RecentThemesTable.tsx:159
 msgid "Last Edited"
@@ -15279,7 +15284,7 @@ msgstr "Gestiona"
 msgid "Manage custom fields"
 msgstr "Gestiona els camps personalitzats"
 
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:103
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:98
 msgid "Manage domains"
 msgstr "Gestionar dominis"
 
@@ -15872,8 +15877,8 @@ msgid "More actions"
 msgstr "Més accions"
 
 #: src/components/settings/DomainsSettings.tsx:288
-msgid "More actions for {domain}"
-msgstr "Més accions per a {domain}"
+#~ msgid "More actions for {domain}"
+#~ msgstr "Més accions per a {domain}"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:247
 #: src/components/templates/TemplateSelectorModal.tsx:358
@@ -15945,7 +15950,7 @@ msgstr "N/D"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:404
-#: src/components/settings/DomainsSettings.tsx:409
+#: src/components/settings/DomainsSettings.tsx:332
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -16056,6 +16061,10 @@ msgstr "Necessita aquests permisos IAM addicionals: ses:CreateTenant, ses:Create
 msgid "Network"
 msgstr "Xarxa"
 
+#: src/components/settings/DomainsSettings.tsx:207
+msgid "Never"
+msgstr "Mai"
+
 #: src/components/web_analytics/lib/backfill.ts:25
 msgid "Never run"
 msgstr "Mai executat"
@@ -16125,8 +16134,8 @@ msgid "New key"
 msgstr "Clau nova"
 
 #: src/components/settings/DomainsSettings.tsx:117
-msgid "New key created for {domain}. Publish its DNS record."
-msgstr "Nova clau creada per a {domain}. Publiqueu el seu registre DNS."
+#~ msgid "New key created for {domain}. Publish its DNS record."
+#~ msgstr "Nova clau creada per a {domain}. Publiqueu el seu registre DNS."
 
 #: src/components/contacts/ContactsRail.tsx:79
 #: src/components/lists/ListDrawer.tsx:73
@@ -16508,11 +16517,11 @@ msgstr "No hi ha dades de dispositiu"
 msgid "No dimensions found"
 msgstr "No s'han trobat dimensions"
 
-#: src/components/settings/DomainsSettings.tsx:87
+#: src/components/settings/DomainsSettings.tsx:95
 msgid "No DNS record found for {domain} yet. DNS changes can take a few hours to show."
 msgstr "Encara no s'ha trobat cap registre DNS per a {domain}. Els canvis de DNS poden trigar unes hores a aparèixer."
 
-#: src/components/settings/DomainsSettings.tsx:328
+#: src/components/settings/DomainsSettings.tsx:289
 msgid "No domains yet"
 msgstr "Encara no hi ha dominis"
 
@@ -16913,7 +16922,7 @@ msgstr "Sense imatge per compartir"
 msgid "No share title"
 msgstr "Sense títol per compartir"
 
-#: src/components/settings/DomainsSettings.tsx:245
+#: src/components/settings/DomainsSettings.tsx:238
 msgid "No SMTP integration yet"
 msgstr "Encara no hi ha cap integració SMTP"
 
@@ -17147,7 +17156,7 @@ msgstr "No disponible aquí"
 msgid "not between"
 msgstr "no entre"
 
-#: src/components/settings/DomainsSettings.tsx:149
+#: src/components/settings/DomainsSettings.tsx:169
 msgid "Not checked yet"
 msgstr "Encara no comprovat"
 
@@ -17415,11 +17424,11 @@ msgstr "Notificacions enviades a través de l'API, Zapier o Supabase"
 msgid "Notifuse {latest} is available"
 msgstr "Notifuse {latest} està disponible"
 
-#: src/components/settings/DomainsSettings.tsx:361
+#: src/components/settings/DomainsSettings.tsx:393
 msgid "Notifuse adds a DKIM signature to the emails your SMTP integrations send from these domains."
 msgstr "Notifuse afegeix una signatura DKIM als correus que les vostres integracions SMTP envien des d'aquests dominis."
 
-#: src/components/settings/DomainsSettings.tsx:435
+#: src/components/settings/DomainsSettings.tsx:451
 msgid "Notifuse creates the key. You publish one DNS record."
 msgstr "Notifuse crea la clau. Vosaltres publiqueu un registre DNS."
 
@@ -17435,11 +17444,11 @@ msgstr "Exportació de Notifuse (.json)"
 msgid "Notifuse is ready"
 msgstr "Notifuse està a punt"
 
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:93
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:88
 msgid "Notifuse signs each email before handing it to your server, and the signature covers the one-click unsubscribe headers. If your server signs too, both signatures are valid. A key signs only its exact domain."
 msgstr "Notifuse signa cada correu abans de lliurar-lo al vostre servidor, i la signatura cobreix les capçaleres de baixa amb un clic. Si el vostre servidor també signa, les dues signatures són vàlides. Una clau només signa el seu domini exacte."
 
-#: src/components/settings/DomainsSettings.tsx:130
+#: src/components/settings/DomainsSettings.tsx:138
 msgid "Notifuse stops signing emails from {domain}. You can then remove its DNS record."
 msgstr "Notifuse deixa de signar els correus de {domain}. Després podeu eliminar el seu registre DNS."
 
@@ -17775,7 +17784,7 @@ msgstr "Només es manté la variant A. Les altres variants i les seves plantille
 msgid "Only when the same content lives at another address"
 msgstr "Només si el mateix contingut és a una altra adreça"
 
-#: src/components/settings/DomainsSettings.tsx:196
+#: src/components/settings/DomainsSettings.tsx:210
 msgid "Only workspace owners can manage domains"
 msgstr "Només els propietaris de l'espai de treball poden gestionar dominis"
 
@@ -18836,7 +18845,7 @@ msgstr "Si us plau, introduïu un nom de categoria"
 msgid "Please enter a custom label"
 msgstr "Si us plau, introduïu una etiqueta personalitzada"
 
-#: src/components/settings/DomainsSettings.tsx:436
+#: src/components/settings/DomainsSettings.tsx:452
 msgid "Please enter a domain"
 msgstr "Introduïu un domini"
 
@@ -19579,8 +19588,8 @@ msgid "Publish theme v{themeVersion}"
 msgstr "Publica el tema v{themeVersion}"
 
 #: src/components/settings/DomainsSettings.tsx:397
-msgid "Publish this record for {shownName}"
-msgstr "Publiqueu aquest registre per a {shownName}"
+#~ msgid "Publish this record for {shownName}"
+#~ msgstr "Publiqueu aquest registre per a {shownName}"
 
 #: src/components/blog/RecentThemesTable.tsx:129
 msgid "Publish this theme"
@@ -19594,7 +19603,7 @@ msgstr "Publicar aquest tema"
 msgid "Published"
 msgstr "Publicat"
 
-#: src/components/settings/DomainsSettings.tsx:162
+#: src/components/settings/DomainsSettings.tsx:160
 msgid "Published · signing"
 msgstr "Publicat · signa"
 
@@ -20055,9 +20064,13 @@ msgstr "Recalcula"
 msgid "Recomputed every day at 5:00 ({timezone}): it counts rolling days."
 msgstr "Es recalcula cada dia a les 5:00 ({timezone}): compta dies mòbils."
 
-#: src/components/settings/DomainsSettings.tsx:154
+#: src/components/settings/DomainsSettings.tsx:158
 msgid "Record missing {failures}/{DKIM_DOWNGRADE_THRESHOLD} · still signing"
 msgstr "Registre absent {failures}/{DKIM_DOWNGRADE_THRESHOLD} · encara signa"
+
+#: src/components/settings/DomainsSettings.tsx:333
+msgid "record name"
+msgstr "el nom del registre"
 
 #: src/services/api/permissions.ts:219
 msgid "Record or overwrite a custom event on a contact"
@@ -20070,6 +20083,10 @@ msgstr "Registrar o sobreescriure un esdeveniment personalitzat en un contacte"
 #: src/components/settings/WebAnalyticsSettings.tsx:394
 #~ msgid "Record the region or state of visitors"
 #~ msgstr "Registrar la regió o l'estat dels visitants"
+
+#: src/components/settings/DomainsSettings.tsx:337
+msgid "record value"
+msgstr "el valor del registre"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:321
 #~ msgid "Record web goals on the contact timeline"
@@ -20159,8 +20176,8 @@ msgstr "Referents"
 #: src/components/logs/OutgoingWebhooksTab.tsx:154
 #: src/components/logs/OutgoingWebhooksTab.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:434
-#: src/components/settings/DomainsSettings.tsx:376
-#: src/components/settings/DomainsSettings.tsx:380
+#: src/components/settings/DomainsSettings.tsx:408
+#: src/components/settings/DomainsSettings.tsx:412
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
@@ -20207,8 +20224,8 @@ msgstr "El token d'actualització és obligatori per a Google"
 msgid "Refused: private address"
 msgstr "Rebutjat: adreça privada"
 
-#: src/components/settings/DomainsSettings.tsx:111
-#: src/components/settings/DomainsSettings.tsx:267
+#: src/components/settings/DomainsSettings.tsx:120
+#: src/components/settings/DomainsSettings.tsx:364
 #: src/components/settings/WebhookDetail.tsx:404
 msgid "Regenerate"
 msgstr "Regenerar"
@@ -20217,7 +20234,7 @@ msgstr "Regenerar"
 msgid "Regenerate secret?"
 msgstr "Regenerar secret?"
 
-#: src/components/settings/DomainsSettings.tsx:109
+#: src/components/settings/DomainsSettings.tsx:118
 msgid "Regenerate the key of {domain}?"
 msgstr "Regenerar la clau de {domain}?"
 
@@ -20929,7 +20946,7 @@ msgstr "Ha reintentat els enviaments fallits del butlletí <0>{target}</0>"
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 #: src/components/segment/SegmentCountCard.tsx:124
-#: src/components/settings/DomainsSettings.tsx:317
+#: src/components/settings/DomainsSettings.tsx:278
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
 #: src/components/settings/WorkspaceMembers.tsx:496
@@ -22208,9 +22225,10 @@ msgstr "Dimensions seleccionades, en ordre:"
 msgid "Selected: {0}"
 msgstr "Seleccionat: {0}"
 
-#: src/components/settings/DomainsSettings.tsx:222
-msgid "Selector"
-msgstr "Selector"
+#: src/components/settings/DomainsSettings.tsx:227
+#: src/components/settings/DomainsSettings.tsx:336
+#~ msgid "Selector"
+#~ msgstr "Selector"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:451
 #: src/components/broadcasts/BroadcastsTable.tsx:454
@@ -23267,7 +23285,7 @@ msgstr "Visitant sense sessió"
 msgid "Signing out..."
 msgstr "Tancant sessió..."
 
-#: src/components/settings/DomainsSettings.tsx:183
+#: src/components/settings/DomainsSettings.tsx:162
 msgid "Signing stopped"
 msgstr "Signatura aturada"
 
@@ -23520,7 +23538,7 @@ msgstr "El proveïdor SMTP no suporta webhooks de queixes, per tant les queixes 
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "El proveïdor SMTP no suporta webhooks de lliurament, per tant l'estat de lliurament no es pot rastrejar"
 
-#: src/components/settings/DomainsSettings.tsx:274
+#: src/components/settings/DomainsSettings.tsx:369
 msgid "SMTP senders use this domain. Change those senders first."
 msgstr "Hi ha remitents SMTP que fan servir aquest domini. Canvieu primer aquests remitents."
 
@@ -23875,7 +23893,7 @@ msgstr "Les estadístiques apareixen quan la difusió comença a enviar-se"
 #: src/components/logs/OutgoingWebhooksTab.tsx:189
 #: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/BlogSettings.tsx:332
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:66
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:61
 #: src/components/settings/LicenseSettings.tsx:150
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
@@ -23937,7 +23955,7 @@ msgstr "Voleu aturar l'actualització?"
 msgid "Stopped"
 msgstr "Aturat"
 
-#: src/components/settings/DomainsSettings.tsx:171
+#: src/components/settings/DomainsSettings.tsx:178
 msgid "Stopped on {date}: {reason}"
 msgstr "Aturada el {date}: {reason}"
 
@@ -25137,7 +25155,7 @@ msgstr "El fitxer CSV necessita una fila de capçalera i almenys una fila de dad
 msgid "The current date range, filters and session threshold"
 msgstr "L'interval de dates actual, els filtres i el llindar de sessió"
 
-#: src/components/settings/DomainsSettings.tsx:110
+#: src/components/settings/DomainsSettings.tsx:119
 msgid "The current key and its DNS record stop being used. You will publish a new record."
 msgstr "La clau actual i el seu registre DNS deixen de fer-se servir. Haureu de publicar un registre nou."
 
@@ -25161,11 +25179,11 @@ msgstr "La versió de text personalitzada ({languages}) no té enllaç per donar
 msgid "The dashboard counts complete days; today's emails show tomorrow"
 msgstr "El dashboard compta dies complets; els correus d'avui apareixen demà"
 
-#: src/components/settings/DomainsSettings.tsx:92
+#: src/components/settings/DomainsSettings.tsx:101
 msgid "The DNS lookup failed. Try again in a few minutes."
 msgstr "La consulta DNS ha fallat. Torneu-ho a provar d'aquí a uns minuts."
 
-#: src/components/settings/DomainsSettings.tsx:90
+#: src/components/settings/DomainsSettings.tsx:99
 msgid "The DNS record of {domain} does not match its key: {detail}"
 msgstr "El registre DNS de {domain} no coincideix amb la seva clau: {detail}"
 
@@ -25299,7 +25317,7 @@ msgstr "La clau apareix a Configuració → Equip i claus API com a {0}, on pode
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "La clau apareix a Configuració → Equip com a {0}, on podeu ampliar-ne els permisos."
 
-#: src/components/settings/DomainsSettings.tsx:83
+#: src/components/settings/DomainsSettings.tsx:88
 msgid "The key of {domain} changed during the check. The list shows its current state."
 msgstr "La clau de {domain} ha canviat durant la comprovació. La llista en mostra l'estat actual."
 
@@ -26985,7 +27003,7 @@ msgstr "Desactivar el doble opt-in no canvia els contactes «Pendents»: continu
 #: src/components/file_manager/FilePreview.tsx:48
 #: src/components/logs/InboundWebhooksTab.tsx:181
 #: src/components/settings/CustomFieldsConfiguration.tsx:190
-#: src/components/settings/DomainsSettings.tsx:405
+#: src/components/settings/DomainsSettings.tsx:330
 #: src/components/settings/GeneralSettings.tsx:196
 msgid "Type"
 msgstr "Tipus"
@@ -27655,7 +27673,8 @@ msgstr "Utilitzar el valor predeterminat de l'espai de treball"
 msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "Predeterminat de l'espai · {defaultIntegrationName}"
 
-#: src/components/settings/DomainsSettings.tsx:236
+#: src/components/settings/DomainsSettings.tsx:249
+#: src/components/settings/DomainsSettings.tsx:345
 #: src/components/templates/TemplateSelectorModal.tsx:665
 msgid "Used by"
 msgstr "Utilitzada per"
@@ -27860,7 +27879,7 @@ msgstr "Error de validació"
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:254
 #: src/components/segment/form_leaf.tsx:769
-#: src/components/settings/DomainsSettings.tsx:413
+#: src/components/settings/DomainsSettings.tsx:336
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
 #: src/components/web_analytics/FilterBuilder.tsx:333
@@ -27951,7 +27970,7 @@ msgstr "Codi de verificació"
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Ha verificat el codi d'inici de sessió de <0>{target}</0>"
 
-#: src/components/settings/DomainsSettings.tsx:259
+#: src/components/settings/DomainsSettings.tsx:382
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:542
 msgid "Verify"
 msgstr "Verificar"
@@ -28988,7 +29007,7 @@ msgstr "Escrita a mà per a aquesta plantilla i enviada amb la versió HTML. Els
 msgid "Written by hand, with the templating markup."
 msgstr "Escrita a mà, amb el marcatge de plantilla."
 
-#: src/components/settings/DomainsSettings.tsx:175
+#: src/components/settings/DomainsSettings.tsx:161
 msgid "Wrong key · not signing"
 msgstr "Clau incorrecta · no signa"
 
@@ -29124,7 +29143,7 @@ msgstr "No teniu permís per gestionar els camps personalitzats"
 msgid "You don't have permission to manage webhooks"
 msgstr "No teniu permís per gestionar els webhooks"
 
-#: src/components/settings/DomainsSettings.tsx:311
+#: src/components/settings/DomainsSettings.tsx:272
 msgid "You don't have permission to view the domains"
 msgstr "No teniu permís per veure els dominis"
 
