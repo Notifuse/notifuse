@@ -1957,6 +1957,106 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to send email")
 	})
 
+	// expectUpToCreate sets the calls every send below makes before the message is written.
+	expectUpToCreate := func() {
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).
+			Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockTemplateService.EXPECT().GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+		mockTemplateService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).Return(compileResult, nil)
+	}
+	externalID := "order-981"
+	keyedRequest := domain.SendEmailRequest{
+		WorkspaceID:      workspaceID,
+		IntegrationID:    "test-integration-id",
+		MessageID:        messageID,
+		ExternalID:       &externalID,
+		Contact:          contact,
+		TemplateConfig:   templateConfig,
+		MessageData:      messageData,
+		TrackingSettings: trackingSettings,
+		EmailProvider:    emailProvider,
+		EmailOptions:     options,
+	}
+
+	// A concurrent send with the same external_id wrote its message first: this one sends
+	// nothing, and says why, for the transactional service to answer with the other message.
+	t.Run("external_id held by another message: nothing is sent", func(t *testing.T) {
+		expectUpToCreate()
+		mockMessageRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ string, message *domain.MessageHistory) error {
+				require.NotNil(t, message.ExternalID)
+				assert.Equal(t, externalID, *message.ExternalID)
+				return &domain.ErrExternalIDTaken{ExternalID: externalID}
+			})
+		// No SendEmail or SetStatusesIfNotSet: gomock fails on either.
+
+		err := emailService.SendEmailForTemplate(ctx, keyedRequest)
+		var taken *domain.ErrExternalIDTaken
+		require.ErrorAs(t, err, &taken)
+		assert.Equal(t, externalID, taken.ExternalID)
+	})
+
+	// The failure is recorded on the message, which keeps its external_id: a replay of the key
+	// answers this failed message, and nothing writes to the key after the failure.
+	t.Run("a failed send records the failure and keeps its external_id", func(t *testing.T) {
+		expectUpToCreate()
+		mockMessageRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ string, message *domain.MessageHistory) error {
+				require.NotNil(t, message.ExternalID)
+				assert.Equal(t, externalID, *message.ExternalID)
+				return nil
+			})
+		mockSESService.EXPECT().SendEmail(gomock.Any(), gomock.Any()).Return(assert.AnError)
+		mockMessageRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, updates []domain.MessageEventUpdate) error {
+				require.Len(t, updates, 1)
+				assert.Equal(t, messageID, updates[0].ID)
+				assert.Equal(t, domain.MessageEventFailed, updates[0].Event)
+				return nil
+			})
+
+		err := emailService.SendEmailForTemplate(ctx, keyedRequest)
+		require.ErrorContains(t, err, "failed to send email")
+	})
+
+	// A caller that hangs up during the provider call cancels the request's context. The
+	// failure is still recorded, on a context of its own that carries a deadline.
+	t.Run("a cancelled request still records the failure", func(t *testing.T) {
+		requestCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		expectUpToCreate()
+		mockMessageRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
+		mockSESService.EXPECT().SendEmail(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ domain.SendEmailProviderRequest) error {
+				cancel()
+				return context.Canceled
+			})
+		mockMessageRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).
+			DoAndReturn(func(statusCtx context.Context, _ string, updates []domain.MessageEventUpdate) error {
+				require.Error(t, requestCtx.Err(), "the request was cancelled")
+				assert.NoError(t, statusCtx.Err(), "the failure write is not cancelled with it")
+				deadline, ok := statusCtx.Deadline()
+				require.True(t, ok, "the failure write has a deadline of its own")
+				assert.WithinDuration(t, time.Now().Add(failureStatusWriteTimeout), deadline, time.Second)
+				require.Len(t, updates, 1)
+				assert.Equal(t, domain.MessageEventFailed, updates[0].Event)
+				return statusCtx.Err()
+			})
+
+		err := emailService.SendEmailForTemplate(requestCtx, keyedRequest)
+		require.ErrorContains(t, err, "failed to send email")
+	})
+
+	// A sent message keeps its key: a replay is answered with it.
+	t.Run("a successful send keeps its external_id", func(t *testing.T) {
+		expectUpToCreate()
+		mockMessageRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
+		mockSESService.EXPECT().SendEmail(gomock.Any(), gomock.Any()).Return(nil)
+
+		require.NoError(t, emailService.SendEmailForTemplate(ctx, keyedRequest))
+	})
+
 	t.Run("Successfully sends email with from_name override", func(t *testing.T) {
 		// Create custom from_name
 		customFromName := "Custom Support Team"

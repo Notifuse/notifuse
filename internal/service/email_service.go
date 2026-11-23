@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -261,6 +262,10 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 
 // maxRecordedClickedURLLength bounds the destination URLs persisted in clicked_links
 const maxRecordedClickedURLLength = domain.MaxClickedURLLength
+
+// failureStatusWriteTimeout bounds the write that records a provider failure on the message.
+// It runs detached from the request, so it needs a deadline of its own.
+const failureStatusWriteTimeout = 5 * time.Second
 
 // VisitLink records a click on a tracked link. ownHosts are the instance's hosts as the
 // click route knows them, each a host[:port] value: the request's Host, the last
@@ -706,8 +711,17 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		UpdatedAt:                   now,
 	}
 
-	// Save to message history
+	// Save to message history. The row is written before the provider call, so that a
+	// concurrent send with the same external_id finds the key taken here and sends nothing.
 	if err := s.messageRepo.Create(ctx, request.WorkspaceID, workspace.Settings.SecretKey, messageHistory); err != nil {
+		var taken *domain.ErrExternalIDTaken
+		if errors.As(err, &taken) {
+			s.logger.WithFields(map[string]interface{}{
+				"message_id":  request.MessageID,
+				"external_id": taken.ExternalID,
+			}).Info("Another message holds this external_id, not sending")
+			return fmt.Errorf("failed to create message history: %w", err)
+		}
 		s.logger.WithFields(map[string]interface{}{
 			"error":      err.Error(),
 			"message_id": request.MessageID,
@@ -768,13 +782,19 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		// would store the blob in clear — and would restore every other column
 		// from a copy taken before the send. The queue worker's upsert leaves the
 		// same columns alone on a retry for the same reason.
+		//
+		// The write runs detached from the request: a caller that hung up during the provider
+		// call cancelled ctx, and the row would otherwise keep looking like a send in flight.
+		// The message keeps its external_id: a replay of the key answers this failed message.
 		errorMsg := err.Error()
-		updateErr := s.messageRepo.SetStatusesIfNotSet(ctx, request.WorkspaceID, []domain.MessageEventUpdate{{
+		statusCtx, cancelStatus := context.WithTimeout(context.WithoutCancel(ctx), failureStatusWriteTimeout)
+		updateErr := s.messageRepo.SetStatusesIfNotSet(statusCtx, request.WorkspaceID, []domain.MessageEventUpdate{{
 			ID:         request.MessageID,
 			Event:      domain.MessageEventFailed,
 			Timestamp:  now,
 			StatusInfo: &errorMsg,
 		}})
+		cancelStatus()
 		if updateErr != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"error":      updateErr.Error(),

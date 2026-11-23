@@ -69,6 +69,11 @@ func (m *V45Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	if err := applyDataRetentionWorkspaceV45(ctx, db); err != nil {
 		return err
 	}
+	// MCP access: external_id made unique, so that transactional.send deduplicates
+	// concurrent calls too (v45_external_id.go).
+	if err := applyExternalIDWorkspaceV45(ctx, db); err != nil {
+		return err
+	}
 	return nil
 }
 
