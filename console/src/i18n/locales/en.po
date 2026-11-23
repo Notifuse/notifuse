@@ -2244,7 +2244,7 @@ msgstr "About unsubscribed recipients"
 msgid "Accept Invitation"
 msgstr "Accept Invitation"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:96
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Accepted the invitation <0>{target}</0>"
 
@@ -2703,7 +2703,7 @@ msgstr "Added"
 msgid "Added {blockType}"
 msgstr "Added {blockType}"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:100
 msgid "Added a DKIM domain to <0>{target}</0>"
 msgstr "Added a DKIM domain to <0>{target}</0>"
 
@@ -2716,7 +2716,7 @@ msgstr "Added on {0}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "Added the annotation <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:101
 msgid "Added the integration <0>{target}</0>"
 msgstr "Added the integration <0>{target}</0>"
 
@@ -5341,7 +5341,7 @@ msgctxt "newsletter status"
 msgid "Cancelled"
 msgstr "Cancelled"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:105
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "Cancelled the invitation <0>{target}</0>"
 
@@ -5349,7 +5349,7 @@ msgstr "Cancelled the invitation <0>{target}</0>"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "Cancelled the newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:88
 msgid "Cancelled the web analytics backfill"
 msgstr "Cancelled the web analytics backfill"
 
@@ -5530,23 +5530,23 @@ msgstr "Change Status for {0}"
 msgid "Change status…"
 msgstr "Change status…"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:110
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "Changed the audit log retention of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:105
+#: src/components/logs/auditPhrases.ts:111
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "Changed the blog settings of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:107
+#: src/components/logs/auditPhrases.ts:113
 msgid "Changed the MCP access of <0>{target}</0>"
 msgstr "Changed the MCP access of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:108
+#: src/components/logs/auditPhrases.ts:114
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "Changed the permissions of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:109
+#: src/components/logs/auditPhrases.ts:115
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "Changed the web analytics settings of <0>{target}</0>"
 
@@ -5619,7 +5619,7 @@ msgstr "Check the server logs, then reload this page. Your configuration is alre
 msgid "Checked {ago}"
 msgstr "Checked {ago}"
 
-#: src/components/logs/auditPhrases.ts:112
+#: src/components/logs/auditPhrases.ts:118
 msgid "Checked a DKIM record of <0>{target}</0>"
 msgstr "Checked a DKIM record of <0>{target}</0>"
 
@@ -6581,7 +6581,7 @@ msgstr "Connected apps"
 msgid "Connected to {target} · {time}"
 msgstr "Connected to {target} · {time}"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:97
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "Connected Zapier as the integration <0>{target}</0>"
 
@@ -7609,7 +7609,7 @@ msgstr "Created new version v{savedVersion}"
 msgid "Created on {createdOn}"
 msgstr "Created on {createdOn}"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:99
 msgid "Created the API key <0>{target}</0>"
 msgstr "Created the API key <0>{target}</0>"
 
@@ -7653,11 +7653,11 @@ msgstr "Created the template <0>{target}</0>"
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "Created the transactional notification <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:90
 msgid "Created the webhook <0>{target}</0>"
 msgstr "Created the webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:98
 msgid "Created the workspace <0>{target}</0>"
 msgstr "Created the workspace <0>{target}</0>"
 
@@ -8729,11 +8729,11 @@ msgstr "Deleted the template <0>{target}</0>"
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "Deleted the transactional notification <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:91
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "Deleted the webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:102
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Deleted the workspace <0>{target}</0>"
 
@@ -10587,6 +10587,10 @@ msgstr "Enter workspace name"
 #: src/components/automations/list/AutomationsTable.tsx:204
 msgid "Entered"
 msgstr "Entered"
+
+#: src/components/logs/auditPhrases.ts:85
+msgid "Entered a two-factor code to sign in"
+msgstr "Entered a two-factor code to sign in"
 
 #: src/components/contacts/sheet/describeActivity.tsx:427
 msgid "Entered the automation {name}"
@@ -12461,6 +12465,10 @@ msgstr "Generated from the name until you edit it"
 msgid "Generated HTML"
 msgstr "Generated HTML"
 
+#: src/components/logs/auditPhrases.ts:83
+msgid "Generated new recovery codes"
+msgstr "Generated new recovery codes"
+
 #: src/components/segment/SegmentCountCard.tsx:70
 msgid "Generated SQL:"
 msgstr "Generated SQL:"
@@ -13920,7 +13928,7 @@ msgstr "Invite member"
 msgid "Invite your team"
 msgstr "Invite your team"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:106
 msgid "Invited <0>{target}</0>"
 msgstr "Invited <0>{target}</0>"
 
@@ -14151,7 +14159,7 @@ msgstr "Joined segment {chip}"
 msgid "Joined segment {segment}"
 msgstr "Joined segment {segment}"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:107
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "Joined with the invitation <0>{target}</0>"
 
@@ -20304,11 +20312,11 @@ msgstr "Regenerate secret?"
 msgid "Regenerate the key of {domain}?"
 msgstr "Regenerate the key of {domain}?"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:109
 msgid "Regenerated a DKIM key of <0>{target}</0>"
 msgstr "Regenerated a DKIM key of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:86
+#: src/components/logs/auditPhrases.ts:92
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Regenerated the secret of the webhook <0>{target}</0>"
 
@@ -20358,7 +20366,7 @@ msgstr "Register webhooks to set up reply forwarding, then point your domain's M
 msgid "Register webhooks?"
 msgstr "Register webhooks?"
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:95
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Registered the provider webhooks of <0>{target}</0>"
 
@@ -20562,7 +20570,7 @@ msgstr "Remove variant {letter}"
 msgid "Removed"
 msgstr "Removed"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:103
 msgid "Removed a DKIM domain from <0>{target}</0>"
 msgstr "Removed a DKIM domain from <0>{target}</0>"
 
@@ -20574,11 +20582,11 @@ msgstr "Removed from {list}"
 msgid "Removed from {name}"
 msgstr "Removed from {name}"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:104
 msgid "Removed the integration <0>{target}</0>"
 msgstr "Removed the integration <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:108
 msgid "Removed the member <0>{target}</0>"
 msgstr "Removed the member <0>{target}</0>"
 
@@ -20603,7 +20611,7 @@ msgstr "Rename or re-slug a category"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Rename the workspace's custom contact field labels"
 
-#: src/components/logs/auditPhrases.ts:106
+#: src/components/logs/auditPhrases.ts:112
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "Renamed the custom fields of <0>{target}</0>"
 
@@ -20846,6 +20854,10 @@ msgstr "Reset replaces all the content with the default language's."
 #: src/pages/TemplatesPage.tsx:558
 msgid "reset the filter"
 msgstr "reset the filter"
+
+#: src/components/logs/auditPhrases.ts:87
+msgid "Reset the two-factor authentication of <0>{target}</0>"
+msgstr "Reset the two-factor authentication of <0>{target}</0>"
 
 #: src/components/email_builder/ui/fields/SettingsRow.tsx:51
 msgid "Reset to the default value"
@@ -23904,7 +23916,11 @@ msgstr "Started"
 msgid "Started from “{0}”"
 msgstr "Started from “{0}”"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:84
+msgid "Started setting up an authenticator app"
+msgstr "Started setting up an authenticator app"
+
+#: src/components/logs/auditPhrases.ts:89
 msgid "Started the web analytics backfill"
 msgstr "Started the web analytics backfill"
 
@@ -27065,11 +27081,19 @@ msgstr "Turn the blog on or off and change its title, SEO, pagination and feed s
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 
+#: src/components/logs/auditPhrases.ts:81
+msgid "Turned off two-factor authentication"
+msgstr "Turned off two-factor authentication"
+
 #: src/components/logs/auditPhrases.ts:64
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:87
+#: src/components/logs/auditPhrases.ts:82
+msgid "Turned on two-factor authentication"
+msgstr "Turned on two-factor authentication"
+
+#: src/components/logs/auditPhrases.ts:93
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Turned the webhook <0>{target}</0> on or off"
 
@@ -27504,7 +27528,7 @@ msgstr "Updated the blog post <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "Updated the blog theme <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:111
+#: src/components/logs/auditPhrases.ts:117
 msgid "Updated the integration <0>{target}</0>"
 msgstr "Updated the integration <0>{target}</0>"
 
@@ -27548,11 +27572,11 @@ msgstr "Updated the template <0>{target}</0>"
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "Updated the transactional notification <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:94
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Updated the webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:110
+#: src/components/logs/auditPhrases.ts:116
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Updated the workspace settings of <0>{target}</0>"
 
@@ -28058,7 +28082,7 @@ msgstr "Variants"
 msgid "Verification code"
 msgstr "Verification code"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:86
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Verified the sign-in code of <0>{target}</0>"
 

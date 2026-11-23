@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -65,9 +66,17 @@ func TestMessageHistoryHandler_handleCount(t *testing.T) {
 
 	t.Run("unauthenticated", func(t *testing.T) {
 		m := newCountHandlerMocks(t)
-		m.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws1").Return(nil, nil, nil, errors.New("bad token"))
+		m.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws1").Return(nil, nil, nil, fmt.Errorf("%w: bad token", domain.ErrSessionAuthFailed))
 		code, _ := m.call(http.MethodGet, "workspace_id=ws1&created_after=2026-11-01T00:00:00Z")
 		assert.Equal(t, http.StatusUnauthorized, code)
+	})
+
+	// A lookup that failed is not a dead session: a 401 would sign the console out.
+	t.Run("the authentication lookup fails", func(t *testing.T) {
+		m := newCountHandlerMocks(t)
+		m.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws1").Return(nil, nil, nil, errors.New("connection refused"))
+		code, _ := m.call(http.MethodGet, "workspace_id=ws1&created_after=2026-11-01T00:00:00Z")
+		assert.Equal(t, http.StatusInternalServerError, code)
 	})
 
 	for name, tc := range map[string]struct{ query, message string }{

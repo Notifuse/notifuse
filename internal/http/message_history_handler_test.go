@@ -125,8 +125,9 @@ func TestMessageHistoryHandler_handleList_AuthenticationError(t *testing.T) {
 		Return(context.Background(), mockSpan)
 	mockTracer.EXPECT().
 		EndSpan(mockSpan, nil)
+	sessionGone := fmt.Errorf("%w: expired", domain.ErrSessionAuthFailed)
 	mockTracer.EXPECT().
-		MarkSpanError(gomock.Any(), assert.AnError)
+		MarkSpanError(gomock.Any(), sessionGone)
 
 	// Set up logger mock to expect error call
 	mockLogger.EXPECT().Error(gomock.Any()).Times(1)
@@ -134,18 +135,18 @@ func TestMessageHistoryHandler_handleList_AuthenticationError(t *testing.T) {
 	// Mock auth service to return error
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(nil, nil, nil, assert.AnError)
+		Return(nil, nil, nil, sessionGone)
 
 	// Call the handler
 	handler.handleList(w, req)
 
-	// Check response
+	// Check response: only a dead session answers 401
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
 	var response map[string]string
 	err := json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
-	assert.Equal(t, "Unauthorized", response["error"])
+	assert.NotEmpty(t, response["error"])
 }
 
 func TestMessageHistoryHandler_handleList_ValidationError(t *testing.T) {

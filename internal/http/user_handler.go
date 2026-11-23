@@ -46,6 +46,8 @@ type UserHandler struct {
 	userService      UserServiceInterface
 	workspaceService domain.WorkspaceServiceInterface
 	licenseService   LicenseStateReader
+	authService      domain.AuthService
+	twoFactor        TwoFactorServiceInterface
 	config           *config.Config
 	getJWTSecret     func() ([]byte, error)
 	logger           logger.Logger
@@ -71,11 +73,17 @@ func extractEmailDomain(email string) string {
 // first refusal, with no explanation attached. Omitting it has to be a compile error, because
 // a silently unwired licence source is exactly the failure this design cannot detect at
 // runtime.
-func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, licenseService LicenseStateReader, cfg *config.Config, getJWTSecret func() ([]byte, error), logger logger.Logger) *UserHandler {
+//
+// authService and twoFactor are required too: user.me, user.logout and
+// user.updateLanguage check the session through authService without the instance's
+// two-factor requirement, and user.me reports the two-factor state.
+func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, licenseService LicenseStateReader, authService domain.AuthService, twoFactor TwoFactorServiceInterface, cfg *config.Config, getJWTSecret func() ([]byte, error), logger logger.Logger) *UserHandler {
 	return &UserHandler{
 		userService:      userService,
 		workspaceService: workspaceService,
 		licenseService:   licenseService,
+		authService:      authService,
+		twoFactor:        twoFactor,
 		config:           cfg,
 		getJWTSecret:     getJWTSecret,
 		logger:           logger,
@@ -174,6 +182,14 @@ func (h *UserHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 		span.AddAttributes(trace.StringAttribute("user.id", response.User.ID))
 	}
 
+	// The code was right and the account has two-factor authentication: no token yet.
+	if response.Challenge != nil {
+		writeChallenge(w, response.Challenge)
+		return
+	}
+
+	noStore(w)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
@@ -229,6 +245,8 @@ func (h *UserHandler) RootSignIn(w http.ResponseWriter, r *http.Request) {
 		span.AddAttributes(trace.StringAttribute("user.id", response.User.ID))
 	}
 
+	noStore(w)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
@@ -266,6 +284,7 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	span.AddAttributes(trace.StringAttribute("user.id", userID))
 
 	// Verify session exists for user-type tokens
+	var session *domain.SessionAuth
 	userType, ok := ctx.Value(domain.UserTypeKey).(string)
 	if ok && userType == string(domain.UserTypeUser) {
 		sessionID, ok := ctx.Value(domain.SessionIDKey).(string)
@@ -278,8 +297,11 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Verify session exists (this will fail if user logged out)
-		_, err := h.userService.VerifyUserSession(ctx, userID, sessionID)
+		// Verify session exists (this will fail if user logged out). Without the
+		// instance's two-factor requirement: user.me is how a session that has not met
+		// it learns that it must.
+		var err error
+		_, session, err = h.authService.AuthenticateSession(ctx)
 		if err != nil {
 			if sessionCheckStatus(err) != http.StatusUnauthorized {
 				WriteJSONError(w, "Failed to verify session", http.StatusInternalServerError)
@@ -294,6 +316,9 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// A session that has not met the instance's requirement sees no workspace: a console
+	// session's workspace carries the file manager's S3 secret (Workspace.Redact).
+	twoFactorRequired := session != nil && h.twoFactor.RequireTwoFactor() && !domain.SessionSatisfiesTwoFactor(*session)
 
 	// Get user details
 	h.tracer.AddAttribute(ctx, "operation", "GetUserByID")
@@ -311,15 +336,20 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	span.AddAttributes(trace.StringAttribute("user.email.domain", extractEmailDomain(user.Email)))
 
 	// Get user's workspaces
-	h.tracer.AddAttribute(ctx, "operation", "ListWorkspaces")
-	workspaces, err := h.workspaceService.ListWorkspaces(ctx)
-	if err != nil {
-		WriteJSONError(w, "Failed to retrieve workspaces", http.StatusInternalServerError)
-		span.SetStatus(trace.Status{
-			Code:    trace.StatusCodeInternal,
-			Message: "Failed to retrieve workspaces",
-		})
-		return
+	workspaces := []*domain.Workspace{}
+	if !twoFactorRequired {
+		h.tracer.AddAttribute(ctx, "operation", "ListWorkspaces")
+		workspaces, err = h.workspaceService.ListWorkspaces(ctx)
+		if err != nil {
+			if !writeServiceError(w, err, "Failed to retrieve workspaces") {
+				WriteJSONError(w, "Failed to retrieve workspaces", http.StatusInternalServerError)
+			}
+			span.SetStatus(trace.Status{
+				Code:    trace.StatusCodeInternal,
+				Message: "Failed to retrieve workspaces",
+			})
+			return
+		}
 	}
 
 	// Add workspace count to span for context
@@ -378,6 +408,25 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		// "44.0-custom" would be refused by the update service and hide the answer.
 		response["check_for_updates"] = h.consoleChecksForUpdates(ctx, user)
 		response["version"] = config.VERSION
+
+		// The two-factor state of the account and of this session. A failure to read it
+		// leaves the field out rather than failing the call every console starts with;
+		// two_factor_required below does not depend on it.
+		if status, err := h.twoFactor.Status(ctx, user.ID); err != nil {
+			h.logger.WithField("error", err.Error()).Error("Failed to read the two-factor state")
+			h.tracer.MarkSpanError(ctx, err)
+		} else {
+			response["two_factor"] = map[string]interface{}{
+				"enabled":                  status.Enabled,
+				"enabled_at":               status.EnabledAt,
+				"recovery_codes_remaining": status.RecoveryCodesRemaining,
+				"required_by_instance":     h.twoFactor.RequireTwoFactor(),
+			}
+		}
+		if session != nil {
+			response["session_second_factor"] = session.SecondFactor
+		}
+		response["two_factor_required"] = twoFactorRequired
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -421,6 +470,10 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	span.AddAttributes(trace.StringAttribute("user.id", userID))
 	h.tracer.AddAttribute(ctx, "operation", "Logout")
 
+	if !h.requirePersonSession(w, r) {
+		return
+	}
+
 	// Logout user - delete all sessions
 	err := h.userService.Logout(ctx, userID)
 	if err != nil {
@@ -456,6 +509,10 @@ func (h *UserHandler) UpdateLanguage(w http.ResponseWriter, r *http.Request) {
 			Code:    trace.StatusCodeUnauthenticated,
 			Message: "No user ID in context",
 		})
+		return
+	}
+
+	if !h.requirePersonSession(w, r) {
 		return
 	}
 
@@ -498,6 +555,25 @@ func (h *UserHandler) UpdateLanguage(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"message": "Language updated successfully",
 	})
+}
+
+// requirePersonSession lets through a live console session, whether or not it met the
+// instance's two-factor requirement. An API key is a valid credential without access to
+// these routes: 403, which a client does not read as a dead credential.
+func (h *UserHandler) requirePersonSession(w http.ResponseWriter, r *http.Request) bool {
+	if !isConsoleSession(r.Context()) {
+		WriteJSONError(w, "This route is for console sessions", http.StatusForbidden)
+		return false
+	}
+	if _, _, err := h.authService.AuthenticateSession(r.Context()); err != nil {
+		if sessionCheckStatus(err) == http.StatusUnauthorized {
+			WriteJSONError(w, "Session expired or invalid", http.StatusUnauthorized)
+		} else {
+			WriteJSONError(w, "Failed to verify session", http.StatusInternalServerError)
+		}
+		return false
+	}
+	return true
 }
 
 func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {

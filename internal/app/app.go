@@ -801,6 +801,9 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("oidc:start", 10, 1*time.Minute)    // start an SSO redirect, by IP
 	a.rateLimiter.SetPolicy("oidc:callback", 10, 1*time.Minute) // IdP callbacks, by IP
 	a.rateLimiter.SetPolicy("oidc:exchange", 10, 1*time.Minute) // one-time-code exchange, by IP
+	// Second-factor codes, by IP. Only damps noise: the address can be forged, and the
+	// failure counters stored on the account are the protection.
+	a.rateLimiter.SetPolicy(httpHandler.TwoFactorVerifyPolicy, 20, 1*time.Minute)
 
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
@@ -1701,8 +1704,17 @@ func (a *App) InitHandlers() error {
 		a.userService,
 		a.workspaceService,
 		a.licenseService,
+		a.authService,
+		a.twoFactorService,
 		a.config,
 		getJWTSecret,
+		a.logger)
+	twoFactorHandler := httpHandler.NewTwoFactorHandler(
+		a.twoFactorService,
+		a.authService,
+		a.rateLimiter,
+		getJWTSecret,
+		a.config.IsDemo(),
 		a.logger)
 	oidcHandler := httpHandler.NewOIDCHandler(
 		a.oidcService,
@@ -1748,6 +1760,9 @@ func (a *App) InitHandlers() error {
 		a.config.RootEmail,
 		a, // AppShutdowner
 		a.licenseService,
+		a.authService,
+		a.twoFactorService,
+		a.config.EnvValues.RequireTwoFactor,
 	)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
@@ -1877,6 +1892,7 @@ func (a *App) InitHandlers() error {
 	setupHandler.RegisterRoutes(a.mux) // Setup handler first (should be accessible without auth)
 	a.settingsHandler.RegisterRoutes(a.mux)
 	userHandler.RegisterRoutes(a.mux)
+	twoFactorHandler.RegisterRoutes(a.mux)
 	oidcHandler.RegisterRoutes(a.mux)
 	workspaceHandler.RegisterRoutes(a.mux)
 	rootHandler.RegisterRoutes(a.mux)

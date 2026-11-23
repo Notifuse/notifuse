@@ -2244,7 +2244,7 @@ msgstr "À propos des destinataires désinscrits"
 msgid "Accept Invitation"
 msgstr "Accepter l'invitation"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:96
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "A accepté l'invitation <0>{target}</0>"
 
@@ -2703,7 +2703,7 @@ msgstr "Ajouté"
 msgid "Added {blockType}"
 msgstr "{blockType} ajouté"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:100
 msgid "Added a DKIM domain to <0>{target}</0>"
 msgstr "A ajouté un domaine DKIM à <0>{target}</0>"
 
@@ -2716,7 +2716,7 @@ msgstr "Ajouté le {0}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "A ajouté l'annotation <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:101
 msgid "Added the integration <0>{target}</0>"
 msgstr "A ajouté l'intégration <0>{target}</0>"
 
@@ -5341,7 +5341,7 @@ msgctxt "newsletter status"
 msgid "Cancelled"
 msgstr "Annulée"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:105
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "A annulé l'invitation <0>{target}</0>"
 
@@ -5349,7 +5349,7 @@ msgstr "A annulé l'invitation <0>{target}</0>"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "A annulé la newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:88
 msgid "Cancelled the web analytics backfill"
 msgstr "A annulé le rattrapage des statistiques web"
 
@@ -5530,23 +5530,23 @@ msgstr "Changer le statut pour {0}"
 msgid "Change status…"
 msgstr "Changer le statut…"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:110
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "A modifié la conservation du journal d'audit de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:105
+#: src/components/logs/auditPhrases.ts:111
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "A modifié les paramètres du blog de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:107
+#: src/components/logs/auditPhrases.ts:113
 msgid "Changed the MCP access of <0>{target}</0>"
 msgstr "A modifié l'accès MCP de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:108
+#: src/components/logs/auditPhrases.ts:114
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "A modifié les permissions de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:109
+#: src/components/logs/auditPhrases.ts:115
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "A modifié les paramètres des statistiques web de <0>{target}</0>"
 
@@ -5619,7 +5619,7 @@ msgstr "Consultez les journaux du serveur, puis rechargez cette page. Votre conf
 msgid "Checked {ago}"
 msgstr "Vérifié {ago}"
 
-#: src/components/logs/auditPhrases.ts:112
+#: src/components/logs/auditPhrases.ts:118
 msgid "Checked a DKIM record of <0>{target}</0>"
 msgstr "A vérifié un enregistrement DKIM de <0>{target}</0>"
 
@@ -6581,7 +6581,7 @@ msgstr "Applications connectées"
 msgid "Connected to {target} · {time}"
 msgstr "Connecté à {target} · {time}"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:97
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "A connecté Zapier en tant qu'intégration <0>{target}</0>"
 
@@ -7609,7 +7609,7 @@ msgstr "Nouvelle version v{savedVersion} créée"
 msgid "Created on {createdOn}"
 msgstr "Créée le {createdOn}"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:99
 msgid "Created the API key <0>{target}</0>"
 msgstr "A créé la clé API <0>{target}</0>"
 
@@ -7653,11 +7653,11 @@ msgstr "A créé le modèle <0>{target}</0>"
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "A créé la notification transactionnelle <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:90
 msgid "Created the webhook <0>{target}</0>"
 msgstr "A créé le webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:98
 msgid "Created the workspace <0>{target}</0>"
 msgstr "A créé l'espace de travail <0>{target}</0>"
 
@@ -8729,11 +8729,11 @@ msgstr "A supprimé le modèle <0>{target}</0>"
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "A supprimé la notification transactionnelle <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:91
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "A supprimé le webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:102
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "A supprimé l'espace de travail <0>{target}</0>"
 
@@ -10587,6 +10587,10 @@ msgstr "Entrez le nom de l'espace de travail"
 #: src/components/automations/list/AutomationsTable.tsx:204
 msgid "Entered"
 msgstr "Entrés"
+
+#: src/components/logs/auditPhrases.ts:85
+msgid "Entered a two-factor code to sign in"
+msgstr "A saisi un code de double authentification pour se connecter"
 
 #: src/components/contacts/sheet/describeActivity.tsx:427
 msgid "Entered the automation {name}"
@@ -12461,6 +12465,10 @@ msgstr "Généré depuis le nom, modifiable"
 msgid "Generated HTML"
 msgstr "HTML généré"
 
+#: src/components/logs/auditPhrases.ts:83
+msgid "Generated new recovery codes"
+msgstr "A généré de nouveaux codes de récupération"
+
 #: src/components/segment/SegmentCountCard.tsx:70
 msgid "Generated SQL:"
 msgstr "SQL généré :"
@@ -13920,7 +13928,7 @@ msgstr "Inviter un membre"
 msgid "Invite your team"
 msgstr "Inviter votre équipe"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:106
 msgid "Invited <0>{target}</0>"
 msgstr "A invité <0>{target}</0>"
 
@@ -14151,7 +14159,7 @@ msgstr "A rejoint le segment {chip}"
 msgid "Joined segment {segment}"
 msgstr "A rejoint le segment {segment}"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:107
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "A rejoint via l'invitation <0>{target}</0>"
 
@@ -20304,11 +20312,11 @@ msgstr "Régénérer le secret ?"
 msgid "Regenerate the key of {domain}?"
 msgstr "Régénérer la clé de {domain} ?"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:109
 msgid "Regenerated a DKIM key of <0>{target}</0>"
 msgstr "A régénéré une clé DKIM de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:86
+#: src/components/logs/auditPhrases.ts:92
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "A régénéré le secret du webhook <0>{target}</0>"
 
@@ -20358,7 +20366,7 @@ msgstr "Enregistrez les webhooks pour configurer le transfert des réponses, pui
 msgid "Register webhooks?"
 msgstr "Enregistrer les webhooks ?"
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:95
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "A enregistré les webhooks du fournisseur de <0>{target}</0>"
 
@@ -20562,7 +20570,7 @@ msgstr "Retirer la variante {letter}"
 msgid "Removed"
 msgstr "Retiré"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:103
 msgid "Removed a DKIM domain from <0>{target}</0>"
 msgstr "A retiré un domaine DKIM de <0>{target}</0>"
 
@@ -20574,11 +20582,11 @@ msgstr "Retiré de {list}"
 msgid "Removed from {name}"
 msgstr "Retrait de {name}"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:104
 msgid "Removed the integration <0>{target}</0>"
 msgstr "A retiré l'intégration <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:108
 msgid "Removed the member <0>{target}</0>"
 msgstr "A retiré le membre <0>{target}</0>"
 
@@ -20603,7 +20611,7 @@ msgstr "Renommer une catégorie ou modifier son slug"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Renommer les libellés des champs de contact personnalisés de l'espace de travail"
 
-#: src/components/logs/auditPhrases.ts:106
+#: src/components/logs/auditPhrases.ts:112
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "A renommé les champs personnalisés de <0>{target}</0>"
 
@@ -20846,6 +20854,10 @@ msgstr "Réinitialiser remplace tout le contenu par celui de la langue par défa
 #: src/pages/TemplatesPage.tsx:558
 msgid "reset the filter"
 msgstr "réinitialiser le filtre"
+
+#: src/components/logs/auditPhrases.ts:87
+msgid "Reset the two-factor authentication of <0>{target}</0>"
+msgstr "A réinitialisé la double authentification de <0>{target}</0>"
 
 #: src/components/email_builder/ui/fields/SettingsRow.tsx:51
 msgid "Reset to the default value"
@@ -23904,7 +23916,11 @@ msgstr "Démarré"
 msgid "Started from “{0}”"
 msgstr "Basé sur « {0} »"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:84
+msgid "Started setting up an authenticator app"
+msgstr "A commencé à configurer une application d'authentification"
+
+#: src/components/logs/auditPhrases.ts:89
 msgid "Started the web analytics backfill"
 msgstr "A lancé le rattrapage des statistiques web"
 
@@ -27065,11 +27081,19 @@ msgstr "Activer ou désactiver le blog et modifier son titre, son SEO, sa pagina
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Activer ou désactiver l'analyse web et modifier ses domaines autorisés, ses filtres, ses libellés de dimensions personnalisées et son identification par lien email"
 
+#: src/components/logs/auditPhrases.ts:81
+msgid "Turned off two-factor authentication"
+msgstr "A désactivé la double authentification"
+
 #: src/components/logs/auditPhrases.ts:64
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "A activé l'isolation des tenants Amazon SES pour <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:87
+#: src/components/logs/auditPhrases.ts:82
+msgid "Turned on two-factor authentication"
+msgstr "A activé la double authentification"
+
+#: src/components/logs/auditPhrases.ts:93
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "A activé ou désactivé le webhook <0>{target}</0>"
 
@@ -27504,7 +27528,7 @@ msgstr "A modifié l'article de blog <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "A modifié le thème de blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:111
+#: src/components/logs/auditPhrases.ts:117
 msgid "Updated the integration <0>{target}</0>"
 msgstr "A modifié l'intégration <0>{target}</0>"
 
@@ -27548,11 +27572,11 @@ msgstr "A modifié le modèle <0>{target}</0>"
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "A modifié la notification transactionnelle <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:94
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "A modifié le webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:110
+#: src/components/logs/auditPhrases.ts:116
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "A modifié les paramètres de l'espace de travail <0>{target}</0>"
 
@@ -28058,7 +28082,7 @@ msgstr "Variantes"
 msgid "Verification code"
 msgstr "Code de vérification"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:86
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "A vérifié le code de connexion de <0>{target}</0>"
 
