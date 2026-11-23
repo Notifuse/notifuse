@@ -677,31 +677,8 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
-		// Contact segment changes trigger function
-		`CREATE OR REPLACE FUNCTION track_contact_segment_changes()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			changes_json JSONB := '{}'::jsonb;
-			op VARCHAR(20);
-			kind_value VARCHAR(50);
-		BEGIN
-			IF TG_OP = 'INSERT' THEN
-				op := 'insert';
-				kind_value := 'segment.joined';
-				changes_json := jsonb_build_object('segment_id', jsonb_build_object('new', NEW.segment_id), 'version', jsonb_build_object('new', NEW.version), 'matched_at', jsonb_build_object('new', NEW.matched_at));
-			ELSIF TG_OP = 'DELETE' THEN
-				op := 'delete';
-				kind_value := 'segment.left';
-				changes_json := jsonb_build_object('segment_id', jsonb_build_object('old', OLD.segment_id), 'version', jsonb_build_object('old', OLD.version));
-				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-				VALUES (OLD.email, op, 'contact_segment', kind_value, OLD.segment_id, changes_json, CURRENT_TIMESTAMP);
-				RETURN OLD;
-			END IF;
-			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-			VALUES (NEW.email, op, 'contact_segment', kind_value, NEW.segment_id, changes_json, CURRENT_TIMESTAMP);
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;`,
+		// Contact segment changes trigger function (a retention purge writes nothing)
+		schema.TrackContactSegmentChangesFunction(),
 		// Contact timeline queue trigger function
 		`CREATE OR REPLACE FUNCTION queue_contact_for_segment_recomputation()
 		RETURNS TRIGGER AS $$
@@ -864,6 +841,7 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		// The engagement clock of the data retention plan, and its readiness marker, set
 		// at once: a new workspace has no history to read back.
 		{failure: "failed to create contact engagement", statements: append(schema.ContactEngagementStatements(), schema.NewWorkspaceDataRetentionMarker)},
+		{failure: "failed to create data retention tables", statements: schema.DataRetentionStatements()},
 	}
 }
 

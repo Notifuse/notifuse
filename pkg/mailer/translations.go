@@ -18,7 +18,8 @@ type Translations struct {
 	Invitation     InvitationStrings
 	CircuitBreaker CircuitBreakerStrings
 	// TwoFactor is filled from twoFactorTranslations at init.
-	TwoFactor TwoFactorStrings
+	TwoFactor        TwoFactorStrings
+	RetentionPending RetentionPendingStrings
 }
 
 // CommonStrings holds strings shared across every system email.
@@ -62,6 +63,18 @@ type CircuitBreakerStrings struct {
 	Body        string
 	ReasonLabel string
 	SignOff     string
+}
+
+// RetentionPendingStrings holds the strings for the email that tells a workspace's owners a
+// data retention change that deletes more is scheduled. Subject takes one argument
+// (workspace name). Body takes two indexed arguments (%[1]s workspace, %[2]s date).
+type RetentionPendingStrings struct {
+	Subject    string
+	Heading    string
+	Body       string
+	CancelNote string
+	LinkText   string
+	SignOff    string
 }
 
 // systemEmailTranslations maps lowercased locale codes to their translation set.
@@ -135,6 +148,14 @@ var englishTranslations = Translations{
 		ReasonLabel: "Reason:",
 		SignOff:     "Best regards,",
 	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "A data retention change is scheduled for %s",
+		Heading:    "A data retention change is scheduled",
+		Body:       "A change to the data retention policy of the %[1]s workspace deletes more data than the policy in force. It applies on %[2]s.",
+		CancelNote: "Until then, you can review the change and cancel it in the workspace settings.",
+		LinkText:   "Review the change",
+		SignOff:    "Thanks,",
+	},
 }
 
 // frenchTranslations holds the French (fr) system email strings.
@@ -169,6 +190,14 @@ var frenchTranslations = Translations{
 		Body:        "Votre diffusion %[1]s dans l'espace de travail %[2]s a été automatiquement mise en pause.",
 		ReasonLabel: "Raison :",
 		SignOff:     "Cordialement,",
+	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "Un changement de conservation des données est prévu pour %s",
+		Heading:    "Un changement de conservation des données est prévu",
+		Body:       "Un changement de la politique de conservation des données de l'espace de travail %[1]s supprime plus de données que la politique en vigueur. Il s'applique le %[2]s.",
+		CancelNote: "D'ici là, vous pouvez relire ce changement et l'annuler dans les paramètres de l'espace de travail.",
+		LinkText:   "Relire le changement",
+		SignOff:    "Merci,",
 	},
 }
 
@@ -205,6 +234,14 @@ var spanishTranslations = Translations{
 		ReasonLabel: "Motivo:",
 		SignOff:     "Un saludo,",
 	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "Hay un cambio de retención de datos previsto para %s",
+		Heading:    "Hay un cambio de retención de datos previsto",
+		Body:       "Un cambio en la política de retención de datos del espacio de trabajo %[1]s elimina más datos que la política vigente. Se aplica el %[2]s.",
+		CancelNote: "Hasta entonces, puedes revisar el cambio y cancelarlo en los ajustes del espacio de trabajo.",
+		LinkText:   "Revisar el cambio",
+		SignOff:    "Gracias,",
+	},
 }
 
 // germanTranslations holds the German (de) system email strings.
@@ -239,6 +276,14 @@ var germanTranslations = Translations{
 		Body:        "Ihr Broadcast %[1]s im Workspace %[2]s wurde automatisch pausiert.",
 		ReasonLabel: "Grund:",
 		SignOff:     "Mit freundlichen Grüßen,",
+	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "Geplante Änderung der Datenaufbewahrung für %s",
+		Heading:    "Eine Änderung der Datenaufbewahrung ist geplant",
+		Body:       "Eine Änderung der Aufbewahrungsrichtlinie des Workspace %[1]s löscht mehr Daten als die geltende Richtlinie. Sie gilt ab dem %[2]s.",
+		CancelNote: "Bis dahin können Sie die Änderung in den Workspace-Einstellungen prüfen und zurückziehen.",
+		LinkText:   "Änderung prüfen",
+		SignOff:    "Danke,",
 	},
 }
 
@@ -275,6 +320,14 @@ var catalanTranslations = Translations{
 		ReasonLabel: "Motiu:",
 		SignOff:     "Salutacions cordials,",
 	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "Hi ha un canvi de conservació de dades previst per a %s",
+		Heading:    "Hi ha un canvi de conservació de dades previst",
+		Body:       "Un canvi en la política de conservació de dades de l'espai de treball %[1]s elimina més dades que la política vigent. S'aplica el %[2]s.",
+		CancelNote: "Fins aleshores, pots revisar el canvi i cancel·lar-lo a la configuració de l'espai de treball.",
+		LinkText:   "Revisa el canvi",
+		SignOff:    "Gràcies,",
+	},
 }
 
 // portugueseBRTranslations holds the Brazilian Portuguese (pt-BR) system email strings.
@@ -309,6 +362,14 @@ var portugueseBRTranslations = Translations{
 		Body:        "Sua transmissão %[1]s no espaço de trabalho %[2]s foi pausada automaticamente.",
 		ReasonLabel: "Motivo:",
 		SignOff:     "Atenciosamente,",
+	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "Uma mudança na retenção de dados está prevista para %s",
+		Heading:    "Uma mudança na retenção de dados está prevista",
+		Body:       "Uma mudança na política de retenção de dados do espaço de trabalho %[1]s exclui mais dados do que a política em vigor. Ela se aplica em %[2]s.",
+		CancelNote: "Até lá, você pode revisar a mudança e cancelá-la nas configurações do espaço de trabalho.",
+		LinkText:   "Revisar a mudança",
+		SignOff:    "Obrigado,",
 	},
 }
 
@@ -345,6 +406,14 @@ var japaneseTranslations = Translations{
 		ReasonLabel: "理由:",
 		SignOff:     "よろしくお願いいたします、",
 	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "%s のデータ保持設定の変更が予定されています",
+		Heading:    "データ保持設定の変更が予定されています",
+		Body:       "ワークスペース %[1]s のデータ保持ポリシーの変更により、現在のポリシーより多くのデータが削除されます。この変更は %[2]s に適用されます。",
+		CancelNote: "それまでは、ワークスペースの設定で変更を確認し、取り消すことができます。",
+		LinkText:   "変更を確認する",
+		SignOff:    "よろしくお願いいたします、",
+	},
 }
 
 // italianTranslations holds the Italian (it) system email strings.
@@ -379,5 +448,13 @@ var italianTranslations = Translations{
 		Body:        "La tua trasmissione %[1]s nello spazio di lavoro %[2]s è stata messa in pausa automaticamente.",
 		ReasonLabel: "Motivo:",
 		SignOff:     "Cordiali saluti,",
+	},
+	RetentionPending: RetentionPendingStrings{
+		Subject:    "È previsto un cambio di conservazione dei dati per %s",
+		Heading:    "È previsto un cambio di conservazione dei dati",
+		Body:       "Un cambio della politica di conservazione dei dati dello spazio di lavoro %[1]s elimina più dati della politica in vigore. Si applica il %[2]s.",
+		CancelNote: "Fino ad allora puoi rivedere il cambio e annullarlo nelle impostazioni dello spazio di lavoro.",
+		LinkText:   "Rivedi il cambio",
+		SignOff:    "Grazie,",
 	},
 }

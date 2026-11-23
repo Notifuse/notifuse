@@ -1701,3 +1701,32 @@ func TestContactService_DeleteContactErasureFailures(t *testing.T) {
 		})
 	}
 }
+
+// The purge's drain erases what a deleted contact left, in DeleteContact's order, without
+// authenticating and without touching list rows: any that exist belong to the address
+// created again since, and may be opt-outs the restore trigger just put back.
+func TestContactService_EraseHistoryOfDeletedContact(t *testing.T) {
+	const workspaceID, email = "test-workspace", "gone@example.com"
+	ctrl := gomock.NewController(t)
+	service, mockContactRepo, _, _, mockMessageHistoryRepo, mockInboundWebhookEventRepo,
+		mockContactListRepo, mockContactTimelineRepo, _, mockCustomEventRepo,
+		mockSegmentRepo, mockSegmentQueueRepo, _ := createContactServiceWithMocks(ctrl)
+	erasure := mocks.NewMockContactErasureRepository(ctrl)
+	service.SetErasureRepository(erasure)
+	ctx := context.Background()
+
+	mockContactListRepo.EXPECT().DeleteForEmail(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	mockContactRepo.EXPECT().DeleteContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	gomock.InOrder(
+		mockMessageHistoryRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+		mockInboundWebhookEventRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+		mockCustomEventRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+		mockSegmentRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+		mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+		mockSegmentQueueRepo.EXPECT().RemoveFromQueue(ctx, workspaceID, email).Return(nil),
+		erasure.EXPECT().DeleteJourneysForEmail(ctx, workspaceID, email).Return(nil),
+		erasure.EXPECT().DeleteEngagementForEmail(ctx, workspaceID, email).Return(nil),
+		erasure.EXPECT().DeleteWebhookDeliveriesForEmail(ctx, workspaceID, email).Return(int64(0), nil),
+	)
+	require.NoError(t, service.EraseHistoryOfDeletedContact(ctx, workspaceID, email))
+}

@@ -82,6 +82,7 @@ type AppInterface interface {
 	GetAutomationScheduler() *service.AutomationScheduler
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
+	GetDataRetentionService() *service.DataRetentionService
 	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
 	GetCustomEventRepository() domain.CustomEventRepository
 }

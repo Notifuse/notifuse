@@ -51,6 +51,11 @@ func (m *MockWorkspaceRepository) SetMCPSettings(ctx context.Context, workspaceI
 	return args.Error(0)
 }
 
+func (m *MockWorkspaceRepository) SetDataRetentionSettings(ctx context.Context, workspaceID string, expectedRevision int, settings *domain.DataRetentionSettings) (bool, error) {
+	args := m.Called(ctx, workspaceID, expectedRevision, settings)
+	return args.Bool(0), args.Error(1)
+}
+
 func (m *MockWorkspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {
 	args := m.Called(ctx, id)
 	ws, _ := args.Get(0).(*domain.Workspace)

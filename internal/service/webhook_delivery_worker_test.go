@@ -3514,3 +3514,20 @@ func TestWebhookDeliveryWorker_ssrfRefusalDoesNotRetireTheSubscription(t *testin
 		worker.processDelivery(ctx, workspaceID, newDelivery(9), newSubscription(), time.Now())
 	})
 }
+
+// The sweep keeps each workspace's own period (its data retention policy); 0 keeps all.
+func TestWebhookDeliveryWorker_cleanupReadsTheWorkspacePeriod(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+	worker := NewWebhookDeliveryWorker(mocks.NewMockWebhookSubscriptionRepository(ctrl), deliveryRepo, workspaceRepo, log, nil)
+	worker.SetRetentionPeriod(func(_ context.Context, ws *domain.Workspace) int {
+		return map[string]int{"long": 30, "off": 0}[ws.ID]
+	})
+	workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{{ID: "long"}, {ID: "off"}}, nil)
+	deliveryRepo.EXPECT().CleanupOldDeliveries(gomock.Any(), "long", 30).Return(int64(1), nil)
+	worker.cleanupOldDeliveries(context.Background())
+}

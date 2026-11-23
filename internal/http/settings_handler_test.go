@@ -1652,3 +1652,61 @@ func TestSettingsHandler_RegistersTheLicenceRoutes(t *testing.T) {
 		})
 	}
 }
+
+type fakeRetentionDefaults struct {
+	stored *domain.RetentionDefaults
+	set    map[domain.RetentionCategory]int
+	err    error
+}
+
+func (f *fakeRetentionDefaults) Defaults(context.Context) (*domain.RetentionDefaults, error) {
+	return f.stored, nil
+}
+func (f *fakeRetentionDefaults) SetDefaults(_ context.Context, c map[domain.RetentionCategory]int) (*domain.RetentionDefaults, error) {
+	f.set = c
+	return &domain.RetentionDefaults{Categories: c}, f.err
+}
+
+// The deployment's retention defaults: root only, validated, no restart.
+func TestSettingsHandler_RetentionDefaults(t *testing.T) {
+	post := func(handler *SettingsHandler, userID, body string) *httptest.ResponseRecorder {
+		req := reqWithUserContext(httptest.NewRequest(http.MethodPost, "/api/dataRetention.setDefaults", strings.NewReader(body)), userID)
+		w := httptest.NewRecorder()
+		handler.handleSetRetentionDefaults(w, req)
+		return w
+	}
+
+	t.Run("root only", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		handler.SetDataRetention(&fakeRetentionDefaults{})
+		assert.Equal(t, http.StatusForbidden, post(handler, "other-user-id", `{"categories": {}}`).Code)
+		req := reqWithUserContext(httptest.NewRequest(http.MethodGet, "/api/dataRetention.getDefaults", nil), "other-user-id")
+		w := httptest.NewRecorder()
+		handler.handleGetRetentionDefaults(w, req)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("saves the defaults and restarts nothing", func(t *testing.T) {
+		handler, _, _, shutdowner := setupSettingsHandler(t)
+		svc := &fakeRetentionDefaults{}
+		handler.SetDataRetention(svc)
+		w := post(handler, "root-user-id", `{"categories": {"message_history": 730}}`)
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		assert.Equal(t, 730, svc.set[domain.RetentionMessageHistory])
+		assert.False(t, shutdowner.shutdownCalled.Load(), "no restart")
+		assert.Contains(t, w.Body.String(), `"webhook_deliveries":7`)
+	})
+
+	t.Run("an invalid body or period is a 400", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		handler.SetDataRetention(&fakeRetentionDefaults{err: domain.NewValidationError("too short")})
+		assert.Equal(t, http.StatusBadRequest, post(handler, "root-user-id", `{}`).Code)
+		assert.Equal(t, http.StatusBadRequest, post(handler, "root-user-id", `not json`).Code)
+		assert.Equal(t, http.StatusBadRequest, post(handler, "root-user-id", `{"categories": {"message_history": 1}}`).Code)
+	})
+
+	t.Run("without the service, 503", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		assert.Equal(t, http.StatusServiceUnavailable, post(handler, "root-user-id", `{"categories": {}}`).Code)
+	})
+}

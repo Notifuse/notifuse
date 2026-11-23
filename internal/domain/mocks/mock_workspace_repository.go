@@ -418,6 +418,21 @@ func (mr *MockWorkspaceRepositoryMockRecorder) RemoveUserFromWorkspace(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserFromWorkspace", reflect.TypeOf((*MockWorkspaceRepository)(nil).RemoveUserFromWorkspace), arg0, arg1, arg2)
 }
 
+// SetDataRetentionSettings mocks base method.
+func (m *MockWorkspaceRepository) SetDataRetentionSettings(arg0 context.Context, arg1 string, arg2 int, arg3 *domain.DataRetentionSettings) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDataRetentionSettings", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetDataRetentionSettings indicates an expected call of SetDataRetentionSettings.
+func (mr *MockWorkspaceRepositoryMockRecorder) SetDataRetentionSettings(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDataRetentionSettings", reflect.TypeOf((*MockWorkspaceRepository)(nil).SetDataRetentionSettings), arg0, arg1, arg2, arg3)
+}
+
 // SetMCPSettings mocks base method.
 func (m *MockWorkspaceRepository) SetMCPSettings(arg0 context.Context, arg1 string, arg2 *domain.MCPSettings) error {
 	m.ctrl.T.Helper()
