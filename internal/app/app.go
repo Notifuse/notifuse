@@ -1811,6 +1811,17 @@ func (a *App) InitHandlers() error {
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
 	annotationHandler.RegisterRoutes(a.mux)
+	fileStorageHandler := httpHandler.NewFileStorageHandler(
+		service.NewFileStorageService(a.authService, a.workspaceRepo, service.NewS3ObjectStoreFactory(
+			// The server calls the endpoint an owner typed: SSRF-protected unless
+			// FILE_STORAGE_ALLOW_PRIVATE_HOSTS lets it reach a bucket on the local network.
+			newOutgoingWebhookClient(a.config.FileStorage.AllowPrivateHosts, a.config.Tracing.Enabled, 30*time.Second),
+		)),
+		getJWTSecret,
+		a.logger,
+		a.config.IsDemo(),
+	)
+	fileStorageHandler.RegisterRoutes(a.mux)
 	auditLogHandler := httpHandler.NewAuditLogHandler(a.auditLogService, getJWTSecret, a.logger)
 	auditLogHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)

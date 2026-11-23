@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -477,83 +476,49 @@ func TestTransactionalSendRevokedKeyIsAnAuthFailure(t *testing.T) {
 	assert.NotContains(t, responseBody, "user not found", "an internal error string reached the caller")
 }
 
-// TestRedactWorkspaceForCaller covers the one credential Workspace.Redact
-// deliberately keeps.
+// TestRedactWorkspace pins what every workspace-serialising endpoint sends: no
+// credential, the file storage secret included, whoever the caller is. The response
+// says the secret is set, with a hint, and keeps what the console shows.
 //
-// The console builds an S3 client in the browser from Settings.FileManager
-// .SecretKey and talks to the bucket directly, so blanking it for everyone breaks
-// the file manager rather than hardening anything. But an API key authenticates
-// the very same endpoints a session does, and no integration has any use for a
-// live bucket credential — while the platforms they run on log whole response
-// bodies. The caller decides, so the console keeps working and the key gets
-// nothing.
-//
-// Asserted against marshalled bytes, not fields: what leaks is what goes on the
-// wire.
-func TestRedactWorkspaceForCaller(t *testing.T) {
+// Asserted against marshalled bytes, not fields: what leaks is what goes on the wire.
+func TestRedactWorkspace(t *testing.T) {
 	const fileManagerSecret = "SENTINEL-live-bucket-secret"
 	const smtpPassword = "SENTINEL-smtp-password"
 
-	newWorkspace := func() *domain.Workspace {
-		ws := &domain.Workspace{
-			ID:   "ws1",
-			Name: "Acme",
-			Integrations: domain.Integrations{{
-				ID:   "int-1",
-				Type: domain.IntegrationTypeEmail,
-				EmailProvider: domain.EmailProvider{
-					Kind: domain.EmailProviderKindSMTP,
-					SMTP: &domain.SMTPSettings{Host: "smtp.example.com", Password: smtpPassword},
-				},
-			}},
-		}
-		ws.Settings.FileManager = domain.FileManagerSettings{
-			Bucket:    "assets",
-			AccessKey: "AKIAEXAMPLE",
-			SecretKey: fileManagerSecret,
-		}
-		return ws
+	ws := &domain.Workspace{
+		ID:   "ws1",
+		Name: "Acme",
+		Integrations: domain.Integrations{{
+			ID:   "int-1",
+			Type: domain.IntegrationTypeEmail,
+			EmailProvider: domain.EmailProvider{
+				Kind: domain.EmailProviderKindSMTP,
+				SMTP: &domain.SMTPSettings{Host: "smtp.example.com", Password: smtpPassword},
+			},
+		}},
+	}
+	ws.Settings.FileManager = domain.FileManagerSettings{
+		Bucket:             "assets",
+		AccessKey:          "AKIAEXAMPLE",
+		SecretKey:          fileManagerSecret,
+		EncryptedSecretKey: "SENTINEL-ciphertext",
 	}
 
-	serialise := func(t *testing.T, ctx context.Context) string {
-		t.Helper()
-		ws := newWorkspace()
-		redactWorkspaceForCaller(ctx, ws)
-		encoded, err := json.Marshal(ws)
-		require.NoError(t, err)
-		return string(encoded)
-	}
+	redactWorkspace(ws)
+	encoded, err := json.Marshal(ws)
+	require.NoError(t, err)
+	body := string(encoded)
 
-	consoleSession := context.WithValue(context.Background(), domain.UserTypeKey, string(domain.UserTypeUser))
-	apiKey := context.WithValue(context.Background(), domain.UserTypeKey, string(domain.UserTypeAPIKey))
+	assert.NotContains(t, body, fileManagerSecret)
+	assert.NotContains(t, body, "SENTINEL-ciphertext")
+	assert.NotContains(t, body, smtpPassword)
+	assert.Contains(t, body, `"has_secret_key":true`)
+	assert.Contains(t, body, `"secret_key_hint":"cret"`)
+	// What the settings form and the file URLs need survives.
+	assert.Contains(t, body, "assets")
+	assert.Contains(t, body, "AKIAEXAMPLE")
 
-	t.Run("a console session still gets the S3 secret", func(t *testing.T) {
-		body := serialise(t, consoleSession)
-		assert.Contains(t, body, fileManagerSecret, "blanking this breaks the browser file manager")
-		assert.Contains(t, body, "assets")
-	})
-
-	t.Run("an API key does not", func(t *testing.T) {
-		body := serialise(t, apiKey)
-		assert.NotContains(t, body, fileManagerSecret)
-		// Everything an integration reads from a workspace survives.
-		assert.Contains(t, body, "assets")
-		assert.Contains(t, body, "AKIAEXAMPLE")
-	})
-
-	t.Run("a context that proves nothing fails closed", func(t *testing.T) {
-		body := serialise(t, context.Background())
-		assert.NotContains(t, body, fileManagerSecret)
-	})
-
-	t.Run("integration credentials go for both", func(t *testing.T) {
-		assert.NotContains(t, serialise(t, consoleSession), smtpPassword)
-		assert.NotContains(t, serialise(t, apiKey), smtpPassword)
-	})
-
-	t.Run("a nil workspace is not a panic", func(t *testing.T) {
-		assert.NotPanics(t, func() { redactWorkspaceForCaller(apiKey, nil) })
-	})
+	assert.NotPanics(t, func() { redactWorkspace(nil) })
 }
 
 // TestLicenseRefusalIsPaymentRequired pins WHERE the 402 mapping lives, the way

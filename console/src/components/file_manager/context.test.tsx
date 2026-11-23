@@ -2,19 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { FileManagerProvider, useFileManager } from './context'
+import { fakeFiles } from './fakeFilesApi'
 
-const s3 = vi.hoisted(() => ({ send: vi.fn() }))
-vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>()
-  return {
-    ...actual,
-    S3Client: class {
-      send = s3.send
-    }
-  }
-})
+vi.mock('../../services/api/files', async () => ({
+  filesApi: (await import('./fakeFilesApi')).fakeFiles.api
+}))
 
 const settings = { endpoint: 'https://s3.example.com', access_key: 'key', bucket: 'media' }
 
@@ -47,21 +40,12 @@ const footer = () => document.querySelector('[data-picker-footer]') as HTMLEleme
 
 describe('FileManagerProvider picker', () => {
   beforeEach(() => {
-    s3.send.mockReset()
     localStorage.clear()
-    s3.send.mockImplementation(async (command: unknown) => {
-      if (command instanceof ListObjectsV2Command) {
-        return {
-          Contents: [
-            { Key: 'docs/', LastModified: new Date() },
-            { Key: 'small.png', LastModified: new Date(), Size: 1000 },
-            { Key: 'big.png', LastModified: new Date(), Size: 500_000 }
-          ],
-          IsTruncated: false
-        }
-      }
-      return {}
-    })
+    fakeFiles.reset([
+      { key: 'docs/', lastModified: new Date() },
+      { key: 'small.png', lastModified: new Date(), size: 1000 },
+      { key: 'big.png', lastModified: new Date(), size: 500_000 }
+    ])
   })
 
   it('is titled after the files it accepts', async () => {

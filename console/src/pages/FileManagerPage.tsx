@@ -1,4 +1,4 @@
-import { App } from 'antd'
+import { App, Result } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FileManager } from '../components/file_manager/fileManager'
 import type { FileManagerProps } from '../components/file_manager/interfaces'
@@ -9,6 +9,8 @@ import { Workspace, FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 import { workspaceFileManagerRoute } from '../router'
 import type { FileManagerSearch } from '../lib/searchParams'
+import { canEditStorageSettings, canReadFiles, canWriteFiles } from '../components/file_manager/fileRights'
+import { savedFileManagerSettings } from '../components/file_manager/settingsPayload'
 
 export function FileManagerPage() {
   const { t } = useLingui()
@@ -16,7 +18,7 @@ export function FileManagerPage() {
   const search = useSearch({ from: workspaceFileManagerRoute.id })
   const navigate = useNavigate()
   const { workspaces, refreshWorkspaces } = useAuth()
-  const { permissions } = useWorkspacePermissions(workspaceId)
+  const { permissions, role, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
   const { message } = App.useApp()
   const currentWorkspace: Workspace | null = workspaces.find((w) => w.id === workspaceId) ?? null
 
@@ -56,16 +58,7 @@ export function FileManagerPage() {
         ...currentWorkspace,
         settings: {
           ...currentWorkspace.settings,
-          file_manager: {
-            provider: newSettings.provider,
-            endpoint: newSettings.endpoint,
-            access_key: newSettings.access_key,
-            bucket: newSettings.bucket,
-            region: newSettings.region,
-            secret_key: newSettings.secret_key,
-            cdn_endpoint: newSettings.cdn_endpoint,
-            force_path_style: newSettings.force_path_style
-          }
+          file_manager: savedFileManagerSettings(newSettings)
         }
       })
 
@@ -100,12 +93,20 @@ export function FileManagerPage() {
       access_key: currentWorkspace?.settings?.file_manager?.access_key || '',
       bucket: currentWorkspace?.settings?.file_manager?.bucket || '',
       region: currentWorkspace?.settings?.file_manager?.region || '',
-      secret_key: currentWorkspace?.settings?.file_manager?.secret_key || '',
+      has_secret_key: currentWorkspace?.settings?.file_manager?.has_secret_key,
+      secret_key_hint: currentWorkspace?.settings?.file_manager?.secret_key_hint,
       cdn_endpoint: currentWorkspace?.settings?.file_manager?.cdn_endpoint || '',
       force_path_style: currentWorkspace?.settings?.file_manager?.force_path_style
     },
     onUpdateSettings: handleUpdateSettings,
-    readOnly: !permissions?.templates?.write
+    readOnly: !canWriteFiles(permissions, role),
+    canEditSettings: canEditStorageSettings(role)
+  }
+
+  if (permissionsLoading && role === undefined) return null
+  // The server refuses the listing too; this says so instead of showing an error.
+  if (!canReadFiles(permissions, role)) {
+    return <Result status="403" title={t`You don't have access to the files`} />
   }
 
   return <FileManager {...fileManagerProps} />

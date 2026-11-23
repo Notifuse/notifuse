@@ -1,12 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { i18n } from '@lingui/core'
-import {
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-  type S3Client,
-  type _Object
-} from '@aws-sdk/client-s3'
-import { deleteFolder, listAllObjects, toStorageItems, MAX_OBJECTS } from './storageObjects'
+import { describe, it, expect } from 'vitest'
+import { fromStoredObjects, toStorageItems, MAX_OBJECTS, type BucketObject } from './storageObjects'
 import type { FileManagerSettings } from './interfaces'
 
 const settings: FileManagerSettings = {
@@ -15,105 +8,35 @@ const settings: FileManagerSettings = {
   bucket: 'media'
 }
 
-const obj = (key: string, lastModified = '2026-11-01T00:00:00Z', size = 10): _Object => ({
+const obj = (key: string, lastModified = '2026-11-01T00:00:00Z', size = 10): BucketObject => ({
   Key: key,
   LastModified: new Date(lastModified),
   Size: size
 })
 
-// A client whose send answers each ListObjectsV2 call with the next page, and each
-// DeleteObject with the given handler.
-const fakeClient = (
-  pages: { Contents?: _Object[]; IsTruncated?: boolean; NextContinuationToken?: string }[],
-  onDelete: (key: string) => Promise<unknown> = async () => ({})
-) => {
-  let page = 0
-  const send = vi.fn(async (command: unknown) => {
-    if (command instanceof ListObjectsV2Command) return pages[page++] ?? { Contents: [] }
-    if (command instanceof DeleteObjectCommand) return onDelete(command.input.Key as string)
-    throw new Error('unexpected command')
-  })
-  return { client: { send } as unknown as S3Client, send }
-}
-
-const listInputs = (send: ReturnType<typeof vi.fn>) =>
-  send.mock.calls
-    .map(([command]) => command)
-    .filter((command): command is ListObjectsV2Command => command instanceof ListObjectsV2Command)
-    .map((command) => command.input)
-
-describe('listAllObjects', () => {
-  it('reads every page, passing each continuation token to the next call', async () => {
-    const { client, send } = fakeClient([
-      { Contents: [obj('a.png')], IsTruncated: true, NextContinuationToken: 't1' },
-      { Contents: [obj('b.png')], IsTruncated: true, NextContinuationToken: 't2' },
-      { Contents: [obj('c.png')], IsTruncated: false }
-    ])
-
-    const result = await listAllObjects(client, 'media')
-
-    expect(result.objects.map((o) => o.Key)).toEqual(['a.png', 'b.png', 'c.png'])
-    expect(result.capped).toBe(false)
-    expect(listInputs(send)).toEqual([
-      { Bucket: 'media', Prefix: undefined, ContinuationToken: undefined },
-      { Bucket: 'media', Prefix: undefined, ContinuationToken: 't1' },
-      { Bucket: 'media', Prefix: undefined, ContinuationToken: 't2' }
-    ])
-  })
-
-  it('stops at the cap and says so', async () => {
-    const { client, send } = fakeClient([
-      { Contents: [obj('a.png'), obj('b.png')], IsTruncated: true, NextContinuationToken: 't1' },
-      { Contents: [obj('c.png'), obj('d.png')], IsTruncated: false }
-    ])
-
-    const result = await listAllObjects(client, 'media', { maxObjects: 2 })
-
-    expect(result.objects.map((o) => o.Key)).toEqual(['a.png', 'b.png'])
-    expect(result.capped).toBe(true)
-    expect(send).toHaveBeenCalledTimes(1)
-  })
-
-  it('cuts a page that goes past the cap', async () => {
-    const { client } = fakeClient([
-      { Contents: [obj('a.png'), obj('b.png'), obj('c.png')], IsTruncated: false }
-    ])
-
-    const result = await listAllObjects(client, 'media', { maxObjects: 2 })
-
-    expect(result.objects.map((o) => o.Key)).toEqual(['a.png', 'b.png'])
-    expect(result.capped).toBe(true)
-  })
-
-  it('is not capped when the bucket holds exactly the cap', async () => {
-    const { client } = fakeClient([{ Contents: [obj('a.png'), obj('b.png')], IsTruncated: false }])
-
-    const result = await listAllObjects(client, 'media', { maxObjects: 2 })
-
-    expect(result.capped).toBe(false)
-  })
-
-  it('stops when a truncated page carries no continuation token', async () => {
-    const { client, send } = fakeClient([{ Contents: [obj('a.png')], IsTruncated: true }])
-
-    const result = await listAllObjects(client, 'media')
-
-    expect(result.objects).toHaveLength(1)
-    expect(result.cutShort).toBe(true)
-    expect(result.capped).toBe(false)
-    expect(send).toHaveBeenCalledTimes(1)
-  })
-
-  it('says a whole listing was neither capped nor cut short', async () => {
-    const { client } = fakeClient([{ Contents: [obj('a.png')], IsTruncated: false }])
-
-    const result = await listAllObjects(client, 'media')
-
-    expect(result).toMatchObject({ capped: false, cutShort: false })
-  })
-
-  it('caps the listing of the file manager at ten thousand files', () => {
+describe('MAX_OBJECTS', () => {
+  it('mirrors the server, which lists ten thousand objects at most', () => {
     expect(MAX_OBJECTS).toBe(10_000)
+  })
+})
+
+describe('fromStoredObjects', () => {
+  it('turns the server listing into objects with S3 field names and dates', () => {
+    expect(
+      fromStoredObjects([{ key: 'docs/a.png', size: 12, last_modified: '2026-11-01T10:00:00Z' }])
+    ).toEqual([{ Key: 'docs/a.png', Size: 12, LastModified: new Date('2026-11-01T10:00:00Z') }])
+  })
+
+  it('gives toStorageItems the keys, sizes and dates it builds items from', () => {
+    const [file] = toStorageItems(
+      fromStoredObjects([{ key: 'a.png', size: 2048, last_modified: '2026-11-01T00:00:00Z' }]),
+      settings
+    )
+    expect(file).toMatchObject({
+      key: 'a.png',
+      last_modified: new Date('2026-11-01T00:00:00Z'),
+      file_info: { size: 2048, url: 'https://s3.example.com/media/a.png' }
+    })
   })
 })
 
@@ -223,116 +146,5 @@ describe('toStorageItems', () => {
       ['a', ''],
       ['b', '']
     ])
-  })
-})
-
-describe('deleteFolder', () => {
-  it('deletes every object under the prefix, its marker included', async () => {
-    const { client, send } = fakeClient([
-      { Contents: [obj('a/'), obj('a/b.png')], IsTruncated: true, NextContinuationToken: 't1' },
-      { Contents: [obj('a/c/d.png')], IsTruncated: false }
-    ])
-
-    const result = await deleteFolder(client, 'media', 'a/')
-
-    expect(result).toEqual({ deleted: 3, failed: 0, deletedFiles: 2, failedFiles: 0 })
-    expect(listInputs(send).every((input) => input.Prefix === 'a/')).toBe(true)
-    const deletedKeys = send.mock.calls
-      .map(([command]) => command)
-      .filter((command): command is DeleteObjectCommand => command instanceof DeleteObjectCommand)
-      .map((command) => command.input)
-    expect(deletedKeys).toEqual([
-      { Bucket: 'media', Key: 'a/' },
-      { Bucket: 'media', Key: 'a/b.png' },
-      { Bucket: 'media', Key: 'a/c/d.png' }
-    ])
-  })
-
-  it('deletes one object at a time', async () => {
-    let running = 0
-    let peak = 0
-    const { client } = fakeClient(
-      [{ Contents: [obj('a/1'), obj('a/2'), obj('a/3')], IsTruncated: false }],
-      async () => {
-        running++
-        peak = Math.max(peak, running)
-        await new Promise((resolve) => setTimeout(resolve, 1))
-        running--
-        return {}
-      }
-    )
-
-    await deleteFolder(client, 'media', 'a/')
-
-    expect(peak).toBe(1)
-  })
-
-  it('counts the objects it could not delete and goes on', async () => {
-    const { client } = fakeClient(
-      [{ Contents: [obj('a/1'), obj('a/2'), obj('a/3')], IsTruncated: false }],
-      async (key) => {
-        if (key === 'a/2') throw new Error('denied')
-        return {}
-      }
-    )
-
-    const result = await deleteFolder(client, 'media', 'a/')
-
-    expect(result).toEqual({ deleted: 2, failed: 1, deletedFiles: 2, failedFiles: 1 })
-  })
-
-  it('deletes past the cap of the listing', async () => {
-    const many = Array.from({ length: MAX_OBJECTS + 1 }, (_, i) => obj(`a/${i}`))
-    const { client } = fakeClient([{ Contents: many, IsTruncated: false }])
-
-    const result = await deleteFolder(client, 'media', 'a/')
-
-    expect(result).toMatchObject({ deleted: MAX_OBJECTS + 1, failed: 0 })
-  })
-
-  it('deletes nothing when the storage cuts the listing short', async () => {
-    const { client, send } = fakeClient([{ Contents: [obj('a/1'), obj('a/2')], IsTruncated: true }])
-
-    await expect(deleteFolder(client, 'media', 'a/')).rejects.toThrow()
-    expect(send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(false)
-  })
-
-  it('deletes only objects under the folder, even if the storage ignores the prefix', async () => {
-    const { client, send } = fakeClient([
-      { Contents: [obj('a/1'), obj('b/2'), obj('ab/3')], IsTruncated: false }
-    ])
-
-    const result = await deleteFolder(client, 'media', 'a/')
-
-    expect(result).toEqual({ deleted: 1, failed: 0, deletedFiles: 1, failedFiles: 0 })
-    const deletedKeys = send.mock.calls
-      .map(([command]) => command)
-      .filter((command): command is DeleteObjectCommand => command instanceof DeleteObjectCommand)
-      .map((command) => command.input.Key)
-    expect(deletedKeys).toEqual(['a/1'])
-  })
-
-  it('says why it refuses in the language of the console', async () => {
-    const { client } = fakeClient([{ Contents: [obj('a/1')], IsTruncated: true }])
-    const locale = i18n.locale
-    // Keyed as the test setup's macro stand-in names them (a placeholder by its position)
-    i18n.load('fr', {
-      'Not a folder prefix: "{0}"': 'Pas un préfixe de dossier : « {0} »',
-      'The storage did not return the whole content of "{0}"': 'Contenu incomplet de « {0} »'
-    })
-    i18n.activate('fr')
-    try {
-      await expect(deleteFolder(client, 'media', 'a')).rejects.toThrow('Pas un préfixe de dossier : « a »')
-      await expect(deleteFolder(client, 'media', 'a/')).rejects.toThrow('Contenu incomplet de « a/ »')
-    } finally {
-      i18n.activate(locale)
-    }
-  })
-
-  it.each(['', 'a', 'a/b'])('refuses the prefix %j, which is not a folder', async (prefix) => {
-    const { client, send } = fakeClient([])
-
-    await expect(deleteFolder(client, 'media', prefix)).rejects.toThrow()
-    expect(send).not.toHaveBeenCalled()
   })
 })

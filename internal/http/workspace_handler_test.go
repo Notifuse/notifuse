@@ -4085,21 +4085,15 @@ func TestWorkspaceHandler_List_RevokedKeyIsAnAuthFailure(t *testing.T) {
 	assert.Equal(t, "API key has been revoked", response["error"])
 }
 
-// TestWorkspaceHandler_FileManagerSecretDependsOnTheCaller covers a credential
-// leak that lives in the transport rather than in any one caller.
-//
-// Workspace.Redact deliberately keeps the S3 secret: the console builds an S3
-// client in the browser from that exact field and talks to the bucket directly,
-// so blanking it for everyone breaks the file manager rather than hardening
-// anything. An API key, though, authenticates every endpoint below exactly as a
-// session does — workspaces.list needs no permission at all, which is how an
-// integration discovers what it is attached to — and no integration has any use
-// for a live bucket credential, in a body those platforms routinely log whole.
+// TestWorkspaceHandler_NeverServesTheFileStorageSecret covers every endpoint that
+// answers with a workspace, for both kinds of caller: an API key and a console
+// session. The backend lists, deletes and signs uploads itself (files.*), so no
+// response carries the file storage secret or its ciphertext.
 //
 // Driven through the mux with a real signed token so the caller's identity comes
 // from the JWT claim the way it does in production, and asserted against the raw
-// bytes rather than a decoded struct, because the leak is what goes on the wire.
-func TestWorkspaceHandler_FileManagerSecretDependsOnTheCaller(t *testing.T) {
+// bytes rather than a decoded struct, because what matters is what goes on the wire.
+func TestWorkspaceHandler_NeverServesTheFileStorageSecret(t *testing.T) {
 	const fileManagerSecret = "SENTINEL-live-bucket-secret"
 	const fileManagerCiphertext = "SENTINEL-bucket-ciphertext"
 
@@ -4190,7 +4184,7 @@ func TestWorkspaceHandler_FileManagerSecretDependsOnTheCaller(t *testing.T) {
 			assert.Contains(t, body, "assets")
 		})
 
-		t.Run(endpoint.name+" still serves it to a console session", func(t *testing.T) {
+		t.Run(endpoint.name+" withholds it from a console session", func(t *testing.T) {
 			_, workspaceService, mux, secretKey, _ := setupTest(t)
 			endpoint.expect(workspaceService)
 
@@ -4200,8 +4194,10 @@ func TestWorkspaceHandler_FileManagerSecretDependsOnTheCaller(t *testing.T) {
 			mux.ServeHTTP(w, req)
 
 			require.Equal(t, endpoint.expectedStatus, w.Code)
-			assert.Contains(t, w.Body.String(), fileManagerSecret,
-				"withholding this from the console breaks the browser file manager")
+			body := w.Body.String()
+			assert.NotContains(t, body, fileManagerSecret)
+			assert.NotContains(t, body, fileManagerCiphertext)
+			assert.Contains(t, body, `"has_secret_key":true`)
 		})
 	}
 }

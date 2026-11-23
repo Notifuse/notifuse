@@ -506,3 +506,23 @@ func TestLoadWithOptions_LicenseKey(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "", cfg.LicenseKey, "unset means no key, not a stale one")
 }
+
+func TestLoad_FileStorageSSRFProtectionDefault(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+
+	t.Run("defaults to off (SSRF protection enabled)", func(t *testing.T) {
+		_ = os.Unsetenv("FILE_STORAGE_ALLOW_PRIVATE_HOSTS")
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.False(t, cfg.FileStorage.AllowPrivateHosts, "file storage SSRF protection must be ON by default")
+	})
+
+	t.Run("opt-in via env var", func(t *testing.T) {
+		_ = os.Setenv("FILE_STORAGE_ALLOW_PRIVATE_HOSTS", "true")
+		defer func() { _ = os.Unsetenv("FILE_STORAGE_ALLOW_PRIVATE_HOSTS") }()
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.True(t, cfg.FileStorage.AllowPrivateHosts)
+	})
+}

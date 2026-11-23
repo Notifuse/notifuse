@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [44.1] - unreleased
 
+- **Change**: The file manager lists, uploads and deletes files through the API, and the browser sends each upload straight to the bucket through a short-lived signed URL, so the storage credentials stay on the server. Members see the files with any access to Templates or the Blog, and need write access to one of them to upload or delete; only owners change the storage settings. The bucket's endpoint must now be reachable from the Notifuse server as well as from browsers, its CORS rules need only `GET` and `PUT`, and a selfhost_s3 server must run v1.4 or later. The server refuses an endpoint on a private address unless `FILE_STORAGE_ALLOW_PRIVATE_HOSTS=true`, which a bucket on your own network (MinIO, selfhost_s3) needs.
+
 - **Feature**: The web analytics dashboard opens with an Automated traffic card. It counts the sessions that load a page and never send a second signal, which is how crawlers, AI agents and headless browsers behave. The card shows their share of all sessions, its change since the comparison period, and the landing pages, browsers and countries they come from. The new Traffic Type dimension (`human` or `automated`) filters any report, and `analytics.query` gains the `automated_sessions` and `automated_share` measures. The demo workspace now has automated traffic too, with one overnight crawl.
 
 - **Improvement**: TimeScore and Bounce Rate now leave automated traffic out, while Sessions and pageviews still count it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
