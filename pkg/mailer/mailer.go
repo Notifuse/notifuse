@@ -20,6 +20,9 @@ type Mailer interface {
 	SendMagicCode(email, code, language string) error
 	// SendCircuitBreakerAlert sends a notification when a broadcast is paused due to circuit breaker
 	SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason, language string) error
+	// SendSecurityNotice tells a person that something changed about the security of their
+	// account (see SecurityNoticeKind)
+	SendSecurityNotice(email string, notice SecurityNotice, language string) error
 }
 
 // Config holds the configuration for the mailer

@@ -7,6 +7,7 @@ package pkgmocks
 import (
 	reflect "reflect"
 
+	mailer "github.com/Notifuse/notifuse/pkg/mailer"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -59,6 +60,20 @@ func (m *MockMailer) SendMagicCode(arg0, arg1, arg2 string) error {
 func (mr *MockMailerMockRecorder) SendMagicCode(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMagicCode", reflect.TypeOf((*MockMailer)(nil).SendMagicCode), arg0, arg1, arg2)
+}
+
+// SendSecurityNotice mocks base method.
+func (m *MockMailer) SendSecurityNotice(arg0 string, arg1 mailer.SecurityNotice, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendSecurityNotice", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendSecurityNotice indicates an expected call of SendSecurityNotice.
+func (mr *MockMailerMockRecorder) SendSecurityNotice(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendSecurityNotice", reflect.TypeOf((*MockMailer)(nil).SendSecurityNotice), arg0, arg1, arg2)
 }
 
 // SendWorkspaceInvitation mocks base method.
