@@ -57,12 +57,28 @@ func TestToolsList_FilteredByPermissionsAndSwitch(t *testing.T) {
 		assert.Equal(t, []string{"get_workspace_overview", "list_analytics_schemas", "list_lists", "list_workspaces", "query_analytics"}, g.listToolNames())
 	})
 
-	t.Run("a key without contacts:read does not see the contact tools", func(t *testing.T) {
+	t.Run("a key without contacts:read does not see the contact read tools", func(t *testing.T) {
 		f := newFixture(t)
 		f.reachable(domain.UserPermissions{domain.PermissionResourceContacts: {Write: true}})
 		// The analytics tools have no static pair: their permission is the
-		// schema's, checked at call time.
-		assert.Equal(t, []string{"list_analytics_schemas", "list_workspaces", "query_analytics"}, f.listToolNames())
+		// schema's, checked at call time. The contact writes need contacts:write
+		// alone.
+		assert.Equal(t, []string{
+			"delete_contact", "list_analytics_schemas", "list_workspaces", "query_analytics", "track_custom_event", "upsert_contact",
+		}, f.listToolNames())
+	})
+
+	t.Run("the subscription tools need both write pairs", func(t *testing.T) {
+		f := newFixture(t)
+		f.reachable(domain.UserPermissions{domain.PermissionResourceLists: {Write: true}})
+		assert.Equal(t, []string{"create_list", "delete_list", "list_analytics_schemas", "list_workspaces", "query_analytics"}, f.listToolNames())
+
+		g := newFixture(t)
+		g.reachable(domain.UserPermissions{domain.PermissionResourceLists: {Read: true, Write: true}, domain.PermissionResourceContacts: {Write: true}})
+		assert.Equal(t, []string{
+			"create_list", "delete_contact", "delete_list", "list_analytics_schemas", "list_lists", "list_workspaces", "query_analytics",
+			"remove_contact_from_list", "set_contact_list_status", "subscribe_contact_to_list", "track_custom_event", "update_list", "upsert_contact",
+		}, g.listToolNames())
 	})
 
 	t.Run("a switched-off workspace hides every workspace tool", func(t *testing.T) {

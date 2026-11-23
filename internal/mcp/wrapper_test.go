@@ -276,6 +276,10 @@ func TestToToolError(t *testing.T) {
 		{"conflict", domain.NewAlreadyExistsError("list", "news", false), ToolError{Code: "conflict", Message: "list news already exists"}},
 		{"validation", fmt.Errorf("x: %w", domain.NewValidationError("bad name")), ToolError{Code: "validation", Message: "bad name"}},
 		{"segment value", fmt.Errorf("x: %w", &domain.SegmentValueError{Cause: "invalid input syntax for type numeric"}), ToolError{Code: "validation", Message: "the segment query could not convert a value: invalid input syntax for type numeric"}},
+		{"list id taken", fmt.Errorf("x: %w", &domain.ErrListExists{Message: "list id already exists"}), ToolError{Code: "conflict", Message: "list id already exists"}},
+		{"list in use", fmt.Errorf("x: %w", domain.NewErrListInUse("news", "Newsletter", []domain.AutomationRef{{ID: "a1", Name: "Welcome"}}).WithoutAutomations()), ToolError{Code: "conflict", Message: "cannot delete list \"Newsletter\" while 1 live automation uses it: ask someone with access to automations to pause it"}},
+		{"opted out", fmt.Errorf("x: %w", &domain.ErrContactListOptedOut{Status: domain.ContactListStatusUnsubscribed}), ToolError{Code: "invalid_state", Message: "the contact unsubscribed from this list: set resubscribe to true to subscribe them again", Status: "unsubscribed"}},
+		{"render", fmt.Errorf("failed to send notification through any channel: %w", &domain.TemplateRenderError{Message: "liquid: unknown filter money"}), ToolError{Code: "validation", Message: "liquid: unknown filter money"}},
 		{"internal", errors.New("pq: relation \"secret_table\" does not exist"), ToolError{Code: "internal", Message: "internal error"}},
 	}
 	for _, tc := range cases {

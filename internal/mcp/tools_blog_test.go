@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -509,4 +512,526 @@ func TestBlogTools_CapTheFreeText(t *testing.T) {
 		assert.Equal(t, capped, out.Categories[0].Description)
 		assert.Equal(t, []string{"name", "description"}, out.Categories[0].TruncatedFields)
 	})
+}
+
+func blogWritePermissions(templates domain.ResourcePermissions) domain.UserPermissions {
+	return domain.UserPermissions{
+		domain.PermissionResourceBlog:      {Read: true, Write: true},
+		domain.PermissionResourceTemplates: templates,
+	}
+}
+
+func blogWriteFixture(t *testing.T, permissions domain.UserPermissions) (*fixture, *auditLog) {
+	f := newFixture(t)
+	f.reachable(permissions)
+	return f, f.captureAudit()
+}
+
+const helloBody = `{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Hello"}]},` +
+	`{"type":"paragraph","content":[{"type":"text","text":"Read the "},{"type":"text","text":"docs","marks":[{"type":"link","attrs":{"href":"https://docs.example.com"}}]}]}]}`
+
+func helloBodyMap(t *testing.T) map[string]any {
+	return decodeDoc(t, helloBody)
+}
+
+// expectCategory answers the category check with a live category.
+func (f *fixture) expectCategory(id string) {
+	f.categories.EXPECT().GetCategoriesByIDs(gomock.Any(), []string{id}).
+		DoAndReturn(func(ctx context.Context, _ []string) ([]*domain.BlogCategory, error) {
+			expectBlogWorkspace(f.t, ctx)
+			return []*domain.BlogCategory{{ID: id, Slug: "product"}}, nil
+		})
+}
+
+func TestBlogWriteTools_Definitions(t *testing.T) {
+	blogWrite := Pair{Resource: "blog", Verb: "write"}
+	id := []string{"workspace_id", "id"}
+	assertWriteTool(t, catalogueTool(t, "create_blog_post"), "create_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: false},
+		[]Pair{blogWrite, {Resource: "templates", Verb: "write"}}, "blogPosts.create", []string{"workspace_id", "category_id", "slug", "title", "body"})
+	update := catalogueTool(t, "update_blog_post")
+	assertWriteToolDefinition(t, update, "update_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+		[]Pair{blogWrite, {Resource: "blog", Verb: "read"}}, "blogPosts.update", id)
+	assert.Equal(t, []Pair{{Resource: "templates", Verb: "write"}, {Resource: "templates", Verb: "read"}}, update.ArgumentPairs(map[string]any{"body": map[string]any{}}))
+	assert.Empty(t, update.ArgumentPairs(map[string]any{"title": "x"}))
+	// Publishing sends no email: a write that does not count in mcp_send.
+	assertWriteTool(t, catalogueTool(t, "publish_blog_post"), "publish_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+		[]Pair{blogWrite}, "blogPosts.publish", id)
+	assertWriteTool(t, catalogueTool(t, "unpublish_blog_post"), "unpublish_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+		[]Pair{blogWrite}, "blogPosts.unpublish", id)
+	assertWriteTool(t, catalogueTool(t, "delete_blog_post"), "delete_blog_post", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+		[]Pair{blogWrite}, "blogPosts.delete", id)
+	for _, name := range []string{"create_blog_post", "update_blog_post", "publish_blog_post", "unpublish_blog_post", "delete_blog_post"} {
+		assert.False(t, catalogueTool(t, name).countsAsSend(), name)
+	}
+	body := catalogueTool(t, "create_blog_post").InputSchema["properties"].(map[string]any)["body"].(map[string]any)
+	assert.Equal(t, "object", body["type"])
+}
+
+func TestCreateBlogPost_WritesTheBodyTemplateThenThePost(t *testing.T) {
+	f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Write: true}))
+	f.expectCategory(testCategoryID)
+	var templateID string
+	f.templates.EXPECT().CreateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+		templateID = template.ID
+		assert.Regexp(t, regexp.MustCompile(`^[0-9a-f]{32}$`), template.ID)
+		assert.Equal(t, "Blog: Spring release", template.Name)
+		assert.Equal(t, int64(1), template.Version)
+		assert.Equal(t, domain.ChannelWeb, template.Channel)
+		assert.Equal(t, "blog", template.Category)
+		assert.Nil(t, template.Email)
+		require.NotNil(t, template.Web)
+		assert.Equal(t, domain.MapOfAny(helloBodyMap(t)), template.Web.Content)
+		assert.Equal(t, `<h2>Hello</h2><p>Read the <a href="https://docs.example.com">docs</a></p>`, template.Web.HTML)
+		assert.Equal(t, "Hello Read the  docs", template.Web.PlainText)
+		return nil
+	})
+	f.blog.EXPECT().CreatePost(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, req *domain.CreateBlogPostRequest) (*domain.BlogPost, error) {
+		expectBlogWorkspace(t, ctx)
+		assert.Equal(t, &domain.CreateBlogPostRequest{
+			CategoryID: testCategoryID, Slug: "spring-release", Title: "Spring release",
+			TemplateID: templateID, TemplateVersion: 0,
+			Excerpt:            "Three changes",
+			Authors:            []domain.BlogAuthor{{Name: "Jane Doe", AvatarURL: "https://images.example.com/jane.jpg"}},
+			ReadingTimeMinutes: 1,
+			SEO:                &domain.SEOSettings{MetaTitle: "Spring", Keywords: []string{"editor"}},
+		}, req)
+		return &domain.BlogPost{
+			ID: testPostID, CategoryID: req.CategoryID, Slug: req.Slug, CreatedAt: blogEpoch, UpdatedAt: blogEpoch,
+			Settings: domain.BlogPostSettings{
+				Title: req.Title, Excerpt: req.Excerpt, Authors: req.Authors, ReadingTimeMinutes: req.ReadingTimeMinutes, SEO: req.SEO,
+				Template: domain.BlogPostTemplateReference{TemplateID: req.TemplateID, TemplateVersion: req.TemplateVersion},
+			},
+		}, nil
+	})
+
+	result := f.callTool("create_blog_post", map[string]any{
+		"workspace_id": testWorkspaceID, "category_id": strings.ToUpper(testCategoryID), "slug": "spring-release", "title": "Spring release",
+		"body": helloBodyMap(t), "excerpt": "Three changes",
+		"authors": []map[string]any{{"name": "Jane Doe", "avatar_url": "https://images.example.com/jane.jpg"}, {"name": "  "}},
+		"seo":     map[string]any{"meta_title": "Spring", "keywords": []string{"editor"}},
+	})
+	var out struct {
+		Post map[string]any `json:"post"`
+	}
+	result.decode(t, &out)
+	assert.Equal(t, testPostID, out.Post["id"])
+	assert.Equal(t, "draft", out.Post["status"])
+	assert.Equal(t, float64(1), out.Post["body_version"])
+	assert.Equal(t, true, out.Post["follows_latest_body"])
+	assert.Equal(t, helloBodyMap(t), out.Post["body"])
+	assert.NotContains(t, out.Post, "body_unavailable")
+
+	row := audit.last(t)
+	assert.Equal(t, "blogPosts.create", row.Action)
+	assert.Equal(t, domain.AuditTargetBlogPost, row.TargetType)
+	assert.Equal(t, testPostID, row.TargetID)
+	assert.Equal(t, "Spring release", row.TargetName)
+	assert.Equal(t, templateID, row.Metadata["template_id"])
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+// A replay meets its own slug: the post is refused with conflict, and the
+// body template made for it is deleted again.
+func TestCreateBlogPost_ATakenSlugAnswersConflictAndLeavesNoTemplate(t *testing.T) {
+	f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Write: true}))
+	f.expectCategory(testCategoryID)
+	var templateID string
+	f.templates.EXPECT().CreateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+		templateID = template.ID
+		return nil
+	})
+	f.blog.EXPECT().CreatePost(gomock.Any(), gomock.Any()).Return(nil, domain.NewAlreadyExistsError("blog_post", "spring-release", true))
+	f.templates.EXPECT().DeleteTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, id string) error {
+		assert.Equal(t, templateID, id)
+		return nil
+	})
+
+	toolErr := f.callTool("create_blog_post", map[string]any{
+		"workspace_id": testWorkspaceID, "category_id": testCategoryID, "slug": "spring-release", "title": "Spring", "body": helloBodyMap(t),
+	}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodeConflict, Message: "blog_post spring-release already exists and was deleted: its identifier cannot be reused"}, toolErr)
+	assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+}
+
+func TestCreateBlogPost_RefusesBeforeAnyWrite(t *testing.T) {
+	valid := func() map[string]any {
+		return map[string]any{
+			"workspace_id": testWorkspaceID, "category_id": testCategoryID, "slug": "spring", "title": "Spring", "body": decodeDoc(t, helloBody),
+		}
+	}
+	with := func(key string, value any) map[string]any {
+		args := valid()
+		args[key] = value
+		return args
+	}
+	for name, tc := range map[string]struct {
+		args    map[string]any
+		message string
+	}{
+		"a javascript link": {with("body", decodeDoc(t, paragraphWith(`{"type":"text","text":"x","marks":[{"type":"link","attrs":{"href":"javascript:alert(1)"}}]}`))),
+			"body.content[0].content[0].marks[0].attrs.href: a link needs an http, https or mailto URL"},
+		"a data image":                  {with("body", decodeDoc(t, `{"type":"doc","content":[{"type":"image","attrs":{"src":"data:image/png;base64,AAAA"}}]}`)), "body.content[0].attrs.src: an image needs an http or https URL"},
+		"a slug with capitals":          {with("slug", "Spring Release"), "slug must contain only lowercase letters, numbers, and hyphens"},
+		"a category that is not a UUID": {with("category_id", "product"), "category_id must be a UUID, from list_blog_categories"},
+		"a javascript cover":            {with("featured_image_url", "javascript:alert(1)"), "featured_image_url must be an http or https URL"},
+		"a javascript avatar":           {with("authors", []map[string]any{{"name": "Jane", "avatar_url": "javascript:x"}}), "authors[0].avatar_url must be an http or https URL"},
+		"a reading time of zero":        {with("reading_time_minutes", 0), "reading_time_minutes must be from 1 to 600"},
+		"arguments over 1 MiB":          {with("excerpt", strings.Repeat("x", 1<<20)), "arguments are limited to 1048576 bytes"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Write: true}))
+			assert.Equal(t, ToolError{Code: CodeValidation, Message: tc.message}, f.callTool("create_blog_post", tc.args).errorOf(t))
+			assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+		})
+	}
+
+	t.Run("a category that does not exist", func(t *testing.T) {
+		f, _ := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Write: true}))
+		deleted := time.Now()
+		f.categories.EXPECT().GetCategoriesByIDs(gomock.Any(), []string{testCategoryID}).Return([]*domain.BlogCategory{{ID: testCategoryID, DeletedAt: &deleted}}, nil)
+		assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog category not found: list_blog_categories gives the IDs"}, f.callTool("create_blog_post", valid()).errorOf(t))
+	})
+}
+
+func TestCreateBlogPost_NeedsTemplatesWrite(t *testing.T) {
+	f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true}))
+	assert.NotContains(t, f.listToolNames(), "create_blog_post")
+	toolErr := f.callTool("create_blog_post", map[string]any{
+		"workspace_id": testWorkspaceID, "category_id": testCategoryID, "slug": "spring", "title": "Spring", "body": helloBodyMap(t),
+	}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodePermissionDenied, Message: "this API key lacks the templates write permission", Resource: "templates", Permission: "write"}, toolErr)
+	assert.Equal(t, http.StatusForbidden, audit.last(t).StatusCode)
+}
+
+// storedUpdateRequest is the update request of scheduledPost with nothing
+// changed.
+func storedUpdateRequest() *domain.UpdateBlogPostRequest {
+	post := scheduledPost()
+	return &domain.UpdateBlogPostRequest{
+		ID: post.ID, CategoryID: post.CategoryID, Slug: post.Slug, Title: post.Settings.Title,
+		TemplateID: post.Settings.Template.TemplateID, TemplateVersion: post.Settings.Template.TemplateVersion,
+		Excerpt: post.Settings.Excerpt, FeaturedImageURL: post.Settings.FeaturedImageURL, Authors: post.Settings.Authors,
+		ReadingTimeMinutes: post.Settings.ReadingTimeMinutes, SEO: post.Settings.SEO,
+	}
+}
+
+// updatedPost is what the service answers for a request.
+func updatedPost(req *domain.UpdateBlogPostRequest) *domain.BlogPost {
+	post := scheduledPost()
+	post.CategoryID, post.Slug = req.CategoryID, req.Slug
+	post.Settings = domain.BlogPostSettings{
+		Title: req.Title, Excerpt: req.Excerpt, FeaturedImageURL: req.FeaturedImageURL, Authors: req.Authors,
+		ReadingTimeMinutes: req.ReadingTimeMinutes, SEO: req.SEO,
+		Template: domain.BlogPostTemplateReference{TemplateID: req.TemplateID, TemplateVersion: req.TemplateVersion},
+	}
+	return post
+}
+
+// blogPosts.update replaces every field: the fields not given come from the
+// stored post.
+func TestUpdateBlogPost_KeepsWhatItIsNotGiven(t *testing.T) {
+	f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+	f.blog.EXPECT().GetPost(gomock.Any(), testPostID).DoAndReturn(func(ctx context.Context, _ string) (*domain.BlogPost, error) {
+		expectBlogWorkspace(t, ctx)
+		return scheduledPost(), nil
+	})
+	want := storedUpdateRequest()
+	want.Title = "What's new"
+	want.Excerpt = ""
+	f.blog.EXPECT().UpdatePost(gomock.Any(), want).DoAndReturn(func(_ context.Context, req *domain.UpdateBlogPostRequest) (*domain.BlogPost, error) {
+		return updatedPost(req), nil
+	})
+
+	result := f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "title": "What's new", "excerpt": ""})
+	var out struct {
+		Post map[string]any `json:"post"`
+	}
+	result.decode(t, &out)
+	assert.Equal(t, "What's new", out.Post["title"])
+	assert.Equal(t, "https://images.example.com/spring.jpg", out.Post["featured_image_url"])
+	assert.Nil(t, out.Post["body"])
+	assert.Equal(t, "permission_denied", out.Post["body_unavailable"], "a key without templates:read reads no body")
+	row := audit.last(t)
+	assert.Equal(t, "blogPosts.update", row.Action)
+	assert.Equal(t, testPostID, row.TargetID)
+	assert.Equal(t, "What's new", row.TargetName)
+	assert.NotContains(t, row.Metadata, "template_id")
+}
+
+func TestUpdateBlogPost_ABodySavesANewVersionAsTheConsoleDoes(t *testing.T) {
+	for name, tc := range map[string]struct {
+		stored, sent int
+	}{
+		"a post that follows the latest version keeps following it": {stored: 0, sent: 0},
+		"a pinned post moves to the version just saved":             {stored: 5, sent: 6},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true, Write: true}))
+			post := scheduledPost()
+			post.Settings.Template.TemplateVersion = tc.stored
+			f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(post, nil)
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "tpl-body", int64(0)).Return(bodyTemplate(), nil)
+			f.templates.EXPECT().UpdateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+				assert.Equal(t, "tpl-body", template.ID)
+				assert.Equal(t, "Blog: What's new this spring", template.Name)
+				assert.Equal(t, int64(5), template.Version, "base_version rides on Version")
+				assert.Equal(t, domain.ChannelWeb, template.Channel)
+				assert.Equal(t, "blog", template.Category)
+				assert.Equal(t, domain.MapOfAny{"unused": "test-data"}, template.TestData, "the stored test data is kept")
+				assert.Equal(t, domain.MapOfAny(helloBodyMap(t)), template.Web.Content)
+				assert.Equal(t, `<h2>Hello</h2><p>Read the <a href="https://docs.example.com">docs</a></p>`, template.Web.HTML)
+				template.Version = 6
+				return nil
+			})
+			want := storedUpdateRequest()
+			want.TemplateVersion = tc.sent
+			f.blog.EXPECT().UpdatePost(gomock.Any(), want).DoAndReturn(func(_ context.Context, req *domain.UpdateBlogPostRequest) (*domain.BlogPost, error) {
+				return updatedPost(req), nil
+			})
+
+			result := f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "body": helloBodyMap(t), "base_version": 5})
+			var out struct {
+				Post map[string]any `json:"post"`
+			}
+			result.decode(t, &out)
+			assert.Equal(t, float64(6), out.Post["body_version"])
+			assert.Equal(t, tc.sent == 0, out.Post["follows_latest_body"])
+			assert.Equal(t, helloBodyMap(t), out.Post["body"])
+			row := audit.last(t)
+			assert.Equal(t, "tpl-body", row.Metadata["template_id"])
+			assert.Equal(t, int64(6), row.Metadata["body_version"])
+		})
+	}
+}
+
+// A body saved before a failed UpdatePost must not stay live: a post that
+// follows the latest version gets its previous body saved back, and a pinned
+// post still points at its old version, so nothing is saved back for it.
+func TestUpdateBlogPost_AFailedPostUpdateLeavesTheServedBody(t *testing.T) {
+	for name, tc := range map[string]struct {
+		stored   int
+		restores bool
+	}{
+		"a post that follows the latest version": {stored: 0, restores: true},
+		"a pinned post":                          {stored: 5, restores: false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true, Write: true}))
+			post := scheduledPost()
+			post.Settings.Template.TemplateVersion = tc.stored
+			f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(post, nil)
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "tpl-body", int64(0)).Return(bodyTemplate(), nil)
+			var saved []domain.Template
+			f.templates.EXPECT().UpdateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+				saved = append(saved, *template)
+				template.Version = int64(6 + len(saved) - 1)
+				return nil
+			}).AnyTimes()
+			f.blog.EXPECT().UpdatePost(gomock.Any(), gomock.Any()).Return(nil, domain.NewAlreadyExistsError("blog_post", "spring-release", false))
+
+			toolErr := f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "body": helloBodyMap(t)}).errorOf(t)
+			assert.Equal(t, CodeConflict, toolErr.Code)
+			require.NotEmpty(t, saved)
+			assert.Equal(t, domain.MapOfAny(helloBodyMap(t)), saved[0].Web.Content, "the new body is saved first")
+			row := audit.last(t)
+			if !tc.restores {
+				assert.Len(t, saved, 1, "a pinned post never served the new version")
+				assert.NotContains(t, row.Metadata, "body_restored_version")
+				return
+			}
+			require.Len(t, saved, 2, "the previous body is saved back")
+			previous := bodyTemplate()
+			assert.Equal(t, previous.Web.Content, saved[1].Web.Content)
+			assert.Equal(t, previous.Name, saved[1].Name)
+			assert.Equal(t, int64(6), saved[1].Version, "the restore starts from the version just saved, so a later edit is not overwritten")
+			assert.Equal(t, int64(7), row.Metadata["body_restored_version"])
+		})
+	}
+}
+
+func TestUpdateBlogPost_ABodyNeedsTheTemplatePairs(t *testing.T) {
+	for name, tc := range map[string]struct {
+		templates  domain.ResourcePermissions
+		permission string
+	}{
+		"without templates:write": {domain.ResourcePermissions{Read: true}, "write"},
+		"without templates:read":  {domain.ResourcePermissions{Write: true}, "read"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, audit := blogWriteFixture(t, blogWritePermissions(tc.templates))
+			assert.Contains(t, f.listToolNames(), "update_blog_post", "the metadata stays editable")
+			toolErr := f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "body": helloBodyMap(t)}).errorOf(t)
+			assert.Equal(t, CodePermissionDenied, toolErr.Code)
+			assert.Equal(t, "templates", toolErr.Resource)
+			assert.Equal(t, tc.permission, toolErr.Permission)
+			assert.Equal(t, http.StatusForbidden, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestUpdateBlogPost_RefusalsComeBeforeTheBodyIsSaved(t *testing.T) {
+	t.Run("a stale base_version", func(t *testing.T) {
+		f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true, Write: true}))
+		f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(scheduledPost(), nil)
+		f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "tpl-body", int64(0)).Return(bodyTemplate(), nil)
+		f.templates.EXPECT().UpdateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).Return(&domain.ErrTemplateVersionConflict{BaseVersion: 4, LatestVersion: 5})
+		toolErr := f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "body": helloBodyMap(t), "base_version": 4}).errorOf(t)
+		assert.Equal(t, CodeConflict, toolErr.Code)
+		require.NotNil(t, toolErr.LatestVersion)
+		assert.Equal(t, int64(5), *toolErr.LatestVersion)
+		assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+	})
+
+	t.Run("a slug another post holds", func(t *testing.T) {
+		f, _ := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true, Write: true}))
+		f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(scheduledPost(), nil)
+		f.blog.EXPECT().GetPostBySlug(gomock.Any(), "taken").Return(&domain.BlogPost{ID: "other"}, nil)
+		toolErr := f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "slug": "taken", "body": helloBodyMap(t)}).errorOf(t)
+		assert.Equal(t, ToolError{Code: CodeConflict, Message: "blog_post taken already exists"}, toolErr)
+	})
+
+	t.Run("a free slug and an unknown category", func(t *testing.T) {
+		f, _ := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true, Write: true}))
+		f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(scheduledPost(), nil)
+		other := "0e2f3d4c-5b6a-4978-8a9b-0c1d2e3f4a5b"
+		f.categories.EXPECT().GetCategoriesByIDs(gomock.Any(), []string{other}).Return(nil, nil)
+		toolErr := f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "category_id": other, "body": helloBodyMap(t)}).errorOf(t)
+		assert.Equal(t, CodeNotFound, toolErr.Code)
+	})
+
+	t.Run("arguments that change nothing or misuse base_version", func(t *testing.T) {
+		f, _ := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true, Write: true}))
+		for args, message := range map[string]string{
+			`{"id":"` + testPostID + `"}`:                              "give at least one field to change besides id and base_version",
+			`{"id":"` + testPostID + `","title":"x","base_version":3}`: "base_version goes with body, and must be 1 or more",
+			`{"id":"spring-release","title":"x"}`:                      "id must be the post's ID (a UUID), from list_blog_posts",
+		} {
+			var decoded map[string]any
+			require.NoError(t, json.Unmarshal([]byte(args), &decoded))
+			decoded["workspace_id"] = testWorkspaceID
+			assert.Equal(t, ToolError{Code: CodeValidation, Message: message}, f.callTool("update_blog_post", decoded).errorOf(t), args)
+		}
+	})
+
+	t.Run("a post that does not exist", func(t *testing.T) {
+		f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+		f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+		assert.Equal(t, CodeNotFound, f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "title": "x"}).errorOf(t).Code)
+		assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+	})
+}
+
+func TestPublishBlogPost(t *testing.T) {
+	args := func(extra map[string]any) map[string]any {
+		out := map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}
+		for key, value := range extra {
+			out[key] = value
+		}
+		return out
+	}
+
+	t.Run("now", func(t *testing.T) {
+		f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+		before := time.Now().UTC().Add(-time.Second)
+		var sent time.Time
+		f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, req *domain.PublishBlogPostRequest) error {
+			expectBlogWorkspace(t, ctx)
+			assert.Equal(t, testPostID, req.ID)
+			require.NotNil(t, req.PublishedAt)
+			sent = *req.PublishedAt
+			return nil
+		})
+		var out blogPostStateOutput
+		f.callTool("publish_blog_post", args(nil)).decode(t, &out)
+		assert.Equal(t, "published", out.Status)
+		assert.False(t, out.Already)
+		require.NotNil(t, out.PublishedAt)
+		assert.True(t, out.PublishedAt.Equal(sent))
+		assert.False(t, sent.Before(before))
+		row := audit.last(t)
+		assert.Equal(t, "blogPosts.publish", row.Action)
+		assert.Equal(t, domain.AuditTargetBlogPost, row.TargetType)
+		assert.Equal(t, testPostID, row.TargetID)
+		assert.Equal(t, sent.Format(time.RFC3339), row.Metadata["published_at"])
+	})
+
+	t.Run("at a later date", func(t *testing.T) {
+		f, _ := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+		later := time.Now().Add(48 * time.Hour).UTC().Truncate(time.Second)
+		f.blog.EXPECT().PublishPost(gomock.Any(), &domain.PublishBlogPostRequest{ID: testPostID, PublishedAt: &later}).Return(nil)
+		result := f.callTool("publish_blog_post", args(map[string]any{"published_at": later.In(time.FixedZone("CET", 3600)).Format(time.RFC3339)}))
+		assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"scheduled","published_at":%q,"already":false}`,
+			testPostID, later.Format(time.RFC3339)), string(result.StructuredContent))
+	})
+
+	t.Run("a replay on a published or scheduled post", func(t *testing.T) {
+		for _, status := range []string{"published", "scheduled"} {
+			f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+			f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to publish post: %w", domain.NewInvalidStateError("blog_post", testPostID, "publish", status)))
+			result := f.callTool("publish_blog_post", args(nil))
+			assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":%q,"published_at":null,"already":true}`, testPostID, status),
+				string(result.StructuredContent))
+			row := audit.last(t)
+			assert.Equal(t, true, row.Metadata["already"])
+			assert.Equal(t, http.StatusOK, row.StatusCode)
+		}
+	})
+
+	t.Run("refusals", func(t *testing.T) {
+		f, _ := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+		assert.Equal(t, CodeValidation, f.callTool("publish_blog_post", args(map[string]any{"published_at": "tomorrow"})).errorOf(t).Code)
+		f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to publish post: %w", &domain.ErrNotFound{Entity: "blog_post", ID: testPostID}))
+		assert.Equal(t, CodeNotFound, f.callTool("publish_blog_post", args(nil)).errorOf(t).Code)
+	})
+}
+
+func TestUnpublishBlogPost(t *testing.T) {
+	f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+	args := map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}
+	f.blog.EXPECT().UnpublishPost(gomock.Any(), &domain.UnpublishBlogPostRequest{ID: testPostID}).Return(nil)
+	result := f.callTool("unpublish_blog_post", args)
+	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"draft","published_at":null,"already":false}`, testPostID), string(result.StructuredContent))
+	assert.Equal(t, "blogPosts.unpublish", audit.last(t).Action)
+
+	f.blog.EXPECT().UnpublishPost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("x: %w", domain.NewInvalidStateError("blog_post", testPostID, "unpublish", "draft")))
+	result = f.callTool("unpublish_blog_post", args)
+	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"draft","published_at":null,"already":true}`, testPostID), string(result.StructuredContent))
+	assert.Equal(t, true, audit.last(t).Metadata["already"])
+
+	f.blog.EXPECT().UnpublishPost(gomock.Any(), gomock.Any()).Return(&domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+	assert.Equal(t, CodeNotFound, f.callTool("unpublish_blog_post", args).errorOf(t).Code)
+	assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+}
+
+func TestDeleteBlogPost_DeletesThenAnswersNotFound(t *testing.T) {
+	f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+	args := map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}
+	f.blog.EXPECT().DeletePost(gomock.Any(), &domain.DeleteBlogPostRequest{ID: testPostID}).DoAndReturn(func(ctx context.Context, _ *domain.DeleteBlogPostRequest) error {
+		expectBlogWorkspace(t, ctx)
+		return nil
+	})
+	result := f.callTool("delete_blog_post", args)
+	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"deleted":true}`, testPostID), string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "blogPosts.delete", row.Action)
+	assert.Equal(t, domain.AuditTargetBlogPost, row.TargetType)
+	assert.Equal(t, testPostID, row.TargetID)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+
+	f.blog.EXPECT().DeletePost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("post not found: %w", &domain.ErrNotFound{Entity: "blog_post", ID: testPostID}))
+	assert.Equal(t, CodeNotFound, f.callTool("delete_blog_post", args).errorOf(t).Code)
+	assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+
+	// The column is a UUID: anything else never reaches PostgreSQL.
+	assert.Equal(t, CodeValidation, f.callTool("delete_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "spring"}).errorOf(t).Code)
+}
+
+// A key that may only read the blog sees none of the write tools.
+func TestBlogWriteTools_NeedBlogWrite(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(blogReadPermission())
+	names := f.listToolNames()
+	for _, tool := range []string{"create_blog_post", "update_blog_post", "publish_blog_post", "unpublish_blog_post", "delete_blog_post"} {
+		assert.NotContains(t, names, tool)
+	}
 }

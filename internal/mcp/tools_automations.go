@@ -597,3 +597,187 @@ func (s *Server) getAutomationStats(ctx context.Context, call *Call) (any, error
 	}
 	return out, nil
 }
+
+var automationsWrite = Pair{Resource: domain.PermissionResourceAutomations, Verb: domain.PermissionTypeWrite}
+
+func automationIDSchema(description string) map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"workspace_id":  map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+			"automation_id": map[string]any{"type": "string", "description": description},
+		},
+		"required":             []string{"workspace_id", "automation_id"},
+		"additionalProperties": false,
+	}
+}
+
+// automationIDArgument reads automation_id and names it as the audit row's
+// target.
+func automationIDArgument(call *Call) (string, *ToolError) {
+	id, _ := call.Args["automation_id"].(string)
+	if id == "" {
+		return "", validationError("automation_id is required")
+	}
+	call.Audit.SetTarget(domain.AuditTargetAutomation, id, "")
+	return id, nil
+}
+
+// readAutomationRow reads the automation for a write tool, deleted ones
+// answered not found, and names it in the audit row.
+func (s *Server) readAutomationRow(ctx context.Context, call *Call, id string) (*domain.Automation, error) {
+	automation, err := s.deps.AutomationRows.GetByID(ctx, call.WorkspaceID, id)
+	if err != nil {
+		return nil, err
+	}
+	if automation == nil || automation.DeletedAt != nil {
+		return nil, &domain.ErrNotFound{Entity: "automation", ID: id}
+	}
+	call.Audit.SetTarget("", "", automation.Name)
+	return automation, nil
+}
+
+// activateAutomationOutput is what activate_automation returns.
+type activateAutomationOutput struct {
+	Workspace    WorkspaceRef `json:"workspace"`
+	AutomationID string       `json:"automation_id"`
+	Status       string       `json:"status"`
+}
+
+// automationStateOutput is what pause_automation returns. Already is true
+// when the automation was paused before the call.
+type automationStateOutput struct {
+	Workspace    WorkspaceRef `json:"workspace"`
+	AutomationID string       `json:"automation_id"`
+	Status       string       `json:"status"`
+	Already      bool         `json:"already"`
+}
+
+func (s *Server) activateAutomationTool() *Tool {
+	return &Tool{
+		Name:  "activate_automation",
+		Title: "Activate automation",
+		Description: "Turns a draft or paused automation live. From then on, every event that matches its trigger starts a journey, and its email steps send email to those contacts. " +
+			"Contacts are not enrolled for events that happened before. " +
+			"Confirm with the user first: get_automation shows the trigger and the steps. " +
+			"An automation already live answers invalid_state with its status, so calling it again changes nothing. " +
+			"A trigger that cannot be installed, an email step in an automation without a list, or a deleted list it still uses answers a validation error. " +
+			"Automations are built and edited in the console.",
+		Class:       ClassSend,
+		Idempotent:  boolPtr(true),
+		Pairs:       []Pair{automationsWrite},
+		AuditAction: "automations.activate",
+		InputSchema: automationIDSchema("Automation ID from list_automations."),
+		Handler:     s.activateAutomation,
+	}
+}
+
+func (s *Server) activateAutomation(ctx context.Context, call *Call) (any, error) {
+	id, toolErr := automationIDArgument(call)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	// Read first for the audience the audit row records, as for a broadcast.
+	automation, err := s.readAutomationRow(ctx, call, id)
+	if err != nil {
+		return nil, err
+	}
+	auditAutomationAudience(call, automation)
+	if err := s.deps.Automations.Activate(ctx, call.WorkspaceID, id); err != nil {
+		return nil, err
+	}
+	return activateAutomationOutput{Workspace: call.WorkspaceRef(), AutomationID: id, Status: string(domain.AutomationStatusLive)}, nil
+}
+
+// auditAutomationAudience records who an automation can email: its list, the
+// segment of its trigger, and the templates of its email steps.
+func auditAutomationAudience(call *Call, automation *domain.Automation) {
+	call.Audit.AddMetadata("list_id", automation.ListID)
+	segments := []string{}
+	if automation.Trigger != nil && automation.Trigger.SegmentID != nil {
+		segments = append(segments, *automation.Trigger.SegmentID)
+	}
+	call.Audit.AddMetadata("segment_ids", segments)
+	templates := []string{}
+	for _, node := range automation.Nodes {
+		if node == nil || node.Type != domain.NodeTypeEmail {
+			continue
+		}
+		if id, _ := node.Config["template_id"].(string); id != "" && !slices.Contains(templates, id) {
+			templates = append(templates, id)
+		}
+	}
+	call.Audit.AddMetadata("template_ids", templates)
+}
+
+func (s *Server) pauseAutomationTool() *Tool {
+	return &Tool{
+		Name:  "pause_automation",
+		Title: "Pause automation",
+		Description: "Pauses a live automation: no new contact starts a journey, and contacts already in one wait at their step until the automation is activated again with activate_automation. " +
+			"An automation already paused answers success with already set to true, so calling it again is safe. " +
+			"A draft answers invalid_state.",
+		Class:       ClassWrite,
+		Idempotent:  boolPtr(true),
+		Pairs:       []Pair{automationsWrite},
+		AuditAction: "automations.pause",
+		InputSchema: automationIDSchema("Automation ID from list_automations."),
+		Handler:     s.pauseAutomation,
+	}
+}
+
+func (s *Server) pauseAutomation(ctx context.Context, call *Call) (any, error) {
+	id, toolErr := automationIDArgument(call)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	// The service accepts a paused automation and drops its trigger again,
+	// so the status before the call is what tells a replay.
+	automation, err := s.readAutomationRow(ctx, call, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.deps.Automations.Pause(ctx, call.WorkspaceID, id); err != nil {
+		return nil, err
+	}
+	out := automationStateOutput{Workspace: call.WorkspaceRef(), AutomationID: id, Status: string(domain.AutomationStatusPaused)}
+	if automation.Status == domain.AutomationStatusPaused {
+		out.Already = true
+		call.Audit.AddMetadata("already", true)
+	}
+	return out, nil
+}
+
+func (s *Server) deleteAutomationTool() *Tool {
+	return &Tool{
+		Name:  "delete_automation",
+		Title: "Delete automation",
+		Description: "Deletes an automation for good. A live one stops first, and every contact still in one of its journeys leaves it. " +
+			"Emails already sent keep their history. This cannot be undone, so confirm with the user first. " +
+			"Returns not_found for an automation that does not exist, which is also what a repeated call answers.",
+		Class:       ClassDestructive,
+		Pairs:       []Pair{automationsWrite},
+		AuditAction: "automations.delete",
+		InputSchema: automationIDSchema("Automation ID from list_automations."),
+		Handler:     s.deleteAutomation,
+	}
+}
+
+type deleteAutomationOutput struct {
+	Workspace    WorkspaceRef `json:"workspace"`
+	AutomationID string       `json:"automation_id"`
+	Deleted      bool         `json:"deleted"`
+}
+
+func (s *Server) deleteAutomation(ctx context.Context, call *Call) (any, error) {
+	id, toolErr := automationIDArgument(call)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	// The repository deletes only an automation not yet deleted, and answers
+	// not found otherwise, so a repeated call answers not_found without a read.
+	if err := s.deps.Automations.Delete(ctx, call.WorkspaceID, id); err != nil {
+		return nil, err
+	}
+	return deleteAutomationOutput{Workspace: call.WorkspaceRef(), AutomationID: id, Deleted: true}, nil
+}

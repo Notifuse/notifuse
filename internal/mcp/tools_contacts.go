@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/asaskevich/govalidator"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 )
@@ -498,4 +502,332 @@ func (s *Server) countContacts(ctx context.Context, call *Call) (any, error) {
 		return nil, err
 	}
 	return countContactsOutput{Workspace: call.WorkspaceRef(), TotalContacts: total}, nil
+}
+
+// contactTextFields are the text fields of a contact that upsert_contact
+// writes, in the order of its schema.
+var contactTextFields = []string{
+	"external_id", "first_name", "last_name", "full_name", "language", "timezone", "phone",
+	"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
+	"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+}
+
+var (
+	contactNumberFields   = []string{"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5"}
+	contactDatetimeFields = []string{"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5"}
+	contactJSONFields     = []string{"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5"}
+	contactConsentFields  = []string{"tracking_opens_consent", "tracking_clicks_consent"}
+)
+
+// contactClearableFields are the fields clear_fields may name: every field
+// upsert_contact writes but the email.
+func contactClearableFields() []string {
+	return slices.Concat(contactTextFields, contactNumberFields, contactDatetimeFields, contactJSONFields, contactConsentFields)
+}
+
+// emailArgument normalizes an email argument and checks its form, before any
+// service call: several paths compare addresses verbatim.
+func emailArgument(raw string) (string, *ToolError) {
+	email := domain.NormalizeEmail(raw)
+	if email == "" || !govalidator.IsEmail(email) {
+		return "", validationError("email must be a valid email address")
+	}
+	return email, nil
+}
+
+func (s *Server) upsertContactTool() *Tool {
+	descriptions := map[string]string{
+		"external_id": "Your own ID for the contact.",
+		"language":    "Language code, for example en or fr.",
+		"timezone":    "IANA time zone name, for example Europe/Paris.",
+		"country":     "Country code, for example FR.",
+	}
+	properties := map[string]any{
+		"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+		"email":        map[string]any{"type": "string", "description": "The contact's email address. A contact is created when none has it."},
+	}
+	for _, field := range contactTextFields {
+		property := map[string]any{"type": "string"}
+		if description, ok := descriptions[field]; ok {
+			property["description"] = description
+		}
+		properties[field] = property
+	}
+	for _, field := range contactNumberFields {
+		properties[field] = map[string]any{"type": "number"}
+	}
+	for _, field := range contactDatetimeFields {
+		properties[field] = map[string]any{"type": "string", "description": "RFC 3339 date and time."}
+	}
+	for _, field := range contactJSONFields {
+		properties[field] = map[string]any{"description": "Any JSON value."}
+	}
+	for _, field := range contactConsentFields {
+		properties[field] = map[string]any{"type": "string", "enum": []string{"granted", "denied"}}
+	}
+	properties["clear_fields"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string", "enum": contactClearableFields()},
+		"description": "Fields to empty. A field cannot be both given and cleared.",
+	}
+	return &Tool{
+		Name:  "upsert_contact",
+		Title: "Create or update contact",
+		Description: "Creates a contact, or updates the one with this email. " +
+			"Only the fields you give change; the others keep their stored value. Use clear_fields to empty a field. " +
+			"get_workspace_overview gives the labels of the custom fields in custom_field_labels. " +
+			"Creating or changing a contact can start automations, which may send emails. " +
+			"Calling it again with the same arguments changes nothing more. " +
+			"Returns create or update, and the contact as stored.",
+		Class:       ClassWriteOpenWorld,
+		Idempotent:  boolPtr(true),
+		Pairs:       []Pair{{Resource: domain.PermissionResourceContacts, Verb: domain.PermissionTypeWrite}},
+		AuditAction: "contacts.upsert",
+		InputSchema: map[string]any{
+			"type":                 "object",
+			"properties":           properties,
+			"required":             []string{"workspace_id", "email"},
+			"additionalProperties": false,
+		},
+		Handler: s.upsertContact,
+	}
+}
+
+type upsertContactOutput struct {
+	Workspace WorkspaceRef `json:"workspace"`
+	Action    string       `json:"action"`
+	Contact   *contactFull `json:"contact,omitempty"`
+}
+
+func (s *Server) upsertContact(ctx context.Context, call *Call) (any, error) {
+	rawEmail, _ := call.Args["email"].(string)
+	email, toolErr := emailArgument(rawEmail)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	call.Audit.SetTarget(domain.AuditTargetContact, email, "")
+	call.Audit.AddMetadata("email", email)
+
+	// The contact is decoded from a JSON object, as contacts.upsert decodes
+	// its body: a given field is written, a null one emptied, an absent one
+	// kept.
+	fields := make(map[string]any, len(call.Args))
+	for key, value := range call.Args {
+		if key != "workspace_id" && key != "clear_fields" {
+			fields[key] = value
+		}
+	}
+	fields["email"] = email
+	cleared, _ := call.Args["clear_fields"].([]any)
+	for _, item := range cleared {
+		field, _ := item.(string)
+		if _, given := fields[field]; given {
+			return nil, validationError("%s is both given and in clear_fields", field)
+		}
+		fields[field] = nil
+	}
+	data, err := json.Marshal(fields)
+	if err != nil {
+		return nil, err
+	}
+	contact, err := domain.FromJSON(data)
+	if err != nil {
+		return nil, validationError("%v", err)
+	}
+	if err := contact.Validate(); err != nil {
+		return nil, validationError("%v", err)
+	}
+	// The API stores any time zone text; a contact's sends are scheduled by it.
+	if contact.Timezone != nil && !contact.Timezone.IsNull && !domain.IsValidTimezone(contact.Timezone.String) {
+		return nil, validationError("timezone must be an IANA time zone name, for example Europe/Paris")
+	}
+
+	operation := s.deps.Contacts.UpsertContact(ctx, call.WorkspaceID, contact)
+	if operation.Err != nil {
+		return nil, operation.Err
+	}
+	if operation.Action == domain.UpsertContactOperationError {
+		// The arguments were validated above, so what is left is a failure of
+		// the write, which the operation reports as text only.
+		return nil, errors.New("upsert failed")
+	}
+	call.Audit.AddMetadata("action", operation.Action)
+	out := upsertContactOutput{Workspace: call.WorkspaceRef(), Action: operation.Action}
+	if operation.Contact != nil {
+		projected := projectContact(operation.Contact)
+		out.Contact = &projected
+	}
+	return out, nil
+}
+
+func (s *Server) deleteContactTool() *Tool {
+	return &Tool{
+		Name:  "delete_contact",
+		Title: "Delete contact",
+		Description: "Deletes a contact and everything about it: its message history, timeline, list memberships, custom events, automation journeys and queued emails. " +
+			"Its web analytics visits are kept without the address. " +
+			"The contact's unsubscribes, bounces and complaints are kept as hashes, so a later import does not subscribe it again. " +
+			"This cannot be undone: confirm the address with the user first. " +
+			"Returns not_found when no contact has this email, which is also what a repeated call answers.",
+		Class:       ClassDestructive,
+		Pairs:       []Pair{{Resource: domain.PermissionResourceContacts, Verb: domain.PermissionTypeWrite}},
+		AuditAction: "contacts.delete",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"email":        map[string]any{"type": "string", "description": "The email address of the contact to delete."},
+			},
+			"required":             []string{"workspace_id", "email"},
+			"additionalProperties": false,
+		},
+		Handler: s.deleteContact,
+	}
+}
+
+type deleteContactOutput struct {
+	Workspace WorkspaceRef `json:"workspace"`
+	Deleted   bool         `json:"deleted"`
+	Email     string       `json:"email"`
+}
+
+func (s *Server) deleteContact(ctx context.Context, call *Call) (any, error) {
+	rawEmail, _ := call.Args["email"].(string)
+	email, toolErr := emailArgument(rawEmail)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	call.Audit.SetTarget(domain.AuditTargetContact, email, "")
+
+	var req domain.DeleteContactRequest
+	if err := requestFromJSON(map[string]any{"workspace_id": call.WorkspaceID, "email": email}, &req); err != nil {
+		return nil, err
+	}
+	if err := req.Validate(); err != nil {
+		return nil, validationError("%v", err)
+	}
+	// The service answers success for an address with no contact, so that an
+	// interrupted erasure can be finished. A repeated call here answers
+	// not_found instead, and deletes nothing.
+	if _, err := s.deps.ContactRows.GetContactByEmail(ctx, call.WorkspaceID, email); err != nil {
+		return nil, err
+	}
+	// The opt-outs stay as hashes: forgetting them is left to a person, in the
+	// console or the API.
+	if err := s.deps.Contacts.DeleteContact(ctx, call.WorkspaceID, email, domain.DeleteContactOptions{}); err != nil {
+		return nil, err
+	}
+	return deleteContactOutput{Workspace: call.WorkspaceRef(), Deleted: true, Email: email}, nil
+}
+
+func (s *Server) trackCustomEventTool() *Tool {
+	return &Tool{
+		Name:  "track_custom_event",
+		Title: "Track custom event",
+		Description: "Records an event that happened to a contact, such as an order or a signup, and creates the contact when none has this email. " +
+			"The event appears on the contact's timeline and can start automations, which may send emails. " +
+			"event_name and external_id identify the event: a later call with both updates it, and only when its occurred_at is later than the stored one. " +
+			"So a repeated call with the same occurred_at changes nothing. " +
+			"Returns the event as stored.",
+		Class:       ClassWriteOpenWorld,
+		Idempotent:  boolPtr(true),
+		Pairs:       []Pair{{Resource: domain.PermissionResourceContacts, Verb: domain.PermissionTypeWrite}},
+		AuditAction: "customEvents.upsert",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"email":        map[string]any{"type": "string", "description": "The contact's email address."},
+				"event_name":   map[string]any{"type": "string", "description": "Lowercase letters, digits, underscores, dots, slashes and hyphens, at most 100 characters. For example order.completed."},
+				"external_id":  map[string]any{"type": "string", "description": "The event's ID in your own system, at most 255 characters."},
+				"occurred_at":  map[string]any{"type": "string", "description": "When the event happened, as an RFC 3339 date and time."},
+				"properties":   map[string]any{"type": "object", "description": "The event's data. Replaces the stored properties; leave it out to keep them."},
+				"goal_type": map[string]any{
+					"type":        "string",
+					"enum":        domain.ValidGoalTypes,
+					"description": "Counts the event as a goal in the reports.",
+				},
+				"goal_name":  map[string]any{"type": "string", "description": "At most 100 characters."},
+				"goal_value": map[string]any{"type": "number", "description": "The amount of a purchase or subscription, required for those two goal types. Negative for a refund."},
+			},
+			"required":             []string{"workspace_id", "email", "event_name", "external_id", "occurred_at"},
+			"additionalProperties": false,
+		},
+		Handler: s.trackCustomEvent,
+	}
+}
+
+type customEventOutput struct {
+	EventName  string    `json:"event_name"`
+	ExternalID string    `json:"external_id"`
+	Email      string    `json:"email"`
+	OccurredAt time.Time `json:"occurred_at"`
+	Properties any       `json:"properties"`
+	GoalType   *string   `json:"goal_type,omitempty"`
+	GoalName   *string   `json:"goal_name,omitempty"`
+	GoalValue  *float64  `json:"goal_value,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	Truncation
+}
+
+type trackCustomEventOutput struct {
+	Workspace WorkspaceRef      `json:"workspace"`
+	Event     customEventOutput `json:"event"`
+}
+
+func (s *Server) trackCustomEvent(ctx context.Context, call *Call) (any, error) {
+	rawEmail, _ := call.Args["email"].(string)
+	email, toolErr := emailArgument(rawEmail)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	eventName, _ := call.Args["event_name"].(string)
+	call.Audit.SetTarget(domain.AuditTargetContact, email, "")
+	call.Audit.AddMetadata("email", email)
+	call.Audit.AddMetadata("event_name", eventName)
+
+	occurredAt, _ := call.Args["occurred_at"].(string)
+	if _, err := time.Parse(time.RFC3339, occurredAt); err != nil {
+		return nil, validationError("occurred_at must be an RFC 3339 date and time")
+	}
+	fields := make(map[string]any, len(call.Args))
+	for key, value := range call.Args {
+		fields[key] = value
+	}
+	fields["workspace_id"] = call.WorkspaceID
+	fields["email"] = email
+	var req domain.UpsertCustomEventRequest
+	if err := requestFromJSON(fields, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	if err := req.Validate(); err != nil {
+		return nil, validationError("%v", err)
+	}
+
+	event, err := s.deps.CustomEvents.UpsertEvent(ctx, &req)
+	if err != nil {
+		return nil, err
+	}
+	return trackCustomEventOutput{Workspace: call.WorkspaceRef(), Event: projectCustomEvent(event)}, nil
+}
+
+func projectCustomEvent(event *domain.CustomEvent) customEventOutput {
+	out := customEventOutput{
+		OccurredAt: event.OccurredAt,
+		GoalType:   event.GoalType,
+		GoalValue:  event.GoalValue,
+		CreatedAt:  event.CreatedAt,
+		UpdatedAt:  event.UpdatedAt,
+	}
+	out.EventName = out.Text("event_name", event.EventName)
+	out.ExternalID = out.Text("external_id", event.ExternalID)
+	out.Email = out.Text("email", event.Email)
+	out.GoalName = out.OptionalText("goal_name", event.GoalName)
+	properties := map[string]any(event.Properties)
+	if properties == nil {
+		properties = map[string]any{}
+	}
+	out.Properties = out.JSON("properties", properties)
+	return out
 }
