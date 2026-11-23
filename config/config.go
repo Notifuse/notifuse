@@ -39,17 +39,21 @@ type Config struct {
 	Plan                PlanLimitsConfig
 	Telemetry           bool
 	CheckForUpdates     bool
-	RootEmail           string
-	Environment         string
-	APIEndpoint         string
-	WebhookEndpoint     string
-	LogLevel            string
-	GeoIPDBPath         string // MaxMind GeoLite2/GeoIP2 City .mmdb for web analytics; empty falls back to the shipped database (geoip.DefaultPaths)
-	AnalyticsWorkMem    string // per-query work_mem for analytics aggregations (e.g. "64MB")
-	Version             string
-	IsInstalled         bool // NEW: Indicates if setup wizard has been completed
-	MaxUsers            int  // 0 = unlimited (backward compat for self-hosted)
-	MaxWorkspaces       int  // 0 = unlimited (backward compat for self-hosted)
+	// RequireTwoFactor makes every person on the instance pass a second factor before
+	// anything but their account security page opens. REQUIRE_TWO_FACTOR wins over the
+	// require_two_factor system setting, as CHECK_FOR_UPDATES does.
+	RequireTwoFactor bool
+	RootEmail        string
+	Environment      string
+	APIEndpoint      string
+	WebhookEndpoint  string
+	LogLevel         string
+	GeoIPDBPath      string // MaxMind GeoLite2/GeoIP2 City .mmdb for web analytics; empty falls back to the shipped database (geoip.DefaultPaths)
+	AnalyticsWorkMem string // per-query work_mem for analytics aggregations (e.g. "64MB")
+	Version          string
+	IsInstalled      bool // NEW: Indicates if setup wizard has been completed
+	MaxUsers         int  // 0 = unlimited (backward compat for self-hosted)
+	MaxWorkspaces    int  // 0 = unlimited (backward compat for self-hosted)
 
 	// UnopenedSettings names the encrypted system settings no key of SECRET_KEY opened
 	// when the configuration loaded; Notifuse runs without them.
@@ -110,10 +114,12 @@ type EnvValues struct {
 	// See OIDCConfig.AllowUnverifiedEmail.
 	OIDCAllowUnverifiedEmail bool
 
-	// Telemetry and CheckForUpdates are "true"/"false" when TELEMETRY /
-	// CHECK_FOR_UPDATES is set, "" when unset (the stored value then applies).
-	Telemetry       string
-	CheckForUpdates string
+	// Telemetry, CheckForUpdates and RequireTwoFactor are "true"/"false" when TELEMETRY /
+	// CHECK_FOR_UPDATES / REQUIRE_TWO_FACTOR is set, "" when unset (the stored value then
+	// applies).
+	Telemetry        string
+	CheckForUpdates  string
+	RequireTwoFactor string
 }
 
 type DemoConfig struct {
@@ -319,6 +325,7 @@ type SystemSettings struct {
 	SMTPEHLOHostname        string
 	TelemetryEnabled        bool
 	CheckForUpdates         bool
+	RequireTwoFactor        bool
 	SMTPBridgeEnabled       bool
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -448,6 +455,10 @@ func loadSystemSettings(db *sql.DB, keys []string) (*SystemSettings, error) {
 		// Load check for updates setting
 		if checkUpdates, ok := settingsMap["check_for_updates"]; ok {
 			settings.CheckForUpdates = checkUpdates == "true"
+		}
+
+		if requireTwoFactor, ok := settingsMap["require_two_factor"]; ok {
+			settings.RequireTwoFactor = requireTwoFactor == "true"
 		}
 
 		// Load SMTP Bridge settings
@@ -837,12 +848,15 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 	// Telemetry and update checks: "true"/"false" only when the env var is set, parsed
 	// with GetBool as the runtime does below (so "1" or "TRUE" count as true).
-	var telemetryStr, checkForUpdatesStr string
+	var telemetryStr, checkForUpdatesStr, requireTwoFactorStr string
 	if v.IsSet("TELEMETRY") {
 		telemetryStr = strconv.FormatBool(v.GetBool("TELEMETRY"))
 	}
 	if v.IsSet("CHECK_FOR_UPDATES") {
 		checkForUpdatesStr = strconv.FormatBool(v.GetBool("CHECK_FOR_UPDATES"))
+	}
+	if v.IsSet("REQUIRE_TWO_FACTOR") {
+		requireTwoFactorStr = strconv.FormatBool(v.GetBool("REQUIRE_TWO_FACTOR"))
 	}
 
 	envVals := EnvValues{
@@ -875,8 +889,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 		OIDCAllowUnverifiedEmail: v.GetBool("OIDC_ALLOW_UNVERIFIED_EMAIL"),
 
-		Telemetry:       telemetryStr,
-		CheckForUpdates: checkForUpdatesStr,
+		Telemetry:        telemetryStr,
+		CheckForUpdates:  checkForUpdatesStr,
+		RequireTwoFactor: requireTwoFactorStr,
 	}
 
 	// Load config values with database override logic: env vars win, the database
@@ -919,6 +934,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		telemetryEnabled = v.GetBool("TELEMETRY")
 		checkForUpdates = v.GetBool("CHECK_FOR_UPDATES")
 	}
+
+	requireTwoFactor := resolveRequireTwoFactor(requireTwoFactorStr, systemSettings, isInstalled)
 
 	// Sanitize API endpoint - strip trailing slashes to prevent double-slash URL issues
 	apiEndpoint = strings.TrimRight(apiEndpoint, "/")
@@ -997,8 +1014,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			FileManagerAccessKey: v.GetString("DEMO_FILE_MANAGER_ACCESS_KEY"),
 			FileManagerSecretKey: v.GetString("DEMO_FILE_MANAGER_SECRET_KEY"),
 		},
-		Telemetry:       telemetryEnabled,
-		CheckForUpdates: checkForUpdates,
+		Telemetry:        telemetryEnabled,
+		CheckForUpdates:  checkForUpdates,
+		RequireTwoFactor: requireTwoFactor,
 		Tracing: TracingConfig{
 			Enabled:             v.GetBool("TRACING_ENABLED"),
 			ServiceName:         v.GetString("TRACING_SERVICE_NAME"),
@@ -1153,4 +1171,18 @@ func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername,
 		c.EnvValues.SMTPBridgeTLSCertBase64,
 		c.EnvValues.SMTPBridgeTLSKeyBase64,
 		c.EnvValues.SMTPBridgePort
+}
+
+// resolveRequireTwoFactor decides whether the instance requires two-factor authentication.
+// env is EnvValues.RequireTwoFactor: "true" or "false" when REQUIRE_TWO_FACTOR is set, ""
+// when it is not. A value set in the environment wins; otherwise an installed instance takes
+// its require_two_factor setting, and an instance not yet installed requires nothing.
+func resolveRequireTwoFactor(env string, settings *SystemSettings, isInstalled bool) bool {
+	if env != "" {
+		return env == "true"
+	}
+	if isInstalled && settings != nil {
+		return settings.RequireTwoFactor
+	}
+	return false
 }

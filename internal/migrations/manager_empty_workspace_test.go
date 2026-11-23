@@ -320,7 +320,7 @@ func TestManager_RunMigrations_SkipsAnEmptyWorkspaceAndStampsTheVersion(t *testi
 	expectRegisteredInTx(mock, "empty", true)
 	lock.expectDatabaseExists("notifuse_ws_empty", true)
 	mock.ExpectCommit()
-	expectLaterEmptyMigrations(t, mock, migrationVersion)
+	expectLaterMigrations(t, mock, migrationVersion)
 	mock.ExpectExec("INSERT INTO settings").WithArgs(fmt.Sprintf("%.0f", codeVersion)).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit() // the migration lock
 

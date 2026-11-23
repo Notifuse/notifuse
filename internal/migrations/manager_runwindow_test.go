@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,8 +47,8 @@ func managerOneVersionBehind(t *testing.T) (*Manager, sqlmock.Sqlmock, *sql.DB, 
 
 // latestWorkspaceMigrationVersion is the highest registered migration that updates the
 // workspace databases: these tests drive the dispatch window through that migration. A
-// migration registered after it (v45 while 45.0 is being assembled) must still be empty,
-// because the tests cannot predict its SQL; expectLaterEmptyMigrations checks it.
+// migration registered after it (v45 while 45.0 is being assembled) is expected by
+// expectLaterMigrations.
 func latestWorkspaceMigrationVersion(t *testing.T) float64 {
 	t.Helper()
 	var latest float64
@@ -59,18 +61,26 @@ func latestWorkspaceMigrationVersion(t *testing.T) float64 {
 	return latest
 }
 
-// expectLaterEmptyMigrations expects the transaction of each registered migration above
-// after: an empty one opens and commits it. Once one of them gains a system or workspace
-// part, these tests must expect its SQL, and this helper says so.
-func expectLaterEmptyMigrations(t *testing.T, mock sqlmock.Sqlmock, after float64) {
+// expectLaterMigrations expects the transaction of each registered migration above after.
+// The tests cannot predict another migration's SQL, so each one registered after the latest
+// workspace migration must be listed here; one that is not fails with a message saying so.
+func expectLaterMigrations(t *testing.T, mock sqlmock.Sqlmock, after float64) {
 	t.Helper()
 	for _, m := range GetRegisteredMigrations() {
-		if m.GetMajorVersion() <= after {
+		version := m.GetMajorVersion()
+		if version <= after {
 			continue
 		}
-		require.Falsef(t, m.HasSystemUpdate() || m.HasWorkspaceUpdate(),
-			"v%.0f now has a part: expect its SQL in the manager tests that run after v%.0f", m.GetMajorVersion(), after)
 		mock.ExpectBegin()
+		switch version {
+		case 45.0:
+			require.Falsef(t, m.HasWorkspaceUpdate(), "v45 now updates workspaces: expect its SQL in the manager tests")
+			for _, stmt := range schema.TwoFactorTableDefinitions() {
+				mock.ExpectExec(regexp.QuoteMeta(stmt)).WillReturnResult(sqlmock.NewResult(0, 0))
+			}
+		default:
+			require.Failf(t, "unexpected migration", "v%.0f runs after v%.0f: expect its SQL in the manager tests", version, after)
+		}
 		mock.ExpectCommit()
 	}
 }

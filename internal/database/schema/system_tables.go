@@ -169,4 +169,6 @@ var TableNames = []string{
 	"settings",
 	"federated_identities",
 	"audit_logs",
+	"user_totp",
+	"user_recovery_codes",
 }
