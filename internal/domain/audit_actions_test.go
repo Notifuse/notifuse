@@ -211,3 +211,17 @@ func TestAuditCatalogue_MCPSwitchIsAuditedLikeTheOtherWorkspaceSetters(t *testin
 	_, excluded := AuditExcludedRoutes["workspaces.setMCPSettings"]
 	assert.False(t, excluded)
 }
+
+// An MCP-only audited action is a route the API deliberately leaves
+// unrecorded: listed in AuditExcludedRoutes and never in AuditedActions, which
+// would give the same route two specs.
+func TestMCPAuditedActions_AreExcludedAPIRoutesOnly(t *testing.T) {
+	assert.Equal(t, map[string]AuditActionSpec{}, MCPAuditedActions)
+
+	for route := range MCPAuditedActions {
+		_, excluded := AuditExcludedRoutes[route]
+		assert.True(t, excluded, "%s is not an excluded API route", route)
+		_, audited := AuditedActions[route]
+		assert.False(t, audited, "%s is audited on the API already", route)
+	}
+}

@@ -1307,7 +1307,7 @@ func TestBroadcastRepository_ListBroadcasts_WithStatusesAndSearch(t *testing.T) 
 		)
 
 	// Data query pins the same WHERE clause plus pagination placeholders.
-	mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND status IN \(\$2, \$3\) AND name ILIKE \$4 ORDER BY created_at DESC LIMIT \$5 OFFSET \$6`).
+	mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND status IN \(\$2, \$3\) AND name ILIKE \$4 ORDER BY created_at DESC, id DESC LIMIT \$5 OFFSET \$6`).
 		WithArgs(workspaceID, statuses[0], statuses[1], "%promo%", 10, 0).
 		WillReturnRows(rows)
 
@@ -1366,7 +1366,7 @@ func TestBroadcastRepository_ListBroadcasts_SearchOnly(t *testing.T) {
 			0, // test_paused_seconds
 		)
 
-	mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND name ILIKE \$2 ORDER BY created_at DESC LIMIT \$3 OFFSET \$4`).
+	mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND name ILIKE \$2 ORDER BY created_at DESC, id DESC LIMIT \$3 OFFSET \$4`).
 		WithArgs(workspaceID, `%50\% off%`, 25, 0).
 		WillReturnRows(rows)
 
@@ -1980,7 +1980,7 @@ func TestBroadcastRepository_ListBroadcasts_StatusCountsAndStartedAfter(t *testi
 		mock.ExpectQuery(`^SELECT status, COUNT\(\*\) FROM broadcasts WHERE workspace_id = \$1 AND name ILIKE \$2 AND started_at >= \$3 GROUP BY status$`).
 			WithArgs(workspaceID, "%promo%", startedAfter).
 			WillReturnRows(sqlmock.NewRows([]string{"status", "count"}).AddRow("processed", 2).AddRow("paused", 1))
-		mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND status IN \(\$2\) AND name ILIKE \$3 AND started_at >= \$4 ORDER BY created_at DESC LIMIT \$5 OFFSET \$6`).
+		mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND status IN \(\$2\) AND name ILIKE \$3 AND started_at >= \$4 ORDER BY created_at DESC, id DESC LIMIT \$5 OFFSET \$6`).
 			WithArgs(workspaceID, domain.BroadcastStatusProcessed, "%promo%", startedAfter, 10, 0).
 			WillReturnRows(sqlmock.NewRows(broadcastListColumnNames))
 		mock.ExpectCommit()
@@ -2000,7 +2000,7 @@ func TestBroadcastRepository_ListBroadcasts_StatusCountsAndStartedAfter(t *testi
 		mock.ExpectQuery(`^SELECT COUNT\(\*\) FROM broadcasts WHERE workspace_id = \$1 AND started_at >= \$2$`).
 			WithArgs(workspaceID, startedAfter).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-		mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND started_at >= \$2 ORDER BY created_at DESC LIMIT \$3 OFFSET \$4`).
+		mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND started_at >= \$2 ORDER BY created_at DESC, id DESC LIMIT \$3 OFFSET \$4`).
 			WithArgs(workspaceID, startedAfter, 10, 0).
 			WillReturnRows(sqlmock.NewRows(broadcastListColumnNames))
 		mock.ExpectCommit()
