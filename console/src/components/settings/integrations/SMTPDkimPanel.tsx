@@ -51,8 +51,8 @@ export function SMTPDkimPanel({ workspaceId, senders }: SMTPDkimPanelProps) {
       return <Pill tone="warning">{t`Signed · record missing ${failures}/${DKIM_DOWNGRADE_THRESHOLD}`}</Pill>
     }
     if (key.status === 'published') return <Pill tone="success">{t`Signed`}</Pill>
-    if (key.downgraded_at) return <Pill tone="danger">{t`Signing stopped: sent unsigned`}</Pill>
     if (key.status === 'mismatch') return <Pill tone="danger">{t`Wrong key: sent unsigned`}</Pill>
+    if (key.downgraded_at) return <Pill tone="danger">{t`Signing stopped: sent unsigned`}</Pill>
     return <Pill tone="warning">{t`DNS not found: sent unsigned`}</Pill>
   }
 

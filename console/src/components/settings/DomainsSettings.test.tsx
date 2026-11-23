@@ -198,6 +198,56 @@ describe('DomainsSettings', () => {
     expect(screen.getByTestId('dkim-dns-record')).toBeInTheDocument()
   })
 
+  it('after a downgrade, shows the latest check, keeping the date signing stopped', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      domains: [
+        record({
+          domain: 'later.io',
+          status: 'mismatch',
+          downgraded_at: '2026-11-20T08:00:00Z',
+          downgrade_reason: 'no TXT record found',
+          last_check_error: '2 TXT records found, a selector must publish one'
+        })
+      ]
+    })
+    renderDomains()
+    await screen.findByText('later.io', { selector: 'span.font-medium' })
+    expect(within(rowOf('later.io')).getByText('Wrong key · not signing')).toBeInTheDocument()
+    expect(
+      within(rowOf('later.io')).getByText(/Stopped on Nov 20, 2026: 2 TXT records found, a selector must publish one/)
+    ).toBeInTheDocument()
+  })
+
+  it('keeps a spinner on each domain being checked until its own check ends', async () => {
+    const finishers: Record<string, (value: unknown) => void> = {}
+    vi.mocked(api.post).mockImplementation(
+      (_url: string, body: unknown) =>
+        new Promise((resolve) => (finishers[(body as { domain: string }).domain] = resolve)) as never
+    )
+    renderDomains()
+    await screen.findByText('acme.io', { selector: 'span.font-medium' })
+    const verifyOf = (domain: string) => within(rowOf(domain)).getByRole('button', { name: /Verify/ })
+
+    fireEvent.click(verifyOf('news.acme.io'))
+    fireEvent.click(verifyOf('brand-b.com'))
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2))
+    finishers['news.acme.io']({ domain: pending, check: { result: 'not_found' } })
+    await waitFor(() => expect(verifyOf('news.acme.io').className).not.toContain('ant-btn-loading'))
+    expect(verifyOf('brand-b.com').className).toContain('ant-btn-loading')
+    finishers['brand-b.com']({ domain: mismatch, check: { result: 'mismatch' } })
+  })
+
+  it('hides the DNS record when the list fails to load again', async () => {
+    renderDomains()
+    await screen.findByText('acme.io', { selector: 'span.font-medium' })
+    expect(screen.getByTestId('dkim-dns-record')).toBeInTheDocument()
+
+    vi.mocked(api.get).mockRejectedValue(new ApiError('database down', 500))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await screen.findByText("Couldn't load the domains")).toBeInTheDocument()
+    expect(screen.queryByTestId('dkim-dns-record')).toBeNull()
+  })
+
   it('says when there is no domain yet', async () => {
     vi.mocked(api.get).mockResolvedValue({ domains: [] })
     renderDomains()

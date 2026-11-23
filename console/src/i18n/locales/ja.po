@@ -2162,7 +2162,7 @@ msgstr "同意について"
 msgid "About display conditions"
 msgstr "表示条件について"
 
-#: src/components/settings/DomainsSettings.tsx:361
+#: src/components/settings/DomainsSettings.tsx:369
 msgid "About DKIM keys"
 msgstr "DKIM キーについて"
 
@@ -2194,7 +2194,7 @@ msgstr "シングルサインオンについて"
 msgid "About system email delivery"
 msgstr "システムメール送信について"
 
-#: src/components/settings/DomainsSettings.tsx:390
+#: src/components/settings/DomainsSettings.tsx:398
 msgid "About the DNS record"
 msgstr "DNS レコードについて"
 
@@ -2549,8 +2549,8 @@ msgstr "カスタムヘッダーを追加"
 msgid "Add dimension"
 msgstr "ディメンションを追加"
 
-#: src/components/settings/DomainsSettings.tsx:200
-#: src/components/settings/DomainsSettings.tsx:414
+#: src/components/settings/DomainsSettings.tsx:208
+#: src/components/settings/DomainsSettings.tsx:422
 msgid "Add domain"
 msgstr "ドメインを追加"
 
@@ -2640,7 +2640,7 @@ msgstr "タグを追加..."
 msgid "Add teammates, or create an API key for your app."
 msgstr "メンバーを追加するか、アプリ用の APIキーを作成してください。"
 
-#: src/components/settings/DomainsSettings.tsx:321
+#: src/components/settings/DomainsSettings.tsx:329
 msgid "Add the domain of your senders to sign their emails with DKIM."
 msgstr "送信者のドメインを追加すると、そのメールに DKIM で署名します。"
 
@@ -3130,7 +3130,7 @@ msgstr "Amazon SES"
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com、メール受信に対応したリージョン)"
 
-#: src/components/settings/DomainsSettings.tsx:362
+#: src/components/settings/DomainsSettings.tsx:370
 msgid "Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. Notifuse checks a record every hour until it finds it, then once a day, and every hour again after a failed check. A published key stops signing after {DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart."
 msgstr "Amazon SES、Mailgun、SendGrid などの API プロバイダーは自社側で署名するため、これらのキーは SMTP 連携にのみ適用されます。キーは DNS レコードが見つかってから署名を始め、署名するのは完全に一致するドメインだけです。acme.io のキーは news.acme.io に署名しません。Notifuse はレコードが見つかるまで 1 時間ごとに確認し、その後は 1 日 1 回、確認に失敗すると再び 1 時間ごとに確認します。公開済みのキーは、1 時間おきの確認が {DKIM_DOWNGRADE_THRESHOLD} 回失敗すると署名を停止します。"
 
@@ -3779,7 +3779,7 @@ msgstr "少なくとも1つのルートメールアドレスが必要です"
 msgid "at most"
 msgstr "最大"
 
-#: src/components/settings/DomainsSettings.tsx:391
+#: src/components/settings/DomainsSettings.tsx:399
 msgid "At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email."
 msgstr "DNS ホストで、この名前と値の TXT レコードを追加してください。Notifuse はレコードを見つけるとすぐに署名を始めます。このドメインからメールを送る間は、レコードを残しておいてください。"
 
@@ -5229,9 +5229,9 @@ msgstr "ブラウザでテストできません"
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:386
-#: src/components/settings/DomainsSettings.tsx:107
-#: src/components/settings/DomainsSettings.tsx:127
-#: src/components/settings/DomainsSettings.tsx:419
+#: src/components/settings/DomainsSettings.tsx:112
+#: src/components/settings/DomainsSettings.tsx:132
+#: src/components/settings/DomainsSettings.tsx:427
 #: src/components/settings/EditPermissionsDrawer.tsx:101
 #: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
@@ -5592,7 +5592,7 @@ msgstr "MJML の階層と、すべてのタグが閉じられているかを確�
 msgid "Check the server logs, then reload this page. Your configuration is already saved."
 msgstr "サーバーのログを確認してから、このページを再読み込みしてください。設定はすでに保存されています。"
 
-#: src/components/settings/DomainsSettings.tsx:144
+#: src/components/settings/DomainsSettings.tsx:149
 msgid "Checked {ago}"
 msgstr "{ago}に確認"
 
@@ -7078,7 +7078,7 @@ msgstr "配信を読み込めませんでした"
 msgid "Couldn't load the DKIM keys of this workspace."
 msgstr "このワークスペースの DKIM キーを読み込めませんでした。"
 
-#: src/components/settings/DomainsSettings.tsx:307
+#: src/components/settings/DomainsSettings.tsx:315
 msgid "Couldn't load the domains"
 msgstr "ドメインを読み込めませんでした"
 
@@ -7367,7 +7367,7 @@ msgstr "カテゴリを作成"
 msgid "Create First Theme"
 msgstr "最初のテーマを作成"
 
-#: src/components/settings/DomainsSettings.tsx:418
+#: src/components/settings/DomainsSettings.tsx:426
 msgid "Create key"
 msgstr "キーを作成"
 
@@ -8257,9 +8257,9 @@ msgstr "遅延"
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
 #: src/components/segment/input.tsx:309
-#: src/components/settings/DomainsSettings.tsx:126
-#: src/components/settings/DomainsSettings.tsx:267
-#: src/components/settings/DomainsSettings.tsx:270
+#: src/components/settings/DomainsSettings.tsx:131
+#: src/components/settings/DomainsSettings.tsx:275
+#: src/components/settings/DomainsSettings.tsx:278
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -8533,7 +8533,7 @@ msgstr "空のフォルダ {name} を削除しますか？"
 msgid "Delete the folder {name} and its files?"
 msgstr "フォルダ {name} とその中のファイルを削除しますか？"
 
-#: src/components/settings/DomainsSettings.tsx:124
+#: src/components/settings/DomainsSettings.tsx:129
 msgid "Delete the key of {domain}?"
 msgstr "{domain} のキーを削除しますか？"
 
@@ -9023,16 +9023,16 @@ msgstr "区切り線の幅"
 #~ msgid "Divider Width"
 #~ msgstr "区切り線の幅"
 
-#: src/components/settings/DomainsSettings.tsx:212
+#: src/components/settings/DomainsSettings.tsx:220
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:91
 msgid "DKIM"
 msgstr "DKIM"
 
-#: src/components/settings/DomainsSettings.tsx:360
+#: src/components/settings/DomainsSettings.tsx:368
 msgid "DKIM keys"
 msgstr "DKIM キー"
 
-#: src/components/settings/DomainsSettings.tsx:182
+#: src/components/settings/DomainsSettings.tsx:190
 msgid "DNS not found · not signing yet"
 msgstr "DNS 未検出 · 署名前"
 
@@ -9044,7 +9044,7 @@ msgstr "DNS 未検出: 署名なしで送信"
 msgid "DNS record"
 msgstr "DNS レコード"
 
-#: src/components/settings/DomainsSettings.tsx:84
+#: src/components/settings/DomainsSettings.tsx:85
 msgid "DNS record found. Emails from {domain} are now signed."
 msgstr "DNS レコードが見つかりました。{domain} からのメールに署名します。"
 
@@ -9112,8 +9112,8 @@ msgid "doesn't equal"
 msgstr "等しくない"
 
 #: src/components/segment/segmentLabels.ts:89
-#: src/components/settings/DomainsSettings.tsx:208
-#: src/components/settings/DomainsSettings.tsx:426
+#: src/components/settings/DomainsSettings.tsx:216
+#: src/components/settings/DomainsSettings.tsx:434
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:746
@@ -9139,7 +9139,7 @@ msgstr "訪問が始まったドメイン (パスが属するドメイン)"
 msgid "Domain the visitor arrived from"
 msgstr "訪問者の流入元ドメイン"
 
-#: src/components/settings/DomainsSettings.tsx:352
+#: src/components/settings/DomainsSettings.tsx:360
 #: src/components/settings/SettingsSidebar.tsx:66
 msgid "Domains"
 msgstr "ドメイン"
@@ -14191,11 +14191,11 @@ msgstr "このブラウザに7日間保存されます。同じファイルを�
 msgid "Key"
 msgstr "キー"
 
-#: src/components/settings/DomainsSettings.tsx:67
+#: src/components/settings/DomainsSettings.tsx:68
 msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
 msgstr "{createdDomain} のキーを作成しました。DNS レコードを公開すると署名が始まります。"
 
-#: src/components/settings/DomainsSettings.tsx:133
+#: src/components/settings/DomainsSettings.tsx:138
 msgid "Key of {domain} deleted"
 msgstr "{domain} のキーを削除しました"
 
@@ -15853,7 +15853,7 @@ msgstr "月次"
 msgid "More actions"
 msgstr "その他の操作"
 
-#: src/components/settings/DomainsSettings.tsx:280
+#: src/components/settings/DomainsSettings.tsx:288
 msgid "More actions for {domain}"
 msgstr "{domain} のその他の操作"
 
@@ -15927,7 +15927,7 @@ msgstr "N/A"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:404
-#: src/components/settings/DomainsSettings.tsx:401
+#: src/components/settings/DomainsSettings.tsx:409
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -16106,7 +16106,7 @@ msgstr "新規フォルダ（読み取り専用モード）"
 msgid "New key"
 msgstr "新しいキー"
 
-#: src/components/settings/DomainsSettings.tsx:112
+#: src/components/settings/DomainsSettings.tsx:117
 msgid "New key created for {domain}. Publish its DNS record."
 msgstr "{domain} の新しいキーを作成しました。DNS レコードを公開してください。"
 
@@ -16490,11 +16490,11 @@ msgstr "デバイスのデータがありません"
 msgid "No dimensions found"
 msgstr "ディメンションが見つかりません"
 
-#: src/components/settings/DomainsSettings.tsx:86
+#: src/components/settings/DomainsSettings.tsx:87
 msgid "No DNS record found for {domain} yet. DNS changes can take a few hours to show."
 msgstr "{domain} の DNS レコードはまだ見つかりません。DNS の変更が反映されるまで数時間かかることがあります。"
 
-#: src/components/settings/DomainsSettings.tsx:320
+#: src/components/settings/DomainsSettings.tsx:328
 msgid "No domains yet"
 msgstr "ドメインはまだありません"
 
@@ -16895,7 +16895,7 @@ msgstr "共有画像なし"
 msgid "No share title"
 msgstr "共有タイトルなし"
 
-#: src/components/settings/DomainsSettings.tsx:237
+#: src/components/settings/DomainsSettings.tsx:245
 msgid "No SMTP integration yet"
 msgstr "SMTP 連携はまだありません"
 
@@ -17129,7 +17129,7 @@ msgstr "ここでは使用できません"
 msgid "not between"
 msgstr "の範囲外"
 
-#: src/components/settings/DomainsSettings.tsx:144
+#: src/components/settings/DomainsSettings.tsx:149
 msgid "Not checked yet"
 msgstr "未確認"
 
@@ -17389,11 +17389,11 @@ msgstr "API、Zapier、Supabase から送信される通知"
 msgid "Notifuse {latest} is available"
 msgstr "Notifuse {latest} が利用可能です"
 
-#: src/components/settings/DomainsSettings.tsx:353
+#: src/components/settings/DomainsSettings.tsx:361
 msgid "Notifuse adds a DKIM signature to the emails your SMTP integrations send from these domains."
 msgstr "SMTP 連携がこれらのドメインから送るメールに、Notifuse が DKIM 署名を付けます。"
 
-#: src/components/settings/DomainsSettings.tsx:427
+#: src/components/settings/DomainsSettings.tsx:435
 msgid "Notifuse creates the key. You publish one DNS record."
 msgstr "キーは Notifuse が作成します。公開する DNS レコードは 1 件です。"
 
@@ -17413,7 +17413,7 @@ msgstr "Notifuseの準備ができました"
 msgid "Notifuse signs each email before handing it to your server, and the signature covers the one-click unsubscribe headers. If your server signs too, both signatures are valid. A key signs only its exact domain."
 msgstr "Notifuse は各メールをサーバーに渡す前に署名します。署名はワンクリック購読解除のヘッダーも対象です。サーバー側でも署名する場合は、両方の署名が有効です。キーが署名するのは、完全に一致するドメインだけです。"
 
-#: src/components/settings/DomainsSettings.tsx:125
+#: src/components/settings/DomainsSettings.tsx:130
 msgid "Notifuse stops signing emails from {domain}. You can then remove its DNS record."
 msgstr "Notifuse は {domain} からのメールへの署名を停止します。その後、DNS レコードを削除できます。"
 
@@ -17745,7 +17745,7 @@ msgstr "パターン A のみ残ります。他のパターンとそのテンプ
 msgid "Only when the same content lives at another address"
 msgstr "同じ内容が別のアドレスにある場合のみ"
 
-#: src/components/settings/DomainsSettings.tsx:188
+#: src/components/settings/DomainsSettings.tsx:196
 msgid "Only workspace owners can manage domains"
 msgstr "ワークスペースオーナーのみがドメインを管理できます"
 
@@ -18806,7 +18806,7 @@ msgstr "カテゴリ名を入力してください"
 msgid "Please enter a custom label"
 msgstr "カスタムラベルを入力してください"
 
-#: src/components/settings/DomainsSettings.tsx:428
+#: src/components/settings/DomainsSettings.tsx:436
 msgid "Please enter a domain"
 msgstr "ドメインを入力してください"
 
@@ -19548,7 +19548,7 @@ msgstr "テーマを公開"
 msgid "Publish theme v{themeVersion}"
 msgstr "テーマ v{themeVersion} を公開"
 
-#: src/components/settings/DomainsSettings.tsx:389
+#: src/components/settings/DomainsSettings.tsx:397
 msgid "Publish this record for {shownName}"
 msgstr "{shownName} 用にこのレコードを公開してください"
 
@@ -19564,7 +19564,7 @@ msgstr "このテーマを公開"
 msgid "Published"
 msgstr "公開済み"
 
-#: src/components/settings/DomainsSettings.tsx:157
+#: src/components/settings/DomainsSettings.tsx:162
 msgid "Published · signing"
 msgstr "公開済み · 署名中"
 
@@ -20002,7 +20002,7 @@ msgstr "再計算"
 msgid "Recomputed every day at 5:00 ({timezone}): it counts rolling days."
 msgstr "毎日 5:00 ({timezone}) に再計算されます (直近の日数で数えるため)。"
 
-#: src/components/settings/DomainsSettings.tsx:149
+#: src/components/settings/DomainsSettings.tsx:154
 msgid "Record missing {failures}/{DKIM_DOWNGRADE_THRESHOLD} · still signing"
 msgstr "レコード未検出 {failures}/{DKIM_DOWNGRADE_THRESHOLD} · 署名継続中"
 
@@ -20106,8 +20106,8 @@ msgstr "リファラー"
 #: src/components/logs/OutgoingWebhooksTab.tsx:154
 #: src/components/logs/OutgoingWebhooksTab.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:434
-#: src/components/settings/DomainsSettings.tsx:368
-#: src/components/settings/DomainsSettings.tsx:372
+#: src/components/settings/DomainsSettings.tsx:376
+#: src/components/settings/DomainsSettings.tsx:380
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
@@ -20154,8 +20154,8 @@ msgstr "Google にはリフレッシュトークンが必要です"
 msgid "Refused: private address"
 msgstr "拒否: プライベートアドレス"
 
-#: src/components/settings/DomainsSettings.tsx:106
-#: src/components/settings/DomainsSettings.tsx:259
+#: src/components/settings/DomainsSettings.tsx:111
+#: src/components/settings/DomainsSettings.tsx:267
 #: src/components/settings/WebhookDetail.tsx:404
 msgid "Regenerate"
 msgstr "再生成"
@@ -20164,7 +20164,7 @@ msgstr "再生成"
 msgid "Regenerate secret?"
 msgstr "シークレットを再生成しますか？"
 
-#: src/components/settings/DomainsSettings.tsx:104
+#: src/components/settings/DomainsSettings.tsx:109
 msgid "Regenerate the key of {domain}?"
 msgstr "{domain} のキーを再生成しますか？"
 
@@ -20872,7 +20872,7 @@ msgstr "ニュースレター <0>{target}</0> の失敗した送信を再試行�
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 #: src/components/segment/SegmentCountCard.tsx:124
-#: src/components/settings/DomainsSettings.tsx:309
+#: src/components/settings/DomainsSettings.tsx:317
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
 #: src/components/settings/WorkspaceMembers.tsx:496
@@ -22151,7 +22151,7 @@ msgstr "選択したディメンション (順序どおり):"
 msgid "Selected: {0}"
 msgstr "選択済み: {0}"
 
-#: src/components/settings/DomainsSettings.tsx:214
+#: src/components/settings/DomainsSettings.tsx:222
 msgid "Selector"
 msgstr "セレクター"
 
@@ -23210,11 +23210,11 @@ msgstr "未サインインの訪問者"
 msgid "Signing out..."
 msgstr "サインアウト中..."
 
-#: src/components/settings/DomainsSettings.tsx:167
+#: src/components/settings/DomainsSettings.tsx:183
 msgid "Signing stopped"
 msgstr "署名停止"
 
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:54
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:55
 msgid "Signing stopped: sent unsigned"
 msgstr "署名停止: 署名なしで送信"
 
@@ -23463,7 +23463,7 @@ msgstr "SMTPプロバイダーは苦情Webhookをサポートしていないた�
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "SMTPプロバイダーは配信Webhookをサポートしていないため、配信ステータスを追跡できません"
 
-#: src/components/settings/DomainsSettings.tsx:266
+#: src/components/settings/DomainsSettings.tsx:274
 msgid "SMTP senders use this domain. Change those senders first."
 msgstr "SMTP の送信者がこのドメインを使用しています。先にそれらの送信者を変更してください。"
 
@@ -23876,7 +23876,7 @@ msgstr "更新を停止しますか？"
 msgid "Stopped"
 msgstr "停止済み"
 
-#: src/components/settings/DomainsSettings.tsx:168
+#: src/components/settings/DomainsSettings.tsx:171
 msgid "Stopped on {date}: {reason}"
 msgstr "{date}に停止: {reason}"
 
@@ -25076,7 +25076,7 @@ msgstr "CSVファイルには見出し行と1行以上のデータ行が必要�
 msgid "The current date range, filters and session threshold"
 msgstr "現在の期間、フィルター、セッションのしきい値"
 
-#: src/components/settings/DomainsSettings.tsx:105
+#: src/components/settings/DomainsSettings.tsx:110
 msgid "The current key and its DNS record stop being used. You will publish a new record."
 msgstr "現在のキーとその DNS レコードは使われなくなります。新しいレコードを公開する必要があります。"
 
@@ -25100,11 +25100,11 @@ msgstr "カスタムテキスト版（{languages}）に配信停止リンクが�
 msgid "The dashboard counts complete days; today's emails show tomorrow"
 msgstr "ダッシュボードは完了した日を集計します。今日のメールは明日表示されます"
 
-#: src/components/settings/DomainsSettings.tsx:91
+#: src/components/settings/DomainsSettings.tsx:92
 msgid "The DNS lookup failed. Try again in a few minutes."
 msgstr "DNS の照会に失敗しました。数分後にもう一度お試しください。"
 
-#: src/components/settings/DomainsSettings.tsx:89
+#: src/components/settings/DomainsSettings.tsx:90
 msgid "The DNS record of {domain} does not match its key: {detail}"
 msgstr "{domain} の DNS レコードがキーと一致しません: {detail}"
 
@@ -25238,7 +25238,7 @@ msgstr "このキーは設定 → チームと APIキー に {0} として表示
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "このキーは設定 → チームに {0} として表示され、そこで権限を広げられます。"
 
-#: src/components/settings/DomainsSettings.tsx:82
+#: src/components/settings/DomainsSettings.tsx:83
 msgid "The key of {domain} changed during the check. The list shows its current state."
 msgstr "確認中に {domain} のキーが変更されました。一覧には現在の状態が表示されています。"
 
@@ -26912,7 +26912,7 @@ msgstr "ダブルオプトインをオフにしても、「保留中」の連絡
 #: src/components/file_manager/FilePreview.tsx:48
 #: src/components/logs/InboundWebhooksTab.tsx:181
 #: src/components/settings/CustomFieldsConfiguration.tsx:190
-#: src/components/settings/DomainsSettings.tsx:397
+#: src/components/settings/DomainsSettings.tsx:405
 #: src/components/settings/GeneralSettings.tsx:196
 msgid "Type"
 msgstr "タイプ"
@@ -27582,7 +27582,7 @@ msgstr "ワークスペースのデフォルトを使用"
 msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "ワークスペースのデフォルト · {defaultIntegrationName}"
 
-#: src/components/settings/DomainsSettings.tsx:228
+#: src/components/settings/DomainsSettings.tsx:236
 #: src/components/templates/TemplateSelectorModal.tsx:665
 msgid "Used by"
 msgstr "使用先"
@@ -27787,7 +27787,7 @@ msgstr "検証エラー"
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:254
 #: src/components/segment/form_leaf.tsx:769
-#: src/components/settings/DomainsSettings.tsx:405
+#: src/components/settings/DomainsSettings.tsx:413
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
 #: src/components/web_analytics/FilterBuilder.tsx:333
@@ -27878,7 +27878,7 @@ msgstr "認証コード"
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "<0>{target}</0> のサインインコードを確認しました"
 
-#: src/components/settings/DomainsSettings.tsx:251
+#: src/components/settings/DomainsSettings.tsx:259
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:542
 msgid "Verify"
 msgstr "確認"
@@ -28919,7 +28919,7 @@ msgstr "テンプレートのマークアップを使って手書きします。
 msgid "Wrong key · not signing"
 msgstr "キー不一致 · 未署名"
 
-#: src/components/settings/integrations/SMTPDkimPanel.tsx:55
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:54
 msgid "Wrong key: sent unsigned"
 msgstr "キー不一致: 署名なしで送信"
 
@@ -29051,7 +29051,7 @@ msgstr "カスタムフィールドを管理する権限がありません"
 msgid "You don't have permission to manage webhooks"
 msgstr "Webhook を管理する権限がありません"
 
-#: src/components/settings/DomainsSettings.tsx:303
+#: src/components/settings/DomainsSettings.tsx:311
 msgid "You don't have permission to view the domains"
 msgstr "ドメインを表示する権限がありません"
 

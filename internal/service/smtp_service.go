@@ -20,6 +20,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/dkim"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/wneessen/go-mail"
+	"golang.org/x/net/idna"
 )
 
 // getSMTPDialTimeout returns the SMTP dial timeout.
@@ -604,6 +605,12 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 
 	smtpSettings := request.Provider.SMTP
 
+	// An internationalized domain goes out in its ASCII form (bücher.de as
+	// xn--bcher-kva.de): the envelope, the EHLO name and the From header carry no
+	// 8-bit text without SMTPUTF8, which this client does not negotiate, and the From
+	// domain then matches the d= of the DKIM signature.
+	request.FromAddress = asciiEmailDomain(request.FromAddress)
+
 	// Create and configure the message using go-mail for MIME composition
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
 
@@ -749,4 +756,24 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	}
 
 	return nil
+}
+
+// asciiEmailDomain returns address with its domain in IDNA ASCII form. An address
+// whose domain is already ASCII, or cannot be converted, is returned as is.
+func asciiEmailDomain(address string) string {
+	at := strings.LastIndex(address, "@")
+	if at < 0 {
+		return address
+	}
+	domainPart := address[at+1:]
+	for i := 0; i < len(domainPart); i++ {
+		if domainPart[i] >= 0x80 {
+			ascii, err := idna.Lookup.ToASCII(domainPart)
+			if err != nil {
+				return address
+			}
+			return address[:at+1] + ascii
+		}
+	}
+	return address
 }

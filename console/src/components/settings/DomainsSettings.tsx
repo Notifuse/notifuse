@@ -32,7 +32,8 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
   const [chosen, setChosen] = useState<string>()
   const [adding, setAdding] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [busy, setBusy] = useState<string>()
+  // The domains whose check is running: several can run at once.
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set())
   const [form] = Form.useForm<{ domain: string }>()
 
   const listQuery = useQuery({
@@ -74,7 +75,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
   }
 
   const handleVerify = async (record: DKIMDomain) => {
-    setBusy(record.domain)
+    setBusy((current) => new Set(current).add(record.domain))
     try {
       const result = await dkimApi.verify(workspaceId, record.domain)
       const domain = record.domain
@@ -94,7 +95,11 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
     } catch (error) {
       message.error(errorText(error))
     } finally {
-      setBusy(undefined)
+      setBusy((current) => {
+        const next = new Set(current)
+        next.delete(record.domain)
+        return next
+      })
     }
   }
 
@@ -159,21 +164,24 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
         </div>
       )
     }
-    if (record.downgraded_at) {
-      const date = formatDate(record.downgraded_at)
-      const reason = record.downgrade_reason ?? ''
-      return (
-        <div className="flex flex-col gap-0.5">
-          <Pill tone="danger">{t`Signing stopped`}</Pill>
-          <span className="text-xs text-ink-3">{t`Stopped on ${date}: ${reason}`}</span>
-        </div>
-      )
-    }
+    // After a downgrade, the latest check says why the key still does not sign; the date
+    // the key stopped stays shown.
+    const reason = record.last_check_error ?? record.downgrade_reason ?? ''
+    const date = record.downgraded_at ? formatDate(record.downgraded_at) : ''
+    const stoppedOn = record.downgraded_at ? t`Stopped on ${date}: ${reason}` : undefined
     if (record.status === 'mismatch') {
       return (
         <div className="flex flex-col gap-0.5">
           <Pill tone="danger">{t`Wrong key · not signing`}</Pill>
-          <span className="text-xs text-ink-3">{record.last_check_error ?? checked}</span>
+          <span className="text-xs text-ink-3">{stoppedOn ?? record.last_check_error ?? checked}</span>
+        </div>
+      )
+    }
+    if (stoppedOn) {
+      return (
+        <div className="flex flex-col gap-0.5">
+          <Pill tone="danger">{t`Signing stopped`}</Pill>
+          <span className="text-xs text-ink-3">{stoppedOn}</span>
         </div>
       )
     }
@@ -247,7 +255,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
         const domain = record.domain
         return (
           <Space size={4} onClick={(event) => event.stopPropagation()}>
-            <Button size="small" loading={busy === record.domain} onClick={() => handleVerify(record)}>
+            <Button size="small" loading={busy.has(record.domain)} onClick={() => handleVerify(record)}>
               {t`Verify`}
             </Button>
             <Dropdown
@@ -381,7 +389,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
         {renderList()}
       </Panel>
 
-      {shown ? (
+      {shown && !listQuery.isError ? (
         <Panel
           className="mt-4"
           title={

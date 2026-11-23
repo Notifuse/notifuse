@@ -81,6 +81,39 @@ func TestDKIMKeyStore_AReadOverlappingAnInvalidateIsNotKept(t *testing.T) {
 	assert.Equal(t, 2, repo.reads, "but not cached: the next call reads again")
 }
 
+// overlappingRepo answers a slow read with old keys, after a second read, started later,
+// stored the new ones.
+type overlappingRepo struct {
+	fakeDKIMRepo
+	store  *DKIMKeyStore
+	nested bool
+}
+
+func (r *overlappingRepo) GetWorkspaceDKIMKeys(ctx context.Context, id string) ([]domain.DKIMKey, error) {
+	if !r.nested {
+		r.nested = true
+		_, _ = r.store.Keys(ctx, id) // the later read, which finds the new state
+		return []domain.DKIMKey{{Domain: "old.io"}}, nil
+	}
+	return []domain.DKIMKey{{Domain: "new.io"}}, nil
+}
+
+func TestDKIMKeyStore_AnOlderReadDoesNotReplaceANewerOne(t *testing.T) {
+	ctx := context.Background()
+	repo := &overlappingRepo{}
+	store := NewDKIMKeyStore(repo, dkimServiceSecret)
+	repo.store = store
+	tick := time.Date(2026, 11, 23, 10, 0, 0, 0, time.UTC)
+	store.now = func() time.Time { tick = tick.Add(time.Second); return tick }
+
+	_, err := store.Keys(ctx, "ws-1")
+	require.NoError(t, err)
+	keys, err := store.Keys(ctx, "ws-1")
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+	assert.Equal(t, "new.io", keys[0].Domain)
+}
+
 func TestDKIMKeyStore_IsBounded(t *testing.T) {
 	ctx := context.Background()
 	store := NewDKIMKeyStore(&fakeDKIMRepo{}, dkimServiceSecret)

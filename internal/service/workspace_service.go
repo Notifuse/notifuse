@@ -40,6 +40,14 @@ type WorkspaceService struct {
 	dnsVerificationService CustomDomainVerifier
 	blogService            *BlogService
 	entitlements           domain.EntitlementProvider
+	// dkimKeys drops the cached DKIM keys of a deleted workspace, so that a workspace
+	// created again under the same ID never signs with them.
+	dkimKeys interface{ Invalidate(workspaceID string) }
+}
+
+// SetDKIMKeyStore gives the service the key store EmailService signs with.
+func (s *WorkspaceService) SetDKIMKeyStore(store interface{ Invalidate(workspaceID string) }) {
+	s.dkimKeys = store
 }
 
 // CustomDomainVerifier checks that a custom endpoint's domain points to this instance.
@@ -702,6 +710,9 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, id string) error
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to delete workspace")
 		return err
+	}
+	if s.dkimKeys != nil {
+		s.dkimKeys.Invalidate(id)
 	}
 
 	return nil

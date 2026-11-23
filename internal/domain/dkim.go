@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/dkim"
 	"golang.org/x/net/idna"
 )
@@ -283,7 +284,9 @@ func CheckDKIMKeys(settingsJSON []byte, globalSecretKey string) error {
 			continue
 		}
 		if _, err := dkim.OpenPrivateKey(k.EncryptedPrivateKey, globalSecretKey); err != nil {
-			return fmt.Errorf("DKIM key of %s: %w", k.Domain, err)
+			// Undecryptable, as CheckStoredWorkspace says it: the secret key rotation
+			// then tells the operator which key to list.
+			return fmt.Errorf("%w: DKIM key of %s: %v", crypto.ErrUndecryptable, k.Domain, err)
 		}
 	}
 	return nil

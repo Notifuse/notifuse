@@ -54,7 +54,8 @@ describe('SMTPDkimPanel', () => {
         key('wrong.io', { status: 'mismatch' }),
         key('stopped.io', { status: 'pending', downgraded_at: '2026-11-20T08:00:00Z' }),
         key('degrading.io', { consecutive_failures: 2 }),
-        key('xn--bcher-kva.de')
+        key('xn--bcher-kva.de'),
+        key('later.io', { status: 'mismatch', downgraded_at: '2026-11-20T08:00:00Z' })
       ]
     })
   })
@@ -68,7 +69,8 @@ describe('SMTPDkimPanel', () => {
       { email: 'a@wrong.io' },
       { email: 'a@stopped.io' },
       { email: 'a@degrading.io' },
-      { email: 'info@bücher.de' }
+      { email: 'info@bücher.de' },
+      { email: 'a@later.io' }
     ])
     await screen.findAllByText('Signed')
     expect(api.get).toHaveBeenCalledWith('/api/workspaces.listDKIMDomains?workspace_id=ws-1')
@@ -81,6 +83,7 @@ describe('SMTPDkimPanel', () => {
     expect(within(rowOf('stopped.io')).getByText('Signing stopped: sent unsigned')).toBeInTheDocument()
     expect(within(rowOf('degrading.io')).getByText('Signed · record missing 2/3')).toBeInTheDocument()
     expect(within(rowOf('xn--bcher-kva.de')).getByText('Signed')).toBeInTheDocument()
+    expect(within(rowOf('later.io')).getByText('Wrong key: sent unsigned')).toBeInTheDocument()
   })
 
   it('links to Settings › Domains', async () => {

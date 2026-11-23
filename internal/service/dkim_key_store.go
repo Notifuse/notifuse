@@ -76,6 +76,10 @@ func (s *DKIMKeyStore) Keys(ctx context.Context, workspaceID string) ([]domain.D
 		// Invalidated during the read: use what was read, but do not keep it.
 		return keys, nil
 	}
+	if existing, held := s.entries[workspaceID]; held && existing.readAt.After(now) {
+		// A read that started later already stored what it found.
+		return keys, nil
+	}
 	if _, held := s.entries[workspaceID]; !held && len(s.entries) >= dkimKeysMaxWorkspaces {
 		for id, e := range s.entries {
 			if now.Sub(e.readAt) >= dkimKeysTTL {

@@ -129,3 +129,30 @@ func TestSMTPService_SendEmail_KeyOfAnotherDomainIsASigningError(t *testing.T) {
 	assert.True(t, errors.Is(err, dkim.ErrSign))
 	assert.Empty(t, server.GetMessages(), "nothing is sent")
 }
+
+func TestSMTPService_SendEmail_InternationalizedSenderDomain(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	request := dkimSMTPRequest(server.Port())
+	request.FromAddress = "news@bücher.de"
+	request.DKIM = dkimSigningKey(t, "xn--bcher-kva.de")
+	require.NoError(t, NewSMTPService(&noopLogger{}).SendEmail(context.Background(), request))
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	assert.Equal(t, "news@xn--bcher-kva.de", messages[0].from, "the envelope carries the ASCII form")
+	assert.Contains(t, server.GetMailFromCommand(), "<news@xn--bcher-kva.de>")
+	message := unstuff(messages[0].data)
+	assert.Regexp(t, regexp.MustCompile(`(?m)^From: .*<news@xn--bcher-kva\.de>\r$`), string(message))
+
+	verifications := verifyDKIM(t, message, "xn--bcher-kva.de")
+	require.Len(t, verifications, 1)
+	assert.NoError(t, verifications[0].Err)
+}
+
+func TestAsciiEmailDomain(t *testing.T) {
+	assert.Equal(t, "news@xn--bcher-kva.de", asciiEmailDomain("news@bücher.de"))
+	assert.Equal(t, "news@acme.io", asciiEmailDomain("news@acme.io"))
+	assert.Equal(t, "no-at-sign", asciiEmailDomain("no-at-sign"))
+}

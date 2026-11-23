@@ -131,7 +131,9 @@ func TestCheckDKIMKeys(t *testing.T) {
 	assert.NoError(t, CheckDKIMKeys(nil, dkimTestSecret))
 	assert.NoError(t, CheckDKIMKeys(settings(), dkimTestSecret))
 	assert.NoError(t, CheckDKIMKeys(settings(DKIMKey{Domain: "acme.io", EncryptedPrivateKey: sealed}), dkimTestSecret))
-	assert.ErrorContains(t, CheckDKIMKeys(settings(DKIMKey{Domain: "acme.io", EncryptedPrivateKey: sealed}), "other-secret"), "acme.io")
+	err = CheckDKIMKeys(settings(DKIMKey{Domain: "acme.io", EncryptedPrivateKey: sealed}), "other-secret")
+	assert.ErrorContains(t, err, "acme.io")
+	assert.ErrorIs(t, err, crypto.ErrUndecryptable, "the secret key rotation tells the operator which key to list")
 	assert.Error(t, CheckDKIMKeys(settings(DKIMKey{Domain: "acme.io", EncryptedPrivateKey: "zz"}), dkimTestSecret))
 	assert.Error(t, CheckDKIMKeys(settings(DKIMKey{Domain: "acme.io", EncryptedPrivateKey: notAKey}), dkimTestSecret))
 }

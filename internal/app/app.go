@@ -1185,6 +1185,7 @@ func (a *App) InitServices() error {
 		a.blogService,
 		a.licenseService,
 	)
+	a.workspaceService.SetDKIMKeyStore(a.dkimKeyStore)
 
 	// Initialize and register segment build processor
 	segmentBuildProcessor := service.NewSegmentBuildProcessor(
