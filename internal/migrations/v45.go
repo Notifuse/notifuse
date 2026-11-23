@@ -60,6 +60,10 @@ func (m *V45Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 	if err := applyDataRetentionSystemV45(ctx, db); err != nil {
 		return err
 	}
+	// MCP access: the tables of the OAuth authorization server (v45_oauth.go).
+	if err := applyOAuthSystemV45(ctx, db); err != nil {
+		return err
+	}
 	return nil
 }
 

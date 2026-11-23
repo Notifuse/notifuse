@@ -2291,7 +2291,7 @@ msgstr "購読解除した受信者について"
 msgid "Accept Invitation"
 msgstr "招待を承諾"
 
-#: src/components/logs/auditPhrases.ts:106
+#: src/components/logs/auditPhrases.ts:110
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> を承諾しました"
 
@@ -2760,7 +2760,7 @@ msgstr "追加日"
 msgid "Added {blockType}"
 msgstr "{blockType} を追加しました"
 
-#: src/components/logs/auditPhrases.ts:110
+#: src/components/logs/auditPhrases.ts:114
 msgid "Added a DKIM domain to <0>{target}</0>"
 msgstr "<0>{target}</0> に DKIM ドメインを追加しました"
 
@@ -2777,7 +2777,7 @@ msgstr "{addedOn} に追加"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "注釈 <0>{target}</0> を追加しました"
 
-#: src/components/logs/auditPhrases.ts:111
+#: src/components/logs/auditPhrases.ts:115
 msgid "Added the integration <0>{target}</0>"
 msgstr "連携 <0>{target}</0> を追加しました"
 
@@ -3824,7 +3824,7 @@ msgstr "ブログの執筆をお手伝いします..."
 #~ msgid "Ask the person who runs this Notifuse instance to install a licence."
 #~ msgstr ""
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:94
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "<0>{target}</0> のサインインコードを要求しました"
 
@@ -5500,7 +5500,7 @@ msgstr "キャンセル済み"
 msgid "Cancelled the data retention change of <0>{target}</0>"
 msgstr "<0>{target}</0> のデータ保持設定の変更を取り消しました"
 
-#: src/components/logs/auditPhrases.ts:115
+#: src/components/logs/auditPhrases.ts:119
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> を取り消しました"
 
@@ -5508,7 +5508,7 @@ msgstr "招待 <0>{target}</0> を取り消しました"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "ニュースレター <0>{target}</0> を中止しました"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:102
 msgid "Cancelled the web analytics backfill"
 msgstr "Webアナリティクスのバックフィルを中止しました"
 
@@ -5689,11 +5689,11 @@ msgstr "{0}のステータスを変更"
 msgid "Change status…"
 msgstr "ステータスを変更…"
 
-#: src/components/logs/auditPhrases.ts:120
+#: src/components/logs/auditPhrases.ts:124
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "<0>{target}</0> の監査ログ保持期間を変更しました"
 
-#: src/components/logs/auditPhrases.ts:121
+#: src/components/logs/auditPhrases.ts:125
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "<0>{target}</0> のブログ設定を変更しました"
 
@@ -5705,19 +5705,19 @@ msgstr "<0>{target}</0> のデータ保持ポリシーを変更しました"
 msgid "Changed the default data retention periods"
 msgstr "デフォルトのデータ保持期間を変更しました"
 
-#: src/components/logs/auditPhrases.ts:138
+#: src/components/logs/auditPhrases.ts:142
 msgid "Changed the list status of the contact <0>{target}</0>"
 msgstr "コンタクト <0>{target}</0> のリストのステータスを変更しました"
 
-#: src/components/logs/auditPhrases.ts:123
+#: src/components/logs/auditPhrases.ts:127
 msgid "Changed the MCP access of <0>{target}</0>"
 msgstr "<0>{target}</0> の MCP アクセスを変更しました"
 
-#: src/components/logs/auditPhrases.ts:124
+#: src/components/logs/auditPhrases.ts:128
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "<0>{target}</0> の権限を変更しました"
 
-#: src/components/logs/auditPhrases.ts:125
+#: src/components/logs/auditPhrases.ts:129
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "<0>{target}</0> のWebアナリティクス設定を変更しました"
 
@@ -5790,7 +5790,7 @@ msgstr "サーバーのログを確認してから、このページを再読み
 msgid "Checked {ago}"
 msgstr "{ago}に確認"
 
-#: src/components/logs/auditPhrases.ts:128
+#: src/components/logs/auditPhrases.ts:132
 msgid "Checked a DKIM record of <0>{target}</0>"
 msgstr "<0>{target}</0> の DKIM レコードを確認しました"
 
@@ -6754,11 +6754,15 @@ msgstr "接続日"
 msgid "Connected apps"
 msgstr "接続済みアプリ"
 
+#: src/components/logs/auditPhrases.ts:68
+msgid "Connected the application <0>{target}</0> with an API key"
+msgstr "APIキーでアプリケーション <0>{target}</0> を接続しました"
+
 #: src/components/setup/SmtpPanel.tsx:111
 msgid "Connected to {target} · {time}"
 msgstr "{target} に接続しました · {time}"
 
-#: src/components/logs/auditPhrases.ts:107
+#: src/components/logs/auditPhrases.ts:111
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "Zapierを連携 <0>{target}</0> として接続しました"
 
@@ -7786,6 +7790,10 @@ msgstr "作成"
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "作成 {0} · 更新 {1}（{2}）"
 
+#: src/components/logs/auditPhrases.ts:69
+msgid "Created an API key for the application <0>{target}</0> and connected it"
+msgstr "アプリケーション <0>{target}</0> 用のAPIキーを作成して接続しました"
+
 #: src/components/contacts/contactColumns.ts:71
 #: src/components/contacts/ContactsTable.tsx:349
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:293
@@ -7820,7 +7828,7 @@ msgstr "作成日 {createdOn}"
 msgid "Created or updated the contact <0>{target}</0>"
 msgstr "コンタクト <0>{target}</0> を作成または更新しました"
 
-#: src/components/logs/auditPhrases.ts:109
+#: src/components/logs/auditPhrases.ts:113
 msgid "Created the API key <0>{target}</0>"
 msgstr "APIキー <0>{target}</0> を作成しました"
 
@@ -7852,23 +7860,23 @@ msgstr "リスト <0>{target}</0> を作成しました"
 msgid "Created the newsletter <0>{target}</0>"
 msgstr "ニュースレター <0>{target}</0> を作成しました"
 
-#: src/components/logs/auditPhrases.ts:68
+#: src/components/logs/auditPhrases.ts:72
 msgid "Created the segment <0>{target}</0>"
 msgstr "セグメント <0>{target}</0> を作成しました"
 
-#: src/components/logs/auditPhrases.ts:78
+#: src/components/logs/auditPhrases.ts:82
 msgid "Created the template <0>{target}</0>"
 msgstr "テンプレート <0>{target}</0> を作成しました"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:85
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "トランザクション通知 <0>{target}</0> を作成しました"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:104
 msgid "Created the webhook <0>{target}</0>"
 msgstr "Webhook <0>{target}</0> を作成しました"
 
-#: src/components/logs/auditPhrases.ts:108
+#: src/components/logs/auditPhrases.ts:112
 msgid "Created the workspace <0>{target}</0>"
 msgstr "ワークスペース <0>{target}</0> を作成しました"
 
@@ -8957,27 +8965,27 @@ msgstr "リスト <0>{target}</0> を削除しました"
 msgid "Deleted the newsletter <0>{target}</0>"
 msgstr "ニュースレター <0>{target}</0> を削除しました"
 
-#: src/components/logs/auditPhrases.ts:76
+#: src/components/logs/auditPhrases.ts:80
 msgid "Deleted the saved block <0>{target}</0>"
 msgstr "保存済みブロック <0>{target}</0> を削除しました"
 
-#: src/components/logs/auditPhrases.ts:69
+#: src/components/logs/auditPhrases.ts:73
 msgid "Deleted the segment <0>{target}</0>"
 msgstr "セグメント <0>{target}</0> を削除しました"
 
-#: src/components/logs/auditPhrases.ts:79
+#: src/components/logs/auditPhrases.ts:83
 msgid "Deleted the template <0>{target}</0>"
 msgstr "テンプレート <0>{target}</0> を削除しました"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:86
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "トランザクション通知 <0>{target}</0> を削除しました"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:105
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "Webhook <0>{target}</0> を削除しました"
 
-#: src/components/logs/auditPhrases.ts:112
+#: src/components/logs/auditPhrases.ts:116
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "ワークスペース <0>{target}</0> を削除しました"
 
@@ -9276,6 +9284,10 @@ msgstr "変更を破棄しますか？"
 #: src/components/settings/Integrations.tsx:524
 msgid "Disconnect"
 msgstr "接続を解除"
+
+#: src/components/logs/auditPhrases.ts:71
+msgid "Disconnected the application <0>{target}</0>"
+msgstr "アプリケーション <0>{target}</0> の接続を解除しました"
 
 #: src/components/contacts/visits/webVisitSource.ts:37
 msgid "Display"
@@ -10882,7 +10894,7 @@ msgstr "ワークスペース名を入力"
 msgid "Entered"
 msgstr "開始"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:99
 msgid "Entered a two-factor code to sign in"
 msgstr "サインインのために二要素認証コードを入力しました"
 
@@ -12822,7 +12834,7 @@ msgstr "編集するまでは名前から自動生成されます"
 msgid "Generated HTML"
 msgstr "生成されたHTML"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:97
 msgid "Generated new recovery codes"
 msgstr "新しいリカバリーコードを生成しました"
 
@@ -14307,7 +14319,7 @@ msgstr "メンバーを招待"
 msgid "Invite your team"
 msgstr "チームを招待"
 
-#: src/components/logs/auditPhrases.ts:116
+#: src/components/logs/auditPhrases.ts:120
 msgid "Invited <0>{target}</0>"
 msgstr "<0>{target}</0> を招待しました"
 
@@ -14538,7 +14550,7 @@ msgstr "セグメント {chip} に参加"
 msgid "Joined segment {segment}"
 msgstr "セグメント {segment} に参加"
 
-#: src/components/logs/auditPhrases.ts:117
+#: src/components/logs/auditPhrases.ts:121
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> で参加しました"
 
@@ -20576,7 +20588,7 @@ msgstr "推論の強度"
 msgid "Rebuild segment"
 msgstr "セグメントを再構築"
 
-#: src/components/logs/auditPhrases.ts:70
+#: src/components/logs/auditPhrases.ts:74
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "セグメント <0>{target}</0> を再構築しました"
 
@@ -20859,11 +20871,11 @@ msgstr "シークレットを再生成しますか？"
 msgid "Regenerate the key of {domain}?"
 msgstr "{domain} のキーを再生成しますか？"
 
-#: src/components/logs/auditPhrases.ts:119
+#: src/components/logs/auditPhrases.ts:123
 msgid "Regenerated a DKIM key of <0>{target}</0>"
 msgstr "<0>{target}</0> の DKIM キーを再生成しました"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:106
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Webhook <0>{target}</0> のシークレットを再生成しました"
 
@@ -20913,7 +20925,7 @@ msgstr "Webhookを登録して返信の転送を設定し、ドメインのMXレ
 msgid "Register webhooks?"
 msgstr "Webhookを登録しますか？"
 
-#: src/components/logs/auditPhrases.ts:105
+#: src/components/logs/auditPhrases.ts:109
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "<0>{target}</0> のプロバイダーWebhookを登録しました"
 
@@ -21117,7 +21129,7 @@ msgstr "パターン {letter} を削除"
 msgid "Removed"
 msgstr "削除済み"
 
-#: src/components/logs/auditPhrases.ts:113
+#: src/components/logs/auditPhrases.ts:117
 msgid "Removed a DKIM domain from <0>{target}</0>"
 msgstr "<0>{target}</0> から DKIM ドメインを削除しました"
 
@@ -21133,11 +21145,11 @@ msgstr "{name} から削除"
 msgid "Removed the contact <0>{target}</0> from a list"
 msgstr "コンタクト <0>{target}</0> をリストから外しました"
 
-#: src/components/logs/auditPhrases.ts:114
+#: src/components/logs/auditPhrases.ts:118
 msgid "Removed the integration <0>{target}</0>"
 msgstr "連携 <0>{target}</0> を削除しました"
 
-#: src/components/logs/auditPhrases.ts:118
+#: src/components/logs/auditPhrases.ts:122
 msgid "Removed the member <0>{target}</0>"
 msgstr "メンバー <0>{target}</0> を削除しました"
 
@@ -21162,7 +21174,7 @@ msgstr "カテゴリの名前またはスラッグを変更する"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "ワークスペースのカスタムコンタクトフィールドのラベルを変更する"
 
-#: src/components/logs/auditPhrases.ts:122
+#: src/components/logs/auditPhrases.ts:126
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "<0>{target}</0> のカスタムフィールド名を変更しました"
 
@@ -21429,7 +21441,7 @@ msgstr "リセットすると、すべてのコンテンツが既定の言語の
 msgid "reset the filter"
 msgstr "フィルターをリセット"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:101
 msgid "Reset the two-factor authentication of <0>{target}</0>"
 msgstr "<0>{target}</0> の二要素認証をリセットしました"
 
@@ -21650,6 +21662,10 @@ msgstr "再試行中"
 #: src/components/settings/PermissionScopePresets.tsx:54
 msgid "Revoke all"
 msgstr "すべて取り消す"
+
+#: src/components/logs/auditPhrases.ts:70
+msgid "Revoked a token issued to the application <0>{target}</0>"
+msgstr "アプリケーション <0>{target}</0> に発行されたトークンを取り消しました"
 
 #: src/components/email_builder/ui/fields/BorderField.tsx:96
 msgid "Ridge"
@@ -22149,7 +22165,7 @@ msgstr "保存済みブロックはワークスペースのすべてのテンプ
 msgid "Saved on its own: the server does not restart."
 msgstr "この設定は個別に保存されます。サーバーは再起動しません。"
 
-#: src/components/logs/auditPhrases.ts:75
+#: src/components/logs/auditPhrases.ts:79
 msgid "Saved the block <0>{target}</0>"
 msgstr "ブロック <0>{target}</0> を保存しました"
 
@@ -23275,7 +23291,7 @@ msgctxt "newsletter status"
 msgid "Sent"
 msgstr "送信済み"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:88
 msgid "Sent a test email of the template <0>{target}</0>"
 msgstr "テンプレート <0>{target}</0> のテストメールを送信しました"
 
@@ -23328,7 +23344,7 @@ msgstr "ニュースレター <0>{target}</0> を下書きに戻しました"
 msgid "Sent the newsletter <0>{target}</0> to one recipient"
 msgstr "ニュースレター <0>{target}</0> を1人の受信者に送信しました"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:87
 msgid "Sent the transactional notification <0>{target}</0>"
 msgstr "トランザクション通知 <0>{target}</0> を送信しました"
 
@@ -23671,7 +23687,7 @@ msgstr "メールプロバイダーを設定"
 msgid "Set up sending"
 msgstr "送信の設定"
 
-#: src/components/logs/auditPhrases.ts:74
+#: src/components/logs/auditPhrases.ts:78
 msgid "Set up this Notifuse installation"
 msgstr "このNotifuseインストールをセットアップしました"
 
@@ -24025,7 +24041,7 @@ msgstr "<0>{target}</0> のアップロードURLに署名しました"
 #~ msgid "Signed in as <0>{target}</0>"
 #~ msgstr "<0>{target}</0> としてサインインしました"
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:93
 msgid "Signed in as root <0>{target}</0>"
 msgstr "root <0>{target}</0> としてサインインしました"
 
@@ -24033,8 +24049,8 @@ msgstr "root <0>{target}</0> としてサインインしました"
 #~ msgid "Signed in with"
 #~ msgstr "サインイン方法"
 
-#: src/components/logs/auditPhrases.ts:87
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:92
 msgid "Signed in with single sign-on"
 msgstr "シングルサインオンでサインインしました"
 
@@ -24042,7 +24058,7 @@ msgstr "シングルサインオンでサインインしました"
 #~ msgid "Signed in with single sign-on as <0>{target}</0>"
 #~ msgstr "<0>{target}</0> としてシングルサインオンでサインインしました"
 
-#: src/components/logs/auditPhrases.ts:86
+#: src/components/logs/auditPhrases.ts:90
 msgid "Signed out"
 msgstr "サインアウトしました"
 
@@ -24115,7 +24131,7 @@ msgstr "シングルサインオンでは、お使いのメールドメインの
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "シングルサインオンに失敗しました。もう一度お試しいただくか、マジックコードをご利用ください。"
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:41
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "シングルサインオンがオンになっていますが、このデプロイメントのライセンスには含まれていません。"
 
@@ -24609,11 +24625,11 @@ msgstr "開始済み"
 msgid "Started from “{0}”"
 msgstr "「{0}」から作成"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:98
 msgid "Started setting up an authenticator app"
 msgstr "認証アプリの設定を開始しました"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:103
 msgid "Started the web analytics backfill"
 msgstr "Webアナリティクスのバックフィルを開始しました"
 
@@ -24937,7 +24953,7 @@ msgstr "{name} を再購読"
 msgid "Subscribed on: {0}"
 msgstr "登録日: {0}"
 
-#: src/components/logs/auditPhrases.ts:139
+#: src/components/logs/auditPhrases.ts:143
 msgid "Subscribed the contact <0>{target}</0> to a list"
 msgstr "コンタクト <0>{target}</0> をリストに登録しました"
 
@@ -26373,7 +26389,7 @@ msgstr "サーバーからテンプレートが返されませんでした"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "このサイトは他のページ内での表示を拒否しています。これは一般的なセキュリティ設定です。表示するには新しいタブで開いてください。"
 
-#: src/components/license/SsoLicenceNotice.tsx:45
+#: src/components/license/SsoLicenceNotice.tsx:42
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
 msgstr "SSOを含むライセンスがインストールされるまで、サインインページにSSOボタンは表示されません。それまでは全員がログインコードでサインインします。サインインできなくなる人はおらず、終了したセッションもありません。"
 
@@ -27890,19 +27906,19 @@ msgstr "ブログの有効・無効を切り替え、そのタイトル、SEO、
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Webアナリティクスの有効・無効を切り替え、許可するドメイン、フィルター、カスタムディメンションのラベル、メールリンクによる識別を変更する"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:95
 msgid "Turned off two-factor authentication"
 msgstr "二要素認証を無効にしました"
 
-#: src/components/logs/auditPhrases.ts:72
+#: src/components/logs/auditPhrases.ts:76
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "<0>{target}</0> のAmazon SESテナント分離を有効にしました"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:96
 msgid "Turned on two-factor authentication"
 msgstr "二要素認証を有効にしました"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:107
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Webhook <0>{target}</0> をオンまたはオフにしました"
 
@@ -28351,7 +28367,7 @@ msgstr "ブログ記事 <0>{target}</0> を更新しました"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "ブログテーマ <0>{target}</0> を更新しました"
 
-#: src/components/logs/auditPhrases.ts:127
+#: src/components/logs/auditPhrases.ts:131
 msgid "Updated the integration <0>{target}</0>"
 msgstr "連携 <0>{target}</0> を更新しました"
 
@@ -28367,11 +28383,11 @@ msgstr "ニュースレター <0>{target}</0> を更新しました"
 msgid "Updated the preview text"
 msgstr "プレビューテキストを更新しました"
 
-#: src/components/logs/auditPhrases.ts:77
+#: src/components/logs/auditPhrases.ts:81
 msgid "Updated the saved block <0>{target}</0>"
 msgstr "保存済みブロック <0>{target}</0> を更新しました"
 
-#: src/components/logs/auditPhrases.ts:71
+#: src/components/logs/auditPhrases.ts:75
 msgid "Updated the segment <0>{target}</0>"
 msgstr "セグメント <0>{target}</0> を更新しました"
 
@@ -28383,23 +28399,23 @@ msgstr "件名を更新しました"
 msgid "Updated the subject and the preview text"
 msgstr "件名とプレビューテキストを更新しました"
 
-#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:77
 msgid "Updated the system settings"
 msgstr "システム設定を更新しました"
 
-#: src/components/logs/auditPhrases.ts:80
+#: src/components/logs/auditPhrases.ts:84
 msgid "Updated the template <0>{target}</0>"
 msgstr "テンプレート <0>{target}</0> を更新しました"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:89
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "トランザクション通知 <0>{target}</0> を更新しました"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:108
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Webhook <0>{target}</0> を更新しました"
 
-#: src/components/logs/auditPhrases.ts:126
+#: src/components/logs/auditPhrases.ts:130
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "ワークスペース <0>{target}</0> の設定を更新しました"
 
@@ -28928,7 +28944,7 @@ msgstr "パターン"
 msgid "Verification code"
 msgstr "認証コード"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:100
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "<0>{target}</0> のサインインコードを確認しました"
 

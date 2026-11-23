@@ -14,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	mocks "github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/pkg/logger"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
@@ -2034,4 +2035,81 @@ func TestApiKeyEmailDomain(t *testing.T) {
 	for endpoint, want := range cases {
 		assert.Equal(t, want, apiKeyEmailDomain(endpoint), endpoint)
 	}
+}
+
+// CreateAPIKeyWith runs the rules of CreateAPIKey and hands the key's rows to the caller,
+// which writes them in its own transaction: no repository write of its own, no token.
+func TestWorkspaceService_CreateAPIKeyWith(t *testing.T) {
+	newService := func(t *testing.T, licensed bool) (*WorkspaceService, *mocks.MockAuthService) {
+		ctrl := gomock.NewController(t)
+		auth := mocks.NewMockAuthService(ctrl)
+		provider := fullyLicensedProvider(ctrl)
+		if !licensed {
+			provider = staticEntitlements{domain.CommunityEntitlements()}
+		}
+		// The user and workspace repositories are mocks expecting nothing: the store
+		// callback is the only writer.
+		svc := NewWorkspaceService(mocks.NewMockWorkspaceRepository(ctrl), mocks.NewMockUserRepository(ctrl), nil,
+			logger.NewLoggerWithLevel("disabled"), nil, auth, nil, &config.Config{APIEndpoint: "https://api.example.com"},
+			nil, nil, nil, nil, nil, "", nil, nil, nil, provider, WorkspaceInvitationAuth{})
+		return svc, auth
+	}
+	owner := func(auth *mocks.MockAuthService, role string) {
+		auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws1").
+			Return(context.Background(), &domain.User{ID: "owner-1", Type: domain.UserTypeUser}, &domain.UserWorkspace{UserID: "owner-1", WorkspaceID: "ws1", Role: role}, nil)
+	}
+
+	t.Run("hands the rows to store and mints no token", func(t *testing.T) {
+		svc, auth := newService(t, false)
+		owner(auth, "owner")
+		var storedKey *domain.User
+		var storedMembership *domain.UserWorkspace
+		key, err := svc.CreateAPIKeyWith(context.Background(), "ws1", "claude-agent", nil, func(_ context.Context, k *domain.User, m *domain.UserWorkspace) error {
+			storedKey, storedMembership = k, m
+			return nil
+		})
+		require.NoError(t, err)
+		assert.Equal(t, storedKey, key)
+		assert.Equal(t, "claude-agent@api.example.com", key.Email)
+		assert.Equal(t, domain.UserTypeAPIKey, key.Type)
+		assert.Equal(t, "member", storedMembership.Role)
+		assert.Equal(t, key.ID, storedMembership.UserID)
+		assert.Equal(t, domain.NewFullPermissions(), storedMembership.Permissions)
+	})
+
+	t.Run("a restricted set needs rbac, checked before store", func(t *testing.T) {
+		svc, auth := newService(t, false)
+		owner(auth, "owner")
+		_, err := svc.CreateAPIKeyWith(context.Background(), "ws1", "agent", domain.UserPermissions{domain.PermissionResourceContacts: {Read: true}}, func(context.Context, *domain.User, *domain.UserWorkspace) error {
+			t.Fatal("store must not run")
+			return nil
+		})
+		var notLicensed *domain.ErrFeatureNotLicensed
+		assert.ErrorAs(t, err, &notLicensed)
+	})
+
+	t.Run("a member is refused before store", func(t *testing.T) {
+		svc, auth := newService(t, true)
+		owner(auth, "member")
+		_, err := svc.CreateAPIKeyWith(context.Background(), "ws1", "agent", nil, func(context.Context, *domain.User, *domain.UserWorkspace) error {
+			t.Fatal("store must not run")
+			return nil
+		})
+		var unauthorized *domain.ErrUnauthorized
+		assert.ErrorAs(t, err, &unauthorized)
+	})
+
+	t.Run("a store failure is returned, a duplicate address named", func(t *testing.T) {
+		svc, auth := newService(t, true)
+		owner(auth, "owner")
+		_, err := svc.CreateAPIKeyWith(context.Background(), "ws1", "agent", nil, func(context.Context, *domain.User, *domain.UserWorkspace) error {
+			return &domain.ErrUserExists{Message: "user already exists"}
+		})
+		assert.ErrorContains(t, err, "api key email already in use")
+		owner(auth, "owner")
+		_, err = svc.CreateAPIKeyWith(context.Background(), "ws1", "agent", nil, func(context.Context, *domain.User, *domain.UserWorkspace) error {
+			return errors.New("disk full")
+		})
+		assert.ErrorContains(t, err, "disk full")
+	})
 }

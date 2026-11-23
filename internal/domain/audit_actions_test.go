@@ -69,7 +69,7 @@ func TestAuditCatalogue_ExcludesTheDataPlane(t *testing.T) {
 
 func TestAuditActionCatalogue_SortedUniqueAndComplete(t *testing.T) {
 	catalogue := AuditActionCatalogue()
-	require.Len(t, catalogue, len(AuditedActions)+len(AuditLoggedReads)+len(MCPAuditedActions)+len(AuditSystemActions))
+	require.Len(t, catalogue, len(AuditedActions)+len(AuditLoggedReads)+len(MCPAuditedActions)+len(AuditSelfRecordedRoutes)+len(AuditSystemActions))
 
 	names := make([]string, len(catalogue))
 	seen := make(map[string]struct{}, len(catalogue))
@@ -243,5 +243,45 @@ func TestMCPAuditedActions_AreExcludedAPIRoutesOnly(t *testing.T) {
 		assert.True(t, excluded, "%s is not an excluded API route", route)
 		_, audited := AuditedActions[route]
 		assert.False(t, audited, "%s is audited on the API already", route)
+	}
+}
+
+// The OAuth server writes its own rows, in the workspace of the grant's key:
+// its routes are a fourth list, apart from the three the middleware reads.
+func TestAuditSelfRecordedRoutes_AreTheOAuthEvents(t *testing.T) {
+	assert.Equal(t, map[string]AuditActionSpec{
+		"oauth.approveWithKey":      {Category: "api_keys", TargetType: "oauth_grant"},
+		"oauth.createKeyAndApprove": {Category: "api_keys", TargetType: "oauth_grant"},
+		"oauth.revokeGrant":         {Category: "api_keys", TargetType: "oauth_grant"},
+		"oauth.revoke":              {Category: "api_keys", TargetType: "oauth_grant"},
+	}, AuditSelfRecordedRoutes)
+	assert.Equal(t, "oauth", AuditAuthOAuth)
+
+	for route := range AuditSelfRecordedRoutes {
+		_, audited := AuditedActions[route]
+		_, read := AuditLoggedReads[route]
+		_, excluded := AuditExcludedRoutes[route]
+		_, mcpOnly := MCPAuditedActions[route]
+		_, system := AuditSystemActions[route]
+		assert.False(t, audited || read || excluded || mcpOnly || system, "%s is self-recorded and in another list", route)
+	}
+	// The reads and the denial create nothing and write no row.
+	for _, route := range []string{"oauth.getAuthorizationRequest", "oauth.listWorkspaceGrants", "oauth.deny"} {
+		_, selfRecorded := AuditSelfRecordedRoutes[route]
+		assert.False(t, selfRecorded, route)
+		_, excluded := AuditExcludedRoutes[route]
+		assert.True(t, excluded, "%s must be excluded", route)
+	}
+}
+
+// The OAuth events are in the catalogue, so the console can name and filter
+// them.
+func TestAuditActionCatalogue_ListsTheOAuthEvents(t *testing.T) {
+	byAction := map[string]AuditActionDescriptor{}
+	for _, descriptor := range AuditActionCatalogue() {
+		byAction[descriptor.Action] = descriptor
+	}
+	for _, action := range []string{"oauth.approveWithKey", "oauth.createKeyAndApprove", "oauth.revokeGrant", "oauth.revoke"} {
+		assert.Equal(t, AuditActionDescriptor{Action: action, Category: "api_keys", TargetType: "oauth_grant"}, byAction[action], action)
 	}
 }
