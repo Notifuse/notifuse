@@ -97,6 +97,21 @@ func (mr *MockDataRetentionRepositoryMockRecorder) CountExpiredContacts(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountExpiredContacts", reflect.TypeOf((*MockDataRetentionRepository)(nil).CountExpiredContacts), arg0, arg1, arg2)
 }
 
+// CustomEventNames mocks base method.
+func (m *MockDataRetentionRepository) CustomEventNames(arg0 context.Context, arg1 string, arg2 int) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CustomEventNames", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CustomEventNames indicates an expected call of CustomEventNames.
+func (mr *MockDataRetentionRepositoryMockRecorder) CustomEventNames(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CustomEventNames", reflect.TypeOf((*MockDataRetentionRepository)(nil).CustomEventNames), arg0, arg1, arg2)
+}
+
 // DeleteExpiredContacts mocks base method.
 func (m *MockDataRetentionRepository) DeleteExpiredContacts(arg0 context.Context, arg1, arg2 string, arg3 domain.ExpiredContactsQuery, arg4 []string) ([]string, int64, error) {
 	m.ctrl.T.Helper()

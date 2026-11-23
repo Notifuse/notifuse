@@ -40,7 +40,7 @@ describe('SETTINGS_GROUPS', () => {
       ['general', 'team'],
       ['integrations', 'domains', 'webhooks', 'smtp-bridge'],
       ['custom-fields', 'blog', 'web-analytics'],
-      ['audit-logs', 'licence', 'danger-zone']
+      ['audit-logs', 'data-retention', 'licence', 'danger-zone']
     ])
     expect(SETTINGS_SECTIONS).toEqual([
       'general',
@@ -53,6 +53,7 @@ describe('SETTINGS_GROUPS', () => {
       'blog',
       'web-analytics',
       'audit-logs',
+      'data-retention',
       'licence',
       'danger-zone'
     ])
@@ -77,6 +78,7 @@ describe('SettingsSidebar', () => {
       'Blog',
       'Web analytics',
       'Audit log',
+      'Data retention',
       'Licence',
       'Danger zone'
     ])

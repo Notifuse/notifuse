@@ -236,3 +236,12 @@ func TestWorkspaceRepository_SetDataRetentionSettings(t *testing.T) {
 		assert.ErrorAs(t, err, &notFound)
 	})
 }
+
+func TestDataRetentionRepository_CustomEventNames(t *testing.T) {
+	repo, mock := setupDataRetentionTest(t)
+	mock.ExpectQuery(`(?s)WITH RECURSIVE names AS .*WHERE c.event_name > n.event_name ORDER BY c.event_name LIMIT 1.*LIMIT \$1`).
+		WithArgs(200).WillReturnRows(sqlmock.NewRows([]string{"event_name"}).AddRow("login").AddRow("purchase"))
+	names, err := repo.CustomEventNames(context.Background(), "ws", 200)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"login", "purchase"}, names)
+}
