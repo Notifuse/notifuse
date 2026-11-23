@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Nothing re-subscribes a contact who opted out of a list any more. An automation's add-to-list step and `contactLists.updateStatus` could set an unsubscribed contact back to active, and the console could also revive a bounced or complained one. The add-to-list step now leaves them as they are and says so in its output, and a status change out of an opt-out returns 409. A form post with the address of a contact who unsubscribed no longer sets them to pending: it only sends the list's confirmation email, whose link brings them back.
 
+- **Fix**: The Japanese console now uses one word for each thing: contacts are コンタクト on every screen (some said 連絡先), goals ゴール, integrations 連携, unsubscribing 購読解除, the SMTP bridge SMTPリレー, web analytics Webアナリティクス and telemetry テレメトリー, and Japanese text no longer puts a space before or after a Latin word or a number. Three labels that shared one translation now have their own: sending a broadcast now reads 今すぐ (it read 現在, "current"), the source of an incoming webhook reads 送信元 (it used the web traffic source's 流入元), and the region in the web analytics settings reads 地域 (it used the AWS region's リージョン).
+
 - **Fix**: The Gmail app on iOS no longer shows a broken-image icon at the bottom of emails with open tracking. The tracking pixel was a PNG with truncated pixel data, which Gmail could not display; it is now a valid transparent PNG. Opens were recorded correctly all along.
 
 ## [44.0] - 2026-11-19

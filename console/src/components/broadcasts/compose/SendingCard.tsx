@@ -85,7 +85,7 @@ export function SendingCard({ values, onChange, booked, workspaceTimezone }: Sen
     <Panel title={t({ message: 'Sending', context: 'section' })} icon={<Send size={14} />}>
       <div className="flex flex-col gap-3">
         <div role="radiogroup" aria-label={t`When to send`} className="flex gap-3">
-          {choice('now', t`Now`, t`Starts as soon as you send it`, <Send size={14} />)}
+          {choice('now', t({ message: 'Now', context: 'send' }), t`Starts as soon as you send it`, <Send size={14} />)}
           {choice('schedule', t`Schedule`, t`At a date and time you choose`, <CalendarClock size={14} />)}
         </div>
         {values.sendChoice === 'schedule' ? (

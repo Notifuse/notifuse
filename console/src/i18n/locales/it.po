@@ -17291,12 +17291,16 @@ msgid "notifuse-…"
 msgstr "notifuse-…"
 
 #: src/components/broadcasts/compose/PreviewPanel.tsx:102
-#: src/components/broadcasts/compose/SendingCard.tsx:88
-#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
 #: src/components/broadcasts/detail/EngagementChart.tsx:74
 #: src/components/templates/TemplateSettingsAside.tsx:105
 #: src/components/templates/TemplateSettingsAside.tsx:130
 #: src/components/templates/TemplateTranslationsTab.tsx:417
+msgid "Now"
+msgstr "Ora"
+
+#: src/components/broadcasts/compose/SendingCard.tsx:88
+#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
+msgctxt "send"
 msgid "Now"
 msgstr "Ora"
 
@@ -20037,7 +20041,11 @@ msgstr "Ha rigenerato il secret del webhook <0>{target}</0>"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:756
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:759
 #: src/components/settings/integrations/providerDetails.ts:145
+msgid "Region"
+msgstr "Regione"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:358
+msgctxt "geo"
 msgid "Region"
 msgstr "Regione"
 
@@ -23399,10 +23407,14 @@ msgstr "Qualcuno ha salvato la versione {0} mentre stavi modificando (sei partit
 msgid "Something went wrong"
 msgstr "Qualcosa è andato storto"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:273
 #: src/components/logs/InboundWebhooksTab.tsx:176
 #: src/components/logs/InboundWebhooksTab.tsx:254
 #: src/components/logs/InboundWebhooksTab.tsx:386
+msgid "Source"
+msgstr "Sorgente"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:273
+msgctxt "traffic"
 msgid "Source"
 msgstr "Sorgente"
 
