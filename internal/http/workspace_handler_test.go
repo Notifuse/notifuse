@@ -79,6 +79,7 @@ var demoRestrictedWorkspaceRoutes = []string{
 	"/api/workspaces.setCustomFieldLabels",
 	"/api/workspaces.setBlogSettings",
 	"/api/workspaces.setWebAnalyticsSettings",
+	"/api/workspaces.setMCPSettings",
 	"/api/workspaces.createIntegration",
 	"/api/workspaces.updateIntegration",
 	"/api/workspaces.deleteIntegration",
@@ -4711,4 +4712,101 @@ func TestWorkspaceHandler_HandleUpdate_ValidationErrorKeepsItsBareMessage(t *tes
 	var response map[string]string
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
 	assert.Equal(t, "DNS verification failed for track.example.com", response["error"])
+}
+
+func TestWorkspaceHandler_SetMCPSettings(t *testing.T) {
+	post := func(t *testing.T, mux *http.ServeMux, token, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setMCPSettings", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		return rec
+	}
+
+	t.Run("closed in demo mode before the service is reached", func(t *testing.T) {
+		_, _, demoMux, secretKey, _ := setupDemoTest(t)
+		rec := post(t, demoMux, createTestToken(t, secretKey, "owner"), `{"workspace_id":"ws1","disabled":true}`)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Contains(t, rec.Body.String(), demoRestrictedError)
+	})
+
+	t.Run("requires authentication", func(t *testing.T) {
+		_, _, mux, _, _ := setupTest(t)
+		rec := post(t, mux, "", `{"workspace_id":"ws1","disabled":true}`)
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("only POST", func(t *testing.T) {
+		_, _, mux, secretKey, _ := setupTest(t)
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.setMCPSettings", nil)
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "owner"))
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+	})
+
+	t.Run("malformed and incomplete bodies are 400s", func(t *testing.T) {
+		_, _, mux, secretKey, _ := setupTest(t)
+		token := createTestToken(t, secretKey, "owner")
+		for _, body := range []string{`{`, `{"disabled":true}`, `{"workspace_id":"ws1"}`} {
+			rec := post(t, mux, token, body)
+			assert.Equal(t, http.StatusBadRequest, rec.Code, body)
+		}
+	})
+
+	t.Run("the owner's setting is stored and answered", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().SetMCPSettings(gomock.Any(), "ws1", &domain.MCPSettings{Disabled: true}).
+			Return(&domain.MCPSettings{Disabled: true}, nil)
+
+		rec := post(t, mux, createTestToken(t, secretKey, "owner"), `{"workspace_id":"ws1","disabled":true}`)
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{"mcp":{"disabled":true}}`, rec.Body.String())
+	})
+
+	t.Run("switching back on answers the stored value", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().SetMCPSettings(gomock.Any(), "ws1", &domain.MCPSettings{Disabled: false}).
+			Return(&domain.MCPSettings{Disabled: false}, nil)
+
+		rec := post(t, mux, createTestToken(t, secretKey, "owner"), `{"workspace_id":"ws1","disabled":false}`)
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{"mcp":{"disabled":false}}`, rec.Body.String())
+	})
+
+	t.Run("a member or an API key is refused with 403", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().SetMCPSettings(gomock.Any(), "ws1", gomock.Any()).
+			Return(nil, &domain.ErrUnauthorized{Message: "Only workspace owners can change MCP access"}).Times(2)
+
+		for _, token := range []string{createTestToken(t, secretKey, "member"), createTestAPIKeyToken(t, secretKey, "key")} {
+			rec := post(t, mux, token, `{"workspace_id":"ws1","disabled":true}`)
+			assert.Equal(t, http.StatusForbidden, rec.Code)
+			assert.Contains(t, rec.Body.String(), "Only workspace owners can change MCP access")
+		}
+	})
+
+	t.Run("a non-member is refused with 403", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().SetMCPSettings(gomock.Any(), "ws1", gomock.Any()).
+			Return(nil, fmt.Errorf("failed to authenticate user: %w", domain.ErrUserNotInWorkspace))
+
+		rec := post(t, mux, createTestToken(t, secretKey, "stranger"), `{"workspace_id":"ws1","disabled":true}`)
+		assert.Equal(t, http.StatusForbidden, rec.Code)
+	})
+
+	t.Run("a revoked key is a 401, a failure a 500", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().SetMCPSettings(gomock.Any(), "ws1", gomock.Any()).
+			Return(nil, fmt.Errorf("failed to authenticate user: %w", domain.ErrAPIKeyRevoked))
+		rec := post(t, mux, createTestAPIKeyToken(t, secretKey, "key"), `{"workspace_id":"ws1","disabled":true}`)
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+		workspaceSvc.EXPECT().SetMCPSettings(gomock.Any(), "ws1", gomock.Any()).Return(nil, errors.New("db"))
+		rec = post(t, mux, createTestToken(t, secretKey, "owner"), `{"workspace_id":"ws1","disabled":true}`)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
 }

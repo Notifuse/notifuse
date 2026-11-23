@@ -205,9 +205,15 @@ func TestWebhookRedelivery(t *testing.T) {
 		require.NoError(t, err)
 		return message.ID
 	}
+	// clearBounce is the console's Re-subscribe on a bounced row: the one write that
+	// leaves a bounce.
 	clearBounce := func(t *testing.T, email string) {
 		t.Helper()
-		require.NoError(t, contactListRepo.UpdateContactListStatus(bg, workspace.ID, email, list.ID, domain.ContactListStatusActive))
+		written, err := contactListRepo.ResubscribeContactToList(bg, workspace.ID, &domain.ContactList{
+			Email: email, ListID: list.ID, Status: domain.ContactListStatusActive,
+		}, true)
+		require.NoError(t, err)
+		require.True(t, written)
 	}
 	// unapplied puts the row back as it was before the event's delivery applied anything,
 	// unchanged since the event was stored: the state a delivery that failed after storing
@@ -253,9 +259,13 @@ func TestWebhookRedelivery(t *testing.T) {
 
 		post(t, mailjetURL, body)
 		require.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, email))
-		require.NoError(t, contactListRepo.AddContactToList(bg, workspace.ID, &domain.ContactList{
+		// Subscribed again on purpose: the resubscribe write, since an ordinary add keeps
+		// an unsubscribe.
+		written, err := contactListRepo.ResubscribeContactToList(bg, workspace.ID, &domain.ContactList{
 			Email: email, ListID: list.ID, Status: domain.ContactListStatusActive,
-		}))
+		}, false)
+		require.NoError(t, err)
+		require.True(t, written)
 
 		post(t, mailjetURL, body)
 

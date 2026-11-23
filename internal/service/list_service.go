@@ -265,11 +265,18 @@ func membershipResult(contactList *domain.ContactList, listName string) *domain.
 //
 // The resulting status is the part a caller cannot predict: a list in double
 // opt-in lands an unauthenticated subscriber on 'pending', a contact who had
-// unsubscribed is forced back through double opt-in whatever the list's setting,
-// and a bounced or complained address is refused outright, both even once the
-// contact was removed from the list. A caller told only
-// that the request succeeded cannot tell any of those apart from a contact who is
-// now reachable.
+// unsubscribed stays unsubscribed unless the request says so, and a bounced or
+// complained address is refused outright, all even once the contact was removed
+// from the list. A caller told only that the request succeeded cannot tell any of
+// those apart from a contact who is now reachable.
+//
+// Nothing re-subscribes a contact who unsubscribed implicitly. A bearer-token call
+// does it only with payload.Resubscribe, which sets the row active with no double
+// opt-in and is recorded in the audit log (AuditResubscribedListIDs). A signed
+// request (a valid email_hmac: the notification center or the confirmation link) is
+// the contact's own and sets the row active. An anonymous form post leaves the row
+// unsubscribed; when the list has a confirmation template it sends the confirmation,
+// whose signed link then brings the contact back.
 //
 // Every requested list gets exactly one entry, including the paths that write
 // nothing — being already active, or bounced, is an outcome the caller has to be
@@ -281,6 +288,16 @@ func membershipResult(contactList *domain.ContactList, listName string) *domain.
 // 3. Frontend (unauthenticated with email)
 func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *domain.SubscribeToListsRequest, hasBearerToken bool) ([]*domain.ContactList, error) {
 	var err error
+
+	// Lists a bearer-token caller re-subscribed the contact to with the resubscribe
+	// flag, for the audit entry. The record is read now: ctx is replaced below.
+	audit := domain.AuditFromContext(ctx)
+	var resubscribedListIDs []string
+	defer func() {
+		if len(resubscribedListIDs) > 0 {
+			audit.AddMetadata(domain.AuditResubscribedListIDs, resubscribedListIDs)
+		}
+	}()
 
 	// fail silently if the email is disposable
 	if disposable_emails.IsDisposableEmail(payload.Contact.Email) {
@@ -361,6 +378,26 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		return nil, fmt.Errorf("failed to get lists: %w", err)
 	}
 
+	// Every requested list must exist before anything is written, so a request naming a
+	// missing list fails whole instead of after subscribing (or re-subscribing) the
+	// contact to the lists before it.
+	for _, listID := range payload.ListIDs {
+		found := false
+		for _, l := range lists {
+			if l.ID == listID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			s.logger.WithField("list_id", listID).Error("List not found")
+			// Typed, so the handler can answer 404 and name the list. A Zap or a
+			// script outliving the list it points at is the ordinary way here, and
+			// an untyped error made that an unexplained 500.
+			return nil, &domain.ErrListNotFound{Message: fmt.Sprintf("list %s not found", listID)}
+		}
+	}
+
 	// One entry per requested list, in the order they were asked for.
 	results := make([]*domain.ContactList, 0, len(payload.ListIDs))
 
@@ -376,10 +413,7 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		}
 
 		if list == nil {
-			s.logger.WithField("list_id", listID).Error("List not found")
-			// Typed, so the handler can answer 404 and name the list. A Zap or a
-			// script outliving the list it points at is the ordinary way here, and
-			// an untyped error made that an unexplained 500.
+			// Checked above; kept so a list can never be dereferenced nil.
 			return nil, &domain.ErrListNotFound{Message: fmt.Sprintf("list %s not found", listID)}
 		}
 
@@ -415,7 +449,8 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		}
 
 		skipDBWrite := false
-		forceDoubleOptin := false
+		// The write leaves an unsubscribe, which only ResubscribeContactToList does.
+		resubscribe := false
 
 		if existingCL != nil {
 			switch existingCL.Status {
@@ -442,8 +477,29 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 				results = append(results, membershipResult(existingCL, list.Name))
 				continue
 			case domain.ContactListStatusUnsubscribed:
-				// Allow re-subscribe — force double opt-in for compliance
-				forceDoubleOptin = true
+				if hasBearerToken && !payload.Resubscribe {
+					// The workspace's own call does not override the contact's
+					// unsubscribe: reported as it is, nothing written, no email.
+					results = append(results, membershipResult(existingCL, list.Name))
+					continue
+				}
+				if !hasBearerToken && !isAuthenticated {
+					// An anonymous form post can carry anyone's address, so it never
+					// writes over an unsubscribe: not even pending, which a later API
+					// call or automation would turn active. When the list can send its
+					// confirmation, the contact gets it, and its signed link brings
+					// them back; otherwise nothing happens.
+					if list.DoubleOptInTemplate == nil {
+						results = append(results, membershipResult(existingCL, list.Name))
+						continue
+					}
+					skipDBWrite = true
+					break
+				}
+				// The explicit flag, or a signed request: the contact's own link
+				// (notification center, confirmation email) proves the mailbox, as a
+				// double opt-in click does.
+				resubscribe = true
 			}
 		}
 
@@ -457,12 +513,27 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		}
 
 		// if the list is double optin and the contact is not authenticated, set the status to pending
-		// also force double optin for re-subscribing contacts (compliance requirement)
-		if (list.IsDoubleOptin && !isAuthenticated) || forceDoubleOptin {
+		if list.IsDoubleOptin && !isAuthenticated {
 			contactList.Status = domain.ContactListStatusPending
 		}
-
-		if !skipDBWrite {
+		if resubscribe {
+			written, err := s.contactListRepo.ResubscribeContactToList(ctx, workspace.ID, contactList, false)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resubscribe to list: %w", err)
+			}
+			if !written {
+				// A bounce or a complaint was recorded since the read above: report it.
+				stored, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspace.ID, payload.Contact.Email, listID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read subscription: %w", err)
+				}
+				results = append(results, membershipResult(stored, list.Name))
+				continue
+			}
+			if hasBearerToken {
+				resubscribedListIDs = append(resubscribedListIDs, listID)
+			}
+		} else if !skipDBWrite {
 			// Subscribe to the list
 			err = s.contactListRepo.AddContactToList(ctx, workspace.ID, contactList)
 			if err != nil {

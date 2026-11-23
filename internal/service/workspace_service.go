@@ -40,6 +40,14 @@ type WorkspaceService struct {
 	dnsVerificationService CustomDomainVerifier
 	blogService            *BlogService
 	entitlements           domain.EntitlementProvider
+	// dkimKeys drops the cached DKIM keys of a deleted workspace, so that a workspace
+	// created again under the same ID never signs with them.
+	dkimKeys interface{ Invalidate(workspaceID string) }
+}
+
+// SetDKIMKeyStore gives the service the key store EmailService signs with.
+func (s *WorkspaceService) SetDKIMKeyStore(store interface{ Invalidate(workspaceID string) }) {
+	s.dkimKeys = store
 }
 
 // CustomDomainVerifier checks that a custom endpoint's domain points to this instance.
@@ -544,6 +552,8 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	// here would let an owner saving general settings silently overwrite config a
 	// delegated manager owns, since these forms resubmit the whole settings object.
 	// Any new feature-scoped settings block belongs in its own setter, not here.
+	// The MCP switch is absent too: it is written only by SetMCPSettings, so a
+	// workspaces.update carrying "mcp" leaves the stored switch as it was.
 	existingWorkspace.Name = name
 	existingWorkspace.Settings.WebsiteURL = settings.WebsiteURL
 	existingWorkspace.Settings.LogoURL = settings.LogoURL
@@ -730,6 +740,9 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, id string) error
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to delete workspace")
 		return err
+	}
+	if s.dkimKeys != nil {
+		s.dkimKeys.Invalidate(id)
 	}
 
 	return nil
@@ -1415,6 +1428,50 @@ func (s *WorkspaceService) SetAuditLogSettings(ctx context.Context, workspaceID 
 		return err
 	}
 	return nil
+}
+
+// SetMCPSettings switches MCP access to the workspace on or off and returns the
+// stored settings. Owners only, root included: the switch decides whether any
+// MCP credential reaches the workspace. Switching off revokes nothing, and API
+// keys keep working on /api/*. Every other setting is preserved.
+func (s *WorkspaceService) SetMCPSettings(ctx context.Context, workspaceID string, settings *domain.MCPSettings) (*domain.MCPSettings, error) {
+	var userWorkspace *domain.UserWorkspace
+	var err error
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	if userWorkspace.Role != "owner" {
+		return nil, &domain.ErrUnauthorized{Message: "Only workspace owners can change MCP access"}
+	}
+	if settings == nil {
+		return nil, domain.ValidationError{Message: "mcp settings are required"}
+	}
+
+	existingWorkspace, err := s.repo.GetByID(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get existing workspace")
+		return nil, err
+	}
+
+	stored := &domain.MCPSettings{Disabled: settings.Disabled}
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetWorkspace, workspaceID, existingWorkspace.Name)
+		// No stored settings means enabled, so compare against that rather than
+		// against nil: switching on a workspace that never had the field changes nothing.
+		previous := existingWorkspace.Settings.MCP
+		if previous == nil {
+			previous = &domain.MCPSettings{}
+		}
+		audit.SetChanges(domain.AuditDiff(previous, stored))
+	}
+
+	// A targeted write: a full save would rewrite every other setting from this read.
+	if err := s.repo.SetMCPSettings(ctx, workspaceID, stored); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update MCP settings")
+		return nil, err
+	}
+	return stored, nil
 }
 
 // GetWorkspaceMembersWithEmail returns all users with emails for a workspace, verifying the requester has access

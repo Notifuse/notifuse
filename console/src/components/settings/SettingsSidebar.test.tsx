@@ -38,7 +38,7 @@ describe('SETTINGS_GROUPS', () => {
   it('groups the sections, each once, in menu order', () => {
     expect(SETTINGS_GROUPS.map((group) => [...group.sections])).toEqual([
       ['general', 'team'],
-      ['integrations', 'webhooks', 'smtp-bridge'],
+      ['integrations', 'domains', 'webhooks', 'smtp-bridge'],
       ['custom-fields', 'blog', 'web-analytics'],
       ['audit-logs', 'licence', 'danger-zone']
     ])
@@ -46,6 +46,7 @@ describe('SETTINGS_GROUPS', () => {
       'general',
       'team',
       'integrations',
+      'domains',
       'webhooks',
       'smtp-bridge',
       'custom-fields',
@@ -69,6 +70,7 @@ describe('SettingsSidebar', () => {
       'General',
       'Team & API keys',
       'Integrations',
+      'Domains',
       'Webhooks',
       'SMTP bridge',
       'Custom fields',

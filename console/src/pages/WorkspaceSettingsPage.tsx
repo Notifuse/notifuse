@@ -11,6 +11,7 @@ import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsCo
 import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
+import { DomainsSettings } from '../components/settings/DomainsSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { isRootUser } from '../services/api/auth'
 import { AuditLogsSettings } from '../components/settings/audit_logs/AuditLogsSettings'
@@ -44,6 +45,7 @@ function SettingsSkeleton() {
 const DEPENDS_ON_ROLE: ReadonlySet<SettingsSection> = new Set<SettingsSection>([
   'general',
   'integrations',
+  'domains',
   'custom-fields',
   'webhooks',
   'blog',
@@ -204,6 +206,8 @@ export function WorkspaceSettingsPage() {
             isOwner={isOwner}
           />
         )
+      case 'domains':
+        return workspace ? <DomainsSettings workspaceId={workspace.id} isOwner={isOwner} /> : null
       case 'webhooks':
         return workspace ? (
           <WebhooksSettings

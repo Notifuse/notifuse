@@ -13,10 +13,9 @@ import (
 type contextKey string
 
 const (
-	UserIDKey        contextKey = "user_id"
-	SessionIDKey     contextKey = "session_id"
-	UserTypeKey      contextKey = "type"
-	UserWorkspaceKey contextKey = "user_workspace"
+	UserIDKey    contextKey = "user_id"
+	SessionIDKey contextKey = "session_id"
+	UserTypeKey  contextKey = "type"
 )
 
 type UserType string
@@ -29,6 +28,14 @@ const (
 // WorkspaceUserKey creates a context key for storing a workspace-specific user
 func WorkspaceUserKey(workspaceID string) contextKey {
 	return contextKey("workspace_user_" + workspaceID)
+}
+
+// WorkspaceMembershipKey creates the context key under which
+// AuthenticateUserForWorkspace caches the caller's membership of one workspace.
+// Keyed by workspace like WorkspaceUserKey, so a context that authenticated
+// against several workspaces returns each one's own membership.
+func WorkspaceMembershipKey(workspaceID string) contextKey {
+	return contextKey("workspace_membership_" + workspaceID)
 }
 
 // User represents a user in the system

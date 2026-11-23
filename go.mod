@@ -31,6 +31,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.66.3
 	github.com/aws/smithy-go v1.28.9
 	github.com/coreos/go-oidc/v3 v3.19.0
+	github.com/emersion/go-msgauth v0.7.0
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.21.0
 	github.com/golang-jwt/jwt/v5 v5.3.1

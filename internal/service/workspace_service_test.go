@@ -1867,9 +1867,13 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(workspace, nil)
 		mockTaskRepo.EXPECT().DeleteAll(ctx, workspaceID).Return(nil)
 		mockRepo.EXPECT().Delete(ctx, workspaceID).Return(nil)
+		invalidated := &recordingInvalidator{}
+		service.SetDKIMKeyStore(invalidated)
+		defer service.SetDKIMKeyStore(nil)
 
 		err := service.DeleteWorkspace(ctx, workspaceID)
 		require.NoError(t, err)
+		assert.Equal(t, []string{workspaceID}, invalidated.ids, "the cached DKIM keys of the workspace are dropped")
 	})
 
 	t.Run("successful delete as owner with integrations", func(t *testing.T) {
@@ -7177,4 +7181,156 @@ func TestWorkspaceService_UserOwnsAWorkspace(t *testing.T) {
 		require.Error(t, err)
 		assert.False(t, owns)
 	})
+}
+
+// recordingInvalidator records the workspaces whose DKIM keys were invalidated.
+type recordingInvalidator struct{ ids []string }
+
+func (r *recordingInvalidator) Invalidate(workspaceID string) { r.ids = append(r.ids, workspaceID) }
+func TestWorkspaceService_SetMCPSettings(t *testing.T) {
+	const workspaceID = "ws1"
+
+	refusals := map[string]struct {
+		user       *domain.User
+		membership *domain.UserWorkspace
+		authErr    error
+	}{
+		"a member": {
+			user:       &domain.User{ID: "m", Type: domain.UserTypeUser},
+			membership: &domain.UserWorkspace{UserID: "m", WorkspaceID: workspaceID, Role: "member", Permissions: domain.NewFullPermissions()},
+		},
+		"an API key": {
+			user:       &domain.User{ID: "key", Type: domain.UserTypeAPIKey},
+			membership: &domain.UserWorkspace{UserID: "key", WorkspaceID: workspaceID, Role: "member", Permissions: domain.NewFullPermissions()},
+		},
+		"a non-member": {authErr: domain.ErrUserNotInWorkspace},
+	}
+	for name, tc := range refusals {
+		t.Run(name+" is refused", func(t *testing.T) {
+			f := newWorkspaceAuditFixture(t)
+			if tc.authErr != nil {
+				f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(context.Background(), nil, nil, tc.authErr)
+			} else {
+				f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(context.Background(), tc.user, tc.membership, nil)
+			}
+			// No repository expectation: nothing is read or written.
+
+			stored, err := f.service.SetMCPSettings(context.Background(), workspaceID, &domain.MCPSettings{Disabled: true})
+			require.Error(t, err)
+			assert.Nil(t, stored)
+			if tc.authErr != nil {
+				assert.ErrorIs(t, err, domain.ErrUserNotInWorkspace)
+				return
+			}
+			var unauthorized *domain.ErrUnauthorized
+			assert.ErrorAs(t, err, &unauthorized)
+		})
+	}
+
+	t.Run("the owner switches MCP off, other settings kept, change recorded", func(t *testing.T) {
+		f := newWorkspaceAuditFixture(t)
+		ctx, record := auditContext()
+		existing := &domain.Workspace{ID: workspaceID, Name: "Acme", Settings: domain.WorkspaceSettings{Timezone: "Europe/Paris"}}
+		f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "o"}, &domain.UserWorkspace{UserID: "o", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		f.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(existing, nil)
+		// The switch is written alone: no full save that would rewrite the other settings.
+		f.repo.EXPECT().SetMCPSettings(gomock.Any(), workspaceID, &domain.MCPSettings{Disabled: true}).Return(nil)
+		f.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+
+		stored, err := f.service.SetMCPSettings(ctx, workspaceID, &domain.MCPSettings{Disabled: true})
+		require.NoError(t, err)
+		assert.Equal(t, &domain.MCPSettings{Disabled: true}, stored)
+
+		event, _ := record.Finalize(200)
+		assert.Equal(t, domain.AuditTargetWorkspace, event.TargetType)
+		assert.Equal(t, workspaceID, event.TargetID)
+		assert.Equal(t, "Acme", event.TargetName)
+		assert.Equal(t, true, event.Changes["disabled"].New)
+	})
+
+	t.Run("the owner switches MCP back on", func(t *testing.T) {
+		f := newWorkspaceAuditFixture(t)
+		existing := &domain.Workspace{ID: workspaceID, Name: "Acme", Settings: domain.WorkspaceSettings{Timezone: "UTC", MCP: &domain.MCPSettings{Disabled: true}}}
+		f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), &domain.User{ID: "root"}, &domain.UserWorkspace{UserID: "root", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		f.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(existing, nil)
+		f.repo.EXPECT().SetMCPSettings(gomock.Any(), workspaceID, &domain.MCPSettings{Disabled: false}).Return(nil)
+
+		stored, err := f.service.SetMCPSettings(context.Background(), workspaceID, &domain.MCPSettings{Disabled: false})
+		require.NoError(t, err)
+		assert.Equal(t, &domain.MCPSettings{Disabled: false}, stored)
+	})
+
+	t.Run("switching on a workspace that never had the field records no change", func(t *testing.T) {
+		f := newWorkspaceAuditFixture(t)
+		ctx, record := auditContext()
+		f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "o"}, &domain.UserWorkspace{UserID: "o", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		f.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID, Name: "Acme"}, nil)
+		f.repo.EXPECT().SetMCPSettings(gomock.Any(), workspaceID, &domain.MCPSettings{Disabled: false}).Return(nil)
+
+		_, err := f.service.SetMCPSettings(ctx, workspaceID, &domain.MCPSettings{Disabled: false})
+		require.NoError(t, err)
+
+		event, _ := record.Finalize(200)
+		assert.Empty(t, event.Changes, "no stored settings already means enabled")
+	})
+
+	t.Run("a failed write is returned", func(t *testing.T) {
+		f := newWorkspaceAuditFixture(t)
+		f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), &domain.User{ID: "o"}, &domain.UserWorkspace{Role: "owner"}, nil)
+		f.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		dbErr := errors.New("db down")
+		f.repo.EXPECT().SetMCPSettings(gomock.Any(), workspaceID, gomock.Any()).Return(dbErr)
+
+		_, err := f.service.SetMCPSettings(context.Background(), workspaceID, &domain.MCPSettings{Disabled: true})
+		assert.ErrorIs(t, err, dbErr)
+	})
+
+	t.Run("nil settings are a validation error", func(t *testing.T) {
+		f := newWorkspaceAuditFixture(t)
+		f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), &domain.User{ID: "o"}, &domain.UserWorkspace{Role: "owner"}, nil)
+
+		_, err := f.service.SetMCPSettings(context.Background(), workspaceID, nil)
+		var validation domain.ValidationError
+		assert.ErrorAs(t, err, &validation)
+	})
+}
+
+func TestWorkspaceService_UpdateWorkspace_KeepsTheStoredMCPSwitch(t *testing.T) {
+	const workspaceID = "ws1"
+	for name, body := range map[string]string{
+		"a body switching MCP on": `{"id":"ws1","name":"Acme","settings":{"timezone":"UTC","default_language":"en","languages":["en"],"mcp":{"disabled":false}}}`,
+		"a body clearing the key": `{"id":"ws1","name":"Acme","settings":{"timezone":"UTC","default_language":"en","languages":["en"],"mcp":null}}`,
+		"a body without the key":  `{"id":"ws1","name":"Acme","settings":{"timezone":"UTC","default_language":"en","languages":["en"]}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newWorkspaceAuditFixture(t)
+			var req domain.UpdateWorkspaceRequest
+			require.NoError(t, json.Unmarshal([]byte(body), &req))
+
+			existing := &domain.Workspace{ID: workspaceID, Name: "Acme", Settings: domain.WorkspaceSettings{
+				Timezone: "UTC", DefaultLanguage: "en", Languages: []string{"en"},
+				MCP: &domain.MCPSettings{Disabled: true},
+			}}
+			f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+				Return(context.Background(), &domain.User{ID: "o"}, &domain.UserWorkspace{UserID: "o", WorkspaceID: workspaceID, Role: "owner"}, nil)
+			f.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(existing, nil)
+			var written *domain.Workspace
+			f.repo.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, ws *domain.Workspace) error {
+				written = ws
+				return nil
+			})
+
+			result, err := f.service.UpdateWorkspace(context.Background(), req.ID, req.Name, req.Settings)
+			require.NoError(t, err)
+			require.NotNil(t, written)
+			require.NotNil(t, written.Settings.MCP, "the stored switch must survive the update")
+			assert.True(t, written.Settings.MCP.Disabled)
+			assert.True(t, result.Settings.MCP.Disabled)
+		})
+	}
 }

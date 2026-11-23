@@ -46,6 +46,11 @@ func (m *MockWorkspaceRepository) Create(ctx context.Context, workspace *domain.
 	return args.Error(0)
 }
 
+func (m *MockWorkspaceRepository) SetMCPSettings(ctx context.Context, workspaceID string, settings *domain.MCPSettings) error {
+	args := m.Called(ctx, workspaceID, settings)
+	return args.Error(0)
+}
+
 func (m *MockWorkspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {
 	args := m.Called(ctx, id)
 	ws, _ := args.Get(0).(*domain.Workspace)
@@ -73,6 +78,24 @@ func (m *MockWorkspaceRepository) ListCustomEndpoints(ctx context.Context) (map[
 func (m *MockWorkspaceRepository) PatchIntegrationSESSettings(ctx context.Context, workspaceID string, integrationID string, patch map[string]interface{}) error {
 	args := m.Called(ctx, workspaceID, integrationID, patch)
 	return args.Error(0)
+}
+
+func (m *MockWorkspaceRepository) UpdateDKIMKeys(ctx context.Context, workspaceID string, mutate domain.DKIMKeysMutator) ([]domain.DKIMKey, error) {
+	args := m.Called(ctx, workspaceID, mutate)
+	keys, _ := args.Get(0).([]domain.DKIMKey)
+	return keys, args.Error(1)
+}
+
+func (m *MockWorkspaceRepository) GetWorkspaceDKIMKeys(ctx context.Context, workspaceID string) ([]domain.DKIMKey, error) {
+	args := m.Called(ctx, workspaceID)
+	keys, _ := args.Get(0).([]domain.DKIMKey)
+	return keys, args.Error(1)
+}
+
+func (m *MockWorkspaceRepository) ListWorkspacesDKIMMetadata(ctx context.Context) ([]domain.WorkspaceDKIMMetadata, error) {
+	args := m.Called(ctx)
+	result, _ := args.Get(0).([]domain.WorkspaceDKIMMetadata)
+	return result, args.Error(1)
 }
 
 func (m *MockWorkspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {

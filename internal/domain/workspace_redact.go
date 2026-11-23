@@ -78,6 +78,10 @@ func (w *Workspace) Redact() {
 	// have taken from a published example.
 	w.Settings.EncryptedSecretKey = ""
 
+	// The console reads DKIM keys from workspaces.listDKIMDomains only: neither the
+	// public nor the encrypted private keys go out with the workspace.
+	w.Settings.DKIMKeys = nil
+
 	// The file storage secret is used server-side only: the backend lists, deletes
 	// and signs the upload URLs (files.* endpoints), so no client needs it. The
 	// response says whether one is set, with a hint when it is long enough to give

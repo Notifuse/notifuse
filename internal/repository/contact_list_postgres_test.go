@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -52,7 +53,8 @@ func TestContactListRepository_AddContactToList(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`INSERT INTO contact_lists`).
+		// An unsubscribed row is kept, like a bounced or complained one.
+		mock.ExpectExec(`(?s)INSERT INTO contact_lists.*WHERE contact_lists.status NOT IN \('unsubscribed', 'bounced', 'complained'\)`).
 			WithArgs(contactList.Email, contactList.ListID, contactList.Status, sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -413,6 +415,53 @@ func TestContactListRepository_GetListsByEmail(t *testing.T) {
 	})
 }
 
+func TestContactListRepository_ResubscribeContactToList(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	// No guard on unsubscribed; a bounce only with clearBounce; never a complaint.
+	guard := `(?s)INSERT INTO contact_lists.*ON CONFLICT \(email, list_id\) DO UPDATE.*WHERE contact_lists.status <> 'complained'\s+AND \(contact_lists.status <> 'bounced' OR \$6\)`
+
+	for _, clearBounce := range []bool{false, true} {
+		t.Run(fmt.Sprintf("writes, clearBounce=%v", clearBounce), func(t *testing.T) {
+			mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+			mock.ExpectExec(guard).
+				WithArgs("test@example.com", "list123", domain.ContactListStatusActive, sqlmock.AnyArg(), sqlmock.AnyArg(), clearBounce).
+				WillReturnResult(sqlmock.NewResult(0, 1))
+
+			written, err := repo.ResubscribeContactToList(ctx, workspaceID, &domain.ContactList{
+				Email: "test@example.com", ListID: "list123", Status: domain.ContactListStatusActive,
+			}, clearBounce)
+			require.NoError(t, err)
+			assert.True(t, written)
+		})
+	}
+
+	t.Run("a row the guard kept reports false", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectExec(guard).WillReturnResult(sqlmock.NewResult(0, 0))
+
+		written, err := repo.ResubscribeContactToList(ctx, workspaceID, &domain.ContactList{
+			Email: "test@example.com", ListID: "list123", Status: domain.ContactListStatusPending,
+		}, false)
+		require.NoError(t, err)
+		assert.False(t, written)
+	})
+
+	t.Run("execution error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectExec(guard).WillReturnError(errors.New("boom"))
+
+		_, err := repo.ResubscribeContactToList(ctx, workspaceID, &domain.ContactList{Email: "a@example.com", ListID: "l"}, false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to resubscribe contact to list")
+	})
+
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestContactListRepository_UpdateContactListStatus(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
 	defer cleanup()
@@ -444,10 +493,52 @@ func TestContactListRepository_UpdateContactListStatus(t *testing.T) {
 		mock.ExpectExec(`UPDATE contact_lists`).
 			WithArgs(status, sqlmock.AnyArg(), email, listID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`SELECT status FROM contact_lists WHERE email = \$1 AND list_id = \$2`).
+			WithArgs(email, listID).
+			WillReturnError(sql.ErrNoRows)
 
 		err := repo.UpdateContactListStatus(ctx, workspaceID, email, listID, status)
 		require.Error(t, err)
 		require.IsType(t, &domain.ErrContactListNotFound{}, err)
+	})
+
+	// The guard is in the statement, so a row opted out after the service's read
+	// still keeps its opt-out, and the caller is told which one.
+	t.Run("an opted-out row the guard kept is reported", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`(?s)UPDATE contact_lists.*status NOT IN \('unsubscribed', 'bounced', 'complained'\).*status = 'unsubscribed' AND \$1 IN \('bounced', 'complained'\).*status = 'bounced' AND \$1 = 'complained'`).
+			WithArgs(status, sqlmock.AnyArg(), email, listID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`SELECT status FROM contact_lists`).
+			WithArgs(email, listID).
+			WillReturnRows(sqlmock.NewRows([]string{"status"}).AddRow("unsubscribed"))
+
+		err := repo.UpdateContactListStatus(ctx, workspaceID, email, listID, status)
+		var optedOut *domain.ErrContactListOptedOut
+		require.ErrorAs(t, err, &optedOut)
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, optedOut.Status)
+	})
+
+	t.Run("a row changed to a subscription meanwhile is no refusal", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE contact_lists`).
+			WithArgs(status, sqlmock.AnyArg(), email, listID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`SELECT status FROM contact_lists`).
+			WithArgs(email, listID).
+			WillReturnRows(sqlmock.NewRows([]string{"status"}).AddRow("active"))
+
+		err := repo.UpdateContactListStatus(ctx, workspaceID, email, listID, status)
+		require.Error(t, err)
+		var optedOut *domain.ErrContactListOptedOut
+		assert.False(t, errors.As(err, &optedOut))
+		assert.Contains(t, err.Error(), "changed concurrently")
 	})
 
 	t.Run("workspace connection error", func(t *testing.T) {

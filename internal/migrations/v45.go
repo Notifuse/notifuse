@@ -1,0 +1,49 @@
+package migrations
+
+import (
+	"context"
+
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
+)
+
+// V45Migration is the one migration of 45.0. Version 44.1 was never released: 45.0 ships its
+// work together with several projects that each add their part here (error phases and
+// CapacityExhausted, DKIM signing, MCP access, data retention, two-factor authentication).
+// This file starts empty; each project adds its system or workspace part in its own pull
+// request, and turns on HasSystemUpdate or HasWorkspaceUpdate when it does.
+//
+// The dispatcher runs only migrations above the database's version and then stamps it
+// (manager.go, RunMigrations), so a database that already ran a 45.0 build from dev never
+// runs a part added to this file afterwards. Until 45.0 is released:
+//
+//   - every part must be safe to run again on a database that already has it
+//     (IF NOT EXISTS, CREATE OR REPLACE, guarded DO blocks, updates that rewrite nothing the
+//     second time);
+//   - after a part is merged, each database already stamped 45 (the preview, local
+//     development databases) is put back to 44 so that it runs the whole of v45 again:
+//     UPDATE settings SET value = '44', updated_at = CURRENT_TIMESTAMP WHERE key = 'db_version' AND value = '45'
+//
+// Once 45.0 is released this file is frozen like every shipped migration: a fix to a
+// database at 45 is a new major.
+type V45Migration struct{}
+
+func (m *V45Migration) GetMajorVersion() float64 { return 45.0 }
+
+func (m *V45Migration) HasSystemUpdate() bool { return false }
+
+func (m *V45Migration) HasWorkspaceUpdate() bool { return false }
+
+func (m *V45Migration) ShouldRestartServer() bool { return false }
+
+func (m *V45Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
+	return nil
+}
+
+func (m *V45Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {
+	return nil
+}
+
+func init() {
+	Register(&V45Migration{})
+}
