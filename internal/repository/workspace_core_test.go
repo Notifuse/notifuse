@@ -936,6 +936,10 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	mock.ExpectExec(`DELETE FROM workspaces WHERE id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	// tasks a restore may have created since the service deleted them
+	mock.ExpectExec(`DELETE FROM tasks WHERE workspace_id = \$1`).
+		WithArgs(workspaceID).
+		WillReturnResult(sqlmock.NewResult(0, 2))
 	mock.ExpectCommit()
 
 	err = repo.Delete(context.Background(), workspaceID)
@@ -1006,6 +1010,28 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "ws del error")
+	assert.ErrorContains(t, err, workspaceID)
+
+	// Next: fail the deletion of the workspace's tasks, after its row
+	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectBegin()
+	mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).
+		WithArgs(workspaceID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM workspace_invitations WHERE workspace_id = \$1`).
+		WithArgs(workspaceID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM workspaces WHERE id = \$1`).
+		WithArgs(workspaceID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM tasks WHERE workspace_id = \$1`).
+		WithArgs(workspaceID).
+		WillReturnError(fmt.Errorf("tasks del error"))
+	mock.ExpectRollback()
+	err = repo.Delete(context.Background(), workspaceID)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "tasks del error")
 	assert.ErrorContains(t, err, workspaceID)
 
 	// Without this, an un-issued Begin/Commit/Rollback would go unnoticed: the row

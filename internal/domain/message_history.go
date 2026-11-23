@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -104,6 +105,21 @@ func (d *MessageData) Scan(value interface{}) error {
 	return json.Unmarshal(cloned, &d)
 }
 
+// ErrExternalIDTaken is what MessageHistoryRepository.Create returns when another message
+// already holds the external_id of the one it was given: the unique index on external_id
+// refused the row. The message it names was not written.
+type ErrExternalIDTaken struct {
+	ExternalID string
+}
+
+func (e *ErrExternalIDTaken) Error() string {
+	return fmt.Sprintf("external_id %q is already held by another message", e.ExternalID)
+}
+
+// ErrMessageHistoryNotFound is what MessageHistoryRepository.GetByExternalID wraps when no
+// message holds the external_id it was given.
+var ErrMessageHistoryNotFound = errors.New("message history not found")
+
 // MessageHistory represents a record of a message sent to a contact
 type MessageHistory struct {
 	ID                          string               `json:"id"`
@@ -168,14 +184,16 @@ type LinkClickStats struct {
 
 // MessageHistoryRepository defines methods for message history persistence
 type MessageHistoryRepository interface {
-	// Create adds a new message history record
+	// Create adds a new message history record. When another message already holds its
+	// external_id it writes nothing and returns *ErrExternalIDTaken.
 	Create(ctx context.Context, workspaceID string, secretKey string, message *MessageHistory) error
 
 	// Upsert creates or updates a message history record (for retry handling)
 	// On conflict, updates failed_at, status_info, and updated_at fields
 	Upsert(ctx context.Context, workspaceID string, secretKey string, message *MessageHistory) error
 
-	// GetByExternalID retrieves a message history by external ID for idempotency checks
+	// GetByExternalID retrieves a message history by external ID for idempotency checks. When
+	// no message holds externalID it returns an error wrapping ErrMessageHistoryNotFound.
 	GetByExternalID(ctx context.Context, workspaceID string, secretKey string, externalID string) (*MessageHistory, error)
 
 	// GetBySMTPMessageID looks up a send by its recipient-visible RFC Message-ID

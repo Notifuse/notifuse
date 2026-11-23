@@ -81,8 +81,7 @@ func TestWorkspaceService_CreateWorkspace_DetachedFromTheRequest(t *testing.T) {
 	mockContactService.EXPECT().UpsertContact(detachedCtx(), "acme", gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
 	mockListService.EXPECT().CreateList(detachedCtx(), "acme", gomock.Any()).Return(nil)
 	mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
-	mockTaskRepo.EXPECT().List(detachedCtx(), "acme", gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-	mockTaskRepo.EXPECT().Create(detachedCtx(), "acme", gomock.Any()).Return(nil).AnyTimes()
+	mockTaskRepo.EXPECT().RestorePermanentTasks(detachedCtx(), "acme").Return(domain.PermanentTaskRestore{Created: 2}, nil).AnyTimes()
 
 	workspace, err := service.CreateWorkspace(ctx, "acme", "Acme", "", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
 	require.NoError(t, err)

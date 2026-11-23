@@ -13,7 +13,6 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -234,8 +233,6 @@ func TestScheduledBroadcast_LiveScheduler_MultiWorkspace_Issue317(t *testing.T) 
 
 	client := suite.APIClient
 	factory := suite.DataFactory
-	appIface := suite.ServerManager.GetApp()
-	taskRepo := appIface.GetTaskRepository()
 
 	// Each workspace's own owner + auth — scheduled broadcasts run under the
 	// workspace's integration, but the API calls to set things up need an auth'd user.
@@ -280,7 +277,7 @@ func TestScheduledBroadcast_LiveScheduler_MultiWorkspace_Issue317(t *testing.T) 
 		// Seed the recurring segment queue task — this is what the issue
 		// reporter's multi-workspace setup has alongside scheduled broadcasts.
 		require.NoError(t,
-			service.EnsureContactSegmentQueueProcessingTask(context.Background(), taskRepo, workspace.ID),
+			factory.EnsurePermanentTask(workspace.ID, domain.TaskTypeProcessContactSegmentQueue),
 			"seed segment queue task #%d", i)
 
 		list, err := factory.CreateList(workspace.ID,

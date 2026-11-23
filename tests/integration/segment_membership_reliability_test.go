@@ -350,7 +350,8 @@ func quoteLiteral(s string) string {
 // runRecomputeCheck runs the workspace's daily recompute check once through tasks.execute.
 func runRecomputeCheck(t *testing.T, ctx context.Context, client *testutil.APIClient, taskRepo domain.TaskRepository, workspaceID string) {
 	t.Helper()
-	require.NoError(t, service.EnsureSegmentRecomputeTask(ctx, taskRepo, workspaceID))
+	_, err := taskRepo.RestorePermanentTasks(ctx, workspaceID)
+	require.NoError(t, err)
 	tasks, _, err := taskRepo.List(ctx, workspaceID, domain.TaskFilter{Type: []string{"check_segment_recompute"}, Limit: 1})
 	require.NoError(t, err)
 	require.Len(t, tasks, 1)

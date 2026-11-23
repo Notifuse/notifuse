@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/tracing"
@@ -167,6 +169,15 @@ const (
 )
 
 // Create adds a new message history record
+// storedExternalID is the external_id a message is written with. An empty one is no key:
+// stored as NULL, it stays out of the unique index, so two sends without a key never conflict.
+func storedExternalID(externalID *string) *string {
+	if externalID != nil && *externalID == "" {
+		return nil
+	}
+	return externalID
+}
+
 func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID string, secretKey string, message *domain.MessageHistory) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
@@ -186,6 +197,8 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		attachmentsJSON = message.Attachments
 	}
 
+	externalID := storedExternalID(message.ExternalID)
+
 	query := `
 		INSERT INTO message_history (
 			id, external_id, contact_email, broadcast_id, automation_id, transactional_notification_id, list_id, template_id, template_version,
@@ -204,7 +217,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		ctx,
 		query,
 		message.ID,
-		message.ExternalID,
+		externalID,
 		message.ContactEmail,
 		message.BroadcastID,
 		message.AutomationID,
@@ -233,6 +246,12 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 	)
 
 	if err != nil {
+		// Match the SQLSTATE and the index, never the message: PostgreSQL translates error
+		// text per lc_messages. A conflict on the id is another fault and stays an error.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == schema.MessageHistoryExternalIDIndexName && externalID != nil {
+			return &domain.ErrExternalIDTaken{ExternalID: *externalID}
+		}
 		return fmt.Errorf("failed to create message history: %w", err)
 	}
 
@@ -285,7 +304,7 @@ func (r *MessageHistoryRepository) Upsert(ctx context.Context, workspaceID strin
 		ctx,
 		query,
 		message.ID,
-		message.ExternalID,
+		storedExternalID(message.ExternalID),
 		message.ContactEmail,
 		message.BroadcastID,
 		message.AutomationID,
@@ -335,7 +354,7 @@ func (r *MessageHistoryRepository) GetByExternalID(ctx context.Context, workspac
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("message history with external_id %s not found", externalID)
+			return nil, fmt.Errorf("external_id %s: %w", externalID, domain.ErrMessageHistoryNotFound)
 		}
 		return nil, fmt.Errorf("failed to get message history by external_id: %w", err)
 	}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -617,6 +616,28 @@ func (s *TransactionalNotificationService) SendNotification(
 		return "", err
 	}
 
+	// An empty external_id is no key: such a send is neither looked up nor deduplicated.
+	if params.ExternalID != nil && *params.ExternalID == "" {
+		params.ExternalID = nil
+	}
+
+	// A send whose external_id a message already holds answers that message's ID and sends
+	// nothing, whatever became of that send: a key is never released, and a client retries a
+	// failed send under a new key. The check comes before the contact upsert, so a replay that
+	// arrives after the first send changes no contact. Two calls arriving together can both pass
+	// it and both upsert the contact; the unique index on external_id then lets only one of them
+	// write its message (see the email channel below).
+	if existingID, found, err := s.messageForExternalID(ctx, workspaceID, workspace.Settings.SecretKey, params.ExternalID); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return "", err
+	} else if found {
+		span.AddAttributes(
+			trace.StringAttribute("existing_message_id", existingID),
+			trace.BoolAttribute("idempotent_response", true),
+		)
+		return existingID, nil
+	}
+
 	// The recipient upsert and lookup are an implementation detail of sending, not a
 	// separate contacts operation the caller asked for. Running them as system calls is
 	// what lets a key holding only transactional:write send.
@@ -678,31 +699,6 @@ func (s *TransactionalNotificationService) SendNotification(
 
 	// Create message history entry
 	messageID := uuid.New().String()
-
-	// Check for idempotency if external_id is provided
-	if params.ExternalID != nil && *params.ExternalID != "" {
-		existingMessage, err := s.messageHistoryRepo.GetByExternalID(ctx, workspaceID, workspace.Settings.SecretKey, *params.ExternalID)
-		if err == nil && existingMessage != nil {
-			// Message with this external_id already exists, return success with existing message ID
-			s.logger.WithFields(map[string]interface{}{
-				"workspace":   workspaceID,
-				"external_id": *params.ExternalID,
-				"message_id":  existingMessage.ID,
-			}).Info("Message with external_id already exists, returning existing message")
-
-			span.AddAttributes(
-				trace.StringAttribute("existing_message_id", existingMessage.ID),
-				trace.BoolAttribute("idempotent_response", true),
-			)
-
-			return existingMessage.ID, nil
-		}
-		// If error is not "not found", it's a real error
-		if err != nil && !strings.Contains(err.Error(), "not found") {
-			tracing.MarkSpanError(ctx, err)
-			return "", fmt.Errorf("failed to check for existing message: %w", err)
-		}
-	}
 
 	successfulChannels := 0
 	// renderErr is the email channel's error when its template did not render.
@@ -803,6 +799,27 @@ func (s *TransactionalNotificationService) SendNotification(
 				EmailOptions:                params.EmailOptions,
 			}
 			err = s.emailService.SendEmailForTemplate(childCtx, request)
+			var taken *domain.ErrExternalIDTaken
+			if errors.As(err, &taken) {
+				// A concurrent call with the same external_id wrote its message first, and
+				// this one sent nothing: answer with that message, as a replay is answered.
+				childSpan.End()
+				existingID, found, lookupErr := s.messageForExternalID(ctx, workspaceID, workspace.Settings.SecretKey, params.ExternalID)
+				if lookupErr == nil && !found {
+					// Keys are never released and messages never deleted, so the row that
+					// refused this one is there. Not finding it is a fault, not a replay.
+					lookupErr = fmt.Errorf("the message holding external_id %s could not be read", *params.ExternalID)
+				}
+				if lookupErr != nil {
+					tracing.MarkSpanError(ctx, lookupErr)
+					return "", lookupErr
+				}
+				span.AddAttributes(
+					trace.StringAttribute("existing_message_id", existingID),
+					trace.BoolAttribute("idempotent_response", true),
+				)
+				return existingID, nil
+			}
 			if err == nil {
 				successfulChannels++
 				childSpan.End()
@@ -844,6 +861,31 @@ func (s *TransactionalNotificationService) SendNotification(
 	)
 
 	return messageID, nil
+}
+
+// messageForExternalID returns the ID of the message that holds externalID, and whether one
+// does. A nil or empty externalID names no message. Only ErrMessageHistoryNotFound means no
+// message: any other lookup error is returned, whatever its text says.
+func (s *TransactionalNotificationService) messageForExternalID(ctx context.Context, workspaceID, secretKey string, externalID *string) (string, bool, error) {
+	if externalID == nil || *externalID == "" {
+		return "", false, nil
+	}
+	existingMessage, err := s.messageHistoryRepo.GetByExternalID(ctx, workspaceID, secretKey, *externalID)
+	if err != nil {
+		if errors.Is(err, domain.ErrMessageHistoryNotFound) {
+			return "", false, nil
+		}
+		return "", false, fmt.Errorf("failed to check for existing message: %w", err)
+	}
+	if existingMessage == nil {
+		return "", false, nil
+	}
+	s.logger.WithFields(map[string]interface{}{
+		"workspace":   workspaceID,
+		"external_id": *externalID,
+		"message_id":  existingMessage.ID,
+	}).Info("Message with external_id already exists, returning existing message")
+	return existingMessage.ID, true, nil
 }
 
 // TestTemplate sends a test email with a template to verify it works. With listID the test is
