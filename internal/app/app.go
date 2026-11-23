@@ -432,7 +432,8 @@ func (a *App) InitDB() error {
 }
 
 // storedDataOpens reports whether key opens the data stored under the instance key: the
-// key of at least one workspace or, when none is stored, at least one encrypted setting.
+// key of at least one workspace or, when none is stored, at least one encrypted setting or,
+// when none is stored either, at least one active authenticator secret.
 // Nothing stored opens with any key. refusal says what the key does not open, for an
 // error that starts with the variable.
 func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, refusal string, err error) {
@@ -444,13 +445,25 @@ func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, refu
 		return opens, "does not open the workspace stored in the database", nil
 	}
 	opens, tried, err := repository.SecretKeyOpensASetting(ctx, a.db, key)
-	return opens, fmt.Sprintf("opens none of the system settings stored in the database (%s), and no "+
-		"workspace is stored", strings.Join(tried, ", ")), err
+	if err != nil || len(tried) > 0 {
+		return opens, fmt.Sprintf("opens none of the system settings stored in the database (%s), and no "+
+			"workspace is stored", strings.Join(tried, ", ")), err
+	}
+	// No workspace and no encrypted setting: the authenticator secrets of two-factor
+	// authentication are then the data under the key.
+	opens, examined, err = repository.SecretKeyOpensAUserTOTP(ctx, a.db, key)
+	if examined == 1 {
+		return opens, "does not open the authenticator secret stored in the database, and no workspace or " +
+			"encrypted system setting is stored", err
+	}
+	return opens, fmt.Sprintf("opens none of the %d authenticator secrets stored in the database, and no "+
+		"workspace or encrypted system setting is stored", examined), err
 }
 
 // checkSingleSecretKey refuses a single key that opens none of the stored workspace
 // keys, as every workspace load would fail on it, or, with no workspace, none of the
-// encrypted settings, which would be dropped. A single key is used as written, so this
+// encrypted settings, which would be dropped, or, with neither, none of the authenticator
+// secrets, which would lock out every enrolled person. A single key is used as written, so this
 // is also where quotes or a newline kept around the key show.
 func (a *App) checkSingleSecretKey(key, variable string) error {
 	ctx := context.Background()
@@ -501,6 +514,20 @@ func (a *App) warnUnopenedSettings(settings []string, variable string) {
 		"encrypted with, or list that key after the first one", variable, variable))
 }
 
+// warnUnopenedAuthenticatorSecrets names the people whose authenticator secret no key of
+// variable opens, and counts the setups dropped for the same reason.
+func (a *App) warnUnopenedAuthenticatorSecrets(result repository.SecretKeyRotationResult, variable string) {
+	if len(result.UnopenedTOTPUsers) > 0 {
+		a.logger.WithField("user_ids", result.UnopenedTOTPUsers).Warn(fmt.Sprintf("No key in %s opens the "+
+			"authenticator secret of these users, so they cannot pass their second factor: list the key it is "+
+			"encrypted with after the first one, or have the root user reset their two-factor authentication", variable))
+	}
+	if result.DroppedTOTPSetups > 0 {
+		a.logger.WithField("setups", result.DroppedTOTPSetups).Warn(fmt.Sprintf("Two-factor setups in progress "+
+			"were dropped: no key in %s opens their secret. Those people start the setup again", variable))
+	}
+}
+
 // InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a
 // list: what the other keys open is re-encrypted with it. A single key is only checked
 // against the stored data. It runs after the migrations, before the services start, so
@@ -522,7 +549,7 @@ func (a *App) InitSecretKey() error {
 	// One instance re-encrypts at a time, and rows other sessions hold are waited for:
 	// said first, so a start that waits shows what for.
 	a.logger.Info(fmt.Sprintf("Bringing the stored data under the first key of %s; this waits for any other "+
-		"instance doing the same and for open transactions on workspaces and settings", variable))
+		"instance doing the same and for open transactions on workspaces, settings and authenticator secrets", variable))
 	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)
 	if err != nil && !errors.Is(err, pkgCrypto.ErrUndecryptable) {
 		return fmt.Errorf("failed to bring the stored data under the first key of %s: %w", variable, err)
@@ -546,6 +573,7 @@ func (a *App) InitSecretKey() error {
 	}
 
 	a.warnUnopenedSettings(result.UnopenedSettings, variable)
+	a.warnUnopenedAuthenticatorSecrets(result, variable)
 	if len(security.PreviousSecretKeys) == 0 {
 		a.logger.Info("The stored data opens with " + variable)
 		return nil
@@ -554,13 +582,14 @@ func (a *App) InitSecretKey() error {
 	// re-encrypted, finds nothing left to do.
 	message := "Stored data re-encrypted with the first key of %[1]s; once every instance runs with this %[1]s, " +
 		"set the first key alone"
-	if result.Workspaces == 0 && result.Settings == 0 {
+	if result.Workspaces == 0 && result.Settings == 0 && result.UserTOTPs == 0 {
 		message = "Nothing left to re-encrypt: the stored data already opens with the first key of %[1]s; once " +
 			"every instance runs with this %[1]s, set the first key alone"
 	}
 	a.logger.WithFields(map[string]interface{}{
-		"workspaces": result.Workspaces,
-		"settings":   result.Settings,
+		"workspaces":            result.Workspaces,
+		"settings":              result.Settings,
+		"authenticator_secrets": result.UserTOTPs,
 	}).Info(fmt.Sprintf(message, variable))
 	return nil
 }

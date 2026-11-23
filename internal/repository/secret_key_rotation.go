@@ -22,6 +22,13 @@ type SecretKeyRotationResult struct {
 	Workspaces       int
 	Settings         int
 	UnopenedSettings []string
+	// UserTOTPs counts the authenticator secrets re-encrypted.
+	UserTOTPs int
+	// DroppedTOTPSetups counts the setups dropped because no key opens their secret.
+	DroppedTOTPSetups int
+	// UnopenedTOTPUsers names the people whose active authenticator secret no key opens.
+	// They cannot pass their second factor until the root user resets it.
+	UnopenedTOTPUsers []string
 }
 
 type rotationWorkspaceRow struct {
@@ -47,6 +54,10 @@ type rotationSettingRow struct {
 // it is and named in the result: loading the settings at startup skips it, as before
 // 42.0, and rows nothing reads any more stay behind (v29 left encrypted_smtp_relay_*).
 // With no workspace stored, at least one of the rows must open.
+//
+// The authenticator secrets of two-factor authentication (user_totp) are re-encrypted too,
+// each bound to its user; see rotateUserTOTPs for what happens to one no key opens, which
+// may drop a setup in progress even with no previous key.
 //
 // It runs in one transaction: a workspace no key opens, or settings none of which opens
 // when there is no workspace, roll everything back, and the error names them.
@@ -115,10 +126,18 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 		}
 		result.Settings++
 	}
-	// With a workspace stored, one that opens shows the keys are right. Without one, a
-	// setting must: otherwise the keys are not the ones the data is under, as when a key
-	// from before 42.0 with a single comma in it is read as a list.
-	if len(workspaces) == 0 && len(settings) > 0 && len(result.UnopenedSettings) == len(settings) {
+	// A workspace stored (each one opened, or the rotation stopped above) or a setting that
+	// opened shows the keys are right; so does an active authenticator secret that opens.
+	keysProven := len(workspaces) > 0 || len(settings) > len(result.UnopenedSettings)
+	openedTOTPs, err := rotateUserTOTPs(ctx, tx, current, previous, keysProven, &result)
+	if err != nil {
+		return result, err
+	}
+
+	// Without a workspace, a setting or an authenticator secret must open: otherwise the
+	// keys are not the ones the data is under, as when a key from before 42.0 with a
+	// single comma in it is read as a list.
+	if len(workspaces) == 0 && openedTOTPs == 0 && len(settings) > 0 && len(result.UnopenedSettings) == len(settings) {
 		return result, fmt.Errorf("%w: settings %s, and no workspace is stored", crypto.ErrUndecryptable,
 			strings.Join(result.UnopenedSettings, ", "))
 	}
@@ -127,6 +146,150 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 		return SecretKeyRotationResult{}, fmt.Errorf("failed to commit the rotation: %w", err)
 	}
 	return result, nil
+}
+
+// rotateUserTOTPs re-encrypts with current the authenticator secrets a previous key opens,
+// the active one and the one being set up, each bound to its user, and returns how many
+// active secrets opened.
+//
+// It reads and opens every row first, then decides, because what it may do with a secret no
+// key opens depends on whether the keys are known to be right: keysProven (a workspace or a
+// setting opened), or an active secret that opened.
+//   - Keys proven: an active secret no key opens is left as it is and its user named in
+//     UnopenedTOTPUsers (that person needs a reset by the root user, and the rest of the
+//     instance starts); a setup whose secret no key opens is dropped, as it would fail anyway.
+//   - Keys not proven: an active secret no key opens rolls the rotation back, naming the
+//     user, and setups are left as they are: the keys are more likely wrong than the data.
+func rotateUserTOTPs(ctx context.Context, tx *sql.Tx, current string, previous []string, keysProven bool, result *SecretKeyRotationResult) (int, error) {
+	rows, err := tx.QueryContext(ctx, `
+		SELECT user_id, secret_encrypted, pending_secret_encrypted FROM user_totp
+		WHERE secret_encrypted IS NOT NULL OR pending_secret_encrypted IS NOT NULL
+		ORDER BY user_id FOR UPDATE`)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read authenticator secrets: %w", err)
+	}
+	type totpRow struct {
+		userID          string
+		secret, pending sql.NullString
+		// filled by the first pass
+		secretOpened, secretChanged   bool
+		pendingOpened, pendingChanged bool
+	}
+	var totps []*totpRow
+	for rows.Next() {
+		t := &totpRow{}
+		if err := rows.Scan(&t.userID, &t.secret, &t.pending); err != nil {
+			_ = rows.Close()
+			return 0, fmt.Errorf("failed to scan an authenticator secret: %w", err)
+		}
+		totps = append(totps, t)
+	}
+	if err := rows.Close(); err != nil {
+		return 0, fmt.Errorf("failed to read authenticator secrets: %w", err)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("failed to read authenticator secrets: %w", err)
+	}
+
+	// First pass: open everything, write nothing.
+	opened := 0
+	var unopened []string
+	for _, t := range totps {
+		aad, err := domain.TOTPAAD(t.userID)
+		if err != nil {
+			return 0, err
+		}
+		if t.secret.Valid {
+			value, changed, err := crypto.ReencryptValueAAD(t.secret.String, current, previous, aad)
+			switch {
+			case errors.Is(err, crypto.ErrUndecryptable):
+				unopened = append(unopened, t.userID)
+			case err != nil:
+				return 0, fmt.Errorf("authenticator secret of user %s: %w", t.userID, err)
+			default:
+				opened++
+				t.secretOpened, t.secretChanged, t.secret.String = true, changed, value
+			}
+		}
+		if t.pending.Valid {
+			value, changed, err := crypto.ReencryptValueAAD(t.pending.String, current, previous, aad)
+			switch {
+			case errors.Is(err, crypto.ErrUndecryptable):
+			case err != nil:
+				return 0, fmt.Errorf("authenticator setup of user %s: %w", t.userID, err)
+			default:
+				t.pendingOpened, t.pendingChanged, t.pending.String = true, changed, value
+			}
+		}
+	}
+	proven := keysProven || opened > 0
+	if !proven && len(unopened) > 0 {
+		return opened, fmt.Errorf("%w: authenticator secrets of users %s", crypto.ErrUndecryptable, strings.Join(unopened, ", "))
+	}
+
+	// Second pass: write.
+	for _, t := range totps {
+		dropPending := t.pending.Valid && !t.pendingOpened && proven
+		if !t.secretChanged && !t.pendingChanged && !dropPending {
+			continue
+		}
+		if dropPending {
+			_, err = tx.ExecContext(ctx, `
+				UPDATE user_totp SET secret_encrypted = $2, pending_secret_encrypted = NULL, pending_expires_at = NULL,
+					pending_attempts = 0, updated_at = now()
+				WHERE user_id = $1`, t.userID, t.secret)
+		} else {
+			_, err = tx.ExecContext(ctx, `
+				UPDATE user_totp SET secret_encrypted = $2, pending_secret_encrypted = $3, updated_at = now()
+				WHERE user_id = $1`, t.userID, t.secret, t.pending)
+		}
+		if err != nil {
+			return opened, fmt.Errorf("failed to update the authenticator secret of user %s: %w", t.userID, err)
+		}
+		if t.secretChanged || t.pendingChanged {
+			result.UserTOTPs++
+		}
+		if dropPending {
+			result.DroppedTOTPSetups++
+		}
+	}
+	result.UnopenedTOTPUsers = unopened
+	return opened, nil
+}
+
+// SecretKeyOpensAUserTOTP reports whether key opens at least one active authenticator
+// secret, or there is none, and how many it tried. It reads without locks and stops at the
+// first that opens. Secrets being set up are left out: the rotation drops those no key
+// opens, so they must not stop a start.
+func SecretKeyOpensAUserTOTP(ctx context.Context, db *sql.DB, key string) (bool, int, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT user_id, secret_encrypted FROM user_totp
+		WHERE enabled_at IS NOT NULL AND secret_encrypted IS NOT NULL
+		ORDER BY user_id`)
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to read authenticator secrets: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	tried := 0
+	for rows.Next() {
+		var userID, value string
+		if err := rows.Scan(&userID, &value); err != nil {
+			return false, tried, fmt.Errorf("failed to read authenticator secrets: %w", err)
+		}
+		tried++
+		aad, err := domain.TOTPAAD(userID)
+		if err != nil {
+			continue
+		}
+		if _, err := crypto.DecryptFromHexStringAAD(value, key, aad); err == nil {
+			return true, tried, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, tried, fmt.Errorf("failed to read authenticator secrets: %w", err)
+	}
+	return tried == 0, tried, nil
 }
 
 // nullableDocument writes back a column read as NULL as NULL: the driver would send an

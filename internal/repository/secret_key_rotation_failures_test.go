@@ -171,6 +171,7 @@ func TestRotateSecretKey_CommitFailureReportsNothingRotated(t *testing.T) {
 		sqlmock.NewRows([]string{"id", "settings", "integrations"}).AddRow("aaa", []byte(settings), nil))
 	mock.ExpectExec(rotationWorkspaceWrite).WithArgs(sqlmock.AnyArg(), nil, "aaa").WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+	expectNoUserTOTPs(mock)
 	mock.ExpectCommit().WillReturnError(assert.AnError)
 
 	result, err := RotateSecretKey(context.Background(), db, rotationCurrentKey, []string{rotationPreviousKey})
