@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { App, Button, Empty, Form, Input, Modal, Result, Skeleton, Space, Table, Tooltip } from 'antd'
+import { App, Button, Dropdown, Empty, Form, Input, Modal, Result, Skeleton, Space, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { Plus, RefreshCw } from 'lucide-react'
+import { MoreHorizontal, Plus, RefreshCw } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
@@ -209,11 +209,25 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
       key: 'domain',
       render: (_, record) => <span className="font-medium text-ink">{record.domain}</span>
     },
-    { title: t`DKIM`, key: 'dkim', render: (_, record) => statusCell(record) },
-    { title: t`Selector`, key: 'selector', render: (_, record) => <Mono>{record.selector}</Mono> },
+    { title: t`DKIM`, key: 'dkim', width: 230, render: (_, record) => statusCell(record) },
+    {
+      title: t`Selector`,
+      key: 'selector',
+      width: 180,
+      // 30 characters: cut, with the whole selector on hover; the DNS record below shows it in full.
+      ellipsis: { showTitle: false },
+      render: (_, record) => (
+        <Tooltip title={record.selector}>
+          <span>
+            <Mono>{record.selector}</Mono>
+          </span>
+        </Tooltip>
+      )
+    },
     {
       title: t`Used by`,
       key: 'used-by',
+      width: 170,
       render: (_, record) =>
         record.used_by.length > 0 ? (
           <span className="text-ink-2">
@@ -230,23 +244,43 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
       render: (_, record) => {
         if (!isOwner) return null
         const inUse = record.used_by.length > 0
+        const domain = record.domain
         return (
           <Space size={4} onClick={(event) => event.stopPropagation()}>
             <Button size="small" loading={busy === record.domain} onClick={() => handleVerify(record)}>
               {t`Verify`}
             </Button>
-            {record.status !== 'published' ? (
-              <Button size="small" onClick={() => confirmRegenerate(record)}>
-                {t`Regenerate`}
-              </Button>
-            ) : null}
-            <Tooltip title={inUse ? t`SMTP senders use this domain. Change those senders first.` : undefined}>
-              <span className="inline-block">
-                <Button size="small" danger disabled={inUse} onClick={() => confirmDelete(record)}>
-                  {t`Delete`}
-                </Button>
-              </span>
-            </Tooltip>
+            <Dropdown
+              trigger={['click']}
+              placement="bottomRight"
+              menu={{
+                items: [
+                  ...(record.status !== 'published'
+                    ? [{ key: 'regenerate', label: t`Regenerate`, onClick: () => confirmRegenerate(record) }]
+                    : []),
+                  {
+                    key: 'delete',
+                    danger: true,
+                    disabled: inUse,
+                    label: inUse ? (
+                      <Tooltip title={t`SMTP senders use this domain. Change those senders first.`} placement="left">
+                        <span>{t`Delete`}</span>
+                      </Tooltip>
+                    ) : (
+                      t`Delete`
+                    ),
+                    onClick: () => confirmDelete(record)
+                  }
+                ]
+              }}
+            >
+              <Button
+                type="text"
+                size="small"
+                aria-label={t`More actions for ${domain}`}
+                icon={<MoreHorizontal size={16} aria-hidden="true" />}
+              />
+            </Dropdown>
           </Space>
         )
       }

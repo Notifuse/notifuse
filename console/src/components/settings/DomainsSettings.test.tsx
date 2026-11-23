@@ -61,6 +61,13 @@ const renderDomains = (isOwner = true) =>
 
 const rowOf = (domain: string) => screen.getByText(domain, { selector: 'span.font-medium' }).closest('tr') as HTMLElement
 
+/** Opens the ⋯ menu of a row and returns the menu shown. */
+const openMenu = async (domain: string) => {
+  fireEvent.click(within(rowOf(domain)).getByRole('button', { name: `More actions for ${domain}` }))
+  const menus = await screen.findAllByRole('menu')
+  return menus[menus.length - 1]
+}
+
 describe('DomainsSettings', () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset()
@@ -101,10 +108,17 @@ describe('DomainsSettings', () => {
   it('offers Regenerate only on a key that does not sign, and blocks Delete while senders use the domain', async () => {
     renderDomains()
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
-    expect(within(rowOf('acme.io')).queryByRole('button', { name: 'Regenerate' })).toBeNull()
-    expect(within(rowOf('acme.io')).getByRole('button', { name: 'Delete' })).toBeDisabled()
-    expect(within(rowOf('news.acme.io')).getByRole('button', { name: 'Regenerate' })).toBeInTheDocument()
-    expect(within(rowOf('brand-b.com')).getByRole('button', { name: 'Delete' })).toBeEnabled()
+    let menu = await openMenu('acme.io')
+    expect(within(menu).queryByRole('menuitem', { name: 'Regenerate' })).toBeNull()
+    expect(within(menu).getByRole('menuitem', { name: 'Delete' })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.keyDown(menu, { key: 'Escape' })
+
+    menu = await openMenu('news.acme.io')
+    expect(within(menu).getByRole('menuitem', { name: 'Regenerate' })).toBeInTheDocument()
+    fireEvent.keyDown(menu, { key: 'Escape' })
+
+    menu = await openMenu('brand-b.com')
+    expect(within(menu).getByRole('menuitem', { name: 'Delete' })).not.toHaveAttribute('aria-disabled', 'true')
   })
 
   it('creates a key from the dialog', async () => {
@@ -164,7 +178,8 @@ describe('DomainsSettings', () => {
     renderDomains()
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
 
-    fireEvent.click(within(rowOf('brand-b.com')).getByRole('button', { name: 'Delete' }))
+    const menu = await openMenu('brand-b.com')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete' }))
     const confirm = await screen.findByRole('dialog')
     fireEvent.click(within(confirm).getByRole('button', { name: 'Delete' }))
 
@@ -179,7 +194,7 @@ describe('DomainsSettings', () => {
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
     expect(screen.getByRole('button', { name: 'Add domain' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Verify' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /More actions/ })).toBeNull()
     expect(screen.getByTestId('dkim-dns-record')).toBeInTheDocument()
   })
 

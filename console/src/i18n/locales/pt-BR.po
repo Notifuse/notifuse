@@ -2162,7 +2162,7 @@ msgstr "Sobre o consentimento"
 msgid "About display conditions"
 msgstr "Sobre as condições de exibição"
 
-#: src/components/settings/DomainsSettings.tsx:327
+#: src/components/settings/DomainsSettings.tsx:361
 msgid "About DKIM keys"
 msgstr "Sobre as chaves DKIM"
 
@@ -2194,7 +2194,7 @@ msgstr "Sobre o login único"
 msgid "About system email delivery"
 msgstr "Sobre o envio de e-mails do sistema"
 
-#: src/components/settings/DomainsSettings.tsx:356
+#: src/components/settings/DomainsSettings.tsx:390
 msgid "About the DNS record"
 msgstr "Sobre o registro DNS"
 
@@ -2550,7 +2550,7 @@ msgid "Add dimension"
 msgstr "Adicionar dimensão"
 
 #: src/components/settings/DomainsSettings.tsx:200
-#: src/components/settings/DomainsSettings.tsx:380
+#: src/components/settings/DomainsSettings.tsx:414
 msgid "Add domain"
 msgstr "Adicionar domínio"
 
@@ -2640,7 +2640,7 @@ msgstr "Adicionar tags..."
 msgid "Add teammates, or create an API key for your app."
 msgstr "Adicione membros ou crie uma chave API para o seu app."
 
-#: src/components/settings/DomainsSettings.tsx:287
+#: src/components/settings/DomainsSettings.tsx:321
 msgid "Add the domain of your senders to sign their emails with DKIM."
 msgstr "Adicione o domínio dos seus remetentes para assinar os emails deles com DKIM."
 
@@ -3130,7 +3130,7 @@ msgstr "Amazon SES"
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, em uma região que suporte recebimento de emails)"
 
-#: src/components/settings/DomainsSettings.tsx:328
+#: src/components/settings/DomainsSettings.tsx:362
 msgid "Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. Notifuse checks a record every hour until it finds it, then once a day, and every hour again after a failed check. A published key stops signing after {DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart."
 msgstr "Amazon SES, Mailgun, SendGrid e os outros provedores de API assinam do lado deles, então estas chaves só valem para integrações SMTP. Uma chave assina assim que o registro DNS dela é encontrado, e só para o domínio exato: uma chave em acme.io não assina news.acme.io. O Notifuse verifica um registro a cada hora até encontrá-lo, depois uma vez por dia, e de novo a cada hora após uma verificação com falha. Uma chave publicada para de assinar após {DKIM_DOWNGRADE_THRESHOLD} verificações com falha, feitas com uma hora de intervalo."
 
@@ -3779,7 +3779,7 @@ msgstr "Pelo menos um email raiz é obrigatório"
 msgid "at most"
 msgstr "no máximo"
 
-#: src/components/settings/DomainsSettings.tsx:357
+#: src/components/settings/DomainsSettings.tsx:391
 msgid "At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email."
 msgstr "No seu provedor de DNS, adicione um registro TXT com este nome e este valor. O Notifuse começa a assinar assim que o encontra. Mantenha o registro enquanto o domínio enviar emails."
 
@@ -5231,7 +5231,7 @@ msgstr "Não é possível testar no navegador"
 #: src/components/settings/CustomFieldsConfiguration.tsx:386
 #: src/components/settings/DomainsSettings.tsx:107
 #: src/components/settings/DomainsSettings.tsx:127
-#: src/components/settings/DomainsSettings.tsx:385
+#: src/components/settings/DomainsSettings.tsx:419
 #: src/components/settings/EditPermissionsDrawer.tsx:101
 #: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
@@ -7078,7 +7078,7 @@ msgstr "Não foi possível carregar as entregas"
 msgid "Couldn't load the DKIM keys of this workspace."
 msgstr "Não foi possível carregar as chaves DKIM deste workspace."
 
-#: src/components/settings/DomainsSettings.tsx:273
+#: src/components/settings/DomainsSettings.tsx:307
 msgid "Couldn't load the domains"
 msgstr "Não foi possível carregar os domínios"
 
@@ -7367,7 +7367,7 @@ msgstr "Criar categoria"
 msgid "Create First Theme"
 msgstr "Criar Primeiro Tema"
 
-#: src/components/settings/DomainsSettings.tsx:384
+#: src/components/settings/DomainsSettings.tsx:418
 msgid "Create key"
 msgstr "Criar chave"
 
@@ -8258,7 +8258,8 @@ msgstr "Atraso"
 #: src/components/lists/DeleteListModal.tsx:135
 #: src/components/segment/input.tsx:309
 #: src/components/settings/DomainsSettings.tsx:126
-#: src/components/settings/DomainsSettings.tsx:246
+#: src/components/settings/DomainsSettings.tsx:267
+#: src/components/settings/DomainsSettings.tsx:270
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -9027,7 +9028,7 @@ msgstr "Largura do divisor"
 msgid "DKIM"
 msgstr "DKIM"
 
-#: src/components/settings/DomainsSettings.tsx:326
+#: src/components/settings/DomainsSettings.tsx:360
 msgid "DKIM keys"
 msgstr "Chaves DKIM"
 
@@ -9112,7 +9113,7 @@ msgstr "não é igual a"
 
 #: src/components/segment/segmentLabels.ts:89
 #: src/components/settings/DomainsSettings.tsx:208
-#: src/components/settings/DomainsSettings.tsx:392
+#: src/components/settings/DomainsSettings.tsx:426
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:746
@@ -9138,7 +9139,7 @@ msgstr "Domínio onde a visita começou, ao qual o caminho pertence"
 msgid "Domain the visitor arrived from"
 msgstr "Domínio de onde o visitante veio"
 
-#: src/components/settings/DomainsSettings.tsx:318
+#: src/components/settings/DomainsSettings.tsx:352
 #: src/components/settings/SettingsSidebar.tsx:66
 msgid "Domains"
 msgstr "Domínios"
@@ -15852,6 +15853,10 @@ msgstr "Mensal"
 msgid "More actions"
 msgstr "Mais ações"
 
+#: src/components/settings/DomainsSettings.tsx:280
+msgid "More actions for {domain}"
+msgstr "Mais ações para {domain}"
+
 #: src/components/email_builder/ui/SavedBlockCard.tsx:247
 #: src/components/templates/TemplateSelectorModal.tsx:358
 msgid "More actions for {name}"
@@ -15922,7 +15927,7 @@ msgstr "N/D"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:404
-#: src/components/settings/DomainsSettings.tsx:367
+#: src/components/settings/DomainsSettings.tsx:401
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -16489,7 +16494,7 @@ msgstr "Nenhuma dimensão encontrada"
 msgid "No DNS record found for {domain} yet. DNS changes can take a few hours to show."
 msgstr "Ainda não há registro DNS para {domain}. Alterações de DNS podem levar algumas horas para aparecer."
 
-#: src/components/settings/DomainsSettings.tsx:286
+#: src/components/settings/DomainsSettings.tsx:320
 msgid "No domains yet"
 msgstr "Nenhum domínio ainda"
 
@@ -16890,7 +16895,7 @@ msgstr "Sem imagem de compartilhamento"
 msgid "No share title"
 msgstr "Sem título de compartilhamento"
 
-#: src/components/settings/DomainsSettings.tsx:223
+#: src/components/settings/DomainsSettings.tsx:237
 msgid "No SMTP integration yet"
 msgstr "Nenhuma integração SMTP ainda"
 
@@ -17384,11 +17389,11 @@ msgstr "Notificações enviadas pela API, Zapier ou Supabase"
 msgid "Notifuse {latest} is available"
 msgstr "Notifuse {latest} está disponível"
 
-#: src/components/settings/DomainsSettings.tsx:319
+#: src/components/settings/DomainsSettings.tsx:353
 msgid "Notifuse adds a DKIM signature to the emails your SMTP integrations send from these domains."
 msgstr "O Notifuse adiciona uma assinatura DKIM aos emails que suas integrações SMTP enviam a partir destes domínios."
 
-#: src/components/settings/DomainsSettings.tsx:393
+#: src/components/settings/DomainsSettings.tsx:427
 msgid "Notifuse creates the key. You publish one DNS record."
 msgstr "O Notifuse cria a chave. Você publica um registro DNS."
 
@@ -18801,7 +18806,7 @@ msgstr "Por favor, insira um nome para a categoria"
 msgid "Please enter a custom label"
 msgstr "Por favor, insira um rótulo personalizado"
 
-#: src/components/settings/DomainsSettings.tsx:394
+#: src/components/settings/DomainsSettings.tsx:428
 msgid "Please enter a domain"
 msgstr "Por favor, insira um domínio"
 
@@ -19543,7 +19548,7 @@ msgstr "Publicar tema"
 msgid "Publish theme v{themeVersion}"
 msgstr "Publicar o tema v{themeVersion}"
 
-#: src/components/settings/DomainsSettings.tsx:355
+#: src/components/settings/DomainsSettings.tsx:389
 msgid "Publish this record for {shownName}"
 msgstr "Publique este registro para {shownName}"
 
@@ -20101,8 +20106,8 @@ msgstr "Referenciadores"
 #: src/components/logs/OutgoingWebhooksTab.tsx:154
 #: src/components/logs/OutgoingWebhooksTab.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:434
-#: src/components/settings/DomainsSettings.tsx:334
-#: src/components/settings/DomainsSettings.tsx:338
+#: src/components/settings/DomainsSettings.tsx:368
+#: src/components/settings/DomainsSettings.tsx:372
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
@@ -20150,7 +20155,7 @@ msgid "Refused: private address"
 msgstr "Recusado: endereço privado"
 
 #: src/components/settings/DomainsSettings.tsx:106
-#: src/components/settings/DomainsSettings.tsx:240
+#: src/components/settings/DomainsSettings.tsx:259
 #: src/components/settings/WebhookDetail.tsx:404
 msgid "Regenerate"
 msgstr "Regenerar"
@@ -20867,7 +20872,7 @@ msgstr "Tentou novamente os envios com falha da newsletter <0>{target}</0>"
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 #: src/components/segment/SegmentCountCard.tsx:124
-#: src/components/settings/DomainsSettings.tsx:275
+#: src/components/settings/DomainsSettings.tsx:309
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
 #: src/components/settings/WorkspaceMembers.tsx:496
@@ -22146,7 +22151,7 @@ msgstr "Dimensões selecionadas, em ordem:"
 msgid "Selected: {0}"
 msgstr "Selecionado: {0}"
 
-#: src/components/settings/DomainsSettings.tsx:213
+#: src/components/settings/DomainsSettings.tsx:214
 msgid "Selector"
 msgstr "Seletor"
 
@@ -23458,7 +23463,7 @@ msgstr "O provedor SMTP não suporta webhooks de reclamação, então reclamaç�
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "O provedor SMTP não suporta webhooks de entrega, então o status de entrega não pode ser rastreado"
 
-#: src/components/settings/DomainsSettings.tsx:243
+#: src/components/settings/DomainsSettings.tsx:266
 msgid "SMTP senders use this domain. Change those senders first."
 msgstr "Remetentes SMTP usam este domínio. Altere esses remetentes primeiro."
 
@@ -26907,7 +26912,7 @@ msgstr "Desativar o double opt-in não altera os contatos “Pendentes”: eles 
 #: src/components/file_manager/FilePreview.tsx:48
 #: src/components/logs/InboundWebhooksTab.tsx:181
 #: src/components/settings/CustomFieldsConfiguration.tsx:190
-#: src/components/settings/DomainsSettings.tsx:363
+#: src/components/settings/DomainsSettings.tsx:397
 #: src/components/settings/GeneralSettings.tsx:196
 msgid "Type"
 msgstr "Tipo"
@@ -27577,7 +27582,7 @@ msgstr "Usar o padrão do workspace"
 msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "Padrão do workspace · {defaultIntegrationName}"
 
-#: src/components/settings/DomainsSettings.tsx:215
+#: src/components/settings/DomainsSettings.tsx:228
 #: src/components/templates/TemplateSelectorModal.tsx:665
 msgid "Used by"
 msgstr "Usado por"
@@ -27782,7 +27787,7 @@ msgstr "Erro de validação"
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:254
 #: src/components/segment/form_leaf.tsx:769
-#: src/components/settings/DomainsSettings.tsx:371
+#: src/components/settings/DomainsSettings.tsx:405
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
 #: src/components/web_analytics/FilterBuilder.tsx:333
@@ -27873,7 +27878,7 @@ msgstr "Código de verificação"
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Verificou o código de login de <0>{target}</0>"
 
-#: src/components/settings/DomainsSettings.tsx:236
+#: src/components/settings/DomainsSettings.tsx:251
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:542
 msgid "Verify"
 msgstr "Verificar"
@@ -29046,7 +29051,7 @@ msgstr "Você não tem permissão para gerenciar campos personalizados"
 msgid "You don't have permission to manage webhooks"
 msgstr "Você não tem permissão para gerenciar webhooks"
 
-#: src/components/settings/DomainsSettings.tsx:269
+#: src/components/settings/DomainsSettings.tsx:303
 msgid "You don't have permission to view the domains"
 msgstr "Você não tem permissão para ver os domínios"
 
