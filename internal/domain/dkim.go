@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"crypto/rsa"
 	"encoding/hex"
 	"encoding/json"
@@ -288,3 +289,106 @@ func truncateDKIMCheckError(s string) string {
 	}
 	return string(r)
 }
+
+//go:generate mockgen -destination mocks/mock_dkim_service.go -package mocks github.com/Notifuse/notifuse/internal/domain DKIMService
+
+// DKIMService manages the DKIM keys of a workspace's domains. Reading needs the
+// workspace read permission; every change is for owners only.
+type DKIMService interface {
+	ListDomains(ctx context.Context, workspaceID string) ([]DKIMDomainView, error)
+	CreateDomain(ctx context.Context, workspaceID, domain string) (*DKIMDomainView, error)
+	RegenerateKey(ctx context.Context, workspaceID, domain string) (*DKIMDomainView, error)
+	VerifyDomain(ctx context.Context, workspaceID, domain string) (*DKIMVerifyResult, error)
+	DeleteDomain(ctx context.Context, workspaceID, domain string) error
+}
+
+// DKIMDomainRequest names a domain of a workspace.
+type DKIMDomainRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	Domain      string `json:"domain"`
+}
+
+// Validate checks that both fields are given.
+func (r *DKIMDomainRequest) Validate() error {
+	if strings.TrimSpace(r.WorkspaceID) == "" {
+		return errors.New("workspace_id is required")
+	}
+	if strings.TrimSpace(r.Domain) == "" {
+		return errors.New("domain is required")
+	}
+	return nil
+}
+
+// DKIMDomainView is a domain as the console shows it: never a private key.
+type DKIMDomainView struct {
+	Domain              string           `json:"domain"`
+	Selector            string           `json:"selector"`
+	Status              DKIMKeyStatus    `json:"status"`
+	DNSRecord           DKIMDNSRecord    `json:"dns_record"`
+	CreatedAt           time.Time        `json:"created_at"`
+	VerifiedAt          *time.Time       `json:"verified_at,omitempty"`
+	LastCheckedAt       *time.Time       `json:"last_checked_at,omitempty"`
+	LastCheckError      string           `json:"last_check_error,omitempty"`
+	ConsecutiveFailures int              `json:"consecutive_failures"`
+	DowngradedAt        *time.Time       `json:"downgraded_at,omitempty"`
+	DowngradeReason     string           `json:"downgrade_reason,omitempty"`
+	UsedBy              []DKIMDomainUser `json:"used_by"`
+}
+
+// NewDKIMDomainView builds the view of a key.
+func NewDKIMDomainView(k DKIMKey, usedBy []DKIMDomainUser) DKIMDomainView {
+	if usedBy == nil {
+		usedBy = []DKIMDomainUser{}
+	}
+	return DKIMDomainView{
+		Domain:              k.Domain,
+		Selector:            k.Selector,
+		Status:              k.Status,
+		DNSRecord:           k.DNSRecord(),
+		CreatedAt:           k.CreatedAt,
+		VerifiedAt:          k.VerifiedAt,
+		LastCheckedAt:       k.LastCheckedAt,
+		LastCheckError:      k.LastCheckError,
+		ConsecutiveFailures: k.ConsecutiveFailures,
+		DowngradedAt:        k.DowngradedAt,
+		DowngradeReason:     k.DowngradeReason,
+		UsedBy:              usedBy,
+	}
+}
+
+// DKIMCheck is what one lookup found, as the console shows it.
+type DKIMCheck struct {
+	Result DKIMCheckResult `json:"result"`
+	Detail string          `json:"detail,omitempty"`
+}
+
+// DKIMVerifyResult is the answer to a manual check: what the lookup found now, and the
+// key as stored after it. StaleConflict says the key changed during the lookup (another
+// check, a regeneration), so the stored state was not changed by this one.
+type DKIMVerifyResult struct {
+	Domain        DKIMDomainView `json:"domain"`
+	Check         DKIMCheck      `json:"check"`
+	StaleConflict bool           `json:"stale_conflict,omitempty"`
+}
+
+// ErrDKIMInvalidDomain refuses a domain no key can be created for (400).
+type ErrDKIMInvalidDomain struct{ Message string }
+
+func (e *ErrDKIMInvalidDomain) Error() string { return e.Message }
+
+// ErrDKIMDomainNotFound: the workspace has no key for the domain (404).
+type ErrDKIMDomainNotFound struct{ Domain string }
+
+func (e *ErrDKIMDomainNotFound) Error() string {
+	return fmt.Sprintf("no DKIM key for %s", e.Domain)
+}
+
+// ErrDKIMConflict refuses a change the state of the keys does not allow (409): a
+// domain that already has a key, the cap reached, regenerating a published key, or
+// deleting a key senders use (UsedBy names their integrations).
+type ErrDKIMConflict struct {
+	Message string
+	UsedBy  []DKIMDomainUser
+}
+
+func (e *ErrDKIMConflict) Error() string { return e.Message }
