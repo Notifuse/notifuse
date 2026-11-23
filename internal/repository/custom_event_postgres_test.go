@@ -419,8 +419,8 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 			AddRow("orders/fulfilled", "order_1", email, json1, now, "api", nil, nil, nil, nil, nil, now, now).
 			AddRow("payment.succeeded", "payment_1", email, json2, now, "integration", nil, nil, nil, nil, nil, now, now)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
-			WithArgs(email, limit, offset).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email IN \(\$1, \$4\) AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+			WithArgs(email, limit, offset, domain.NormalizeEmail(email)).
 			WillReturnRows(rows)
 
 		results, err := repo.ListByEmail(ctx, workspaceID, email, limit, offset)
@@ -443,8 +443,8 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 			"created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
-			WithArgs(email, limit, offset).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email IN \(\$1, \$4\) AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+			WithArgs(email, limit, offset, domain.NormalizeEmail(email)).
 			WillReturnRows(rows)
 
 		results, err := repo.ListByEmail(ctx, workspaceID, email, limit, offset)
@@ -469,8 +469,8 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
-			WithArgs(email, limit, offset).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email IN \(\$1, \$4\) AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+			WithArgs(email, limit, offset, domain.NormalizeEmail(email)).
 			WillReturnError(errors.New("query error"))
 
 		results, err := repo.ListByEmail(ctx, workspaceID, email, limit, offset)
@@ -796,4 +796,26 @@ func TestCustomEventRepository_UpsertQuery_ConflictLeavesTheStoredOriginAlone(t 
 	// A first write still has to record where the row came from.
 	insert, _, _ := strings.Cut(upsertCustomEventQuery, "ON CONFLICT")
 	assert.Contains(t, insert, "source", "a brand-new row must still record its origin")
+}
+
+// An address sent with capitals finds both the events stored with that case (before 45.0)
+// and those stored normalised (since).
+func TestCustomEventRepository_ListByEmail_BothForms(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws").Return(db, nil)
+	repo := NewCustomEventRepository(workspaceRepo)
+
+	mock.ExpectQuery(`WHERE email IN \(\$1, \$4\)`).
+		WithArgs("Bob@Example.COM", 10, 0, "bob@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"event_name", "external_id", "email", "properties", "occurred_at",
+			"source", "integration_id", "goal_name", "goal_type", "goal_value", "deleted_at", "created_at", "updated_at"}))
+
+	_, err = repo.ListByEmail(context.Background(), "ws", "Bob@Example.COM", 10, 0)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
 }

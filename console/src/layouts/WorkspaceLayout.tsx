@@ -20,6 +20,8 @@ import {
 } from './app-shell/menuItems'
 import { useSidebarPinned } from './app-shell/useSidebarPinned'
 import { useAuditLogAccess } from '../hooks/useAuditLogAccess'
+import { canEditStorageSettings, canWriteFiles } from '../components/file_manager/fileRights'
+import { savedFileManagerSettings } from '../components/file_manager/settingsPayload'
 
 export type PageLayout = 'page' | 'rail'
 
@@ -71,6 +73,8 @@ export function WorkspaceLayout() {
   }, [activeGroup])
 
   const auditAccess = useAuditLogAccess(workspaceId)
+  // The image pickers upload with write access to templates or the blog, as the server allows.
+  const filesReadOnly = !canWriteFiles(userPermissions, role)
 
   // Helper function to check if user has access to a resource
   const hasAccess = (resource: keyof UserPermissions): boolean => {
@@ -111,7 +115,7 @@ export function WorkspaceLayout() {
         name: workspace.name,
         settings: {
           ...workspace.settings,
-          file_manager: settings
+          file_manager: savedFileManagerSettings(settings)
         }
       })
 
@@ -169,11 +173,12 @@ export function WorkspaceLayout() {
         >
           <div data-page-content className={pageLayout === 'page' ? 'px-5 pt-4 pb-6' : undefined}>
             <FileManagerProvider
-              key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
+              key={`fm-${workspaceId}-${filesReadOnly}`}
               workspaceId={workspaceId}
               settings={workspaces.find((w) => w.id === workspaceId)?.settings.file_manager}
               onUpdateSettings={handleUpdateWorkspaceSettings}
-              readOnly={!userPermissions?.templates?.write}
+              readOnly={filesReadOnly}
+              canEditSettings={canEditStorageSettings(role)}
             >
               <Outlet />
             </FileManagerProvider>

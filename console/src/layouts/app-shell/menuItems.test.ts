@@ -71,7 +71,7 @@ describe('firstPageOfGroup', () => {
     })
   })
 
-  it('opens templates, else the blog, else nothing', () => {
+  it('opens templates, else the blog, else the file manager, else nothing', () => {
     expect(firstPageOfGroup('content', allowAll, 'ws1')).toEqual({
       to: '/console/workspace/$workspaceId/templates',
       params: { workspaceId: 'ws1' }
@@ -80,7 +80,14 @@ describe('firstPageOfGroup', () => {
       to: '/console/workspace/$workspaceId/blog',
       params: { workspaceId: 'ws1' }
     })
-    expect(firstPageOfGroup('content', allowAllBut('templates', 'workspace'), 'ws1')).toBeNull()
+    // The blog right alone opens the files, not the blog page, which needs the workspace right.
+    expect(firstPageOfGroup('content', allowAllBut('templates', 'workspace'), 'ws1')).toEqual({
+      to: '/console/workspace/$workspaceId/file-manager',
+      params: { workspaceId: 'ws1' }
+    })
+    expect(
+      firstPageOfGroup('content', allowAllBut('templates', 'workspace', 'blog'), 'ws1')
+    ).toBeNull()
   })
 
   it('has no page for an unknown group', () => {
@@ -157,11 +164,24 @@ describe('buildMenuItems', () => {
     })
     expect(childKeys(noTemplates, 'content')).toEqual(['blog', 'file-manager'])
     const none = buildMenuItems({
-      hasAccess: allowAllBut('templates', 'workspace'),
+      hasAccess: allowAllBut('templates', 'workspace', 'blog'),
       workspaceId: 'ws1',
       i18n
     })
     expect(keys(none)).not.toContain('content')
+  })
+
+  it('shows File Manager with templates or the blog, as the server lists the files', () => {
+    const content = (hasAccess: HasAccess) =>
+      childKeys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n }), 'content')
+    const only =
+      (...resources: (keyof UserPermissions)[]): HasAccess =>
+      (resource) =>
+        resources.includes(resource)
+    expect(content(only('templates'))).toEqual(['templates', 'file-manager'])
+    expect(content(only('blog'))).toEqual(['file-manager'])
+    // The workspace right shows the blog page, not the files.
+    expect(content(only('workspace'))).toEqual(['blog'])
   })
 
   it('gives each top entry an icon and no child an icon', () => {
@@ -210,6 +230,13 @@ describe('firstAccessiblePage', () => {
     expect(firstAccessiblePage(only('contacts'), 'ws1').target).toEqual({
       to: '/console/workspace/$workspaceId/contacts',
       params: { workspaceId: 'ws1' }
+    })
+  })
+
+  it('lands on the file manager for a member who only has the blog right', () => {
+    expect(firstAccessiblePage(only('blog'), 'ws1')).toEqual({
+      key: 'content',
+      target: { to: '/console/workspace/$workspaceId/file-manager', params: { workspaceId: 'ws1' } }
     })
   })
 

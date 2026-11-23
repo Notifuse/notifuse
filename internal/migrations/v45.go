@@ -35,13 +35,15 @@ import (
 //     columns of user_sessions that record how a session was opened and its pending
 //     challenge. The DDL is schema.TwoFactorTableDefinitions, shared verbatim with
 //     internal/database/init.go.
+//   - data retention, Lot 0 (workspace): the opt-out hashes of deleted contacts, their
+//     restore trigger and the bodies that honour them (v45_data_retention.go).
 type V45Migration struct{}
 
 func (m *V45Migration) GetMajorVersion() float64 { return 45.0 }
 
 func (m *V45Migration) HasSystemUpdate() bool { return true }
 
-func (m *V45Migration) HasWorkspaceUpdate() bool { return false }
+func (m *V45Migration) HasWorkspaceUpdate() bool { return true }
 
 func (m *V45Migration) ShouldRestartServer() bool { return false }
 
@@ -55,6 +57,11 @@ func (m *V45Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 }
 
 func (m *V45Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {
+	// Data retention, Lot 0: the opt-out hashes of deleted contacts and their restore
+	// trigger, and the bodies that honour them (v45_data_retention.go).
+	if err := applyDataRetentionWorkspaceV45(ctx, db); err != nil {
+		return err
+	}
 	return nil
 }
 

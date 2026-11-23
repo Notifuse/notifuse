@@ -30,6 +30,8 @@ const (
 	AuditCategorySegments      = "segments"
 	AuditCategoryTransactional = "transactional"
 	AuditCategoryBlog          = "blog"
+	// The workspace's file storage: uploads, folders and deletes.
+	AuditCategoryFiles = "files"
 	// Web analytics: its settings (goals, filter rules), the chart annotations and the
 	// attribution backfill. Rows written before it existed keep the category they were written
 	// with (workspaces, contacts).
@@ -55,6 +57,7 @@ var AuditCategories = []string{
 	AuditCategorySegments,
 	AuditCategoryTransactional,
 	AuditCategoryBlog,
+	AuditCategoryFiles,
 	AuditCategoryWebAnalytics,
 	AuditCategoryContacts,
 	AuditCategoryAudit,
@@ -78,6 +81,7 @@ const (
 	AuditTargetBlogPost     = "blog_post"
 	AuditTargetBlogCategory = "blog_category"
 	AuditTargetBlogTheme    = "blog_theme"
+	AuditTargetFile         = "file"
 	AuditTargetContact      = "contact"
 	AuditTargetAnnotation   = "annotation"
 	AuditTargetLicence      = "licence"
@@ -120,6 +124,10 @@ var AuditedActions = map[string]AuditActionSpec{
 	"workspaces.setCustomFieldLabels":    {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setWebAnalyticsSettings": {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setAuditLogSettings":     {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.createDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.regenerateDKIMKey":       {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.verifyDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.deleteDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setMCPSettings":          {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 
 	// members
@@ -190,6 +198,12 @@ var AuditedActions = map[string]AuditActionSpec{
 	"transactional.update": {Category: AuditCategoryTransactional, TargetType: AuditTargetNotification, TargetKey: "id"},
 	"transactional.delete": {Category: AuditCategoryTransactional, TargetType: AuditTargetNotification, TargetKey: "id"},
 
+	// files — the bucket's own content; an upload is recorded when its URL is signed
+	"files.presignUpload": {Category: AuditCategoryFiles, TargetType: AuditTargetFile, TargetKey: "key"},
+	"files.createFolder":  {Category: AuditCategoryFiles, TargetType: AuditTargetFile, TargetKey: "key"},
+	"files.delete":        {Category: AuditCategoryFiles, TargetType: AuditTargetFile},
+	"files.deleteFolder":  {Category: AuditCategoryFiles, TargetType: AuditTargetFile, TargetKey: "prefix"},
+
 	// blog
 	"blogPosts.create":      {Category: AuditCategoryBlog, TargetType: AuditTargetBlogPost, ResponseKey: "post.id"},
 	"blogPosts.update":      {Category: AuditCategoryBlog, TargetType: AuditTargetBlogPost, TargetKey: "id"},
@@ -257,6 +271,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	// utilities and tests that change nothing durable
 	"llm.chat":                     {},
 	"email.testProvider":           {},
+	"workspaces.testFileManager":   {},
 	"settings.testSmtp":            {},
 	"setup.testSmtp":               {},
 	"setup.status":                 {},
@@ -285,6 +300,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"analytics.schemas":                {},
 	"annotations.get":                  {},
 	"annotations.list":                 {},
+	"files.list":                       {},
 	"auditLogs.actions":                {},
 	"auditLogs.get":                    {},
 	"auditLogs.list":                   {},
@@ -349,6 +365,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"webhookSubscriptions.list":        {},
 	"workspaces.get":                   {},
 	"workspaces.list":                  {},
+	"workspaces.listDKIMDomains":       {},
 	"workspaces.members":               {},
 	"workspaces.pendingInvitations":    {},
 	"workspaces.verifyInvitationToken": {},

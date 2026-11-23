@@ -775,6 +775,12 @@ func (tdf *TestDataFactory) GetWorkspace(workspaceID string) (*domain.Workspace,
 	return tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
 }
 
+// SaveWorkspace writes a workspace through WorkspaceRepository.Update, as a settings
+// save does: a test can hand it a copy read earlier.
+func (tdf *TestDataFactory) SaveWorkspace(workspace *domain.Workspace) error {
+	return tdf.workspaceRepo.Update(context.Background(), workspace)
+}
+
 // SetWorkspaceCustomEndpointURL sets the workspace's Custom Endpoint URL (the tracking
 // domain), which resolves into TrackingSettings.Endpoint and is exposed to templates as
 // {{ workspace.base_url }}. Writes directly via the repository to bypass DNS verification.

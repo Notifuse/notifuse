@@ -424,6 +424,14 @@ type SendEmailProviderRequest struct {
 	// pointer so the written value survives the by-value request copy through the send
 	// chain. nil for providers/callers that don't need it.
 	CapturedMessageID *string
+
+	// DKIMSnapshot, when non-nil, holds the workspace's DKIM keys as already read by the
+	// caller for this send or batch. A non-nil empty slice means "read, no key": no
+	// lookup is made. nil means EmailService reads them (through its cache).
+	DKIMSnapshot *[]DKIMKey `json:"-"`
+	// DKIM is the key the send is signed with, set by EmailService.SendEmail for a
+	// provider Notifuse signs for, nil when the sender's domain has no published key.
+	DKIM *DKIMSigningKey `json:"-"`
 }
 
 // Validate ensures all required fields are present and valid

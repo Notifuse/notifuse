@@ -2,54 +2,33 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3'
 import { FileExplorer, type FileExplorerProps } from './FileExplorer'
 import { clearImageSizes } from './imageDimensions'
 import type { StorageObject } from './interfaces'
+import { fakeFiles, type FakeObject } from './fakeFilesApi'
+import type { DeleteFolderResult, PresignedUpload } from '../../services/api/files'
 
-// Every S3Client the explorer builds answers through this send.
-const s3 = vi.hoisted(() => ({ send: vi.fn() }))
-vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>()
-  return {
-    ...actual,
-    S3Client: class {
-      send = s3.send
-    }
-  }
-})
+// The bucket lives behind the API: an in-memory one here, and the presigned PUTs go to fetch.
+vi.mock('../../services/api/files', async () => ({
+  filesApi: (await import('./fakeFilesApi')).fakeFiles.api
+}))
 
 const settings = { endpoint: 'https://s3.example.com', access_key: 'key', bucket: 'media' }
 const at = (day: number) => new Date(Date.UTC(2026, 0, day))
 
 // docs/ holds two files and a sub-folder with one; photos/ exists only through its file.
-const BUCKET = [
-  { Key: 'docs/', LastModified: at(1) },
-  { Key: 'docs/a.png', LastModified: at(3), Size: 2048 },
-  { Key: 'docs/report.pdf', LastModified: at(2), Size: 1024 },
-  { Key: 'docs/2026/', LastModified: at(1) },
-  { Key: 'docs/2026/b.png', LastModified: at(4), Size: 100 },
-  { Key: 'photos/beach.jpg', LastModified: at(5), Size: 300 },
-  { Key: 'notes.txt', LastModified: at(6), Size: 10 }
+const BUCKET: FakeObject[] = [
+  { key: 'docs/', lastModified: at(1) },
+  { key: 'docs/a.png', lastModified: at(3), size: 2048 },
+  { key: 'docs/report.pdf', lastModified: at(2), size: 1024 },
+  { key: 'docs/2026/', lastModified: at(1) },
+  { key: 'docs/2026/b.png', lastModified: at(4), size: 100 },
+  { key: 'photos/beach.jpg', lastModified: at(5), size: 300 },
+  { key: 'notes.txt', lastModified: at(6), size: 10 }
 ]
 
-// Answers the listings from a copy of the objects, which an upload adds to.
-const listing = (initial: typeof BUCKET = BUCKET) => {
-  const contents = [...initial]
-  s3.send.mockImplementation(async (command: unknown) => {
-    if (command instanceof ListObjectsV2Command) {
-      const prefix = command.input.Prefix ?? ''
-      return {
-        Contents: contents.filter((object) => object.Key.startsWith(prefix)),
-        IsTruncated: false
-      }
-    }
-    if (command instanceof PutObjectCommand) {
-      contents.push({ Key: command.input.Key as string, LastModified: at(9), Size: 1 })
-    }
-    return {}
-  })
-}
+// Answers the listings from a copy of the objects, which an upload or a delete changes.
+const listing = (initial: FakeObject[] = BUCKET) => fakeFiles.reset(initial)
 
 const isImage = (item: StorageObject) =>
   !item.is_folder && item.file_info?.content_type?.startsWith('image/')
@@ -89,8 +68,7 @@ const renderExplorer = (props: Partial<FileExplorerProps> = {}, path = 'docs/') 
   }
 }
 
-const listCalls = () =>
-  s3.send.mock.calls.filter(([command]) => command instanceof ListObjectsV2Command)
+const listCalls = () => fakeFiles.api.list.mock.calls
 
 // The preview's delete confirmation, found by its question.
 const openPopconfirm = async () => {
@@ -121,7 +99,7 @@ const openMenu = async (name: string, inRail = false) => {
 
 describe('FileExplorer page', () => {
   beforeEach(() => {
-    s3.send.mockReset()
+    fakeFiles.reset()
     localStorage.clear()
     clearImageSizes()
   })
@@ -142,7 +120,7 @@ describe('FileExplorer page', () => {
   })
 
   it('shows no count nor size in the rail before the listing answers', async () => {
-    s3.send.mockReturnValue(new Promise(() => {}))
+    fakeFiles.api.list.mockReturnValue(new Promise(() => {}))
     renderExplorer()
     const tree = await screen.findByRole('navigation', { name: 'Folders' })
     expect(within(tree).getByRole('button', { name: 'Root' })).toBeTruthy()
@@ -228,8 +206,7 @@ describe('FileExplorer page', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }))
 
     expect(await screen.findByText('Folder created successfully.')).toBeTruthy()
-    const put = s3.send.mock.calls.find(([command]) => command instanceof PutObjectCommand)
-    expect(put?.[0].input.Key).toBe('docs/drafts/')
+    expect(fakeFiles.api.createFolder).toHaveBeenCalledWith('ws', 'docs/drafts/')
   })
 
   it('deletes a folder from its menu in the rail', async () => {
@@ -243,22 +220,19 @@ describe('FileExplorer page', () => {
     fireEvent.click(confirmButton())
 
     expect(await screen.findByText('Folder deleted successfully.')).toBeTruthy()
-    const deleted = s3.send.mock.calls
-      .filter(([command]) => command instanceof DeleteObjectCommand)
-      .map(([command]) => command.input.Key)
-      .sort()
-    expect(deleted).toEqual(['docs/2026/', 'docs/2026/b.png'])
+    expect(fakeFiles.api.deleteFolder.mock.calls).toEqual([['ws', 'docs/2026/']])
+    expect(fakeFiles.keys().filter((key) => key.startsWith('docs/2026/'))).toEqual([])
   })
 
   it('offers to create the first folder of a bucket without one', async () => {
-    listing([{ Key: 'notes.txt', LastModified: at(6), Size: 10 }])
+    listing([{ key: 'notes.txt', lastModified: at(6), size: 10 }])
     renderExplorer({}, '')
     fireEvent.click(await within(rail()).findByRole('button', { name: 'Create your first folder' }))
     expect((await screen.findByRole('dialog')).textContent).toContain('Create new folder')
   })
 
   it('says there are no folders yet when it cannot create one', async () => {
-    listing([{ Key: 'notes.txt', LastModified: at(6), Size: 10 }])
+    listing([{ key: 'notes.txt', lastModified: at(6), size: 10 }])
     renderExplorer({ readOnly: true }, '')
     expect(await within(rail()).findByText('No folders yet')).toBeTruthy()
     expect(within(rail()).queryByRole('button', { name: 'Create your first folder' })).toBeNull()
@@ -359,9 +333,9 @@ describe('FileExplorer page', () => {
 
   it('lists the folders in the rail’s order, by name, whatever their dates', async () => {
     listing([
-      { Key: 'zebra/', LastModified: at(9) },
-      { Key: 'alpha/', LastModified: at(1) },
-      { Key: 'notes.txt', LastModified: at(6), Size: 10 }
+      { key: 'zebra/', lastModified: at(9) },
+      { key: 'alpha/', lastModified: at(1) },
+      { key: 'notes.txt', lastModified: at(6), size: 10 }
     ])
     renderExplorer({}, '')
     await screen.findByText('notes.txt')
@@ -375,7 +349,7 @@ describe('FileExplorer page', () => {
   })
 
   it('says when a folder is empty', async () => {
-    listing([{ Key: 'empty/', LastModified: at(1) }])
+    listing([{ key: 'empty/', lastModified: at(1) }])
     renderExplorer({}, 'empty/')
     expect(await screen.findByText('Folder is empty')).toBeTruthy()
   })
@@ -412,24 +386,32 @@ describe('FileExplorer page', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' }).at(-1) as HTMLElement)
 
     expect(await screen.findByText('Deleted 2 files')).toBeTruthy()
-    const deleted = s3.send.mock.calls
-      .filter(([command]) => command instanceof DeleteObjectCommand)
-      .map(([command]) => command.input.Key)
-    expect(deleted).toEqual(['docs/a.png', 'docs/report.pdf'])
+    expect(fakeFiles.api.delete.mock.calls).toEqual([['ws', ['docs/a.png', 'docs/report.pdf']]])
+  })
+
+  it('says why a bulk delete failed', async () => {
+    listing()
+    fakeFiles.api.delete.mockRejectedValueOnce(new Error('too many keys'))
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'a.png' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findAllByText('Delete 1 selected file?')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete' }).at(-1) as HTMLElement)
+
+    expect(await screen.findByText('Failed to delete the files: too many keys')).toBeTruthy()
   })
 
   it('leaves the file in the URL alone when a delete ends after the page is gone', async () => {
     listing()
     let release: () => void = () => {}
-    const base = s3.send.getMockImplementation()
-    s3.send.mockImplementation(async (command: unknown) => {
-      if (command instanceof DeleteObjectCommand) {
-        return new Promise((resolve) => {
-          release = () => resolve({})
+    fakeFiles.api.delete.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ deleted: 1, failed: 0 })
         })
-      }
-      return base?.(command)
-    })
+    )
     const onFileChange = vi.fn()
     const { unmount } = renderExplorer({ controlledFile: 'docs/a.png', onFileChange })
     await screen.findByText('report.pdf')
@@ -439,11 +421,7 @@ describe('FileExplorer page', () => {
     fireEvent.click(within(bar).getByRole('button', { name: 'Delete' }))
     await screen.findAllByText('Delete 1 selected file?')
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' }).at(-1) as HTMLElement)
-    await waitFor(() =>
-      expect(s3.send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(
-        true
-      )
-    )
+    await waitFor(() => expect(fakeFiles.api.delete).toHaveBeenCalled())
     unmount()
     await act(async () => release())
 
@@ -464,9 +442,6 @@ describe('FileExplorer page', () => {
     expect((newFolder as HTMLButtonElement).disabled).toBe(true)
     fireEvent.mouseEnter(newFolder.parentElement as HTMLElement)
     expect(await screen.findByText('New folder (Read-only mode)')).toBeTruthy()
-    expect(
-      (screen.getByRole('button', { name: 'Storage settings' }) as HTMLButtonElement).disabled
-    ).toBe(true)
     const menu = await openMenu('a.png')
     expect(
       within(menu).getByRole('menuitem', { name: 'Delete' }).getAttribute('aria-disabled')
@@ -541,16 +516,11 @@ describe('FileExplorer page', () => {
     fireEvent.click(trash)
     const popconfirm = await openPopconfirm()
     // Nothing goes before the confirmation.
-    expect(s3.send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(
-      false
-    )
+    expect(fakeFiles.api.delete).not.toHaveBeenCalled()
     fireEvent.click(within(popconfirm).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText('File deleted successfully.')).toBeTruthy()
-    const deleted = s3.send.mock.calls
-      .filter(([command]) => command instanceof DeleteObjectCommand)
-      .map(([command]) => command.input.Key)
-    expect(deleted).toEqual(['docs/report.pdf'])
+    expect(fakeFiles.api.delete.mock.calls).toEqual([['ws', ['docs/report.pdf']]])
     expect(onFileChange).toHaveBeenCalledWith(undefined)
   })
 
@@ -567,9 +537,7 @@ describe('FileExplorer page', () => {
     const popconfirm = await openPopconfirm()
     fireEvent.click(within(popconfirm).getByRole('button', { name: 'Cancel' }))
     await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
-    expect(s3.send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(
-      false
-    )
+    expect(fakeFiles.api.delete).not.toHaveBeenCalled()
   })
 
   it('disables the preview’s delete in read-only mode', async () => {
@@ -644,13 +612,9 @@ describe('FileExplorer page', () => {
   })
 
   it('warns that only the first files are shown when the listing is capped', async () => {
-    // One more than the cap, in a folder so the root lists a single row.
-    const many = Array.from({ length: 10_001 }, (_, index) => ({
-      Key: `many/f${index}.png`,
-      LastModified: at(1),
-      Size: 1
-    }))
-    listing(many)
+    // The server stops at its cap and says so.
+    listing()
+    fakeFiles.setListing({ capped: true })
     renderExplorer({}, '')
     expect(
       await screen.findByText(
@@ -660,10 +624,8 @@ describe('FileExplorer page', () => {
   })
 
   it('warns when the storage cuts the listing short', async () => {
-    s3.send.mockResolvedValue({
-      Contents: [{ Key: 'a.png', LastModified: at(1) }],
-      IsTruncated: true
-    })
+    listing([{ key: 'a.png', lastModified: at(1) }])
+    fakeFiles.setListing({ cut_short: true })
     renderExplorer({}, '')
     expect(
       await screen.findByText(
@@ -674,7 +636,7 @@ describe('FileExplorer page', () => {
 
   it('shows the storage error with a Retry', async () => {
     listing()
-    s3.send.mockRejectedValueOnce(new Error('Access Denied'))
+    fakeFiles.api.list.mockRejectedValueOnce(new Error('Access Denied'))
     renderExplorer()
 
     expect(await screen.findByText('Access Denied')).toBeTruthy()
@@ -682,49 +644,113 @@ describe('FileExplorer page', () => {
     expect(await screen.findByText('a.png')).toBeTruthy()
   })
 
-  it('asks to configure a storage that has no endpoint', () => {
-    renderExplorer({ settings: { ...settings, endpoint: '' } })
+  it('offers the storage settings beside Retry to whoever can change them', async () => {
+    listing()
+    fakeFiles.api.list.mockRejectedValueOnce(new Error('Access Denied'))
+    renderExplorer({ canEditSettings: true })
+
+    const subtitle = await screen.findByText('Access Denied')
+    const result = subtitle.closest('.ant-result') as HTMLElement
+    expect(within(result).getByRole('button', { name: 'Retry' })).toBeTruthy()
+    expect(
+      (within(result).getByRole('button', { name: 'Storage settings' }) as HTMLButtonElement).disabled
+    ).toBe(false)
+  })
+
+  it('leaves the storage error without settings for whoever cannot change them', async () => {
+    listing()
+    fakeFiles.api.list.mockRejectedValueOnce(new Error('Access Denied'))
+    renderExplorer()
+
+    const subtitle = await screen.findByText('Access Denied')
+    const result = subtitle.closest('.ant-result') as HTMLElement
+    expect(within(result).queryByRole('button', { name: 'Storage settings' })).toBeNull()
+  })
+
+  it('asks to configure a storage that has no endpoint, an owner only', () => {
+    const { unmount } = renderExplorer({ settings: { ...settings, endpoint: '' } })
     expect(screen.getByText('File storage is not configured.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Configure now' })).toBeTruthy()
-    expect(s3.send).not.toHaveBeenCalled()
+    expect(
+      (screen.getByRole('button', { name: 'Configure now' }) as HTMLButtonElement).disabled
+    ).toBe(true)
+    expect(fakeFiles.api.list).not.toHaveBeenCalled()
+    unmount()
+
+    renderExplorer({ settings: { ...settings, endpoint: '' }, canEditSettings: true })
+    expect(
+      (screen.getByRole('button', { name: 'Configure now' }) as HTMLButtonElement).disabled
+    ).toBe(false)
+  })
+
+  it('enables the storage settings only for whoever can change them', async () => {
+    listing()
+    const { unmount } = renderExplorer()
+    await screen.findByText('a.png')
+    const locked = screen.getByRole('button', { name: 'Storage settings' }) as HTMLButtonElement
+    expect(locked.disabled).toBe(true)
+    unmount()
+
+    // Read-only files do not lock the settings of an owner.
+    renderExplorer({ canEditSettings: true, readOnly: true })
+    await screen.findByText('a.png')
+    expect(
+      (screen.getByRole('button', { name: 'Storage settings' }) as HTMLButtonElement).disabled
+    ).toBe(false)
+  })
+
+  it('tests and saves the storage settings, then lists the bucket again', async () => {
+    listing()
+    const onUpdateSettings = vi.fn<(next: FileExplorerProps['settings']) => Promise<void>>(
+      async () => {}
+    )
+    renderExplorer({
+      canEditSettings: true,
+      settings: { ...settings, has_secret_key: true, secret_key_hint: 'WXYZ' },
+      onUpdateSettings
+    })
+    await screen.findByText('a.png')
+    const before = listCalls().length
+
+    fireEvent.click(screen.getByRole('button', { name: 'Storage settings' }))
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText('S3 bucket')).toHaveValue('media')
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onUpdateSettings).toHaveBeenCalledTimes(1))
+    expect(fakeFiles.api.testSettings).toHaveBeenCalledWith(
+      'ws',
+      expect.objectContaining({ endpoint: settings.endpoint, bucket: 'media' })
+    )
+    await waitFor(() => expect(listCalls().length).toBe(before + 1))
   })
 })
 
 // A folder of one file whose first delete stays pending until release() is called.
 const pendingFolderDelete = () => {
+  fakeFiles.reset([
+    { key: 'docs/', lastModified: at(1) },
+    { key: 'docs/a.png', lastModified: at(1) }
+  ])
   let release: (() => void) | undefined
   const deleteSent = new Promise<void>((resolve) => {
-    s3.send.mockImplementation(async (command: unknown) => {
-      if (command instanceof ListObjectsV2Command) {
-        return {
-          Contents: [
-            { Key: 'docs/', LastModified: at(1) },
-            { Key: 'docs/a.png', LastModified: at(1) }
-          ],
-          IsTruncated: false
-        }
-      }
-      if (command instanceof DeleteObjectCommand) {
-        if (release) return {}
-        resolve()
-        return new Promise((done) => {
-          release = () => done({})
-        })
-      }
-      throw new Error('unexpected command')
+    fakeFiles.api.deleteFolder.mockImplementation(async (workspaceId, prefix) => {
+      if (release) return fakeFiles.impl.deleteFolder(workspaceId, prefix)
+      resolve()
+      return new Promise<DeleteFolderResult>((done) => {
+        release = () => void fakeFiles.impl.deleteFolder(workspaceId, prefix).then(done)
+      })
     })
   })
   return { deleteSent, release: () => release?.() }
 }
 
-// The listings under the folder's prefix: one for the count, one for the delete.
+// The listings under the folder's prefix: the count's; the server lists for the delete.
 const folderListings = () =>
-  s3.send.mock.calls.filter(
-    ([command]) => command instanceof ListObjectsV2Command && command.input.Prefix === 'docs/'
-  ).length
+  fakeFiles.api.list.mock.calls.filter(([, prefix]) => prefix === 'docs/').length
 
-const deleteCalls = () =>
-  s3.send.mock.calls.filter(([command]) => command instanceof DeleteObjectCommand).length
+const deleteCalls = () => fakeFiles.api.deleteFolder.mock.calls.length
 
 const confirmButton = () => {
   const dialog = screen.getByRole('dialog')
@@ -740,7 +766,7 @@ const openFolderDelete = async () => {
 
 describe('FileExplorer folder delete', () => {
   beforeEach(() => {
-    s3.send.mockReset()
+    fakeFiles.reset()
   })
 
   it('asks with the number of files read from the folder’s own listing', async () => {
@@ -756,7 +782,7 @@ describe('FileExplorer folder delete', () => {
   })
 
   it('says an empty folder is empty rather than counting its 0 files', async () => {
-    listing([{ Key: 'empty/', LastModified: at(1) }])
+    listing([{ key: 'empty/', lastModified: at(1) }])
     renderExplorer({}, 'empty/')
     await screen.findByText('Folder is empty')
 
@@ -778,8 +804,8 @@ describe('FileExplorer folder delete', () => {
     await waitFor(() => expect(confirmButton().className).toContain('ant-btn-loading'))
     fireEvent.click(confirmButton())
     await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
-    // One listing for the count, one for the delete; one delete started.
-    expect(folderListings()).toBe(2)
+    // One listing for the count; one delete started.
+    expect(folderListings()).toBe(1)
     expect(deleteCalls()).toBe(1)
 
     await act(async () => pending.release())
@@ -861,14 +887,13 @@ describe('FileExplorer folder delete', () => {
   })
 
   it('says when the folder held nothing to delete', async () => {
-    s3.send.mockImplementation(async (command: unknown) => {
-      if (command instanceof ListObjectsV2Command) {
-        // The bucket's listing still shows the folder; its own listing finds nothing in it now
-        return command.input.Prefix === 'docs/'
-          ? { Contents: [], IsTruncated: false }
-          : { Contents: BUCKET, IsTruncated: false }
-      }
-      return {}
+    listing()
+    // The bucket's listing still shows the folder; the server finds nothing in it now.
+    fakeFiles.api.deleteFolder.mockResolvedValue({
+      deleted: 0,
+      failed: 0,
+      deleted_files: 0,
+      failed_files: 0
     })
     renderExplorer()
     await screen.findByText('a.png')
@@ -878,17 +903,34 @@ describe('FileExplorer folder delete', () => {
 
     expect(await screen.findByText('The folder held nothing to delete.')).toBeTruthy()
     expect(screen.queryByText('Folder deleted successfully.')).toBeNull()
+    expect(fakeFiles.api.deleteFolder.mock.calls).toEqual([['ws', 'docs/']])
+  })
+
+  it('refuses to delete a folder of more files than the server lists', async () => {
+    listing()
+    // The folder's own listing stops at the server's cap.
+    fakeFiles.api.list.mockImplementation(async (workspaceId, prefix) => ({
+      ...(await fakeFiles.impl.list(workspaceId, prefix)),
+      capped: prefix === 'docs/'
+    }))
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    await openFolderDelete()
+    expect(
+      await screen.findByText(
+        'The folder docs holds more than 10,000 files. Delete its subfolders first.'
+      )
+    ).toBeTruthy()
+    expect((confirmButton() as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(confirmButton())
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
     expect(deleteCalls()).toBe(0)
   })
 
   it('keeps the folder and says how many files failed', async () => {
-    s3.send.mockImplementation(async (command: unknown) => {
-      if (command instanceof ListObjectsV2Command) return { Contents: BUCKET, IsTruncated: false }
-      if (command instanceof DeleteObjectCommand && command.input.Key === 'docs/a.png') {
-        throw new Error('denied')
-      }
-      return {}
-    })
+    listing()
+    fakeFiles.refuseDelete('docs/a.png')
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const { onPathChange } = renderExplorer()
     await screen.findByText('a.png')
@@ -917,9 +959,14 @@ const footer = () => document.querySelector('[data-picker-footer]') as HTMLEleme
 
 describe('FileExplorer picker', () => {
   beforeEach(() => {
-    s3.send.mockReset()
+    fakeFiles.reset()
+    vi.stubGlobal('fetch', fakeFiles.fetch)
     localStorage.clear()
     clearImageSizes()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('shows a grid, dims the files it cannot use and asks to select a file', async () => {
@@ -1008,7 +1055,7 @@ describe('FileExplorer picker', () => {
   })
 
   it('walks with J and K over the files it can use only', async () => {
-    listing([...BUCKET, { Key: 'docs/c.png', LastModified: at(1), Size: 5 }])
+    listing([...BUCKET, { key: 'docs/c.png', lastModified: at(1), size: 5 }])
     renderPicker()
     await waitFor(() =>
       expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
@@ -1055,12 +1102,17 @@ describe('FileExplorer picker', () => {
     )
 
     const file = new File(['x'], 'New Logo.PNG', { type: 'image/png' })
-    Object.defineProperty(file, 'arrayBuffer', { value: async () => new ArrayBuffer(1) })
     fireEvent.change(screen.getByTestId('file-manager-upload-input'), { target: { files: [file] } })
 
     await waitFor(() => expect(footer().textContent).toContain('New-Logo.png'))
-    const put = s3.send.mock.calls.find(([command]) => command instanceof PutObjectCommand)
-    expect(put?.[0].input.Key).toBe('docs/New-Logo.png')
+    expect(fakeFiles.api.presignUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ workspace_id: 'ws', key: 'docs/New-Logo.png' })
+    )
+    const signed = (await fakeFiles.api.presignUpload.mock.results[0].value) as PresignedUpload
+    expect(fakeFiles.fetch).toHaveBeenCalledWith(
+      signed.url,
+      expect.objectContaining({ method: 'PUT', headers: signed.headers, body: file })
+    )
   })
 
   it('navigates and creates folders from the same rail, as a column', async () => {

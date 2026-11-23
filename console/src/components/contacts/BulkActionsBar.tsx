@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Button, Select, Typography, Modal, Input, Alert, Tooltip } from 'antd'
 import { ListMinus, ListPlus, MailX, Trash2, X } from 'lucide-react'
 import { useLingui, Plural } from '@lingui/react/macro'
+import { ForgetOptOutsCheckbox } from './ForgetOptOutsCheckbox'
 import type { List } from '../../services/api/list'
 
 const { Text } = Typography
@@ -16,7 +17,8 @@ export interface BulkActionsBarProps {
   onAddToList: (listId: string) => void
   onRemoveFromList: (listId: string) => void
   onUnsubscribeFromList: (listId: string) => void
-  onDelete: () => void
+  /** forgetOptOuts: also forget their unsubscribes (ForgetOptOutsCheckbox). */
+  onDelete: (forgetOptOuts: boolean) => void
   onClear: () => void
 }
 
@@ -39,6 +41,7 @@ export function BulkActionsBar({
   const [pickedListId, setPickedListId] = useState<string>('')
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
+  const [forgetOptOuts, setForgetOptOuts] = useState(false)
 
   if (selectedCount === 0) return null
 
@@ -65,6 +68,7 @@ export function BulkActionsBar({
 
   const openDelete = () => {
     setDeleteInput('')
+    setForgetOptOuts(false)
     setDeleteOpen(true)
   }
 
@@ -75,7 +79,7 @@ export function BulkActionsBar({
 
   const confirmDelete = () => {
     if (deleteInput.trim() !== String(selectedCount)) return
-    onDelete()
+    onDelete(forgetOptOuts)
     closeDelete()
   }
 
@@ -244,6 +248,7 @@ export function BulkActionsBar({
               autoFocus
             />
           </div>
+          <ForgetOptOutsCheckbox checked={forgetOptOuts} onChange={setForgetOptOuts} />
         </div>
       </Modal>
     </>

@@ -41,6 +41,14 @@ type WorkspaceService struct {
 	blogService            *BlogService
 	entitlements           domain.EntitlementProvider
 	invitationAuth         WorkspaceInvitationAuth
+	// dkimKeys drops the cached DKIM keys of a deleted workspace, so that a workspace
+	// created again under the same ID never signs with them.
+	dkimKeys interface{ Invalidate(workspaceID string) }
+}
+
+// SetDKIMKeyStore gives the service the key store EmailService signs with.
+func (s *WorkspaceService) SetDKIMKeyStore(store interface{ Invalidate(workspaceID string) }) {
+	s.dkimKeys = store
 }
 
 // CustomDomainVerifier checks that a custom endpoint's domain points to this instance.
@@ -273,6 +281,9 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	if err := domain.ValidateNewWorkspaceID(id); err != nil {
 		return nil, fmt.Errorf("invalid workspace: %w", err)
 	}
+	if err := validateChangedFileManagerEndpoint(fileManager, domain.FileManagerSettings{}); err != nil {
+		return nil, err
+	}
 
 	// Two independent ceilings, and the tighter one wins.
 	//
@@ -472,25 +483,45 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	return workspace, nil
 }
 
+// validateChangedFileManagerEndpoint refuses an endpoint the file storage service could not
+// use (domain.ValidateStorageEndpoint). Only a new or changed endpoint is checked: one
+// stored before the rule must not block saving unrelated settings, which resubmit it.
+func validateChangedFileManagerEndpoint(updated, stored domain.FileManagerSettings) error {
+	if updated.Endpoint == "" || updated.Endpoint == stored.Endpoint {
+		return nil
+	}
+	return domain.ValidateStorageEndpoint(updated.Endpoint)
+}
+
 // preserveFileManagerSecret keeps the stored S3 credential when the caller's file
 // manager block carries none.
 //
-// The sibling of preserveEmailProviderSecrets, and for the same reason: reads do
-// not carry the secret to a machine caller (redactWorkspaceForCaller), so an API
-// client echoing the settings object back has nothing to put in the field, and
-// FileManagerSettings.Validate is happy without one — the wipe saved clean and was
-// unrecoverable.
+// The sibling of preserveEmailProviderSecrets, and for the same reason: reads never
+// carry the secret (redactWorkspace), so a client echoing the settings object back
+// has nothing to put in the field, and FileManagerSettings.Validate is happy without
+// one — the wipe saved clean and was unrecoverable.
+//
+// The stored secret is kept for the same access key and host only. Settings that
+// point elsewhere need the secret typed again: the server would otherwise sign
+// requests for another host with it (domain.SameStorageAccount).
 //
 // An empty block is left alone: that is a file manager being switched off, and its
 // credential goes with it.
-func preserveFileManagerSecret(updated *domain.FileManagerSettings, stored domain.FileManagerSettings) {
+func preserveFileManagerSecret(updated *domain.FileManagerSettings, stored domain.FileManagerSettings) error {
 	if updated.SecretKey != "" || updated.EncryptedSecretKey != "" {
-		return // the caller is rotating it deliberately
+		return nil // the caller is rotating it deliberately
 	}
 	if updated.Endpoint == "" && updated.Bucket == "" && updated.AccessKey == "" {
-		return
+		return nil
+	}
+	if stored.EncryptedSecretKey == "" {
+		return nil
+	}
+	if !domain.SameStorageAccount(*updated, stored) {
+		return domain.NewValidationError("enter the file storage secret key again: the endpoint or the access key changed")
 	}
 	updated.EncryptedSecretKey = stored.EncryptedSecretKey
+	return nil
 }
 
 // UpdateWorkspace updates a workspace if the user is an owner
@@ -528,7 +559,12 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	auditBeforeSettings := existingWorkspace.Settings
 
 	settings.PreserveOmitted(existingWorkspace.Settings)
-	preserveFileManagerSecret(&settings.FileManager, existingWorkspace.Settings.FileManager)
+	if err := validateChangedFileManagerEndpoint(settings.FileManager, existingWorkspace.Settings.FileManager); err != nil {
+		return nil, err
+	}
+	if err := preserveFileManagerSecret(&settings.FileManager, existingWorkspace.Settings.FileManager); err != nil {
+		return nil, err
+	}
 
 	// This assignment list is an allowlist, and the omissions are deliberate. Blog
 	// and web analytics settings are absent because each has its own endpoint gated
@@ -724,6 +760,9 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, id string) error
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to delete workspace")
 		return err
+	}
+	if s.dkimKeys != nil {
+		s.dkimKeys.Invalidate(id)
 	}
 
 	return nil

@@ -8,6 +8,7 @@ import {
   BookOpen,
   Braces,
   ChartLine,
+  Globe,
   Mail,
   ScrollText,
   ShieldAlert,
@@ -24,7 +25,7 @@ import { RailItem, RailSection } from '../layout'
  */
 export const SETTINGS_GROUPS = [
   { title: msg`Workspace`, sections: ['general', 'team'] },
-  { title: msg({ message: 'Sending', context: 'section' }), sections: ['integrations', 'webhooks', 'smtp-bridge'] },
+  { title: msg({ message: 'Sending', context: 'section' }), sections: ['integrations', 'domains', 'webhooks', 'smtp-bridge'] },
   { title: msg`Content`, sections: ['custom-fields', 'blog', 'web-analytics'] },
   // Licence is deployment-wide rather than workspace-wide, and rendered only for a root user —
   // but listed here unconditionally, because this list is what makes a URL valid and a root user
@@ -47,6 +48,7 @@ const ICONS: Record<SettingsSection, ReactNode> = {
   general: <SlidersHorizontal size={ICON_SIZE} />,
   team: <Users size={ICON_SIZE} />,
   integrations: <Blocks size={ICON_SIZE} />,
+  domains: <Globe size={ICON_SIZE} />,
   webhooks: <Webhook size={ICON_SIZE} />,
   'smtp-bridge': <Mail size={ICON_SIZE} />,
   'custom-fields': <Braces size={ICON_SIZE} />,
@@ -61,6 +63,7 @@ const LABELS: Record<SettingsSection, MessageDescriptor> = {
   general: msg`General`,
   team: msg`Team & API keys`,
   integrations: msg`Integrations`,
+  domains: msg`Domains`,
   webhooks: msg`Webhooks`,
   'smtp-bridge': msg`SMTP bridge`,
   'custom-fields': msg`Custom fields`,

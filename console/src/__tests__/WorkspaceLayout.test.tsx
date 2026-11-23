@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WorkspaceLayout } from '../layouts/WorkspaceLayout'
 import { AuthContext, useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
 import { isRootUser } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
+import type { FileManagerProvider } from '../components/file_manager/context'
 
 // The layout's own useAuth is mocked; useWorkspacePermissions is the real one, which reads the
 // same value from the provider renderLayout puts around the layout.
@@ -59,8 +60,15 @@ vi.mock('../services/api/workspace', () => ({
 vi.mock('../components/contacts/ContactsCsvUploadProvider', () => ({
   ContactsCsvUploadProvider: ({ children }: { children: ReactNode }) => <>{children}</>
 }))
+// The provider's props are kept: they carry the image pickers' rights and the settings save.
+const fileManager = vi.hoisted(() => ({
+  props: undefined as Omit<ComponentProps<typeof FileManagerProvider>, 'children'> | undefined
+}))
 vi.mock('../components/file_manager/context', () => ({
-  FileManagerProvider: ({ children }: { children: ReactNode }) => <>{children}</>
+  FileManagerProvider: ({ children, ...props }: ComponentProps<typeof FileManagerProvider>) => {
+    fileManager.props = props
+    return <>{children}</>
+  }
 }))
 // Its query needs a QueryClient; the access is what the layout reads.
 const auditAccess = vi.hoisted(() => ({ canRead: false, isRoot: false, loading: false }))
@@ -606,5 +614,79 @@ describe('WorkspaceLayout logo', () => {
     await screen.findByText('Settings')
     expect(logo()).toHaveAttribute('aria-label', 'Dashboard')
     expect(logo()).toHaveAttribute('href', '/console/workspace/$workspaceId')
+  })
+})
+
+describe('WorkspaceLayout image pickers', () => {
+  beforeEach(() => {
+    signInAsRoot()
+    fileManager.props = undefined
+  })
+
+  const signInAsMember = (role: 'owner' | 'member', permissions: ReturnType<typeof grantAll>) => {
+    vi.mocked(isRootUser).mockReturnValue(false)
+    vi.mocked(workspaceService.getMembers).mockResolvedValue({
+      members: [{ user_id: 'u1', role, permissions }]
+    } as never)
+  }
+
+  it('lets root upload and change the storage settings', async () => {
+    renderLayout()
+    await screen.findByTestId('outlet')
+    expect(fileManager.props).toMatchObject({ readOnly: false, canEditSettings: true })
+  })
+
+  it('lets an owner change the storage settings', async () => {
+    signInAsMember('owner', grantAll(false))
+    renderLayout()
+    await waitFor(() => expect(fileManager.props?.canEditSettings).toBe(true))
+    expect(fileManager.props?.readOnly).toBe(false)
+  })
+
+  it('makes the pickers read-only for a member who only reads templates and the blog', async () => {
+    signInAsMember('member', {
+      ...grantAll(true),
+      templates: { read: true, write: false },
+      blog: { read: true, write: false }
+    })
+    renderLayout()
+    // Read-only while the rights load too: wait for the sidebar to show them.
+    await screen.findByText('Contacts')
+    expect(fileManager.props?.readOnly).toBe(true)
+    expect(fileManager.props?.canEditSettings).toBe(false)
+  })
+
+  it('lets a member who writes the blog upload, without the storage settings', async () => {
+    signInAsMember('member', {
+      ...grantAll(false),
+      blog: { read: true, write: true }
+    })
+    renderLayout()
+    await waitFor(() => expect(fileManager.props?.readOnly).toBe(false))
+    expect(fileManager.props?.canEditSettings).toBe(false)
+  })
+
+  it('saves the storage settings without an empty secret nor the fields only the server writes', async () => {
+    vi.mocked(workspaceService.update).mockResolvedValue({} as never)
+    renderLayout()
+    await screen.findByTestId('outlet')
+
+    await act(async () => {
+      await fileManager.props?.onUpdateSettings({
+        endpoint: 'https://s3.example.com',
+        access_key: 'k',
+        bucket: 'media',
+        secret_key: '',
+        has_secret_key: true,
+        secret_key_hint: 'WXYZ'
+      })
+    })
+
+    expect(workspaceService.update).toHaveBeenCalledTimes(1)
+    const saved = vi.mocked(workspaceService.update).mock.calls[0][0].settings?.file_manager
+    expect(saved).toMatchObject({ endpoint: 'https://s3.example.com', access_key: 'k', bucket: 'media' })
+    expect(saved).not.toHaveProperty('secret_key')
+    expect(saved).not.toHaveProperty('has_secret_key')
+    expect(saved).not.toHaveProperty('secret_key_hint')
   })
 })

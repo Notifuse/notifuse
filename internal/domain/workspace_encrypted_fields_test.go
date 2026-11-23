@@ -19,6 +19,7 @@ func TestEncryptedFieldPaths(t *testing.T) {
 	t.Run("reach the workspace key and nested credentials", func(t *testing.T) {
 		assert.Contains(t, settings, "encrypted_secret_key")
 		assert.Contains(t, settings, "file_manager.encrypted_secret_key")
+		assert.Contains(t, settings, "dkim_keys.[].encrypted_private_key")
 		assert.Contains(t, integrations, "[].email_provider.smtp.encrypted_username")
 		assert.Contains(t, integrations, "[].email_provider.smtp.encrypted_password")
 		assert.Contains(t, integrations, "[].supabase_settings.auth_email_hook.encrypted_signature_key")

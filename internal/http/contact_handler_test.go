@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -489,7 +490,7 @@ func TestContactHandler_HandleDelete(t *testing.T) {
 				Email:       "test@example.com",
 			},
 			setupMock: func(m *mocks.MockContactService) {
-				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "test@example.com").Return(nil)
+				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "test@example.com", domain.DeleteContactOptions{}).Return(nil)
 			},
 			expectedStatus:  http.StatusOK,
 			expectedMessage: "Contact deleted successfully",
@@ -502,7 +503,7 @@ func TestContactHandler_HandleDelete(t *testing.T) {
 				Email:       "nonexistent@example.com",
 			},
 			setupMock: func(m *mocks.MockContactService) {
-				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "nonexistent@example.com").Return(fmt.Errorf("contact not found"))
+				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "nonexistent@example.com", domain.DeleteContactOptions{}).Return(fmt.Errorf("contact not found"))
 			},
 			expectedStatus:  http.StatusNotFound,
 			expectedMessage: "Contact not found",
@@ -515,7 +516,7 @@ func TestContactHandler_HandleDelete(t *testing.T) {
 				Email:       "error@example.com",
 			},
 			setupMock: func(m *mocks.MockContactService) {
-				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "error@example.com").Return(errors.New("service error"))
+				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "error@example.com", domain.DeleteContactOptions{}).Return(errors.New("service error"))
 			},
 			expectedStatus:  http.StatusInternalServerError,
 			expectedMessage: "Failed to delete contact",
@@ -981,7 +982,7 @@ func TestContactHandler_PermissionDenied(t *testing.T) {
 		{
 			name: "Delete",
 			setupMock: func(m *mocks.MockContactService) {
-				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "test@example.com").
+				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "test@example.com", domain.DeleteContactOptions{}).
 					Return(wrapped(domain.PermissionResourceContacts, domain.PermissionTypeWrite))
 			},
 			serve: func(h *ContactHandler, w http.ResponseWriter) {
@@ -1399,5 +1400,29 @@ func TestContactHandler_AuthenticationFailureStatus(t *testing.T) {
 				assert.Equal(t, authErr.expectedMessage, response["error"])
 			})
 		}
+	}
+}
+
+// forget_opt_outs as an API client sends it: present and true, present and false, absent.
+func TestContactHandler_HandleDelete_ForgetOptOuts(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"true", `{"workspace_id":"workspace123","email":"test@example.com","forget_opt_outs":true}`, true},
+		{"false", `{"workspace_id":"workspace123","email":"test@example.com","forget_opt_outs":false}`, false},
+		{"absent", `{"workspace_id":"workspace123","email":"test@example.com"}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, handler := setupContactHandlerTest(t)
+			mockService.EXPECT().DeleteContact(gomock.Any(), "workspace123", "test@example.com",
+				domain.DeleteContactOptions{ForgetOptOuts: tc.want}).Return(nil)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/contacts.delete", strings.NewReader(tc.body))
+			rr := httptest.NewRecorder()
+			handler.handleDelete(rr, req)
+			assert.Equal(t, http.StatusOK, rr.Code)
+		})
 	}
 }

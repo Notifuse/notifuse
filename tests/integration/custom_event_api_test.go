@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,7 +123,7 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 		require.True(t, ok, "Response should contain event")
 
 		assert.Equal(t, externalID, eventData["external_id"])
-		assert.Equal(t, email, eventData["email"])
+		assert.Equal(t, strings.ToLower(email), eventData["email"], "stored under the normalised address, like the contact")
 		assert.Equal(t, "order.completed", eventData["event_name"])
 		assert.Equal(t, goalName, eventData["goal_name"])
 		assert.Equal(t, goalType, eventData["goal_type"])
@@ -154,7 +155,7 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 
 		eventData := result["event"].(map[string]interface{})
 		assert.Equal(t, externalID, eventData["external_id"])
-		assert.Equal(t, email, eventData["email"])
+		assert.Equal(t, strings.ToLower(email), eventData["email"], "stored under the normalised address, like the contact")
 		assert.Equal(t, "page.view", eventData["event_name"])
 		assert.Equal(t, "api", eventData["source"])
 		// Goal fields should be nil/absent
@@ -240,7 +241,7 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 		require.NoError(t, err)
 
 		eventData := result["event"].(map[string]interface{})
-		assert.Equal(t, email, eventData["email"])
+		assert.Equal(t, strings.ToLower(email), eventData["email"], "stored under the normalised address, like the contact")
 	})
 }
 
@@ -280,7 +281,7 @@ func testGetCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID st
 
 		eventData := result["event"].(map[string]interface{})
 		assert.Equal(t, externalID, eventData["external_id"])
-		assert.Equal(t, email, eventData["email"])
+		assert.Equal(t, strings.ToLower(email), eventData["email"], "stored under the normalised address, like the contact")
 		assert.Equal(t, eventName, eventData["event_name"])
 	})
 
@@ -750,7 +751,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			WHERE email = $1
 			AND entity_type = 'custom_event'
 			AND kind = $2
-		`, email, expectedKind).Scan(&count)
+		`, strings.ToLower(email), expectedKind).Scan(&count)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, count, 1, "Timeline entry should be created for custom event")
 
@@ -764,7 +765,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			AND kind = $2
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, email, expectedKind).Scan(&entityType, &kind, &operation)
+		`, strings.ToLower(email), expectedKind).Scan(&entityType, &kind, &operation)
 		require.NoError(t, err)
 		assert.Equal(t, "custom_event", entityType)
 		assert.Equal(t, expectedKind, kind)
@@ -817,7 +818,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			WHERE email = $1
 			AND entity_type = 'custom_event'
 			AND kind = $2
-		`, email, expectedKind).Scan(&count)
+		`, strings.ToLower(email), expectedKind).Scan(&count)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, count, 2, "Should have both insert and update timeline entries")
 
@@ -831,7 +832,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 				AND kind = $2
 				AND operation = 'update'
 			)
-		`, email, expectedKind).Scan(&hasUpdate)
+		`, strings.ToLower(email), expectedKind).Scan(&hasUpdate)
 		require.NoError(t, err)
 		assert.True(t, hasUpdate, "Should have an update operation in timeline")
 	})
@@ -1005,7 +1006,7 @@ func testPartialUpsert(t *testing.T, client *testutil.APIClient, workspaceID str
 			WHERE email = $1 AND entity_type = 'custom_event' AND entity_id = $2 AND operation = 'update'
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, email, externalID).Scan(&propertyDiff)
+		`, strings.ToLower(email), externalID).Scan(&propertyDiff)
 		require.NoError(t, err, "the upsert should still have written an update timeline row")
 		assert.JSONEq(t, `{}`, propertyDiff, "no property changed, so the timeline diff must be empty")
 	})

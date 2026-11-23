@@ -3,6 +3,7 @@ package migrations
 import (
 	"context"
 	"errors"
+	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -86,14 +87,24 @@ func TestV45Migration_UpdateSystem_StopsAtTheFirstFailureWithAPrefix(t *testing.
 	assert.NoError(t, mock.ExpectationsWereMet(), "the third statement must never run after the second failed")
 }
 
-// No workspace part yet: the dispatcher must not open a workspace connection for v45.
-func TestV45Migration_UpdateWorkspace_TouchesNothing(t *testing.T) {
+// Each project's part, in full: sqlmock fails on any statement it was not told to expect.
+// The system part is two-factor authentication; the workspace part is data retention
+// (v45_data_retention_test.go pins its statements). Each project adds its expectations here.
+func TestV45Migration_Parts(t *testing.T) {
+	m := &V45Migration{}
+	assert.True(t, m.HasSystemUpdate())
+	assert.True(t, m.HasWorkspaceUpdate())
+
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
-
-	m := &V45Migration{}
-	assert.False(t, m.HasWorkspaceUpdate())
+	for _, statement := range schema.TwoFactorTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	require.NoError(t, m.UpdateSystem(context.Background(), &config.Config{}, db))
+	for _, statement := range dataRetentionWorkspaceV45Statements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
 	require.NoError(t, m.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -490,6 +490,10 @@ type WorkspaceSettings struct {
 	AuditLogs       *AuditLogSettings `json:"audit_logs,omitempty"`
 	DefaultLanguage string            `json:"default_language"`
 	Languages       []string          `json:"languages"`
+	// DKIMKeys are the keys Notifuse signs the workspace's SMTP emails with, one per
+	// domain. Written only by WorkspaceRepository.UpdateDKIMKeys: Update() keeps the
+	// stored ones whatever this field holds. Never opened by AfterLoad.
+	DKIMKeys []DKIMKey `json:"dkim_keys,omitempty"`
 
 	// MCP is the workspace's MCP switch; nil means enabled. Written only through
 	// workspaces.setMCPSettings: UpdateWorkspace never copies it from a body.
@@ -640,6 +644,9 @@ func (ws *WorkspaceSettings) ResolveEndpoint(apiEndpoint string) string {
 
 // Value implements the driver.Valuer interface for database serialization
 func (b WorkspaceSettings) Value() (driver.Value, error) {
+	// Response-only fields: a client that sends the settings back must not store them.
+	b.FileManager.SecretKeyHint = ""
+	b.FileManager.HasSecretKey = false
 	return json.Marshal(b)
 }
 
@@ -767,6 +774,10 @@ func (w *Workspace) Validate(passphrase string) error {
 }
 
 func (w *Workspace) BeforeSave(globalSecretKey string) error {
+	// Response-only fields: a client that sends the settings back must not store them.
+	w.Settings.FileManager.SecretKeyHint = ""
+	w.Settings.FileManager.HasSecretKey = false
+
 	// Only process FileManager if there's a SecretKey to encrypt
 	if w.Settings.FileManager.SecretKey != "" {
 		if err := w.Settings.FileManager.EncryptSecretKey(globalSecretKey); err != nil {
@@ -928,6 +939,12 @@ type FileManagerSettings struct {
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"secret_key,omitempty"`
+
+	// What a response carries in place of the secret, set by Workspace.Redact and never
+	// stored: the last characters of the secret when it is long enough, and whether one
+	// is set at all (a secret too short for a hint still needs to show as set).
+	SecretKeyHint string `json:"secret_key_hint,omitempty"`
+	HasSecretKey  bool   `json:"has_secret_key,omitempty"`
 }
 
 func (f *FileManagerSettings) DecryptSecretKey(passphrase string) error {
@@ -1169,6 +1186,17 @@ type WorkspaceRepository interface {
 	// concurrent integration edit and silently loses one side's changes. Server-owned fields
 	// are written through this instead.
 	PatchIntegrationSESSettings(ctx context.Context, workspaceID string, integrationID string, patch map[string]interface{}) error
+	// UpdateDKIMKeys is the only writer of the workspace's DKIM keys. It locks the row,
+	// hands the stored keys and integrations (still encrypted) to mutate, and writes
+	// only settings.dkim_keys when mutate reports a change, after checking that every
+	// private key opens. It returns the keys as stored.
+	UpdateDKIMKeys(ctx context.Context, workspaceID string, mutate DKIMKeysMutator) ([]DKIMKey, error)
+	// GetWorkspaceDKIMKeys reads the DKIM keys of one workspace, without loading it.
+	GetWorkspaceDKIMKeys(ctx context.Context, workspaceID string) ([]DKIMKey, error)
+	// ListWorkspacesDKIMMetadata reads the keys of every workspace that has one, without
+	// their private half and without loading the workspaces. A workspace whose keys cannot
+	// be decoded is left out and named in the error, returned with the others.
+	ListWorkspacesDKIMMetadata(ctx context.Context) ([]WorkspaceDKIMMetadata, error)
 	Delete(ctx context.Context, id string) error
 
 	// User workspace management

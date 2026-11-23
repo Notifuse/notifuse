@@ -177,6 +177,16 @@ export function useActivityDescriber({
         return { icon: ShieldCheck, tone: 'green', title: <Trans>Confirmed their subscription to {name}</Trans>, meta, source }
       case 'resubscribed':
         return { icon: ListPlus, tone: 'green', title: <Trans>Subscribed again to {name}</Trans>, meta, source }
+      // A deleted contact's opt-out, put back when their address returned (an import, a form):
+      // the status they had before, kept as a hash meanwhile.
+      case 'opt_out_restored':
+        return {
+          icon: MailX,
+          tone: 'red',
+          title: <Trans>Opt-out on {name} kept from before the contact was deleted</Trans>,
+          meta: status ? statusLabel(status) : undefined,
+          source
+        }
       case 'subscribed':
       case 'active':
         return old === 'pending'

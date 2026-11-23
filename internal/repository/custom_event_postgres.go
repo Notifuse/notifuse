@@ -326,17 +326,20 @@ func (r *customEventRepository) ListByEmail(ctx context.Context, workspaceID, em
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
+	// Events are stored under the normalised address since 45.0; older ones kept the case
+	// they were sent with. Both forms are looked up, each through the email index, so a
+	// search finds the new events and the old ones sent with that same case.
 	query := `
 		SELECT event_name, external_id, email, properties, occurred_at,
 		       source, integration_id, goal_name, goal_type, goal_value,
 		       deleted_at, created_at, updated_at
 		FROM custom_events
-		WHERE email = $1 AND deleted_at IS NULL
+		WHERE email IN ($1, $4) AND deleted_at IS NULL
 		ORDER BY occurred_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
-	return r.scanEvents(ctx, db, query, email, limit, offset)
+	return r.scanEvents(ctx, db, query, email, limit, offset, domain.NormalizeEmail(email))
 }
 
 func (r *customEventRepository) ListByEventName(ctx context.Context, workspaceID, eventName string, limit int, offset int) ([]*domain.CustomEvent, error) {

@@ -343,14 +343,14 @@ func TestContactService_DeleteContact(t *testing.T) {
 		mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 		mockContactRepo.EXPECT().DeleteContact(ctx, workspaceID, email).Return(nil)
 
-		err := service.DeleteContact(ctx, workspaceID, email)
+		err := service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{})
 		assert.NoError(t, err)
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, fmt.Errorf("auth error"))
 
-		err := service.DeleteContact(ctx, workspaceID, email)
+		err := service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to authenticate user")
 	})
@@ -376,7 +376,7 @@ func TestContactService_DeleteContact(t *testing.T) {
 		// skipped; the timeline purge is the part that must still run.
 		mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 
-		assert.NoError(t, service.DeleteContact(ctx, workspaceID, email),
+		assert.NoError(t, service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{}),
 			"a retry has to be able to finish an interrupted erasure")
 	})
 }
@@ -1257,7 +1257,7 @@ func TestContactService_DeleteContactPurgesEmailQueue(t *testing.T) {
 		mockContactRepo.EXPECT().DeleteContact(ctx, workspaceID, email).Return(nil)
 		mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 
-		assert.NoError(t, service.DeleteContact(ctx, workspaceID, email))
+		assert.NoError(t, service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{}))
 	})
 
 	t.Run("a failed purge aborts the deletion", func(t *testing.T) {
@@ -1268,7 +1268,7 @@ func TestContactService_DeleteContactPurgesEmailQueue(t *testing.T) {
 		mockLogger.EXPECT().WithField("email", email).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
 
-		err := service.DeleteContact(ctx, workspaceID, email)
+		err := service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete queued emails")
 	})
@@ -1330,7 +1330,7 @@ func TestContactService_DeleteContactPurgeOrder(t *testing.T) {
 		mockSegmentQueueRepo.EXPECT().RemoveFromQueue(ctx, workspaceID, email).Return(nil),
 	)
 
-	require.NoError(t, service.DeleteContact(ctx, workspaceID, email))
+	require.NoError(t, service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{}))
 }
 
 // Each new purge is fatal on error: reporting a contact as erased while a copy of
@@ -1403,7 +1403,7 @@ func TestContactService_DeleteContactFailsLoudlyOnEachPurge(t *testing.T) {
 
 			tc.arm(mockCustomEventRepo, mockSegmentRepo, mockSegmentQueueRepo)
 
-			err := service.DeleteContact(ctx, workspaceID, email)
+			err := service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{})
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.want)
 		})
@@ -1581,6 +1581,121 @@ func TestContactService_AuthenticationFailureCarriesTypedError(t *testing.T) {
 			assert.Contains(t, response.Error, "failed to authenticate user")
 			require.Error(t, response.Err)
 			tc.assert(t, response.Err)
+		})
+	}
+}
+
+// The erasure steps of the contact_erasure repository take their place in the order: the
+// contact_lists rows are deleted and their opt-outs hashed in one statement (or, with
+// forget_opt_outs, every hash of the address is deleted), the journeys go after the segment
+// step whose segment.left rows would enrol the contact again, and the webhook deliveries
+// after every step that queues one.
+func TestContactService_DeleteContactErasureSteps(t *testing.T) {
+	userWorkspace := &domain.UserWorkspace{
+		UserID: "user123", WorkspaceID: "test-workspace", Role: "member",
+		Permissions: domain.UserPermissions{domain.PermissionResourceContacts: {Read: true, Write: true}},
+	}
+	const workspaceID, email = "test-workspace", "test@example.com"
+
+	for _, forget := range []bool{false, true} {
+		t.Run(fmt.Sprintf("forget opt-outs %v", forget), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			service, mockContactRepo, _, mockAuthService, mockMessageHistoryRepo, mockInboundWebhookEventRepo,
+				mockContactListRepo, mockContactTimelineRepo, mockEmailQueueRepo, mockCustomEventRepo,
+				mockSegmentRepo, mockSegmentQueueRepo, _ := createContactServiceWithMocks(ctrl)
+			erasure := mocks.NewMockContactErasureRepository(ctrl)
+			service.SetErasureRepository(erasure)
+			ctx := context.Background()
+			mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+			calls := []*gomock.Call{
+				mockEmailQueueRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(int64(0), nil),
+				mockMessageHistoryRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+				mockInboundWebhookEventRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+			}
+			if forget {
+				calls = append(calls, erasure.EXPECT().ForgetOptOutHashes(ctx, workspaceID, email).Return(nil))
+				erasure.EXPECT().DeleteListRowsKeepingOptOuts(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			} else {
+				calls = append(calls, erasure.EXPECT().DeleteListRowsKeepingOptOuts(ctx, workspaceID, email, domain.OptOutHashSourceDelete).Return(int64(1), nil))
+				erasure.EXPECT().ForgetOptOutHashes(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			}
+			calls = append(calls,
+				mockContactListRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+				mockContactRepo.EXPECT().DeleteContact(ctx, workspaceID, email).Return(nil),
+				mockCustomEventRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+				mockSegmentRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+				mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
+				mockSegmentQueueRepo.EXPECT().RemoveFromQueue(ctx, workspaceID, email).Return(nil),
+				erasure.EXPECT().DeleteJourneysForEmail(ctx, workspaceID, email).Return(nil),
+				erasure.EXPECT().DeleteWebhookDeliveriesForEmail(ctx, workspaceID, email).Return(int64(2), nil),
+			)
+			gomock.InOrder(calls...)
+
+			require.NoError(t, service.DeleteContact(ctx, workspaceID, email, domain.DeleteContactOptions{ForgetOptOuts: forget}))
+		})
+	}
+}
+
+// A failure to hash the opt-outs, or to forget them, stops the deletion before anything
+// else goes. The other two erasure steps are fatal like every other step.
+func TestContactService_DeleteContactErasureFailures(t *testing.T) {
+	userWorkspace := &domain.UserWorkspace{
+		UserID: "user123", WorkspaceID: "ws", Role: "member",
+		Permissions: domain.UserPermissions{domain.PermissionResourceContacts: {Read: true, Write: true}},
+	}
+	for _, tc := range []struct {
+		name   string
+		fail   string
+		forget bool
+		want   string
+	}{
+		{"hashes", "hashes", false, "failed to record opt-out hashes"},
+		{"forget", "forget", true, "failed to forget opt-out hashes"},
+		{"journeys", "journeys", false, "failed to delete automation journeys"},
+		{"webhook deliveries", "deliveries", false, "failed to delete webhook deliveries"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			service, mockContactRepo, _, mockAuthService, mockMessageHistoryRepo, mockInboundWebhookEventRepo,
+				mockContactListRepo, mockContactTimelineRepo, mockEmailQueueRepo, mockCustomEventRepo,
+				mockSegmentRepo, mockSegmentQueueRepo, mockLogger := createContactServiceWithMocks(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+			erasure := mocks.NewMockContactErasureRepository(ctrl)
+			service.SetErasureRepository(erasure)
+			ctx := context.Background()
+			const ws, email = "ws", "a@example.com"
+			mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, ws).Return(ctx, &domain.User{}, userWorkspace, nil)
+			mockEmailQueueRepo.EXPECT().DeleteForEmail(ctx, ws, email).Return(int64(0), nil)
+			mockMessageHistoryRepo.EXPECT().DeleteForEmail(ctx, ws, email).Return(nil)
+			mockInboundWebhookEventRepo.EXPECT().DeleteForEmail(ctx, ws, email).Return(nil)
+
+			boom := errors.New("boom")
+			switch tc.fail {
+			case "hashes":
+				erasure.EXPECT().DeleteListRowsKeepingOptOuts(ctx, ws, email, domain.OptOutHashSourceDelete).Return(int64(0), boom)
+			case "forget":
+				erasure.EXPECT().ForgetOptOutHashes(ctx, ws, email).Return(boom)
+			default:
+				erasure.EXPECT().DeleteListRowsKeepingOptOuts(ctx, ws, email, domain.OptOutHashSourceDelete).Return(int64(0), nil)
+				mockContactListRepo.EXPECT().DeleteForEmail(ctx, ws, email).Return(nil)
+				mockContactRepo.EXPECT().DeleteContact(ctx, ws, email).Return(nil)
+				mockCustomEventRepo.EXPECT().DeleteForEmail(ctx, ws, email).Return(nil)
+				mockSegmentRepo.EXPECT().DeleteForEmail(ctx, ws, email).Return(nil)
+				mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, ws, email).Return(nil)
+				mockSegmentQueueRepo.EXPECT().RemoveFromQueue(ctx, ws, email).Return(nil)
+				if tc.fail == "journeys" {
+					erasure.EXPECT().DeleteJourneysForEmail(ctx, ws, email).Return(boom)
+				} else {
+					erasure.EXPECT().DeleteJourneysForEmail(ctx, ws, email).Return(nil)
+					erasure.EXPECT().DeleteWebhookDeliveriesForEmail(ctx, ws, email).Return(int64(0), boom)
+				}
+			}
+
+			err := service.DeleteContact(ctx, ws, email, domain.DeleteContactOptions{ForgetOptOuts: tc.forget})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.want)
 		})
 	}
 }

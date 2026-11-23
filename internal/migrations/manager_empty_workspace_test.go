@@ -315,7 +315,7 @@ func TestManager_RunMigrations_SkipsAnEmptyWorkspaceAndStampsTheVersion(t *testi
 	conn.script("empty", connectorAnswer{db: first}, connectorAnswer{db: again})
 
 	mock.ExpectBegin()
-	expectLatestSystemUpdate(mock)
+	expectLatestSystemUpdate(t, mock)
 	expectWorkspaceRows(mock, "empty")
 	expectRegisteredInTx(mock, "empty", true)
 	lock.expectDatabaseExists("notifuse_ws_empty", true)

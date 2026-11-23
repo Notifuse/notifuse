@@ -52,6 +52,12 @@ func (s *CustomEventService) UpsertEvent(ctx context.Context, req *domain.Upsert
 	}
 
 	// Verify contact exists (or create if it doesn't) - only if not soft-deleting
+	// The address is normalised, as every other path stores it: a raw "Bob@Example.com"
+	// would be a second contact, its events would sit under an address the contact's
+	// timeline, segments and deletion never match, and it would miss the opt-outs a deleted
+	// contact left as hashes for "bob@example.com".
+	req.Email = domain.NormalizeEmail(req.Email)
+
 	if req.DeletedAt == nil {
 		contact, err := s.contactRepo.GetContactByEmail(ctx, req.WorkspaceID, req.Email)
 		if err != nil {

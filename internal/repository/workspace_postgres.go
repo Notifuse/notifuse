@@ -404,12 +404,21 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	// The MCP switch is kept as stored: only SetMCPSettings writes it, so a save made
-	// from a copy read before the owner switched MCP off cannot switch it back on.
+	// Two settings have a single writer each, so a save made from a copy read earlier
+	// keeps their stored values: dkim_keys (UpdateDKIMKeys), so that a settings save
+	// cannot undo a key created, verified or downgraded meanwhile; mcp (SetMCPSettings),
+	// so that it cannot switch MCP back on. The row is re-read under its lock, so the
+	// values kept are the last committed ones.
 	query := `
 		UPDATE workspaces
 		SET name = $1,
-			settings = CASE WHEN settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', settings->'mcp') ELSE $2::jsonb - 'mcp' END,
+			settings = CASE
+				WHEN workspaces.settings ? 'dkim_keys'
+					THEN jsonb_set(
+						CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', workspaces.settings->'mcp') ELSE $2::jsonb - 'mcp' END,
+						'{dkim_keys}', workspaces.settings->'dkim_keys', true)
+				ELSE (CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', workspaces.settings->'mcp') ELSE $2::jsonb - 'mcp' END) - 'dkim_keys'
+			END,
 			integrations = $3, updated_at = $4
 		WHERE id = $5
 	`

@@ -487,7 +487,12 @@
 /api/contacts.delete:
   post:
     summary: Delete a contact
-    description: Deletes a contact from the workspace by email address. This action is permanent and cannot be undone.
+    description: |
+      Deletes a contact from the workspace by email address. This action is permanent and cannot be undone.
+
+      The contact, their list subscriptions, timeline, custom events, segment memberships and automation journeys are deleted. Their messages are kept for newsletter statistics, with the address, the message data, cc, bcc, subject and error texts removed. Attachment files that only this contact received are deleted.
+
+      The lists the contact unsubscribed from, bounced on or complained about are remembered for 3 years as a keyed hash of the address, with nothing else. If the address comes back (an import, an upsert, a form), those statuses are put back on the lists that still exist. Set `forget_opt_outs` to `true` to keep nothing.
     operationId: deleteContact
     security:
       - BearerAuth: []

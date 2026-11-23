@@ -61,9 +61,9 @@ func latestWorkspaceMigrationVersion(t *testing.T) float64 {
 	return latest
 }
 
-// expectLaterMigrations expects the transaction of each registered migration above after.
-// The tests cannot predict another migration's SQL, so each one registered after the latest
-// workspace migration must be listed here; one that is not fails with a message saying so.
+// expectLaterMigrations fails when a migration is registered above after, the latest workspace
+// migration: the tests cannot predict its SQL, so a migration added later must be expected
+// here, case by case.
 func expectLaterMigrations(t *testing.T, mock sqlmock.Sqlmock, after float64) {
 	t.Helper()
 	for _, m := range GetRegisteredMigrations() {
@@ -71,24 +71,26 @@ func expectLaterMigrations(t *testing.T, mock sqlmock.Sqlmock, after float64) {
 		if version <= after {
 			continue
 		}
-		mock.ExpectBegin()
-		switch version {
-		case 45.0:
-			require.Falsef(t, m.HasWorkspaceUpdate(), "v45 now updates workspaces: expect its SQL in the manager tests")
-			for _, stmt := range schema.TwoFactorTableDefinitions() {
-				mock.ExpectExec(regexp.QuoteMeta(stmt)).WillReturnResult(sqlmock.NewResult(0, 0))
-			}
-		default:
-			require.Failf(t, "unexpected migration", "v%.0f runs after v%.0f: expect its SQL in the manager tests", version, after)
-		}
-		mock.ExpectCommit()
+		require.Failf(t, "unexpected migration", "v%.0f runs after v%.0f: expect its SQL in the manager tests", version, after)
 	}
 }
 
-// expectLatestSystemUpdate expects the system update of the latest workspace migration, v44: the
-// read of the finished send tasks, here none.
-func expectLatestSystemUpdate(mock sqlmock.Sqlmock) {
-	mock.ExpectQuery("FROM tasks").WillReturnRows(sqlmock.NewRows([]string{"workspace_id", "broadcast_id", "done"}))
+// expectLatestSystemUpdate expects the system update of the latest workspace migration. That is
+// v45, whose system part is two-factor authentication (schema.TwoFactorTableDefinitions). A
+// project that adds another system part to v45 adds its SQL here.
+func expectLatestSystemUpdate(t *testing.T, mock sqlmock.Sqlmock) {
+	t.Helper()
+	m, ok := GetRegisteredMigration(latestWorkspaceMigrationVersion(t))
+	require.True(t, ok)
+	switch m.GetMajorVersion() {
+	case 45.0:
+		require.True(t, m.HasSystemUpdate())
+		for _, stmt := range schema.TwoFactorTableDefinitions() {
+			mock.ExpectExec(regexp.QuoteMeta(stmt)).WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+	default:
+		require.Falsef(t, m.HasSystemUpdate(), "v%.0f now has a system part: expect its SQL here", m.GetMajorVersion())
+	}
 }
 
 func TestManager_RunMigrations_WindowFailures(t *testing.T) {
@@ -99,7 +101,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		manager, mock, db, migrationVersion := managerOneVersionBehind(t)
 		sentinel := errors.New("workspaces table gone")
 		mock.ExpectBegin()
-		expectLatestSystemUpdate(mock)
+		expectLatestSystemUpdate(t, mock)
 		mock.ExpectQuery("FROM workspaces").WillReturnError(sentinel)
 		mock.ExpectRollback()
 		mock.ExpectRollback() // the migration lock
@@ -117,7 +119,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		manager.connector = fakeWorkspaceConnector{err: sentinel}
 
 		mock.ExpectBegin()
-		expectLatestSystemUpdate(mock)
+		expectLatestSystemUpdate(t, mock)
 		mock.ExpectQuery("FROM workspaces").WillReturnRows(
 			sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
 				AddRow("ws-1", "Demo", []byte("{}"), []byte("[]"), time.Now(), time.Now()))
@@ -138,7 +140,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		manager.connector = fakeWorkspaceConnector{db: wsDB}
 
 		mock.ExpectBegin()
-		expectLatestSystemUpdate(mock)
+		expectLatestSystemUpdate(t, mock)
 		mock.ExpectQuery("FROM workspaces").WillReturnRows(
 			sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
 				AddRow("ws-1", "Demo", []byte("{}"), []byte("[]"), time.Now(), time.Now()))
@@ -154,7 +156,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		err = manager.RunMigrations(ctx, cfg, db)
 		require.ErrorContains(t, err, fmt.Sprintf("migration failed for version %.0f:", migrationVersion))
 		require.ErrorContains(t, err, "workspace migration failed for workspace ws-1:")
-		require.ErrorContains(t, err, "v44: failed to install the link click timeline step for workspace ws-1:")
+		require.ErrorContains(t, err, "data retention (v45):")
 		assert.ErrorIs(t, err, sentinel)
 		require.NoError(t, mock.ExpectationsWereMet())
 		require.NoError(t, wsMock.ExpectationsWereMet())

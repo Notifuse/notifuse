@@ -31,6 +31,7 @@ interface FileManagerProviderProps {
   onUpdateSettings: (settings: FileManagerSettings) => Promise<void>
   settingsInfo?: React.ReactNode
   readOnly?: boolean
+  canEditSettings?: boolean
 }
 
 const FileManagerContext = createContext<FileManagerContextValue | undefined>(undefined)
@@ -41,7 +42,8 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   settings,
   onUpdateSettings,
   settingsInfo,
-  readOnly = false
+  readOnly = false,
+  canEditSettings = false
 }) => {
   const { t } = useLingui()
   const { message } = App.useApp()
@@ -194,6 +196,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
             multiple={false}
             settingsInfo={settingsInfo}
             readOnly={readOnly}
+            canEditSettings={canEditSettings}
             controlledPath={pickerPath}
             onPathChange={setPickerPath}
             targetLabel={currentOptions.targetLabel}

@@ -916,19 +916,14 @@ func TestUserHandler_GetCurrentUserRedactsCredentials(t *testing.T) {
 	assert.Contains(t, body, "smtp.example.com", "non-secret context survives")
 }
 
-// TestUserHandler_GetCurrentUserFileManagerSecretDependsOnTheCaller closes the
-// door that redacting workspaces.list alone left open.
+// TestUserHandler_GetCurrentUserNeverCarriesTheFileStorageSecret pins user.me, the
+// widest workspace-serialising endpoint: every workspace of the caller, loaded by the
+// console at startup and callable with an API key. Neither kind of caller gets the
+// file storage secret; the console learns that one is set from has_secret_key.
 //
-// user.me returns the same workspaces, and an API-key token passes RequireAuth
-// here exactly as a session does — so a key that could no longer read the S3
-// secret from workspaces.list simply read it from this endpoint, one call later.
-// It is also where the console gets its workspaces: AuthContext fills them from
-// this response and the file manager builds its browser S3 client out of them, so
-// the session half has to keep working or the feature breaks.
-//
-// Asserted against the raw bytes, not a decoded struct: what leaks is what goes
-// on the wire, and the whole body is what an integration platform logs.
-func TestUserHandler_GetCurrentUserFileManagerSecretDependsOnTheCaller(t *testing.T) {
+// Asserted against the raw bytes, not a decoded struct: what leaks is what goes on
+// the wire.
+func TestUserHandler_GetCurrentUserNeverCarriesTheFileStorageSecret(t *testing.T) {
 	const fileManagerSecret = "SENTINEL-live-bucket-secret"
 	const userID = "test-user"
 	const sessionID = "test-session"
@@ -967,7 +962,7 @@ func TestUserHandler_GetCurrentUserFileManagerSecretDependsOnTheCaller(t *testin
 		assert.Contains(t, body, "assets")
 	})
 
-	t.Run("a console session does", func(t *testing.T) {
+	t.Run("a console session does not get it either", func(t *testing.T) {
 		handler, mockUserSvc, mockWorkspaceSvc, _ := setupUserHandlerTest(t)
 		mockUserSvc.EXPECT().VerifyUserSession(gomock.Any(), userID, sessionID).Return(user, nil)
 		mockUserSvc.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
@@ -982,8 +977,9 @@ func TestUserHandler_GetCurrentUserFileManagerSecretDependsOnTheCaller(t *testin
 		handler.GetCurrentUser(rec, req.WithContext(ctx))
 
 		require.Equal(t, http.StatusOK, rec.Code)
-		assert.Contains(t, rec.Body.String(), fileManagerSecret,
-			"withholding this from the console breaks the browser file manager")
+		body := rec.Body.String()
+		assert.NotContains(t, body, fileManagerSecret)
+		assert.Contains(t, body, `"has_secret_key":true`)
 	})
 }
 

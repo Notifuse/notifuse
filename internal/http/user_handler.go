@@ -326,14 +326,12 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	span.AddAttributes(trace.Int64Attribute("workspaces.count", int64(len(workspaces))))
 
 	// Credentials are decrypted on load for the sending path; they must not leave
-	// the process. See redactWorkspaceForCaller.
+	// the process. See redactWorkspace.
 	//
-	// This is the widest of the workspace-serialising endpoints — one call, every
-	// workspace the caller belongs to — and an API-key token passes RequireAuth
-	// here exactly as a session does, so it is where the S3 secret walked out
-	// after workspaces.list stopped serving it.
+	// This is the widest of the workspace-serialising endpoints: one call, every
+	// workspace the caller belongs to, for a session or an API key alike.
 	for _, ws := range workspaces {
-		redactWorkspaceForCaller(ctx, ws)
+		redactWorkspace(ws)
 	}
 
 	// Combine user and workspaces in response
@@ -357,8 +355,7 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Console sessions only. An API key authenticates this same endpoint — it is how an
 	// integration resolves its workspaces — and the entitlements name the licensee and
 	// their billing address, which is why /api/licence.get is root-only in the first
-	// place. The same fail-closed test that keeps the S3 secret away from machine traffic
-	// governs it, for the same reason: absent means "not told", and the console types the
+	// place. The test fails closed: absent means "not told", and the console types the
 	// field optional so absence reads as unknown rather than as unlicensed.
 	if isConsoleSession(ctx) {
 		entitlements := h.licenseService.Entitlements()

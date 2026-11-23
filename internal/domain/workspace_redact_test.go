@@ -91,9 +91,7 @@ func allSecretSentinels() []string {
 		secretMailgunAPIKey, secretMailjetAPIKey, secretMailjetSecretKey,
 		secretSendGridAPIKey, secretAnthropicAPIKey, secretOpenAIAPIKey,
 		secretGeminiAPIKey, secretFirecrawlAPIKey, secretSupabaseAuthKey,
-		secretSupabaseCreatedKey,
-		// secretFileManagerKey is deliberately absent — see
-		// TestWorkspaceRedact_KeepsFileManagerSecret.
+		secretSupabaseCreatedKey, secretFileManagerKey,
 	}
 }
 
@@ -241,18 +239,85 @@ func TestWorkspaceRedact_ExposesLastFourCharactersAsHint(t *testing.T) {
 
 }
 
-// TestWorkspaceRedact_KeepsFileManagerSecret pins the one exception, so nobody
-// "completes" the redaction later and breaks file uploads.
-//
-// The console builds an S3Client in the browser from this field and talks to the
-// bucket directly. Blanking it hardens nothing and breaks the file manager for
-// every user; the real fix is presigned URLs, tracked separately.
-func TestWorkspaceRedact_KeepsFileManagerSecret(t *testing.T) {
+// The file storage secret stays on the server like every other credential: the response
+// says that one is set, with a hint when it is long enough to give one.
+func TestWorkspaceRedact_FileManagerSecretBecomesAHint(t *testing.T) {
 	w := workspaceWithEverySecret()
+	w.Settings.FileManager.EncryptedSecretKey = "SENTINEL-file-manager-ciphertext"
 	w.Redact()
 
-	assert.Equal(t, secretFileManagerKey, w.Settings.FileManager.SecretKey,
-		"the browser-side S3 client needs this; redacting it is a breakage, not a fix")
+	fm := w.Settings.FileManager
+	assert.Empty(t, fm.SecretKey)
+	assert.Empty(t, fm.EncryptedSecretKey)
+	assert.True(t, fm.HasSecretKey)
+	assert.Equal(t, "-key", fm.SecretKeyHint, "the last four characters of %s", secretFileManagerKey)
+}
+
+func TestWorkspaceRedact_ShortFileManagerSecretIsSetWithoutHint(t *testing.T) {
+	w := &Workspace{Settings: WorkspaceSettings{FileManager: FileManagerSettings{SecretKey: "abc123"}}}
+	w.Redact()
+
+	assert.True(t, w.Settings.FileManager.HasSecretKey, "a secret too short for a hint is still set")
+	assert.Empty(t, w.Settings.FileManager.SecretKeyHint)
+	assert.Empty(t, w.Settings.FileManager.SecretKey)
+}
+
+func TestWorkspaceRedact_FileManagerCiphertextAloneCountsAsSet(t *testing.T) {
+	w := &Workspace{Settings: WorkspaceSettings{FileManager: FileManagerSettings{EncryptedSecretKey: "abcdef0123"}}}
+	w.Redact()
+
+	assert.True(t, w.Settings.FileManager.HasSecretKey)
+	assert.Empty(t, w.Settings.FileManager.EncryptedSecretKey)
+}
+
+// Redact sets the response fields from the secret, never from what the workspace carried.
+func TestWorkspaceRedact_FileManagerHintIsRecomputed(t *testing.T) {
+	w := &Workspace{Settings: WorkspaceSettings{FileManager: FileManagerSettings{
+		Endpoint:      "https://s3.example.com",
+		SecretKeyHint: "forged",
+		HasSecretKey:  true,
+	}}}
+	w.Redact()
+
+	assert.False(t, w.Settings.FileManager.HasSecretKey)
+	assert.Empty(t, w.Settings.FileManager.SecretKeyHint)
+}
+
+// The repository marshals the settings after BeforeSave (workspaceDocuments), without
+// Value: BeforeSave is where the response fields are dropped.
+func TestWorkspaceBeforeSave_DropsFileManagerResponseFields(t *testing.T) {
+	w := &Workspace{Settings: WorkspaceSettings{
+		SecretKey: "workspace-secret",
+		FileManager: FileManagerSettings{
+			Endpoint:      "https://s3.example.com",
+			SecretKeyHint: "zzzz",
+			HasSecretKey:  true,
+		},
+	}}
+
+	require.NoError(t, w.BeforeSave("instance-secret-key-for-tests-32b"))
+	stored, err := json.Marshal(w.Settings)
+	require.NoError(t, err)
+	assert.NotContains(t, string(stored), "secret_key_hint")
+	assert.NotContains(t, string(stored), "has_secret_key")
+	assert.Contains(t, string(stored), "https://s3.example.com")
+}
+
+// The response fields are never stored, whatever a client sends back.
+func TestWorkspaceSettingsValue_DropsFileManagerResponseFields(t *testing.T) {
+	settings := WorkspaceSettings{FileManager: FileManagerSettings{
+		Endpoint:      "https://s3.example.com",
+		SecretKeyHint: "zzzz",
+		HasSecretKey:  true,
+	}}
+
+	value, err := settings.Value()
+	require.NoError(t, err)
+	stored := string(value.([]byte))
+	assert.NotContains(t, stored, "secret_key_hint")
+	assert.NotContains(t, stored, "has_secret_key")
+	assert.Contains(t, stored, "https://s3.example.com")
+	assert.Equal(t, "zzzz", settings.FileManager.SecretKeyHint, "Value works on a copy")
 }
 
 // A hint must never be a usable fraction of a short secret.
@@ -352,15 +417,18 @@ func TestWorkspaceRedactForPublic_KeepsOnlyWhatAnInviteeNeeds(t *testing.T) {
 	s := string(out)
 
 	// Everything Redact() deliberately keeps for a member must be gone here.
-	assert.NotContains(t, s, secretFileManagerKey,
-		"the file manager exemption is for a member's browser, not an unauthenticated invitee")
+	assert.NotContains(t, s, "secret_key_hint",
+		"a hint is a fragment of a credential; an invitee has no claim to one")
+	assert.NotContains(t, s, "has_secret_key")
+	assert.Equal(t, FileManagerSettings{}, w.Settings.FileManager,
+		"which bucket the workspace uses is not an invitee's business")
 	assert.NotContains(t, s, "credential_hints",
 		"a hint is a fragment of a credential; an invitee has no claim to one")
 	assert.NotContains(t, s, "ciphertext",
 		"the workspace's encrypted secret key decrypts with the instance key alone")
 	assert.NotContains(t, s, "encrypted_")
 
-	for _, secret := range append(allSecretSentinels(), secretFileManagerKey) {
+	for _, secret := range allSecretSentinels() {
 		assert.NotContains(t, s, secret)
 	}
 

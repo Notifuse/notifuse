@@ -38,6 +38,9 @@ const MENU_GROUPS: Record<MenuGroup, string[]> = {
 export type MenuItem = NonNullable<MenuProps['items']>[number]
 export type HasAccess = (resource: keyof UserPermissions) => boolean
 
+/** The file manager follows the rule the server applies to files.list: templates or the blog. */
+const canSeeFiles = (hasAccess: HasAccess) => hasAccess('templates') || hasAccess('blog')
+
 /**
  * The group the path belongs to. The web analytics settings live at /settings/web-analytics and
  * belong to the settings entry, so a settings path belongs to no group.
@@ -88,6 +91,10 @@ export type GroupPage =
       params: { workspaceId: string }
     }
   | {
+      to: '/console/workspace/$workspaceId/file-manager'
+      params: { workspaceId: string }
+    }
+  | {
       to: '/console/workspace/$workspaceId/blog'
       params: { workspaceId: string }
     }
@@ -113,6 +120,11 @@ export function firstPageOfGroup(
     if (hasAccess('workspace'))
       return {
         to: '/console/workspace/$workspaceId/blog',
+        params: { workspaceId }
+      }
+    if (canSeeFiles(hasAccess))
+      return {
+        to: '/console/workspace/$workspaceId/file-manager',
         params: { workspaceId }
       }
   }
@@ -152,7 +164,10 @@ const ENTRIES_AFTER_DASHBOARD: { key: string; reachable: (hasAccess: HasAccess) 
   { key: 'broadcasts', reachable: (hasAccess) => hasAccess('broadcasts') },
   { key: 'automations', reachable: (hasAccess) => hasAccess('automations') },
   { key: 'transactional-notifications', reachable: (hasAccess) => hasAccess('transactional') },
-  { key: 'content', reachable: (hasAccess) => hasAccess('templates') || hasAccess('workspace') },
+  {
+    key: 'content',
+    reachable: (hasAccess) => hasAccess('templates') || hasAccess('workspace') || canSeeFiles(hasAccess)
+  },
   { key: 'logs', reachable: (hasAccess) => hasAccess('message_history') },
   { key: 'settings', reachable: (hasAccess) => hasAccess('workspace') }
 ]
@@ -319,28 +334,28 @@ export function buildMenuItems({
     })
   }
   if (hasAccess('workspace')) {
-    contentChildren.push(
-      {
-        key: 'blog',
-        label: link(
-          {
-            to: '/console/workspace/$workspaceId/blog',
-            params: { workspaceId }
-          },
-          label(LABELS.blog)
-        )
-      },
-      {
-        key: 'file-manager',
-        label: link(
-          {
-            to: '/console/workspace/$workspaceId/file-manager',
-            params: { workspaceId }
-          },
-          label(LABELS.fileManager)
-        )
-      }
-    )
+    contentChildren.push({
+      key: 'blog',
+      label: link(
+        {
+          to: '/console/workspace/$workspaceId/blog',
+          params: { workspaceId }
+        },
+        label(LABELS.blog)
+      )
+    })
+  }
+  if (canSeeFiles(hasAccess)) {
+    contentChildren.push({
+      key: 'file-manager',
+      label: link(
+        {
+          to: '/console/workspace/$workspaceId/file-manager',
+          params: { workspaceId }
+        },
+        label(LABELS.fileManager)
+      )
+    })
   }
 
   const items: (MenuItem | false)[] = [

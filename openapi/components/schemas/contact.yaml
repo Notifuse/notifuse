@@ -755,6 +755,10 @@ DeleteContactRequest:
       format: email
       description: Email address of the contact to delete
       example: user@example.com
+    forget_opt_outs:
+      type: boolean
+      default: false
+      description: Also forget the lists the contact unsubscribed from, bounced on or complained about, which are otherwise kept as a hash for 3 years and put back if the address returns. For test data, or when the person asked that nothing remain.
 
 BatchImportContactsRequest:
   type: object

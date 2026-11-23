@@ -855,6 +855,10 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		{failure: "failed to create usage table", statements: schema.UsageTableDefinitions()},
 		{failure: "failed to create web analytics partition", statements: partitions},
 		{failure: "failed to create workspace triggers", statements: triggerQueries},
+		// The opt-outs of deleted contacts, kept as hashes, and the trigger that restores
+		// them when the address returns (shared DDL with the v45 migration). Last: the
+		// trigger is on contacts and writes contact_lists, whose triggers must exist.
+		{failure: "failed to create contact opt-out hashes", statements: schema.ContactOptOutStatements()},
 	}
 }
 

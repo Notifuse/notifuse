@@ -18,6 +18,7 @@ export const AUDIT_CATEGORY_LABELS: Record<string, MessageDescriptor> = {
   segments: msg`Segments`,
   transactional: msg`Transactional`,
   blog: msg`Blog`,
+  files: msg`Files`,
   web_analytics: msg`Web analytics`,
   contacts: msg`Contacts`,
   audit: msg`Audit log`

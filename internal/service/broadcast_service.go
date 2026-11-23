@@ -1652,6 +1652,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		EmailOptions: domain.EmailOptions{
 			ReplyTo: emailContent.ReplyTo,
 		},
+		DKIMSnapshot: workspace.DKIMSnapshot(),
 	}
 
 	// The test send carries the List-Unsubscribe header the recipients will get.
