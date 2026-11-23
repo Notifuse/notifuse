@@ -1691,8 +1691,9 @@ func TestTaskHandler_ListTasks_NarrowsToReadableTypes(t *testing.T) {
 		defer ctrl.Finish()
 
 		handler, _, mockAuth := newTaskHandlerForAuth(t, ctrl)
+		// Templates own no task type (contacts own the data retention backfill).
 		allowMember(mockAuth, memberWith("ws-1", domain.UserPermissions{
-			domain.PermissionResourceContacts: {Read: true},
+			domain.PermissionResourceTemplates: {Read: true},
 		}))
 
 		rec := httptest.NewRecorder()

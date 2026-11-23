@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -75,14 +76,17 @@ func expectLaterEmptyMigrations(t *testing.T, mock sqlmock.Sqlmock, after float6
 	}
 }
 
-// expectLatestSystemUpdate expects the system update of the latest workspace migration. That is
-// v45, whose system part is still empty while 45.0 is assembled: nothing to expect. Once a
-// project adds one, this helper fails and the tests must expect its SQL.
+// expectLatestSystemUpdate expects the system update of the latest workspace migration, v45:
+// its data retention part (one engagement backfill task per workspace). Each project that
+// adds a system part to v45 adds its statements here, in UpdateSystem's order.
 func expectLatestSystemUpdate(t *testing.T, mock sqlmock.Sqlmock) {
 	t.Helper()
 	m, ok := GetRegisteredMigration(latestWorkspaceMigrationVersion(t))
 	require.True(t, ok)
-	require.Falsef(t, m.HasSystemUpdate(), "v%.0f now has a system part: expect its SQL here", m.GetMajorVersion())
+	require.Equal(t, 45.0, m.GetMajorVersion(), "the latest workspace migration moved: expect its system SQL here")
+	for _, statement := range dataRetentionSystemV45Statements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
 }
 
 func TestManager_RunMigrations_WindowFailures(t *testing.T) {

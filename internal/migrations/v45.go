@@ -30,13 +30,18 @@ type V45Migration struct{}
 
 func (m *V45Migration) GetMajorVersion() float64 { return 45.0 }
 
-func (m *V45Migration) HasSystemUpdate() bool { return false }
+func (m *V45Migration) HasSystemUpdate() bool { return true }
 
 func (m *V45Migration) HasWorkspaceUpdate() bool { return true }
 
 func (m *V45Migration) ShouldRestartServer() bool { return false }
 
 func (m *V45Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
+	// Data retention, Lot 1: one engagement backfill task per existing workspace
+	// (v45_data_retention.go).
+	if err := applyDataRetentionSystemV45(ctx, db); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -78,6 +78,8 @@ func TestV45DataRetentionMigration(t *testing.T) {
 		`DROP FUNCTION IF EXISTS contact_opt_out_hash(TEXT)`,
 		`DROP TABLE IF EXISTS contact_opt_out_hashes`,
 		`DROP TABLE IF EXISTS contact_opt_out_hash_key`,
+		`DROP TABLE IF EXISTS contact_engagement`,
+		`DROP TABLE IF EXISTS data_retention_state`,
 	}, pre45Bodies(t)...) {
 		_, err := db.ExecContext(bg, statement)
 		require.NoError(t, err, statement)
@@ -95,8 +97,27 @@ func TestV45DataRetentionMigration(t *testing.T) {
 	}
 
 	// --- the same objects as a workspace created at 45 --------------------------------
-	for _, table := range []string{"contact_opt_out_hashes", "contact_opt_out_hash_key"} {
+	for _, table := range []string{"contact_opt_out_hashes", "contact_opt_out_hash_key", "contact_engagement", "data_retention_state"} {
 		assert.True(t, tableExists(t, db, table), table)
+	}
+
+	// The engagement clock: a migrated workspace waits for its backfill, a new one is ready.
+	assert.Equal(t, "not ready", retentionMarker(t, db))
+	assert.Equal(t, "ready", retentionMarker(t, freshDB))
+
+	// --- v45's system part, twice: one backfill task per workspace, never two ---------
+	systemDB := suite.DBManager.GetDB()
+	for run := 1; run <= 2; run++ {
+		tx, err := systemDB.BeginTx(bg, nil)
+		require.NoError(t, err)
+		require.NoError(t, migration.UpdateSystem(bg, &config.Config{}, tx), "run %d", run)
+		require.NoError(t, tx.Commit())
+	}
+	for _, ws := range []string{migrated.ID, fresh.ID} {
+		var tasks int
+		require.NoError(t, systemDB.QueryRowContext(bg, `SELECT COUNT(*) FROM tasks WHERE workspace_id = $1 AND type = $2`,
+			ws, domain.DataRetentionBackfillTaskType).Scan(&tasks))
+		assert.Equal(t, 1, tasks, ws)
 	}
 	var keys int
 	require.NoError(t, db.QueryRowContext(bg, `SELECT COUNT(*) FROM contact_opt_out_hash_key WHERE octet_length(key) = 32`).Scan(&keys))
@@ -141,6 +162,21 @@ func TestV45DataRetentionMigration(t *testing.T) {
 	var status string
 	require.NoError(t, db.QueryRowContext(bg, `SELECT status FROM contact_lists WHERE email = $1 AND list_id = $2`, email, list.ID).Scan(&status))
 	assert.Equal(t, "unsubscribed", status)
+}
+
+// retentionMarker reads data_retention_state: "missing", "not ready" or "ready".
+func retentionMarker(t *testing.T, db *sql.DB) string {
+	t.Helper()
+	var done sql.NullBool
+	err := db.QueryRowContext(context.Background(), `SELECT backfill_completed_at IS NOT NULL FROM data_retention_state WHERE id = 1`).Scan(&done)
+	if err == sql.ErrNoRows {
+		return "missing"
+	}
+	require.NoError(t, err)
+	if done.Bool {
+		return "ready"
+	}
+	return "not ready"
 }
 
 func tableExists(t *testing.T, db *sql.DB, name string) bool {

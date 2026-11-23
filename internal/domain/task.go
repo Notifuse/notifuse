@@ -67,10 +67,11 @@ type TaskState struct {
 	Message  string  `json:"message,omitempty"`
 
 	// Specialized states for different task types - only one will be used based on task type
-	SendBroadcast        *SendBroadcastState        `json:"send_broadcast,omitempty"`
-	BuildSegment         *BuildSegmentState         `json:"build_segment,omitempty"`
-	IntegrationSync      *IntegrationSyncState      `json:"integration_sync,omitempty"`
-	WebAnalyticsBackfill *WebAnalyticsBackfillState `json:"web_analytics_backfill,omitempty"`
+	SendBroadcast         *SendBroadcastState         `json:"send_broadcast,omitempty"`
+	BuildSegment          *BuildSegmentState          `json:"build_segment,omitempty"`
+	IntegrationSync       *IntegrationSyncState       `json:"integration_sync,omitempty"`
+	WebAnalyticsBackfill  *WebAnalyticsBackfillState  `json:"web_analytics_backfill,omitempty"`
+	DataRetentionBackfill *DataRetentionBackfillState `json:"data_retention_backfill,omitempty"`
 }
 
 // WebAnalyticsBackfillState is the resumable state of an attribution-rules
