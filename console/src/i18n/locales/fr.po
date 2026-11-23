@@ -1667,7 +1667,7 @@ msgstr "<{tag}> n'est pas fermé."
 msgid "</{tag}> closes no open tag."
 msgstr "</{tag}> ne ferme aucune balise ouverte."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:967
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:970
 #: src/components/settings/integrations/providerDetails.ts:170
 msgid "≈ {perHour} per hour · ≈ {perDay} per day"
 msgstr "≈ {perHour} par heure · ≈ {perDay} par jour"
@@ -1810,7 +1810,7 @@ msgstr "48 h"
 msgid "500 - Medium"
 msgstr "500 - Moyen"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:576
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:577
 msgid "587 for STARTTLS, 465 for TLS from the first byte, 25 unencrypted"
 msgstr "587 pour STARTTLS, 465 pour TLS dès le premier octet, 25 sans chiffrement"
 
@@ -2167,6 +2167,14 @@ msgstr "À propos du consentement"
 msgid "About display conditions"
 msgstr "À propos des conditions d'affichage"
 
+#: src/components/settings/DomainsSettings.tsx:369
+msgid "About DKIM keys"
+msgstr "À propos des clés DKIM"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:92
+msgid "About DKIM signing"
+msgstr "À propos de la signature DKIM"
+
 #: src/components/contacts/csv-import/ImportProgress.tsx:86
 msgid "About errors"
 msgstr "À propos des erreurs"
@@ -2190,6 +2198,10 @@ msgstr "À propos de l'authentification unique"
 #: src/components/setup/SmtpPanel.tsx:131
 msgid "About system email delivery"
 msgstr "À propos de l'envoi des emails système"
+
+#: src/components/settings/DomainsSettings.tsx:398
+msgid "About the DNS record"
+msgstr "À propos de l'enregistrement DNS"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:361
 msgid "About the email column"
@@ -2241,15 +2253,15 @@ msgstr "Accès"
 #~ msgid "Access Key"
 #~ msgstr "Clé d'accès"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:437
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:438
 msgid "Access key ID"
 msgstr "ID de clé d'accès"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:97
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:705
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:743
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:775
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:798
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:706
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:744
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:776
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:799
 msgid "Account"
 msgstr "Compte"
 
@@ -2395,7 +2407,7 @@ msgstr "Ajouter {name}"
 msgid "Add {name} integration"
 msgstr "Ajouter l'intégration {name}"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:189
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:190
 msgid "Add {providerName} integration"
 msgstr "Ajouter l'intégration {providerName}"
 
@@ -2424,6 +2436,10 @@ msgstr "Ajouter une propriété"
 #: src/components/settings/Integrations.tsx:1262
 #~ msgid "Add a provider"
 #~ msgstr "Ajouter un fournisseur"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:71
+msgid "Add a sender to see whether its domain is signed."
+msgstr "Ajoutez un expéditeur pour voir si son domaine est signé."
 
 #: src/components/logs/OutgoingWebhooksTab.tsx:253
 msgid "Add a webhook"
@@ -2538,6 +2554,11 @@ msgstr "Ajouter un header personnalisé"
 msgid "Add dimension"
 msgstr "Ajouter une dimension"
 
+#: src/components/settings/DomainsSettings.tsx:208
+#: src/components/settings/DomainsSettings.tsx:422
+msgid "Add domain"
+msgstr "Ajouter un domaine"
+
 #: src/components/settings/WebhooksSettings.tsx:273
 msgid "Add endpoint"
 msgstr "Ajouter un point d'accès"
@@ -2597,8 +2618,8 @@ msgstr "Ajouter un chemin"
 #~ msgid "Add rule"
 #~ msgstr ""
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:945
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:982
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:948
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:985
 msgid "Add sender"
 msgstr "Ajouter un expéditeur"
 
@@ -2623,6 +2644,10 @@ msgstr "Ajouter des tags..."
 #: src/components/analytics/GetStartedChecklist.tsx:238
 msgid "Add teammates, or create an API key for your app."
 msgstr "Ajoutez des membres, ou créez une clé API pour votre application."
+
+#: src/components/settings/DomainsSettings.tsx:329
+msgid "Add the domain of your senders to sign their emails with DKIM."
+msgstr "Ajoutez le domaine de vos expéditeurs pour signer leurs emails avec DKIM."
 
 #: src/components/analytics/GetStartedChecklist.tsx:230
 msgid "Add the script to your site to count visits and see which emails bring people back."
@@ -2674,6 +2699,10 @@ msgstr "Ajouté"
 msgid "Added {blockType}"
 msgstr "{blockType} ajouté"
 
+#: src/components/logs/auditPhrases.ts:90
+msgid "Added a DKIM domain to <0>{target}</0>"
+msgstr "A ajouté un domaine DKIM à <0>{target}</0>"
+
 #. placeholder {0}: dayjs(contact.created_at).tz(timezone).format('ll')
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:241
 msgid "Added on {0}"
@@ -2683,7 +2712,7 @@ msgstr "Ajouté le {0}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "A ajouté l'annotation <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:91
 msgid "Added the integration <0>{target}</0>"
 msgstr "A ajouté l'intégration <0>{target}</0>"
 
@@ -2753,7 +2782,7 @@ msgid "Administrator"
 msgstr "Administrateur"
 
 #: src/components/email_builder/blocks/AdvancedSection.tsx:13
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:479
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:480
 #: src/components/setup/SmtpPanel.tsx:232
 #: src/components/setup/SsoPanel.tsx:129
 msgid "Advanced"
@@ -3106,6 +3135,10 @@ msgstr "Amazon SES"
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, dans une région qui prend en charge la réception d'emails)"
 
+#: src/components/settings/DomainsSettings.tsx:370
+msgid "Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. Notifuse checks a record every hour until it finds it, then once a day, and every hour again after a failed check. A published key stops signing after {DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart."
+msgstr "Amazon SES, Mailgun, SendGrid et les autres fournisseurs par API signent de leur côté : ces clés ne servent donc qu'aux intégrations SMTP. Une clé signe dès que son enregistrement DNS est trouvé, et seulement pour son domaine exact : une clé sur acme.io ne signe pas news.acme.io. Notifuse vérifie un enregistrement toutes les heures jusqu'à le trouver, puis une fois par jour, et de nouveau toutes les heures après une vérification échouée. Une clé publiée arrête de signer après {DKIM_DOWNGRADE_THRESHOLD} vérifications échouées à une heure d'intervalle."
+
 #. placeholder {0}: context.minSessions
 #: src/components/web_analytics/explore/ExploreSummary.tsx:85
 msgid "Among combinations with at least {0} sessions."
@@ -3337,9 +3370,9 @@ msgstr "Commande API"
 msgid "API documentation"
 msgstr "Documentation de l'API"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:707
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:708
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:709
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:710
 #: src/components/settings/integrations/providerDetails.ts:132
 #: src/components/setup/AdministratorPanel.tsx:53
 msgid "API endpoint"
@@ -3372,10 +3405,10 @@ msgstr "L'identifiant API doit comporter au plus {TRANSACTIONAL_ID_MAX_LENGTH} c
 #: src/components/integrations/LLMIntegration.tsx:201
 #: src/components/integrations/LLMIntegration.tsx:201
 #: src/components/logs/auditDisplay.ts:22
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:713
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:750
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:777
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:800
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:714
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:751
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:778
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:801
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:59
 #: src/components/settings/integrations/providerDetails.ts:34
 #: src/components/settings/integrations/providerDetails.ts:36
@@ -3387,13 +3420,13 @@ msgstr "Clé API"
 
 #: src/components/settings/Integrations.tsx:465
 #: src/components/settings/Integrations.tsx:490
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:716
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:753
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:781
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:717
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:754
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:782
 msgid "API Key"
 msgstr "Clé API"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:804
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:805
 msgid "API Key (starts with SG.)"
 msgstr "Clé API (commence par SG.)"
 
@@ -3444,7 +3477,7 @@ msgstr "Jeton API"
 msgid "API URL"
 msgstr "URL de l'API"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:649
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:650
 msgid "Application (Client) ID"
 msgstr "ID d'application (client)"
 
@@ -3722,7 +3755,7 @@ msgstr "au moins"
 msgid "at least one"
 msgstr "au moins une des"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:880
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:883
 msgid "At least one"
 msgstr "Au moins un"
 
@@ -3750,6 +3783,10 @@ msgstr "Au moins un email racine est requis"
 #: src/components/segment/segmentLabels.ts:307
 msgid "at most"
 msgstr "au plus"
+
+#: src/components/settings/DomainsSettings.tsx:399
+msgid "At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email."
+msgstr "Chez votre hébergeur DNS, ajoutez un enregistrement TXT avec ce nom et cette valeur. Notifuse commence à signer dès qu'il le trouve. Gardez l'enregistrement tant que le domaine envoie des emails."
 
 #: src/components/logs/MessageDetail.tsx:698
 #: src/components/templates/SendTemplateModal.tsx:465
@@ -3791,7 +3828,7 @@ msgstr "Entrée d'audit"
 
 #: src/components/logs/labels.ts:23
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
-#: src/components/settings/SettingsSidebar.tsx:69
+#: src/components/settings/SettingsSidebar.tsx:72
 #: src/components/settings/SystemSettingsDrawer.tsx:719
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
@@ -3832,7 +3869,7 @@ msgstr "Hook d'email d'authentification"
 #~ msgstr "Secret du hook d'email d'authentification"
 
 #: src/components/settings/Integrations.tsx:369
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:603
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:604
 #: src/components/settings/integrations/providerDetails.ts:66
 msgid "Authentication"
 msgstr "Authentification"
@@ -4052,11 +4089,11 @@ msgstr "moyenne"
 #~ msgid "AWS Access Key"
 #~ msgstr "Clé d'accès AWS"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:424
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:425
 msgid "AWS account"
 msgstr "Compte AWS"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:464
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:465
 msgid "AWS bills per tenant per month. Turning it on asks to confirm, then creates the tenant after saving."
 msgstr "AWS facture par tenant et par mois. L'activer demande une confirmation, puis crée le tenant après l'enregistrement."
 
@@ -4338,7 +4375,7 @@ msgstr "Facturation"
 #~ msgstr "Vierge"
 
 #: src/components/integrations/SupabaseIntegration.tsx:153
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:361
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:362
 msgid "Blank keeps the current one."
 msgstr "Laissez vide pour conserver la valeur actuelle."
 
@@ -4440,7 +4477,7 @@ msgstr "Blocs"
 #: src/components/settings/BlogSettings.tsx:298
 #: src/components/settings/BlogSettings.tsx:312
 #: src/components/settings/permissionLabels.ts:14
-#: src/components/settings/SettingsSidebar.tsx:67
+#: src/components/settings/SettingsSidebar.tsx:70
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:230
 #: src/pages/BlogPage.tsx:89
@@ -4922,7 +4959,7 @@ msgstr "Newsletters et emails d'automation"
 #~ msgid "Broadcasts and automation emails are sent at up to this rate. Keep it at or below your provider's sending limit, minus your transactional traffic."
 #~ msgstr "Les newsletters et les emails d'automatisation sont envoyés jusqu'à ce débit. Gardez-le au plus égal à la limite d'envoi de votre fournisseur, moins votre trafic transactionnel."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:956
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:959
 msgid "Broadcasts and automation emails go out at up to this rate"
 msgstr "Les newsletters et les emails d'automation partent à ce débit au maximum"
 
@@ -5198,11 +5235,14 @@ msgstr "Impossible à tester dans le navigateur"
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:386
+#: src/components/settings/DomainsSettings.tsx:112
+#: src/components/settings/DomainsSettings.tsx:132
+#: src/components/settings/DomainsSettings.tsx:427
 #: src/components/settings/EditPermissionsDrawer.tsx:101
 #: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:926
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:988
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:929
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:991
 #: src/components/settings/integrations/TestEmailModal.tsx:68
 #: src/components/settings/SystemSettingsDrawer.tsx:178
 #: src/components/settings/WebhookDetail.tsx:346
@@ -5288,7 +5328,7 @@ msgctxt "newsletter status"
 msgid "Cancelled"
 msgstr "Annulée"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:95
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "A annulé l'invitation <0>{target}</0>"
 
@@ -5477,23 +5517,23 @@ msgstr "Changer le statut pour {0}"
 msgid "Change status…"
 msgstr "Changer le statut…"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:100
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "A modifié la conservation du journal d'audit de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:101
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "A modifié les paramètres du blog de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:103
 msgid "Changed the MCP access of <0>{target}</0>"
 msgstr "A modifié l'accès MCP de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:104
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "A modifié les permissions de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:105
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "A modifié les paramètres des statistiques web de <0>{target}</0>"
 
@@ -5561,6 +5601,14 @@ msgstr "Vérifiez la hiérarchie MJML et que chaque balise est fermée."
 #: src/components/setup/SetupRestartView.tsx:88
 msgid "Check the server logs, then reload this page. Your configuration is already saved."
 msgstr "Consultez les journaux du serveur, puis rechargez cette page. Votre configuration est déjà enregistrée."
+
+#: src/components/settings/DomainsSettings.tsx:149
+msgid "Checked {ago}"
+msgstr "Vérifié {ago}"
+
+#: src/components/logs/auditPhrases.ts:108
+msgid "Checked a DKIM record of <0>{target}</0>"
+msgstr "A vérifié un enregistrement DKIM de <0>{target}</0>"
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:193
 msgid "Checked as you type; the server checks again on save."
@@ -5961,27 +6009,27 @@ msgstr "Consentement au tracking des clics (granted ou denied)"
 msgid "Clicks were not tracked"
 msgstr "Les clics n’étaient pas suivis"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:647
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:663
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:665
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:648
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:664
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:666
 #: src/components/settings/SystemSettingsDrawer.tsx:583
 #: src/components/setup/SsoPanel.tsx:78
 msgid "Client ID"
 msgstr "Client ID"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:650
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:666
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:651
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:667
 #: src/components/setup/SsoPanel.tsx:79
 msgid "Client ID is required"
 msgstr "Le Client ID est requis"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:652
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:668
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:653
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:669
 #: src/components/setup/SsoPanel.tsx:86
 msgid "Client secret"
 msgstr "Client secret"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:672
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:673
 #: src/components/settings/SystemSettingsDrawer.tsx:593
 msgid "Client Secret"
 msgstr "Client Secret"
@@ -5990,12 +6038,12 @@ msgstr "Client Secret"
 msgid "Client secret is required"
 msgstr "Le secret client est obligatoire"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:657
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:673
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:658
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:674
 msgid "Client Secret is required"
 msgstr "Le Client Secret est requis"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:656
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:657
 msgid "Client Secret Value"
 msgstr "Valeur du Client Secret"
 
@@ -6030,7 +6078,7 @@ msgstr "Cloner le modèle"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:173
 #: src/components/layout/DrawerControls.tsx:109
 #: src/components/logs/MessageDetail.tsx:96
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:835
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/settings/WebhookDetail.tsx:592
 #: src/components/settings/WorkspaceMembers.tsx:615
 #: src/components/templates/ImportErrorsModal.tsx:36
@@ -6046,7 +6094,7 @@ msgstr "Fermer sans enregistrer"
 
 #: src/components/blog/CategoryDrawer.tsx:153
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:231
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:831
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:832
 msgid "Close without saving?"
 msgstr "Fermer sans enregistrer ?"
 
@@ -6375,7 +6423,7 @@ msgstr "Conditions"
 msgid "Configuration saved"
 msgstr "Configuration enregistrée"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:482
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:483
 #: src/components/settings/integrations/providerDetails.ts:90
 #: src/components/settings/integrations/providerDetails.ts:97
 msgid "Configuration set"
@@ -6783,7 +6831,7 @@ msgstr "contient"
 #: src/components/broadcasts/compose/ContentCard.tsx:123
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:207
 #: src/components/email_builder/panels/LibraryPanel.tsx:268
-#: src/components/settings/SettingsSidebar.tsx:28
+#: src/components/settings/SettingsSidebar.tsx:29
 #: src/components/templates/TemplateDrawerBar.tsx:83
 #: src/components/templates/TemplateSettingsAside.tsx:140
 #: src/components/templates/TemplateTranslationsTab.tsx:424
@@ -7040,6 +7088,14 @@ msgstr "Impossible de charger les newsletters"
 msgid "Couldn't load the deliveries"
 msgstr "Impossible de charger les envois"
 
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:81
+msgid "Couldn't load the DKIM keys of this workspace."
+msgstr "Impossible de charger les clés DKIM de cet espace de travail."
+
+#: src/components/settings/DomainsSettings.tsx:315
+msgid "Couldn't load the domains"
+msgstr "Impossible de charger les domaines"
+
 #: src/components/file_manager/FileExplorer.tsx:808
 msgid "Couldn't load the files"
 msgstr "Impossible de charger les fichiers"
@@ -7292,7 +7348,7 @@ msgstr "Créer une automation, y compris des nœuds webhook, email et liste"
 msgid "Create an email template"
 msgstr "Créer un modèle d'email"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:260
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:261
 msgid "Create an SES tenant for this integration?"
 msgstr "Créer un tenant SES pour cette intégration ?"
 
@@ -7324,6 +7380,10 @@ msgstr "Créer la catégorie"
 #: src/components/blog/RecentThemesTable.tsx:226
 msgid "Create First Theme"
 msgstr "Créer le premier thème"
+
+#: src/components/settings/DomainsSettings.tsx:426
+msgid "Create key"
+msgstr "Créer la clé"
 
 #: src/components/lists/ListDrawer.tsx:582
 msgid "Create list"
@@ -7397,7 +7457,7 @@ msgstr "Créer le modèle"
 #~ msgid "Create Template"
 #~ msgstr "Créer un modèle"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:262
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:263
 msgid "Create tenant"
 msgstr "Créer le tenant"
 
@@ -7409,7 +7469,7 @@ msgstr "Créez le modèle pour l'envoyer en test"
 msgid "Create the workspace"
 msgstr "Créer l'espace de travail"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:653
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:654
 msgid "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 msgstr "Créez ceci dans Azure Portal > Inscriptions d'applications > Votre application > Certificats et secrets"
 
@@ -7775,7 +7835,7 @@ msgstr "Étiquette de champ personnalisé enregistrée avec succès"
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
 #: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:275
-#: src/components/settings/SettingsSidebar.tsx:66
+#: src/components/settings/SettingsSidebar.tsx:69
 msgid "Custom fields"
 msgstr "Champs personnalisés"
 
@@ -7941,7 +8001,7 @@ msgid "Daily"
 msgstr "Quotidien"
 
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/SettingsSidebar.tsx:71
+#: src/components/settings/SettingsSidebar.tsx:74
 msgid "Danger zone"
 msgstr "Zone de danger"
 
@@ -8049,7 +8109,7 @@ msgstr "par défaut"
 
 #: src/components/integrations/LLMIntegration.tsx:259
 #: src/components/settings/Integrations.tsx:339
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:900
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:903
 #: src/components/templates/TemplateTranslationsTab.tsx:453
 msgid "Default"
 msgstr "Par défaut"
@@ -8124,7 +8184,7 @@ msgstr "Par défaut : {fallbackTitle}"
 #~ msgid "Defaults to meta title"
 #~ msgstr "Par défaut : méta titre"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:597
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:598
 msgid "Defaults to SMTP host"
 msgstr "Par défaut : hôte SMTP"
 
@@ -8211,11 +8271,14 @@ msgstr "Délai"
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
 #: src/components/segment/input.tsx:309
+#: src/components/settings/DomainsSettings.tsx:131
+#: src/components/settings/DomainsSettings.tsx:275
+#: src/components/settings/DomainsSettings.tsx:278
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
 #: src/components/settings/integrations/EmailProviderCard.tsx:229
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:925
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:928
 #: src/components/settings/WebhookDetail.tsx:337
 #: src/components/settings/WebhookDetail.tsx:345
 #: src/components/settings/WebhookDetail.tsx:352
@@ -8460,7 +8523,7 @@ msgstr "Supprimer la règle"
 msgid "Delete segment"
 msgstr "Supprimer le segment"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:921
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:924
 msgid "Delete sender"
 msgstr "Supprimer l'expéditeur"
 
@@ -8483,6 +8546,10 @@ msgstr "Supprimer le dossier vide {name} ?"
 #: src/components/file_manager/DeleteFolderModal.tsx:43
 msgid "Delete the folder {name} and its files?"
 msgstr "Supprimer le dossier {name} et ses fichiers ?"
+
+#: src/components/settings/DomainsSettings.tsx:129
+msgid "Delete the key of {domain}?"
+msgstr "Supprimer la clé de {domain} ?"
 
 #: src/components/transactional/notificationRules.ts:90
 msgid "Delete the notification?"
@@ -8514,7 +8581,7 @@ msgstr "Supprimer cette opération ?"
 msgid "Delete this rule?"
 msgstr "Supprimer cette règle ?"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:922
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:925
 msgid "Delete this sender?"
 msgstr "Supprimer cet expéditeur ?"
 
@@ -8626,7 +8693,7 @@ msgstr "A supprimé la notification transactionnelle <0>{target}</0>"
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "A supprimé le webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:92
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "A supprimé l'espace de travail <0>{target}</0>"
 
@@ -8970,9 +9037,30 @@ msgstr "Largeur du séparateur"
 #~ msgid "Divider Width"
 #~ msgstr "Largeur du séparateur"
 
+#: src/components/settings/DomainsSettings.tsx:220
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:91
+msgid "DKIM"
+msgstr "DKIM"
+
+#: src/components/settings/DomainsSettings.tsx:368
+msgid "DKIM keys"
+msgstr "Clés DKIM"
+
+#: src/components/settings/DomainsSettings.tsx:190
+msgid "DNS not found · not signing yet"
+msgstr "DNS introuvable · pas encore signé"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:56
+msgid "DNS not found: sent unsigned"
+msgstr "DNS introuvable : envoi non signé"
+
 #: src/components/settings/GeneralSettings.tsx:192
 msgid "DNS record"
 msgstr "Enregistrement DNS"
+
+#: src/components/settings/DomainsSettings.tsx:85
+msgid "DNS record found. Emails from {domain} are now signed."
+msgstr "Enregistrement DNS trouvé. Les emails de {domain} sont maintenant signés."
 
 #: src/components/settings/GeneralSettings.tsx:349
 #~ msgid "DNS Record Required:"
@@ -9038,10 +9126,13 @@ msgid "doesn't equal"
 msgstr "n'est pas égal à"
 
 #: src/components/segment/segmentLabels.ts:89
+#: src/components/settings/DomainsSettings.tsx:216
+#: src/components/settings/DomainsSettings.tsx:434
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:745
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:746
 #: src/components/settings/integrations/providerDetails.ts:144
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:60
 #: src/components/setup/BridgePanel.tsx:46
 msgid "Domain"
 msgstr "Domaine"
@@ -9061,6 +9152,11 @@ msgstr "Domaine où la visite a commencé, auquel le chemin appartient"
 #: src/components/segment/segmentLabels.ts:131
 msgid "Domain the visitor arrived from"
 msgstr "Domaine d'où vient le visiteur"
+
+#: src/components/settings/DomainsSettings.tsx:360
+#: src/components/settings/SettingsSidebar.tsx:66
+msgid "Domains"
+msgstr "Domaines"
 
 #: src/components/contacts/csv-import/ColumnsStep.tsx:164
 msgid "Don't import"
@@ -9426,7 +9522,7 @@ msgstr "Modifier {name}"
 msgid "Edit {name} integration"
 msgstr "Modifier l'intégration {name}"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:189
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:190
 msgid "Edit {providerName} integration"
 msgstr "Modifier l'intégration {providerName}"
 
@@ -9577,7 +9673,7 @@ msgstr "Modifier la règle"
 msgid "Edit segment"
 msgstr "Modifier le segment"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:982
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:985
 msgid "Edit sender"
 msgstr "Modifier l'expéditeur"
 
@@ -9586,7 +9682,7 @@ msgstr "Modifier l'expéditeur"
 #~ msgstr "Modifier l'expéditeur"
 
 #. placeholder {0}: sender.email
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:914
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:917
 msgid "Edit sender {0}"
 msgstr "Modifier l'expéditeur {0}"
 
@@ -9682,7 +9778,7 @@ msgstr "Modifiée {ago}"
 msgid "Editor mode"
 msgstr "Mode éditeur"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:595
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:596
 #: src/components/settings/integrations/providerDetails.ts:76
 #: src/components/setup/SmtpPanel.tsx:239
 msgid "EHLO hostname"
@@ -9721,7 +9817,7 @@ msgstr "Écoulé"
 #: src/components/logs/MessagesTab.tsx:485
 #: src/components/segment/segmentLabels.ts:17
 #: src/components/settings/Integrations.tsx:549
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:998
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
 #: src/pages/SignInPage.tsx:284
@@ -9741,7 +9837,7 @@ msgstr "Adresse email"
 msgid "Email Address"
 msgstr "Adresse email"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:638
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:639
 msgid "Email address is required for OAuth2"
 msgstr "L'adresse email est requise pour OAuth2"
 
@@ -9823,7 +9919,7 @@ msgid "Email Integration"
 msgstr "Intégration email"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:537
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:1000
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:1003
 msgid "Email is required"
 msgstr "L'email est requis"
 
@@ -10044,7 +10140,7 @@ msgstr "Emails envoyés par jour"
 msgid "Emails sent, opened, clicked… pages viewed and website visits"
 msgstr "E-mails envoyés, ouverts, cliqués… pages vues et visites du site"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:972
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:975
 msgid "emails/min"
 msgstr "emails/min"
 
@@ -10165,7 +10261,7 @@ msgstr "Activer le webhook"
 msgid "Enabled"
 msgstr "Activé"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:584
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:585
 msgid "Encryption"
 msgstr "Chiffrement"
 
@@ -10229,7 +10325,7 @@ msgstr "Saisir une clé de licence"
 msgid "Enter a name for this block"
 msgstr "Entrez un nom pour ce bloc"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:872
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:873
 msgid "Enter a name for this integration"
 msgstr "Entrez un nom pour cette intégration"
 
@@ -11184,7 +11280,7 @@ msgstr "Échec du téléchargement du fichier"
 msgid "Failed to download files"
 msgstr "Échec du téléchargement des fichiers"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:297
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:298
 msgid "Failed to enable reputation isolation"
 msgstr "Échec de l'activation de l'isolation de réputation"
 
@@ -11225,7 +11321,7 @@ msgstr "Échec de la récupération des données : {0}"
 msgid "Failed to fetch setup status"
 msgstr "Échec de la récupération du statut de configuration"
 
-#: src/pages/WorkspaceSettingsPage.tsx:156
+#: src/pages/WorkspaceSettingsPage.tsx:158
 msgid "Failed to fetch workspace members"
 msgstr "Échec de la récupération des membres de l'espace de travail"
 
@@ -11366,7 +11462,7 @@ msgid "Failed to save Firecrawl integration"
 msgstr "Échec de l'enregistrement de l'intégration Firecrawl"
 
 #: src/components/integrations/SupabaseIntegration.tsx:130
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:339
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:340
 msgid "Failed to save integration"
 msgstr "Échec de l'enregistrement de l'intégration"
 
@@ -11782,16 +11878,16 @@ msgstr "Filtres — effacés"
 #~ msgid "Filters:"
 #~ msgstr "Filtres :"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:648
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:649
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
 msgstr "Trouvez ceci dans le portail Azure > Inscriptions d'applications > Votre application > Vue d'ensemble"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:643
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:644
 msgid "Find this in Azure Portal > Azure Active Directory > Overview"
 msgstr "Trouvez ceci dans le portail Azure > Azure Active Directory > Vue d'ensemble"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:664
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:669
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:665
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:670
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Trouvez ceci dans Google Cloud Console > API et services > Identifiants"
 
@@ -12045,8 +12141,8 @@ msgstr "pour les variables du modèle"
 msgid "for template variables,"
 msgstr "pour les variables du modèle,"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:719
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:791
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:720
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:792
 msgid "For testing only"
 msgstr "Pour les tests uniquement"
 
@@ -12277,7 +12373,7 @@ msgid "gemini-4-argon or a custom model ID"
 msgstr "gemini-4-argon ou un ID de modèle personnalisé"
 
 #: src/components/settings/GeneralSettings.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:61
+#: src/components/settings/SettingsSidebar.tsx:63
 #: src/components/settings/SystemSettingsDrawer.tsx:260
 msgid "General"
 msgstr "Général"
@@ -12499,7 +12595,7 @@ msgstr "Bon à savoir"
 msgid "Google Fonts"
 msgstr "Google Fonts"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:630
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:631
 msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
@@ -12788,7 +12884,7 @@ msgstr "Secret du hook"
 msgid "Hook URL"
 msgstr "URL du hook"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:569
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:570
 #: src/components/setup/SmtpPanel.tsx:163
 #: src/components/transactional/ApiCommandDrawer.tsx:143
 msgid "Host"
@@ -13431,7 +13527,7 @@ msgstr "inactif"
 #~ msgid "inbound replies"
 #~ msgstr "réponses entrantes"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:555
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:556
 msgid "Inbound topic ARN"
 msgstr "ARN du topic entrant"
 
@@ -13590,11 +13686,11 @@ msgstr "Installer le snippet de suivi"
 #: src/components/integrations/FirecrawlIntegration.tsx:87
 #: src/components/integrations/LLMIntegration.tsx:176
 #: src/components/integrations/SupabaseIntegration.tsx:172
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:868
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:869
 msgid "Integration"
 msgstr "Intégration"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:329
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:330
 msgid "Integration created successfully"
 msgstr "Intégration créée avec succès"
 
@@ -13621,14 +13717,14 @@ msgstr "ID de l'intégration"
 msgid "Integration not found or not an email provider"
 msgstr "Intégration non trouvée ou n'est pas un fournisseur d'email"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:320
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:321
 msgid "Integration updated successfully"
 msgstr "Intégration mise à jour avec succès"
 
 #: src/components/logs/labels.ts:12
 #: src/components/settings/Integrations.tsx:712
 #: src/components/settings/integrations/IntegrationDrawer.tsx:25
-#: src/components/settings/SettingsSidebar.tsx:63
+#: src/components/settings/SettingsSidebar.tsx:65
 msgid "Integrations"
 msgstr "Intégrations"
 
@@ -13771,7 +13867,7 @@ msgstr "Inviter un membre"
 msgid "Invite your team"
 msgstr "Inviter votre équipe"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:96
 msgid "Invited <0>{target}</0>"
 msgstr "A invité <0>{target}</0>"
 
@@ -13961,7 +14057,7 @@ msgstr "Son dernier calcul a échoué. Ouvrez le segment pour voir pourquoi."
 msgid "Its name and its template are set by the integration. You can change the description and the tracking."
 msgstr "Son nom et son modèle sont définis par l'intégration. Vous pouvez modifier la description et le tracking."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:455
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:456
 msgid "Its own SES reputation and suppression list, so another workspace's bounces can't pause this one"
 msgstr "Sa propre réputation SES et sa propre liste de suppression : les rebonds d'un autre espace de travail ne peuvent pas suspendre celui-ci"
 
@@ -14002,7 +14098,7 @@ msgstr "A rejoint le segment {chip}"
 msgid "Joined segment {segment}"
 msgstr "A rejoint le segment {segment}"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:97
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "A rejoint via l'invitation <0>{target}</0>"
 
@@ -14043,7 +14139,7 @@ msgstr "Justifié"
 #: src/components/layout/SaveBar.tsx:120
 #: src/components/lists/ListDrawer.tsx:215
 #: src/components/segment/SegmentDrawer.tsx:183
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:836
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:837
 #: src/components/templates/CreateTemplateDrawer.tsx:721
 #: src/components/templates/CreateTemplateDrawer.tsx:899
 #: src/components/templates/useTemplateConflictModal.tsx:43
@@ -14064,7 +14160,7 @@ msgstr "Continuer"
 msgid "Keep importing"
 msgstr "Continuer l'import"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:968
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:971
 msgid "Keep it at or below your provider's limit, minus your transactional traffic."
 msgstr "Restez au niveau de la limite de votre fournisseur ou en dessous, moins votre trafic transactionnel."
 
@@ -14108,6 +14204,18 @@ msgstr "Repris du modèle d'email ou du modèle de la galerie de départ"
 #: src/components/contacts/csv-import/FileStep.tsx:57
 msgid "Kept in this browser for 7 days. Drop the same file to pick up where it stopped."
 msgstr "Conservés dans ce navigateur pendant 7 jours. Déposez le même fichier pour reprendre là où l'import s'est arrêté."
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:62
+msgid "Key"
+msgstr "Clé"
+
+#: src/components/settings/DomainsSettings.tsx:68
+msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
+msgstr "Clé créée pour {createdDomain}. Publiez son enregistrement DNS pour commencer à signer."
+
+#: src/components/settings/DomainsSettings.tsx:138
+msgid "Key of {domain} deleted"
+msgstr "Clé de {domain} supprimée"
 
 #: src/components/segment/input_json_path.tsx:88
 msgid "key or index"
@@ -14336,7 +14444,7 @@ msgstr "Laissez vide pour conserver la clé API existante"
 msgid "Leave blank to use the default Firecrawl API (api.firecrawl.dev)"
 msgstr "Laissez vide pour utiliser l'API Firecrawl par défaut (api.firecrawl.dev)"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:688
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:689
 msgid "Leave empty for a server that takes mail without login"
 msgstr "Laissez vide pour un serveur qui accepte les emails sans connexion"
 
@@ -14360,7 +14468,7 @@ msgstr "Laissez vide pour déclencher sur tout changement de champ"
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "Laissez vide pour utiliser un contact aléatoire de l'audience de la diffusion."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:483
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:484
 msgid "Leave empty to use the one Notifuse manages for this integration."
 msgstr "Laissez vide pour utiliser celui que Notifuse gère pour cette intégration."
 
@@ -14464,7 +14572,7 @@ msgstr "Bibliothèque"
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:60
 #: src/components/settings/LicenseSettings.tsx:143
-#: src/components/settings/SettingsSidebar.tsx:70
+#: src/components/settings/SettingsSidebar.tsx:73
 msgid "Licence"
 msgstr "Licence"
 
@@ -15099,7 +15207,7 @@ msgstr "Magenta"
 msgid "Magic code sent to your email"
 msgstr "Code magique envoyé à votre email"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:635
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:636
 msgid "Mailbox address"
 msgstr "Adresse de la boîte mail"
 
@@ -15123,11 +15231,11 @@ msgstr "Les listes de diffusion, leurs paramètres et statistiques, et les ligne
 msgid "Mailjet"
 msgstr "Mailjet"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:778
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:779
 msgid "Mailjet › Account settings › API keys"
 msgstr "Mailjet › Account settings › API keys"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:774
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:775
 msgid "Mailjet rewrites unsubscribe links, so it can send transactional emails only."
 msgstr "Mailjet réécrit les liens de désabonnement, il ne peut donc envoyer que des emails transactionnels."
 
@@ -15147,7 +15255,7 @@ msgstr "Mettre en ligne une version de thème sur le domaine public du blog, en 
 msgid "Make an automation live and install its database trigger, so contacts begin flowing through it"
 msgstr "Mettre une automation en ligne et installer son déclencheur en base de données, afin que les contacts commencent à y circuler"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:908
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:911
 msgid "Make default"
 msgstr "Définir par défaut"
 
@@ -15170,6 +15278,10 @@ msgstr "Gérer"
 #: src/components/contacts/ContactsViewHeader.tsx:102
 msgid "Manage custom fields"
 msgstr "Gérer les champs personnalisés"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:103
+msgid "Manage domains"
+msgstr "Gérer les domaines"
 
 #: src/components/settings/WorkspaceMembers.tsx:437
 #~ msgid "Manage your workspace members"
@@ -15477,7 +15589,7 @@ msgstr "ID du message"
 msgid "Message not found"
 msgstr "Message introuvable"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:734
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:735
 #: src/components/settings/integrations/providerDetails.ts:150
 msgid "Message stream"
 msgstr "Flux de messages"
@@ -15524,8 +15636,8 @@ msgstr "les métadonnées"
 msgid "Metadata"
 msgstr "Métadonnées"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:605
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:608
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:606
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:609
 msgid "Method"
 msgstr "Méthode"
 
@@ -15537,7 +15649,7 @@ msgstr "Métriques"
 msgid "Metrics and dimensions"
 msgstr "Métriques et dimensions"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:629
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:630
 msgid "Microsoft 365 / Office 365"
 msgstr "Microsoft 365 / Office 365"
 
@@ -15759,6 +15871,10 @@ msgstr "Mensuel"
 msgid "More actions"
 msgstr "Plus d'actions"
 
+#: src/components/settings/DomainsSettings.tsx:288
+msgid "More actions for {domain}"
+msgstr "Plus d'actions pour {domain}"
+
 #: src/components/email_builder/ui/SavedBlockCard.tsx:247
 #: src/components/templates/TemplateSelectorModal.tsx:358
 msgid "More actions for {name}"
@@ -15812,7 +15928,7 @@ msgstr "Mon webhook"
 #~ msgid "my-custom-class"
 #~ msgstr "ma-classe-personnalisee"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:531
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:532
 msgid "my-tenant"
 msgstr "my-tenant"
 
@@ -15829,11 +15945,12 @@ msgstr "N/A"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:404
+#: src/components/settings/DomainsSettings.tsx:409
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:870
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:1006
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:871
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:1009
 #: src/components/settings/WebhooksSettings.tsx:531
 #: src/components/settings/WorkspaceMembers.tsx:293
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
@@ -15867,7 +15984,7 @@ msgstr "Nom et slug"
 msgid "Name and slug required"
 msgstr "Nom et slug requis"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:1006
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:1009
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:205
 msgid "Name is required"
 msgstr "Le nom est requis"
@@ -15914,7 +16031,7 @@ msgstr "Nomme cette connexion dans Notifuse, ainsi que la clé API qu'elle crée
 #~ msgid "Names this connection in Notifuse, and the API key it creates in Settings → Team."
 #~ msgstr "Nomme cette connexion dans Notifuse, ainsi que la clé API qu'elle crée dans Paramètres → Équipe."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:479
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:480
 msgid "Names you manage yourself in AWS"
 msgstr "Des noms que vous gérez vous-même dans AWS"
 
@@ -15930,7 +16047,7 @@ msgstr "Restreint à"
 msgid "Needed first: the blog is served at its root"
 msgstr "Nécessaire avant tout : le blog est servi à sa racine"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:467
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:468
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Nécessite ces permissions IAM supplémentaires : ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Ajoutez ses:ListTenants et ses:ListTenantResources pour les sélecteurs ci-dessous, ainsi que ses:DeleteTenant et ses:DeleteTenantResourceAssociation afin que le tenant soit supprimé en même temps que l'intégration au lieu d'être facturé indéfiniment."
 
@@ -16006,6 +16123,10 @@ msgstr "Nouveau dossier (mode lecture seule)"
 #: src/components/settings/WorkspaceMembers.tsx:521
 msgid "New key"
 msgstr "Nouvelle clé"
+
+#: src/components/settings/DomainsSettings.tsx:117
+msgid "New key created for {domain}. Publish its DNS record."
+msgstr "Nouvelle clé créée pour {domain}. Publiez son enregistrement DNS."
 
 #: src/components/contacts/ContactsRail.tsx:79
 #: src/components/lists/ListDrawer.tsx:73
@@ -16387,6 +16508,14 @@ msgstr "Aucune donnée d'appareil"
 msgid "No dimensions found"
 msgstr "Aucune dimension trouvée"
 
+#: src/components/settings/DomainsSettings.tsx:87
+msgid "No DNS record found for {domain} yet. DNS changes can take a few hours to show."
+msgstr "Aucun enregistrement DNS trouvé pour {domain} pour l'instant. Les changements DNS peuvent mettre quelques heures à apparaître."
+
+#: src/components/settings/DomainsSettings.tsx:328
+msgid "No domains yet"
+msgstr "Aucun domaine pour l'instant"
+
 #: src/components/blog/PostsTable.tsx:440
 msgid "No draft posts"
 msgstr "Pas d'articles en brouillon"
@@ -16504,6 +16633,10 @@ msgstr "Pas de problèmes"
 #: src/components/automations/AutomationEditor.tsx:441
 msgid "No journeys yet"
 msgstr "Aucun parcours pour l’instant"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:48
+msgid "No key: sent unsigned"
+msgstr "Aucune clé : envoi non signé"
 
 #: src/components/settings/LicenseSettings.tsx:109
 msgid "No licence — Community"
@@ -16734,7 +16867,7 @@ msgid "No sender"
 msgstr "Aucun expéditeur"
 
 #: src/components/settings/integrations/EmailProviderCard.tsx:300
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:942
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:945
 msgid "No senders configured"
 msgstr "Aucun expéditeur configuré"
 
@@ -16779,6 +16912,10 @@ msgstr "Pas d'image de partage"
 #: src/components/seo/useSeoGapChecks.ts:25
 msgid "No share title"
 msgstr "Pas de titre de partage"
+
+#: src/components/settings/DomainsSettings.tsx:245
+msgid "No SMTP integration yet"
+msgstr "Aucune intégration SMTP pour l'instant"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
 msgid "No source data"
@@ -17010,6 +17147,10 @@ msgstr "Non disponible ici"
 msgid "not between"
 msgstr "pas entre"
 
+#: src/components/settings/DomainsSettings.tsx:149
+msgid "Not checked yet"
+msgstr "Pas encore vérifié"
+
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:111
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:116
 #: src/components/logs/MessagesTab.tsx:952
@@ -17103,7 +17244,7 @@ msgstr "Ne correspondent pas"
 msgid "Not named"
 msgstr "Sans nom"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:263
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:264
 msgid "Not now"
 msgstr "Pas maintenant"
 
@@ -17274,6 +17415,14 @@ msgstr "Notifications envoyées via l'API, Zapier ou Supabase"
 msgid "Notifuse {latest} is available"
 msgstr "Notifuse {latest} est disponible"
 
+#: src/components/settings/DomainsSettings.tsx:361
+msgid "Notifuse adds a DKIM signature to the emails your SMTP integrations send from these domains."
+msgstr "Notifuse ajoute une signature DKIM aux emails que vos intégrations SMTP envoient depuis ces domaines."
+
+#: src/components/settings/DomainsSettings.tsx:435
+msgid "Notifuse creates the key. You publish one DNS record."
+msgstr "Notifuse crée la clé. Vous publiez un enregistrement DNS."
+
 #: src/components/settings/WebhookDetail.tsx:443
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse a désactivé ce webhook automatiquement"
@@ -17286,11 +17435,19 @@ msgstr "Export Notifuse (.json)"
 msgid "Notifuse is ready"
 msgstr "Notifuse est prêt"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:261
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:93
+msgid "Notifuse signs each email before handing it to your server, and the signature covers the one-click unsubscribe headers. If your server signs too, both signatures are valid. A key signs only its exact domain."
+msgstr "Notifuse signe chaque email avant de le transmettre à votre serveur, et la signature couvre les en-têtes de désinscription en un clic. Si votre serveur signe aussi, les deux signatures sont valides. Une clé ne signe que son domaine exact."
+
+#: src/components/settings/DomainsSettings.tsx:130
+msgid "Notifuse stops signing emails from {domain}. You can then remove its DNS record."
+msgstr "Notifuse arrête de signer les emails de {domain}. Vous pourrez ensuite retirer son enregistrement DNS."
+
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:262
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr "Notifuse créera un tenant dans votre compte AWS, lui donnera sa propre liste de suppression et y associera le configuration set et les identités d'expéditeur de cette intégration. AWS facture par tenant et par mois, en fonction du volume."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:494
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:495
 msgid "notifuse-…"
 msgstr "notifuse-…"
 
@@ -17360,12 +17517,12 @@ msgstr "OAuth2 ({oauthProvider})"
 msgid "OAuth2 client secret"
 msgstr "Secret client OAuth2"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:605
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:606
 msgid "OAuth2 for Microsoft 365 or Google Workspace mailboxes"
 msgstr "OAuth2 pour les boîtes mail Microsoft 365 ou Google Workspace"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:619
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:625
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:620
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:626
 msgid "OAuth2 provider"
 msgstr "Fournisseur OAuth2"
 
@@ -17385,7 +17542,7 @@ msgstr "Clé d'objet : {segment}"
 msgid "Oblique"
 msgstr "Oblique"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:676
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:677
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "Obtenez ceci en utilisant le playground OAuth2 ou votre propre flux OAuth"
 
@@ -17422,7 +17579,7 @@ msgstr "sur {total} e-mails uniques"
 msgid "of {tracked} tracked"
 msgstr "sur {tracked} trackés"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:438
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:439
 msgid "Of an IAM user allowed to send with SES"
 msgstr "D'un utilisateur IAM autorisé à envoyer avec SES"
 
@@ -17498,7 +17655,7 @@ msgstr "Sur mobile, l'image prend toute la largeur, même si une largeur est dé
 msgid "On the card"
 msgstr "Sur la carte"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:871
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:872
 msgid "On the card, and in every sender picker"
 msgstr "Sur la carte, et dans chaque sélecteur d'expéditeur"
 
@@ -17514,7 +17671,7 @@ msgstr "Sur cette page"
 msgid "On tracked emails"
 msgstr "Sur les emails trackés"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:585
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:586
 msgid "On: STARTTLS, or TLS from the first byte on port 465. Off: plain text"
 msgstr "Activé : STARTTLS, ou TLS dès le premier octet sur le port 465. Désactivé : texte en clair"
 
@@ -17581,7 +17738,7 @@ msgstr "N'inscrire que les contacts correspondant à ces conditions."
 #~ msgid "Only enroll contacts matching these conditions. Optional."
 #~ msgstr ""
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:556
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:557
 msgid "Only for a receipt rule you set up yourself; registering webhooks fills it"
 msgstr "Uniquement pour une règle de réception que vous configurez vous-même ; l'enregistrement des webhooks le remplit"
 
@@ -17617,6 +17774,10 @@ msgstr "Seule la variante A est conservée. Les autres variantes et leurs modèl
 #: src/components/seo/SeoCards.tsx:36
 msgid "Only when the same content lives at another address"
 msgstr "Seulement si le même contenu existe à une autre adresse"
+
+#: src/components/settings/DomainsSettings.tsx:196
+msgid "Only workspace owners can manage domains"
+msgstr "Seuls les propriétaires de l'espace de travail peuvent gérer les domaines"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:54
 #: src/components/integrations/LLMIntegration.tsx:105
@@ -18235,14 +18396,14 @@ msgstr "Partition {0} sur {partitionTotal}"
 msgid "Partitions already rewritten keep their new values."
 msgstr "Les partitions déjà réécrites conservent leurs nouvelles valeurs."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:692
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:693
 #: src/components/settings/integrations/providerDetails.ts:31
 #: src/components/setup/SmtpPanel.tsx:200
 #: src/components/transactional/ApiCommandDrawer.tsx:147
 msgid "Password"
 msgstr "Mot de passe"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:695
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:696
 msgid "Password (optional)"
 msgstr "Mot de passe (optionnel)"
 
@@ -18638,7 +18799,7 @@ msgstr "Options de lecture"
 msgid "Please add at least one author"
 msgstr "Veuillez ajouter au moins un auteur"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:303
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:304
 msgid "Please add at least one sender before saving"
 msgstr "Veuillez ajouter au moins un expéditeur avant d'enregistrer"
 
@@ -18674,6 +18835,10 @@ msgstr "Veuillez entrer un nom de catégorie"
 #: src/components/settings/CustomFieldsConfiguration.tsx:377
 msgid "Please enter a custom label"
 msgstr "Veuillez entrer une étiquette personnalisée"
+
+#: src/components/settings/DomainsSettings.tsx:436
+msgid "Please enter a domain"
+msgstr "Veuillez entrer un domaine"
 
 #: src/components/settings/ZapierSettings.tsx:168
 msgid "Please enter a label for this connection"
@@ -18711,7 +18876,7 @@ msgstr "Veuillez entrer un titre d'article"
 #~ msgid "Please enter a property name"
 #~ msgstr "Veuillez saisir un nom de propriété"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:962
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:965
 msgid "Please enter a rate limit"
 msgstr "Veuillez saisir une limite de débit"
 
@@ -18733,7 +18898,7 @@ msgid "Please enter a valid 6-digit code!"
 msgstr "Veuillez entrer un code à 6 chiffres valide !"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:538
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:1004
 msgid "Please enter a valid email"
 msgstr "Veuillez entrer un email valide"
 
@@ -18803,7 +18968,7 @@ msgstr "Veuillez entrer le nom de l'espace de travail"
 msgid "Please enter your API key"
 msgstr "Veuillez entrer votre clé API"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:357
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:358
 msgid "Please fill in all required fields before testing"
 msgstr "Veuillez remplir tous les champs obligatoires avant de tester"
 
@@ -18895,7 +19060,7 @@ msgstr "Veuillez sélectionner un type d'événement"
 msgid "Please select an MJML file"
 msgstr "Veuillez sélectionner un fichier MJML"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:622
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:623
 msgid "Please select an OAuth2 provider"
 msgstr "Veuillez sélectionner un fournisseur OAuth2"
 
@@ -18924,8 +19089,8 @@ msgstr "Veuillez sélectionner ou saisir un modèle"
 msgid "Popular Google Font"
 msgstr "Police Google populaire"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:575
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:579
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:576
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:580
 #: src/components/setup/SmtpPanel.tsx:171
 #: src/components/transactional/ApiCommandDrawer.tsx:144
 msgid "Port"
@@ -19001,11 +19166,11 @@ msgstr "Code postal"
 msgid "Postmark"
 msgstr "Postmark"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:728
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:729
 msgid "Postmark › your server › API Tokens"
 msgstr "Postmark › votre serveur › API Tokens"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:735
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:736
 msgid "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broadcast\" for marketing)"
 msgstr "ID du Message Stream Postmark (ex. « outbound » pour le transactionnel, « broadcast » pour le marketing)"
 
@@ -19413,6 +19578,10 @@ msgstr "Publier le thème"
 msgid "Publish theme v{themeVersion}"
 msgstr "Publier le thème v{themeVersion}"
 
+#: src/components/settings/DomainsSettings.tsx:397
+msgid "Publish this record for {shownName}"
+msgstr "Publiez cet enregistrement pour {shownName}"
+
 #: src/components/blog/RecentThemesTable.tsx:129
 msgid "Publish this theme"
 msgstr "Publier ce thème"
@@ -19424,6 +19593,10 @@ msgstr "Publier ce thème"
 #: src/components/blog/ThemeEditorDrawer.tsx:481
 msgid "Published"
 msgstr "Publié"
+
+#: src/components/settings/DomainsSettings.tsx:162
+msgid "Published · signing"
+msgstr "Publié · signature active"
 
 #. placeholder {0}: fullDate(post.published_at as string)
 #: src/components/blog/PostsTable.tsx:269
@@ -19467,7 +19640,7 @@ msgstr "Les emails en file d'attente ne seront pas envoyés. Les envois en cours
 msgid "Quick test"
 msgstr "Test rapide"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:955
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:958
 msgid "Rate for marketing"
 msgstr "Débit pour le marketing"
 
@@ -19483,7 +19656,7 @@ msgstr "Limite de débit pour le marketing"
 #~ msgid "Rate limit for marketing emails (emails per minute)"
 #~ msgstr "Limite de débit pour les emails marketing (emails par minute)"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:963
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:966
 msgid "Rate limit must be at least 1"
 msgstr "La limite de débit doit être d'au moins 1"
 
@@ -19882,6 +20055,10 @@ msgstr "Recalculer"
 msgid "Recomputed every day at 5:00 ({timezone}): it counts rolling days."
 msgstr "Recalculé chaque jour à 5:00 ({timezone}) : il compte des jours glissants."
 
+#: src/components/settings/DomainsSettings.tsx:154
+msgid "Record missing {failures}/{DKIM_DOWNGRADE_THRESHOLD} · still signing"
+msgstr "Enregistrement absent {failures}/{DKIM_DOWNGRADE_THRESHOLD} · signature maintenue"
+
 #: src/services/api/permissions.ts:219
 msgid "Record or overwrite a custom event on a contact"
 msgstr "Enregistrer ou écraser un événement personnalisé sur un contact"
@@ -19982,6 +20159,8 @@ msgstr "Référents"
 #: src/components/logs/OutgoingWebhooksTab.tsx:154
 #: src/components/logs/OutgoingWebhooksTab.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:434
+#: src/components/settings/DomainsSettings.tsx:376
+#: src/components/settings/DomainsSettings.tsx:380
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
@@ -20008,15 +20187,15 @@ msgstr "Actualiser le flux de données de la diffusion en appelant l'URL externe
 msgid "Refresh the list"
 msgstr "Actualiser la liste"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:675
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:676
 msgid "Refresh token"
 msgstr "Jeton d'actualisation"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:679
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:680
 msgid "Refresh Token"
 msgstr "Jeton d'actualisation"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:680
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:681
 msgid "Refresh Token is required for Google"
 msgstr "Le jeton d'actualisation est requis pour Google"
 
@@ -20028,6 +20207,8 @@ msgstr "Le jeton d'actualisation est requis pour Google"
 msgid "Refused: private address"
 msgstr "Refusé : adresse privée"
 
+#: src/components/settings/DomainsSettings.tsx:111
+#: src/components/settings/DomainsSettings.tsx:267
 #: src/components/settings/WebhookDetail.tsx:404
 msgid "Regenerate"
 msgstr "Régénérer"
@@ -20036,14 +20217,22 @@ msgstr "Régénérer"
 msgid "Regenerate secret?"
 msgstr "Régénérer le secret ?"
 
+#: src/components/settings/DomainsSettings.tsx:109
+msgid "Regenerate the key of {domain}?"
+msgstr "Régénérer la clé de {domain} ?"
+
+#: src/components/logs/auditPhrases.ts:99
+msgid "Regenerated a DKIM key of <0>{target}</0>"
+msgstr "A régénéré une clé DKIM de <0>{target}</0>"
+
 #: src/components/logs/auditPhrases.ts:82
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "A régénéré le secret du webhook <0>{target}</0>"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:426
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:427
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:756
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:759
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:428
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:757
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:760
 #: src/components/settings/integrations/providerDetails.ts:145
 msgid "Region"
 msgstr "Région"
@@ -20240,7 +20429,7 @@ msgid "Remove member"
 msgstr "Retirer le membre"
 
 #. placeholder {0}: sender.email
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:932
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:935
 msgid "Remove sender {0}"
 msgstr "Retirer l'expéditeur {0}"
 
@@ -20290,6 +20479,10 @@ msgstr "Retirer la variante {letter}"
 msgid "Removed"
 msgstr "Retiré"
 
+#: src/components/logs/auditPhrases.ts:93
+msgid "Removed a DKIM domain from <0>{target}</0>"
+msgstr "A retiré un domaine DKIM de <0>{target}</0>"
+
 #: src/components/automations/describeTrigger.ts:87
 msgid "Removed from {list}"
 msgstr "Retiré de {list}"
@@ -20298,11 +20491,11 @@ msgstr "Retiré de {list}"
 msgid "Removed from {name}"
 msgstr "Retrait de {name}"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:94
 msgid "Removed the integration <0>{target}</0>"
 msgstr "A retiré l'intégration <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:98
 msgid "Removed the member <0>{target}</0>"
 msgstr "A retiré le membre <0>{target}</0>"
 
@@ -20327,7 +20520,7 @@ msgstr "Renommer une catégorie ou modifier son slug"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Renommer les libellés des champs de contact personnalisés de l'espace de travail"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:102
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "A renommé les champs personnalisés de <0>{target}</0>"
 
@@ -20460,19 +20653,19 @@ msgstr "Signaler un problème"
 #~ msgid "Report grouped by {dimensions}"
 #~ msgstr ""
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:451
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:452
 #: src/components/settings/integrations/providerDetails.ts:108
 #: src/components/settings/integrations/providerDetails.ts:117
 #: src/components/settings/integrations/providerDetails.ts:124
 msgid "Reputation"
 msgstr "Réputation"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:288
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:289
 msgid "Reputation isolation is active for this integration"
 msgstr "L'isolation de réputation est active pour cette intégration"
 
 #. placeholder {0}: result.unverified_senders.join(', ')
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:285
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:286
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr "L'isolation de réputation est activée. Ces expéditeurs n'ont pas d'identité vérifiée et échoueront à l'envoi : {0}"
 
@@ -20736,6 +20929,7 @@ msgstr "A relancé les envois échoués de la newsletter <0>{target}</0>"
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 #: src/components/segment/SegmentCountCard.tsx:124
+#: src/components/settings/DomainsSettings.tsx:317
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
 #: src/components/settings/WorkspaceMembers.tsx:496
@@ -21048,8 +21242,8 @@ msgstr "Échantillon {sample} % · gagnante choisie manuellement"
 msgid "Sample values"
 msgstr "Valeurs d'exemple"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:719
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:791
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:720
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:792
 #: src/components/settings/integrations/providerDetails.ts:138
 #: src/components/settings/integrations/providerDetails.ts:157
 msgid "Sandbox mode"
@@ -21077,8 +21271,8 @@ msgstr "Mode bac à sable"
 #: src/components/segment/SegmentDrawer.tsx:302
 #: src/components/settings/CustomFieldsConfiguration.tsx:388
 #: src/components/settings/Integrations.tsx:600
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:852
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:991
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:853
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:994
 #: src/components/settings/SystemSettingsDrawer.tsx:249
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
@@ -21483,7 +21677,7 @@ msgstr "secret"
 msgid "Secret"
 msgstr "Secret"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:442
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:443
 msgid "Secret access key"
 msgstr "Clé d'accès secrète"
 
@@ -21491,14 +21685,14 @@ msgstr "Clé d'accès secrète"
 msgid "Secret copied to clipboard"
 msgstr "Secret copié dans le presse-papiers"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:784
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:785
 #: src/components/settings/integrations/providerDetails.ts:30
 #: src/components/settings/integrations/providerDetails.ts:38
 msgid "Secret key"
 msgstr "Clé secrète"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:445
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:788
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:446
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:789
 msgid "Secret Key"
 msgstr "Clé secrète"
 
@@ -21524,7 +21718,7 @@ msgstr "Section — {0}"
 msgid "Sections"
 msgstr "Sections"
 
-#: src/components/settings/SettingsSidebar.tsx:32
+#: src/components/settings/SettingsSidebar.tsx:33
 #: src/components/transactional/ApiCommandDrawer.tsx:145
 #: src/components/updates/UpdateDrawer.tsx:63
 msgid "Security"
@@ -21784,7 +21978,7 @@ msgstr "Sélectionnez une autre métrique pour afficher le graphique"
 msgid "Select Avatar"
 msgstr "Sélectionner un avatar"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:429
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:430
 msgid "Select AWS Region"
 msgstr "Sélectionner la région AWS"
 
@@ -22014,6 +22208,10 @@ msgstr "Dimensions sélectionnées, dans l'ordre :"
 msgid "Selected: {0}"
 msgstr "Sélectionné : {0}"
 
+#: src/components/settings/DomainsSettings.tsx:222
+msgid "Selector"
+msgstr "Sélecteur"
+
 #: src/components/broadcasts/BroadcastsTable.tsx:451
 #: src/components/broadcasts/BroadcastsTable.tsx:454
 msgid "Send"
@@ -22043,7 +22241,7 @@ msgstr "Envoyer un véritable email transactionnel à n'importe quelle adresse ;
 msgid "Send a scheduled broadcast back to draft, before it starts sending"
 msgstr "Repasser en brouillon une diffusion programmée, avant le début de l'envoi"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:849
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:850
 #: src/components/settings/integrations/TestEmailModal.tsx:62
 msgid "Send a test email"
 msgstr "Envoyer un e-mail de test"
@@ -22207,7 +22405,7 @@ msgstr "Expéditeur"
 msgid "Sender changed. You can now resume the broadcast."
 msgstr "Expéditeur changé. Vous pouvez maintenant reprendre la diffusion."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:1007
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:1010
 msgid "Sender name"
 msgstr "Nom de l'expéditeur"
 
@@ -22221,8 +22419,8 @@ msgid "Sender of variation {name}"
 msgstr "Expéditeur de la variante {name}"
 
 #: src/components/settings/integrations/EmailProviderCard.tsx:287
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:880
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:883
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:886
 msgid "Senders"
 msgstr "Expéditeurs"
 
@@ -22260,7 +22458,7 @@ msgstr "En cours"
 #: src/components/broadcasts/BroadcastsTable.tsx:346
 #: src/components/broadcasts/compose/SendingCard.tsx:47
 #: src/components/broadcasts/compose/SendingCard.tsx:85
-#: src/components/settings/SettingsSidebar.tsx:27
+#: src/components/settings/SettingsSidebar.tsx:28
 #: src/components/transactional/NotificationChecks.tsx:238
 msgctxt "section"
 msgid "Sending"
@@ -22284,7 +22482,7 @@ msgstr "L'envoi a été mis en pause. Vous pouvez le reprendre à tout moment."
 msgid "Sending it needs an email provider"
 msgstr "Son envoi nécessite un fournisseur d'email"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:952
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:955
 msgid "Sending rate"
 msgstr "Débit d'envoi"
 
@@ -22458,8 +22656,8 @@ msgstr "Séparés"
 msgid "Separated by spaces. openid is always included. Unverified emails are refused unless OIDC_ALLOW_UNVERIFIED_EMAIL is set."
 msgstr "Séparés par des espaces. openid est toujours inclus. Les emails non vérifiés sont refusés sauf si OIDC_ALLOW_UNVERIFIED_EMAIL est défini."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:567
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:725
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:568
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:726
 #: src/components/settings/SMTPBridgeSettings.tsx:25
 msgid "Server"
 msgstr "Serveur"
@@ -22484,12 +22682,12 @@ msgstr "Serveur redémarré avec succès !"
 #~ msgid "Server restarted successfully! You can now sign in."
 #~ msgstr "Serveur redémarré avec succès ! Vous pouvez maintenant vous connecter."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:727
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:728
 #: src/components/settings/integrations/providerDetails.ts:35
 msgid "Server token"
 msgstr "Jeton du serveur"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:731
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:732
 msgid "Server Token"
 msgstr "Jeton serveur"
 
@@ -22501,7 +22699,7 @@ msgstr "Jeton serveur, flux de messages"
 msgid "SES paused sending for this tenant."
 msgstr "SES a suspendu l'envoi pour ce tenant."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:500
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:501
 msgid "SES tenant"
 msgstr "Tenant SES"
 
@@ -22789,7 +22987,7 @@ msgstr "Installation…"
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
 #: src/layouts/app-shell/menuItems.ts:233
-#: src/pages/WorkspaceSettingsPage.tsx:269
+#: src/pages/WorkspaceSettingsPage.tsx:273
 msgid "Settings"
 msgstr "Paramètres"
 
@@ -22969,7 +23167,7 @@ msgstr "Affiché dans les listes d'articles, et comme description sans méta-des
 msgid "Shown in the assistant's model picker"
 msgstr "Affiché dans le sélecteur de modèle de l'assistant"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:785
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:786
 msgid "Shown next to the API key"
 msgstr "Affichée à côté de la clé API"
 
@@ -23023,6 +23221,14 @@ msgstr "Connexion"
 msgid "Sign-up"
 msgstr "Inscription"
 
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:53
+msgid "Signed"
+msgstr "Signé"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:51
+msgid "Signed · record missing {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
+msgstr "Signé · enregistrement absent {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
+
 #: src/components/logs/auditPhrases.ts:73
 #~ msgid "Signed in as <0>{target}</0>"
 #~ msgstr "S'est connecté en tant que <0>{target}</0>"
@@ -23060,6 +23266,14 @@ msgstr "Visiteur non connecté"
 #: src/pages/LogoutPage.tsx:29
 msgid "Signing out..."
 msgstr "Déconnexion en cours..."
+
+#: src/components/settings/DomainsSettings.tsx:183
+msgid "Signing stopped"
+msgstr "Signature arrêtée"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:55
+msgid "Signing stopped: sent unsigned"
+msgstr "Signature arrêtée : envoi non signé"
 
 #: src/components/setup/AdministratorPanel.tsx:35
 msgid "Signs in as the root administrator. Add several addresses to give several people root access; each gets an account on the next start."
@@ -23205,7 +23419,7 @@ msgstr "SMS"
 msgid "SMTP"
 msgstr "SMTP"
 
-#: src/components/settings/SettingsSidebar.tsx:65
+#: src/components/settings/SettingsSidebar.tsx:68
 #: src/components/settings/SMTPBridgeSettings.tsx:19
 #: src/components/setup/BridgePanel.tsx:30
 #: src/components/setup/setupHooks.ts:47
@@ -23305,6 +23519,10 @@ msgstr "Le fournisseur SMTP ne prend pas en charge les webhooks de plainte, les 
 #: src/pages/TransactionalNotificationsPage.tsx:280
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "Le fournisseur SMTP ne prend pas en charge les webhooks de livraison, le statut de livraison ne peut pas être suivi"
+
+#: src/components/settings/DomainsSettings.tsx:274
+msgid "SMTP senders use this domain. Change those senders first."
+msgstr "Des expéditeurs SMTP utilisent ce domaine. Modifiez d'abord ces expéditeurs."
 
 #: src/components/settings/integrations/providerDetails.ts:62
 msgid "SMTP user"
@@ -23614,7 +23832,7 @@ msgstr "Démarre la première fois qu'un contact clique sur chaque lien d'un ema
 msgid "starts with"
 msgstr "commence par"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:801
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:802
 msgid "Starts with SG."
 msgstr "Commence par SG."
 
@@ -23657,6 +23875,7 @@ msgstr "Les statistiques apparaissent dès que la newsletter commence à partir"
 #: src/components/logs/OutgoingWebhooksTab.tsx:189
 #: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/BlogSettings.tsx:332
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:66
 #: src/components/settings/LicenseSettings.tsx:150
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
@@ -23717,6 +23936,10 @@ msgstr "Arrêter la mise à jour ?"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:189
 msgid "Stopped"
 msgstr "Arrêté"
+
+#: src/components/settings/DomainsSettings.tsx:171
+msgid "Stopped on {date}: {reason}"
+msgstr "Arrêtée le {date} : {reason}"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:185
 #: src/components/contacts/BulkUpdateDrawer.tsx:224
@@ -24145,7 +24368,7 @@ msgstr "Type de tâche"
 #~ msgid "Team"
 #~ msgstr "Équipe"
 
-#: src/components/settings/SettingsSidebar.tsx:62
+#: src/components/settings/SettingsSidebar.tsx:64
 #: src/components/settings/WorkspaceMembers.tsx:474
 msgid "Team & API keys"
 msgstr "Équipe et clés API"
@@ -24359,7 +24582,7 @@ msgstr "Modèles d'email"
 msgid "Templates that already contain this block do not change."
 msgstr "Les modèles qui contiennent déjà ce bloc ne changent pas."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:923
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:926
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Les modèles utilisant cet expéditeur devront être mis à jour pour utiliser un expéditeur différent."
 
@@ -24369,13 +24592,13 @@ msgid "Templating markup allowed"
 msgstr "Balisage de templating autorisé"
 
 #. placeholder {0}: result.tenant_name
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:276
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:277
 msgid "Tenant {0} exists in AWS but could not be saved here. Save again to finish — you are already being billed for it."
 msgstr "Le tenant {0} existe dans AWS mais n'a pas pu être enregistré ici. Enregistrez à nouveau pour terminer — il vous est déjà facturé."
 
 #. placeholder {0}: result.tenant_name
 #. placeholder {1}: (result.missing_permissions ?? []).join(', ') || 'none reported'
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:281
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:282
 msgid "Tenant {0} was created but its configuration set is not associated, so it is not in use yet. Missing permissions: {1}"
 msgstr "Le tenant {0} a été créé mais son configuration set n'est pas associé, il n'est donc pas encore utilisé. Permissions manquantes : {1}"
 
@@ -24391,15 +24614,15 @@ msgstr "Le tenant {name} existe et le configuration set {set} lui est associé."
 msgid "Tenant {name} exists. No configuration set to check it against yet: register webhooks or name one."
 msgstr "Le tenant {name} existe. Aucun configuration set pour le vérifier pour l'instant : enregistrez les webhooks ou nommez-en un."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:642
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:643
 msgid "Tenant ID"
 msgstr "ID du tenant"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:645
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:646
 msgid "Tenant ID is required for Microsoft"
 msgstr "L'ID du tenant est requis pour Microsoft"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:454
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:455
 msgid "Tenant isolation"
 msgstr "Isolation par tenant"
 
@@ -24914,6 +25137,10 @@ msgstr "Le fichier CSV doit avoir une ligne d'en-tête et au moins une ligne de 
 msgid "The current date range, filters and session threshold"
 msgstr "La plage de dates, les filtres et le seuil de sessions actuels"
 
+#: src/components/settings/DomainsSettings.tsx:110
+msgid "The current key and its DNS record stop being used. You will publish a new record."
+msgstr "La clé actuelle et son enregistrement DNS ne seront plus utilisés. Vous publierez un nouvel enregistrement."
+
 #: src/components/blog/RecentThemesTable.tsx:90
 msgid "The currently published theme will be unpublished automatically."
 msgstr "Le thème actuellement publié sera automatiquement dépublié."
@@ -24934,6 +25161,14 @@ msgstr "La version texte personnalisée ({languages}) n'a pas de lien de désabo
 msgid "The dashboard counts complete days; today's emails show tomorrow"
 msgstr "Le dashboard compte les jours complets ; les emails du jour apparaissent demain"
 
+#: src/components/settings/DomainsSettings.tsx:92
+msgid "The DNS lookup failed. Try again in a few minutes."
+msgstr "La requête DNS a échoué. Réessayez dans quelques minutes."
+
+#: src/components/settings/DomainsSettings.tsx:90
+msgid "The DNS record of {domain} does not match its key: {detail}"
+msgstr "L'enregistrement DNS de {domain} ne correspond pas à sa clé : {detail}"
+
 #: src/components/templates/gallery/labels.ts:11
 msgid "The double opt-in email: one confirmation button."
 msgstr "L'email de double opt-in : un bouton de confirmation."
@@ -24942,7 +25177,7 @@ msgstr "L'email de double opt-in : un bouton de confirmation."
 msgid "The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML."
 msgstr "Le mode éditeur ne peut plus être modifié une fois le modèle créé. Pour utiliser l'autre éditeur, créez un nouveau modèle et copiez-y le contenu avec Importer du MJML ou Exporter le MJML."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:636
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:637
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "L'adresse email qui sera utilisée comme utilisateur SMTP pour l'authentification"
 
@@ -25002,7 +25237,7 @@ msgstr "Le dossier ne contenait rien à supprimer."
 msgid "The font is imported once it has a name and a stylesheet."
 msgstr "La police est importée une fois qu'elle a un nom et une feuille de style."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:884
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:887
 msgid "The From addresses of this provider. The default one is used when a template names none"
 msgstr "Les adresses d'expédition de ce fournisseur. Celle par défaut est utilisée quand un modèle d'email n'en indique aucune"
 
@@ -25063,6 +25298,10 @@ msgstr "La clé apparaît dans Paramètres → Équipe et clés API sous le nom 
 #: src/components/settings/ZapierSettings.tsx:254
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "La clé apparaît dans Paramètres → Équipe sous le nom {0}, où ses permissions peuvent être élargies."
+
+#: src/components/settings/DomainsSettings.tsx:83
+msgid "The key of {domain} changed during the check. The list shows its current state."
+msgstr "La clé de {domain} a changé pendant la vérification. La liste affiche son état actuel."
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:140
 msgid "The last backfill failed"
@@ -25139,7 +25378,7 @@ msgstr "le nom dépasse 255 caractères"
 msgid "The name needs at least one Latin letter or digit, to make the segment's ID."
 msgstr "Le nom doit contenir au moins une lettre latine ou un chiffre, pour former l'ID du segment."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:596
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:597
 msgid "The name Notifuse gives when it connects. Defaults to the host above"
 msgstr "Le nom que Notifuse annonce à la connexion. Par défaut, l'hôte ci-dessus"
 
@@ -25213,7 +25452,7 @@ msgstr "Expéditeur par défaut du fournisseur : il faut l'accès aux templates 
 msgid "The receipt of a payment or a subscription."
 msgstr "Le reçu d'un paiement ou d'un abonnement."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:707
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:708
 msgid "The region of your SparkPost account"
 msgstr "La région de votre compte SparkPost"
 
@@ -25269,7 +25508,7 @@ msgstr "L'expéditeur choisi pour cette diffusion ne fait plus partie des expéd
 msgid "the sender of variant {variant} no longer exists"
 msgstr "l'expéditeur de la variante {variant} n'existe plus"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:746
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:747
 msgid "The sending domain set up in Mailgun"
 msgstr "Le domaine d'envoi configuré dans Mailgun"
 
@@ -25472,7 +25711,7 @@ msgstr "Thèmes"
 msgid "There is nothing to write: the log is append-only, and the retention setting is owner-only. The switch is granted and locked for the same reason as the other unenforced verbs."
 msgstr "Il n'y a rien à écrire : le journal est en ajout seul, et le réglage de rétention est réservé aux propriétaires. L'interrupteur est accordé et verrouillé pour la même raison que les autres verbes non appliqués."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:551
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:552
 msgid "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
 msgstr "Ces identifiants AWS ne peuvent pas lister les tenants ni les configuration sets (nécessite ses:ListTenants). Saisissez plutôt les noms."
 
@@ -25714,7 +25953,7 @@ msgstr "Cet ID sera utilisé dans les URLs et les requêtes API. Il ne peut cont
 msgid "This image couldn't be loaded"
 msgstr "Cette image n'a pas pu être chargée"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:834
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:835
 msgid "This integration is not created yet."
 msgstr "Cette intégration n'est pas encore créée."
 
@@ -26691,7 +26930,7 @@ msgstr "Désactivez pour les avis que chaque membre doit recevoir, comme les avi
 msgid "Turn off only for a notice everyone must receive (security, legal)."
 msgstr "À désactiver seulement pour un avis que tous doivent recevoir (sécurité, mentions légales)."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:521
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:522
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "Désactivez l'isolation par tenant SES pour utiliser votre propre tenant, ou videz ce champ."
 
@@ -26746,6 +26985,7 @@ msgstr "Désactiver le double opt-in ne change pas les contacts « En attente »
 #: src/components/file_manager/FilePreview.tsx:48
 #: src/components/logs/InboundWebhooksTab.tsx:181
 #: src/components/settings/CustomFieldsConfiguration.tsx:190
+#: src/components/settings/DomainsSettings.tsx:405
 #: src/components/settings/GeneralSettings.tsx:196
 msgid "Type"
 msgstr "Type"
@@ -27056,8 +27296,8 @@ msgstr "Automation sans titre"
 msgid "Untitled post"
 msgstr "Article sans titre"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:488
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:512
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:489
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:513
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr "Jusqu'à 64 lettres, chiffres, tirets ou traits de soulignement."
 
@@ -27159,7 +27399,7 @@ msgstr "A modifié l'article de blog <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "A modifié le thème de blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:107
 msgid "Updated the integration <0>{target}</0>"
 msgstr "A modifié l'intégration <0>{target}</0>"
 
@@ -27207,7 +27447,7 @@ msgstr "A modifié la notification transactionnelle <0>{target}</0>"
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "A modifié le webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:106
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "A modifié les paramètres de l'espace de travail <0>{target}</0>"
 
@@ -27324,7 +27564,7 @@ msgstr "Utilisez 0 pour conserver pour toujours, ou une valeur entre {AUDIT_LOG_
 msgid "Use a different email"
 msgstr "Utiliser un autre email"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:501
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:502
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Utiliser un tenant que vous gérez vous-même. Nécessite un configuration set qui lui est associé dans AWS."
 
@@ -27400,7 +27640,7 @@ msgstr "Utiliser ce modèle"
 #~ msgid "Use This Theme"
 #~ msgstr "Utiliser ce thème"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:592
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:593
 #: src/components/settings/SystemSettingsDrawer.tsx:364
 #: src/components/setup/SmtpPanel.tsx:180
 #: src/components/setup/SmtpPanel.tsx:184
@@ -27415,6 +27655,7 @@ msgstr "Utiliser la valeur par défaut de l'espace de travail"
 msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "Par défaut de l’espace · {defaultIntegrationName}"
 
+#: src/components/settings/DomainsSettings.tsx:236
 #: src/components/templates/TemplateSelectorModal.tsx:665
 msgid "Used by"
 msgstr "Utilisé par"
@@ -27469,17 +27710,17 @@ msgstr "Utilisateur créé et synchronisé depuis Supabase"
 msgid "User Metadata Field"
 msgstr "Champ de métadonnées utilisateur"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:687
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:688
 #: src/components/setup/SmtpPanel.tsx:191
 #: src/components/transactional/ApiCommandDrawer.tsx:146
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:689
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:690
 msgid "Username (optional)"
 msgstr "Nom d'utilisateur (optionnel)"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:611
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:612
 msgid "Username and password"
 msgstr "Nom d'utilisateur et mot de passe"
 
@@ -27619,6 +27860,7 @@ msgstr "Erreur de validation"
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:254
 #: src/components/segment/form_leaf.tsx:769
+#: src/components/settings/DomainsSettings.tsx:413
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
 #: src/components/web_analytics/FilterBuilder.tsx:333
@@ -27709,7 +27951,8 @@ msgstr "Code de vérification"
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "A vérifié le code de connexion de <0>{target}</0>"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:541
+#: src/components/settings/DomainsSettings.tsx:259
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:542
 msgid "Verify"
 msgstr "Vérifier"
 
@@ -28008,7 +28251,7 @@ msgstr "Web"
 #: src/components/contacts/sheet/describeActivity.tsx:383
 #: src/components/contacts/sheet/describeActivity.tsx:408
 #: src/components/logs/labels.ts:21
-#: src/components/settings/SettingsSidebar.tsx:68
+#: src/components/settings/SettingsSidebar.tsx:71
 #: src/components/settings/WebAnalyticsSettings.tsx:201
 #: src/components/settings/WebAnalyticsSettings.tsx:264
 msgid "Web analytics"
@@ -28138,7 +28381,7 @@ msgid "Webhook URL"
 msgstr "URL du webhook"
 
 #: src/components/logs/labels.ts:13
-#: src/components/settings/SettingsSidebar.tsx:64
+#: src/components/settings/SettingsSidebar.tsx:67
 #: src/components/settings/WebhooksSettings.tsx:456
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -28382,11 +28625,11 @@ msgstr "Lorsque vous sélectionnez un bloc, ses paramètres apparaissent ici. Mo
 msgid "Where the last tracking consent change came from"
 msgstr "D'où vient le dernier changement de consentement au suivi"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:756
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:757
 msgid "Where your Mailgun account is hosted"
 msgstr "Où votre compte Mailgun est hébergé"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:426
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:427
 msgid "Where your verified identities are"
 msgstr "Là où se trouvent vos identités vérifiées"
 
@@ -28601,7 +28844,7 @@ msgstr "Fonctionne une fois la notification créée"
 #: src/components/settings/GeneralSettings.tsx:225
 #: src/components/settings/GeneralSettings.tsx:323
 #: src/components/settings/permissionLabels.ts:12
-#: src/components/settings/SettingsSidebar.tsx:26
+#: src/components/settings/SettingsSidebar.tsx:27
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
 #: src/services/api/errors.ts:87
 msgid "Workspace"
@@ -28745,6 +28988,14 @@ msgstr "Écrite à la main pour ce template et envoyée avec la version HTML. Se
 msgid "Written by hand, with the templating markup."
 msgstr "Écrite à la main, avec le balisage de template."
 
+#: src/components/settings/DomainsSettings.tsx:175
+msgid "Wrong key · not signing"
+msgstr "Mauvaise clé · non signé"
+
+#: src/components/settings/integrations/SMTPDkimPanel.tsx:54
+msgid "Wrong key: sent unsigned"
+msgstr "Mauvaise clé : envoi non signé"
+
 #: src/components/web_analytics/usePeriodLabels.ts:22
 msgid "Year to date"
 msgstr "Année en cours"
@@ -28872,6 +29123,10 @@ msgstr "Vous n'avez pas la permission de gérer les champs personnalisés"
 #: src/components/settings/WebhooksSettings.tsx:262
 msgid "You don't have permission to manage webhooks"
 msgstr "Vous n'avez pas la permission de gérer les webhooks"
+
+#: src/components/settings/DomainsSettings.tsx:311
+msgid "You don't have permission to view the domains"
+msgstr "Vous n'avez pas la permission de voir les domaines"
 
 #: src/components/settings/WebhooksSettings.tsx:392
 msgid "You don't have permission to view webhooks"
@@ -29036,7 +29291,7 @@ msgstr "Vous avez besoin de la permission d'écriture Transactionnel"
 msgid "You've been invited to join"
 msgstr "Vous avez été invité à rejoindre"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:293
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:294
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 msgstr "Vos identifiants AWS ne peuvent pas créer de tenants SES. Accordez ses:CreateTenant et ses:CreateTenantResourceAssociation, puis enregistrez à nouveau."
 
@@ -29052,7 +29307,7 @@ msgstr "Vos modifications ne sont pas encore enregistrées. Un test envoie la ve
 msgid "Your changes to this category will be lost."
 msgstr "Vos modifications de cette catégorie seront perdues."
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:833
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:834
 msgid "Your changes to this integration will be lost."
 msgstr "Vos modifications de cette intégration seront perdues."
 
@@ -29104,7 +29359,7 @@ msgstr "Votre licence Notifuse a expiré et se trouve en période de grâce."
 msgid "Your October invoice"
 msgstr "Votre facture d'octobre"
 
-#: src/components/settings/integrations/EmailProviderDrawer.tsx:570
+#: src/components/settings/integrations/EmailProviderDrawer.tsx:571
 msgid "Your SMTP server's name"
 msgstr "Le nom de votre serveur SMTP"
 

@@ -25,9 +25,10 @@ import (
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 )
 
-// updateWorkspaceSQL matches the full workspace save. It pins the clause that keeps
-// the stored MCP switch, which only SetMCPSettings writes.
-const updateWorkspaceSQL = `UPDATE workspaces\s+SET name = \$1,\s+settings = CASE WHEN settings \? 'mcp' THEN jsonb_set\(\$2::jsonb, '\{mcp\}', settings->'mcp'\) ELSE \$2::jsonb - 'mcp' END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`
+// updateWorkspaceSQL matches the full workspace save. It pins the clauses that keep
+// the stored MCP switch, which only SetMCPSettings writes, and the stored DKIM keys,
+// which only UpdateDKIMKeys writes.
+const updateWorkspaceSQL = `(?s)UPDATE workspaces\s+SET name = \$1,\s+settings = CASE\s+WHEN workspaces\.settings \? 'dkim_keys'\s+THEN jsonb_set\(\s+CASE WHEN workspaces\.settings \? 'mcp' THEN jsonb_set\(\$2::jsonb, '\{mcp\}', workspaces\.settings->'mcp'\) ELSE \$2::jsonb - 'mcp' END,\s+'\{dkim_keys\}', workspaces\.settings->'dkim_keys', true\)\s+ELSE \(CASE WHEN workspaces\.settings \? 'mcp' THEN jsonb_set\(\$2::jsonb, '\{mcp\}', workspaces\.settings->'mcp'\) ELSE \$2::jsonb - 'mcp' END\) - 'dkim_keys'\s+END,\s+integrations = \$3, updated_at = \$4\s+WHERE id = \$5`
 
 const setMCPSettingsSQL = `UPDATE workspaces\s+SET settings = jsonb_set\(COALESCE\(settings, '\{\}'::jsonb\), '\{mcp\}', \$2::jsonb\), updated_at = \$3\s+WHERE id = \$1`
 

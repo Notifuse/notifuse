@@ -95,6 +95,10 @@ func (w *Workspace) Redact() {
 	// have taken from a published example.
 	w.Settings.EncryptedSecretKey = ""
 
+	// The console reads DKIM keys from workspaces.listDKIMDomains only: neither the
+	// public nor the encrypted private keys go out with the workspace.
+	w.Settings.DKIMKeys = nil
+
 	// Settings.FileManager.SecretKey is deliberately NOT redacted, and it is the
 	// one exception here.
 	//

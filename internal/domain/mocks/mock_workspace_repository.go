@@ -270,6 +270,21 @@ func (mr *MockWorkspaceRepositoryMockRecorder) GetWorkspaceByCustomDomain(arg0, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceByCustomDomain", reflect.TypeOf((*MockWorkspaceRepository)(nil).GetWorkspaceByCustomDomain), arg0, arg1)
 }
 
+// GetWorkspaceDKIMKeys mocks base method.
+func (m *MockWorkspaceRepository) GetWorkspaceDKIMKeys(arg0 context.Context, arg1 string) ([]domain.DKIMKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWorkspaceDKIMKeys", arg0, arg1)
+	ret0, _ := ret[0].([]domain.DKIMKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWorkspaceDKIMKeys indicates an expected call of GetWorkspaceDKIMKeys.
+func (mr *MockWorkspaceRepositoryMockRecorder) GetWorkspaceDKIMKeys(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceDKIMKeys", reflect.TypeOf((*MockWorkspaceRepository)(nil).GetWorkspaceDKIMKeys), arg0, arg1)
+}
+
 // GetWorkspaceInvitations mocks base method.
 func (m *MockWorkspaceRepository) GetWorkspaceInvitations(arg0 context.Context, arg1 string) ([]*domain.WorkspaceInvitation, error) {
 	m.ctrl.T.Helper()
@@ -360,6 +375,21 @@ func (mr *MockWorkspaceRepositoryMockRecorder) ListPendingInvitationsForEmail(ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPendingInvitationsForEmail", reflect.TypeOf((*MockWorkspaceRepository)(nil).ListPendingInvitationsForEmail), arg0, arg1)
 }
 
+// ListWorkspacesDKIMMetadata mocks base method.
+func (m *MockWorkspaceRepository) ListWorkspacesDKIMMetadata(arg0 context.Context) ([]domain.WorkspaceDKIMMetadata, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWorkspacesDKIMMetadata", arg0)
+	ret0, _ := ret[0].([]domain.WorkspaceDKIMMetadata)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWorkspacesDKIMMetadata indicates an expected call of ListWorkspacesDKIMMetadata.
+func (mr *MockWorkspaceRepositoryMockRecorder) ListWorkspacesDKIMMetadata(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWorkspacesDKIMMetadata", reflect.TypeOf((*MockWorkspaceRepository)(nil).ListWorkspacesDKIMMetadata), arg0)
+}
+
 // PatchIntegrationSESSettings mocks base method.
 func (m *MockWorkspaceRepository) PatchIntegrationSESSettings(arg0 context.Context, arg1, arg2 string, arg3 map[string]interface{}) error {
 	m.ctrl.T.Helper()
@@ -414,6 +444,21 @@ func (m *MockWorkspaceRepository) Update(arg0 context.Context, arg1 *domain.Work
 func (mr *MockWorkspaceRepositoryMockRecorder) Update(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockWorkspaceRepository)(nil).Update), arg0, arg1)
+}
+
+// UpdateDKIMKeys mocks base method.
+func (m *MockWorkspaceRepository) UpdateDKIMKeys(arg0 context.Context, arg1 string, arg2 domain.DKIMKeysMutator) ([]domain.DKIMKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDKIMKeys", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]domain.DKIMKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateDKIMKeys indicates an expected call of UpdateDKIMKeys.
+func (mr *MockWorkspaceRepositoryMockRecorder) UpdateDKIMKeys(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDKIMKeys", reflect.TypeOf((*MockWorkspaceRepository)(nil).UpdateDKIMKeys), arg0, arg1, arg2)
 }
 
 // UpdateUserWorkspacePermissions mocks base method.

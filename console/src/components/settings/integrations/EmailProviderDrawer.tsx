@@ -48,6 +48,7 @@ import { OptionalLabel, RequiredLabel } from './FieldLabel'
 import { SESTenantVerifyResult } from './SESTenantVerify'
 import { useSESTenantVerify } from './useSESTenantVerify'
 import type { TestEmailTarget } from './TestEmailModal'
+import { SMTPDkimPanel } from './SMTPDkimPanel'
 
 const SES_REGIONS: Array<{ value: string; label: string }> = [
   { value: 'us-east-2', label: 'US East (Ohio) - us-east-2' },
@@ -876,6 +877,8 @@ export function EmailProviderDrawer({
           </Panel>
 
           {kindPanels[kind]()}
+
+          {kind === 'smtp' ? <SMTPDkimPanel workspaceId={workspace.id} senders={senders} /> : null}
 
           <Panel title={t`Senders`} extra={<span className="text-xs text-ink-3">{t`At least one`}</span>}>
             <SettingsRows>

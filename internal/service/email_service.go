@@ -36,6 +36,14 @@ type EmailService struct {
 	mailgunService   domain.EmailProviderService
 	mailjetService   domain.EmailProviderService
 	sendGridService  domain.EmailProviderService
+	// dkimKeys resolves the key SMTP sends are signed with; nil signs nothing.
+	dkimKeys *DKIMKeyStore
+}
+
+// SetDKIMKeyStore makes SendEmail sign the emails of the providers Notifuse signs for
+// with the key of the sender's domain. DKIMService must share the same store.
+func (s *EmailService) SetDKIMKeyStore(store *DKIMKeyStore) {
+	s.dkimKeys = store
 }
 
 // NewEmailService creates a new EmailService instance
@@ -209,6 +217,18 @@ func (s *EmailService) SendEmail(ctx context.Context, request domain.SendEmailPr
 	providerService, err := s.getProviderService(request.Provider.Kind)
 	if err != nil {
 		return err
+	}
+
+	// Every send path goes through here, so this is where the key is resolved. A key
+	// that should sign and cannot is an error (dkim.ErrSign): the email never goes out
+	// unsigned instead.
+	request.DKIM = nil
+	if request.Provider.Kind.SignsWithNotifuseDKIM() && s.dkimKeys != nil {
+		key, err := s.dkimKeys.SigningKey(ctx, request.WorkspaceID, request.DKIMSnapshot, request.FromAddress)
+		if err != nil {
+			return err
+		}
+		request.DKIM = key
 	}
 
 	// Delegate to the provider-specific implementation
@@ -724,6 +744,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		TextContent:   compiledTemplate.CustomText(),
 		Provider:      request.EmailProvider,
 		EmailOptions:  request.EmailOptions,
+		DKIMSnapshot:  workspace.DKIMSnapshot(),
 	}
 
 	err = s.SendEmail(ctx, providerRequest, false)

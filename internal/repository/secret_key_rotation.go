@@ -82,6 +82,11 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 		if err := domain.CheckStoredWorkspace(settings, integrations, current); err != nil {
 			return result, fmt.Errorf("workspace %s: %w", w.id, err)
 		}
+		// Loading a workspace never opens its DKIM keys, so CheckStoredWorkspace does
+		// not reach them: a key left unopenable would only fail at its next send.
+		if err := domain.CheckDKIMKeys(settings, current); err != nil {
+			return result, fmt.Errorf("workspace %s: %w", w.id, err)
+		}
 		if !settingsChanged && !integrationsChanged {
 			continue
 		}

@@ -1090,6 +1090,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		TextContent:   compiledResult.CustomText(),
 		Provider:      emailProvider,
 		EmailOptions:  emailOptions,
+		DKIMSnapshot:  workspace.DKIMSnapshot(),
 	}
 
 	// Allow override of from name via email options
