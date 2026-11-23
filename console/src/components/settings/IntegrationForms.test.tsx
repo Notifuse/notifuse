@@ -16,6 +16,9 @@ import { api } from '../../services/api/client'
 vi.mock('../../services/api/client', () => ({
   api: { get: vi.fn(), post: vi.fn() }
 }))
+// The DKIM panel of the SMTP form reads the workspace's keys and links to Settings › Domains; it
+// has its own test (SMTPDkimPanel.test.tsx).
+vi.mock('./integrations/SMTPDkimPanel', () => ({ SMTPDkimPanel: () => null }))
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
