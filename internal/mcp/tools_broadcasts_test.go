@@ -556,6 +556,8 @@ func TestBroadcastWriteTools_Definitions(t *testing.T) {
 		write, "broadcasts.cancel", id)
 	assertWriteTool(t, catalogueTool(t, "delete_broadcast"), "delete_broadcast", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
 		write, "broadcasts.delete", id)
+	// The service refuses a scheduled broadcast, whose send task would outlive it.
+	assert.Contains(t, catalogueTool(t, "delete_broadcast").Description, "A scheduled broadcast answers invalid_state too: it has to be unscheduled first")
 
 	// The send tools and the open-world update count in mcp_send.
 	for name, counts := range map[string]bool{
@@ -1022,63 +1024,46 @@ func TestResumeBroadcast_ReportsWhereItWentBack(t *testing.T) {
 	assert.Equal(t, ToolError{Code: CodeInvalidState, Message: "cannot resume broadcast bc1: its status is testing", Status: "testing"}, toolErr)
 }
 
-func TestDeleteBroadcast_RefusesWhatCouldStillSend(t *testing.T) {
-	for _, status := range []domain.BroadcastStatus{"processing", "paused", "testing", "test_completed", "winner_selected"} {
-		t.Run(string(status), func(t *testing.T) {
-			f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
-			stored := storedDraft()
-			stored.Status = status
-			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
-			toolErr := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t)
-			assert.Equal(t, CodeInvalidState, toolErr.Code)
-			assert.Equal(t, string(status), toolErr.Status)
-			assert.Contains(t, toolErr.Message, "cancel_broadcast")
-			assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
-		})
-	}
+// The rule lives in BroadcastService.DeleteBroadcast; the tool answers its
+// refusal as invalid_state, with the status the service read under the lock.
+func TestDeleteBroadcast_AnswersTheServiceRefusal(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	stored := storedDraft()
+	stored.Status = domain.BroadcastStatusProcessed
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
+	f.broadcasts.EXPECT().DeleteBroadcast(gomock.Any(), &domain.DeleteBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"}).
+		Return(&domain.InvalidStateError{Entity: "broadcast", ID: "bc1", Action: "delete", Status: "processed",
+			Reason: "Its email queue still holds 4 emails to send: cancel it first, which empties the queue."})
 
-	t.Run("a queue that still holds emails", func(t *testing.T) {
-		f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
-		stored := storedDraft()
-		stored.Status = domain.BroadcastStatusProcessed
-		f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
-		f.queue.EXPECT().GetSourceCounts(gomock.Any(), testWorkspaceID, domain.EmailQueueSourceBroadcast, "bc1").
-			Return(&domain.EmailQueueSourceCounts{Pending: 3, FailedRetrying: 1, FailedTerminal: 9}, nil)
-		toolErr := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t)
-		assert.Equal(t, ToolError{
-			Code:    CodeInvalidState,
-			Message: "broadcast bc1 still has 4 emails in its queue: cancel it with cancel_broadcast, or wait until they are sent, before deleting it",
-			Status:  "processed",
-		}, toolErr)
-	})
+	toolErr := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t)
+	assert.Equal(t, ToolError{
+		Code:    CodeInvalidState,
+		Message: "cannot delete broadcast bc1: its status is processed. Its email queue still holds 4 emails to send: cancel it first, which empties the queue.",
+		Status:  "processed",
+	}, toolErr)
+	row := audit.last(t)
+	assert.Equal(t, http.StatusConflict, row.StatusCode)
+	assert.Equal(t, "November newsletter", row.TargetName)
 }
 
 func TestDeleteBroadcast_DeletesThenAnswersNotFound(t *testing.T) {
-	for _, status := range []domain.BroadcastStatus{"draft", "scheduled", "processed", "failed", "cancelled"} {
-		t.Run(string(status), func(t *testing.T) {
-			f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
-			stored := storedDraft()
-			stored.Status = status
-			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
-			// Rows given up on stay in the queue until its retention sweep, and send nothing.
-			f.queue.EXPECT().GetSourceCounts(gomock.Any(), testWorkspaceID, domain.EmailQueueSourceBroadcast, "bc1").
-				Return(&domain.EmailQueueSourceCounts{FailedTerminal: 2}, nil)
-			f.broadcasts.EXPECT().DeleteBroadcast(gomock.Any(), &domain.DeleteBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"}).Return(nil)
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(storedDraft(), nil)
+	f.broadcasts.EXPECT().DeleteBroadcast(gomock.Any(), &domain.DeleteBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"}).Return(nil)
 
-			result := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"})
-			assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"deleted":true,"broadcast_id":"bc1"}`, string(result.StructuredContent))
-			row := audit.last(t)
-			assert.Equal(t, "broadcasts.delete", row.Action)
-			assert.Equal(t, domain.AuditTargetBroadcast, row.TargetType)
-			assert.Equal(t, "bc1", row.TargetID)
-			assert.Equal(t, "November newsletter", row.TargetName)
-			assert.Equal(t, http.StatusOK, row.StatusCode)
+	result := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"})
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"deleted":true,"broadcast_id":"bc1"}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "broadcasts.delete", row.Action)
+	assert.Equal(t, domain.AuditTargetBroadcast, row.TargetType)
+	assert.Equal(t, "bc1", row.TargetID)
+	assert.Equal(t, "November newsletter", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
 
-			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(nil, &domain.ErrBroadcastNotFound{ID: "bc1"})
-			assert.Equal(t, CodeNotFound, f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t).Code)
-			assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
-		})
-	}
+	// A replay finds no broadcast and never reaches the service.
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(nil, &domain.ErrBroadcastNotFound{ID: "bc1"})
+	assert.Equal(t, CodeNotFound, f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t).Code)
+	assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
 }
 
 func TestBroadcastWriteTools_ServiceErrorsAreMapped(t *testing.T) {

@@ -111,6 +111,21 @@ func (mr *MockEmailQueueRepositoryMockRecorder) DeleteForEmail(arg0, arg1, arg2 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForEmail", reflect.TypeOf((*MockEmailQueueRepository)(nil).DeleteForEmail), arg0, arg1, arg2)
 }
 
+// DeleteTerminallyFailedBySourceTx mocks base method.
+func (m *MockEmailQueueRepository) DeleteTerminallyFailedBySourceTx(arg0 context.Context, arg1 *sql.Tx, arg2 domain.EmailQueueSourceType, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTerminallyFailedBySourceTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTerminallyFailedBySourceTx indicates an expected call of DeleteTerminallyFailedBySourceTx.
+func (mr *MockEmailQueueRepositoryMockRecorder) DeleteTerminallyFailedBySourceTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTerminallyFailedBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).DeleteTerminallyFailedBySourceTx), arg0, arg1, arg2, arg3)
+}
+
 // DeleteTerminallyFailedOlderThan mocks base method.
 func (m *MockEmailQueueRepository) DeleteTerminallyFailedOlderThan(arg0 context.Context, arg1 string, arg2 int) (int64, error) {
 	m.ctrl.T.Helper()
@@ -212,6 +227,21 @@ func (m *MockEmailQueueRepository) GetSourceCounts(arg0 context.Context, arg1 st
 func (mr *MockEmailQueueRepositoryMockRecorder) GetSourceCounts(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSourceCounts", reflect.TypeOf((*MockEmailQueueRepository)(nil).GetSourceCounts), arg0, arg1, arg2, arg3)
+}
+
+// GetSourceCountsTx mocks base method.
+func (m *MockEmailQueueRepository) GetSourceCountsTx(arg0 context.Context, arg1 *sql.Tx, arg2 domain.EmailQueueSourceType, arg3 string) (*domain.EmailQueueSourceCounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSourceCountsTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*domain.EmailQueueSourceCounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSourceCountsTx indicates an expected call of GetSourceCountsTx.
+func (mr *MockEmailQueueRepositoryMockRecorder) GetSourceCountsTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSourceCountsTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).GetSourceCountsTx), arg0, arg1, arg2, arg3)
 }
 
 // GetStats mocks base method.
@@ -344,19 +374,19 @@ func (mr *MockEmailQueueRepositoryMockRecorder) ReleaseThrottled(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseThrottled", reflect.TypeOf((*MockEmailQueueRepository)(nil).ReleaseThrottled), arg0, arg1, arg2, arg3)
 }
 
-// ResetTerminallyFailedBySource mocks base method.
-func (m *MockEmailQueueRepository) ResetTerminallyFailedBySource(arg0 context.Context, arg1 string, arg2 domain.EmailQueueSourceType, arg3, arg4 string) (int64, error) {
+// ResetTerminallyFailedBySourceTx mocks base method.
+func (m *MockEmailQueueRepository) ResetTerminallyFailedBySourceTx(arg0 context.Context, arg1 *sql.Tx, arg2 domain.EmailQueueSourceType, arg3, arg4 string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResetTerminallyFailedBySource", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "ResetTerminallyFailedBySourceTx", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ResetTerminallyFailedBySource indicates an expected call of ResetTerminallyFailedBySource.
-func (mr *MockEmailQueueRepositoryMockRecorder) ResetTerminallyFailedBySource(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+// ResetTerminallyFailedBySourceTx indicates an expected call of ResetTerminallyFailedBySourceTx.
+func (mr *MockEmailQueueRepositoryMockRecorder) ResetTerminallyFailedBySourceTx(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetTerminallyFailedBySource", reflect.TypeOf((*MockEmailQueueRepository)(nil).ResetTerminallyFailedBySource), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetTerminallyFailedBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).ResetTerminallyFailedBySourceTx), arg0, arg1, arg2, arg3, arg4)
 }
 
 // ResumeBySource mocks base method.

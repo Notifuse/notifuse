@@ -1124,6 +1124,49 @@ func TestEmailQueueRepository_GetSourceCounts(t *testing.T) {
 	})
 }
 
+func TestEmailQueueRepository_GetSourceCountsTx(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("counts within the caller's transaction", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+
+		mock.ExpectQuery(`next_retry_at IS NOT NULL.*next_retry_at IS NULL`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123").
+			WillReturnRows(sqlmock.NewRows([]string{
+				"pending", "processing", "paused", "failed_retrying", "failed_terminal",
+			}).AddRow(5, 1, 4, 2, 23))
+
+		counts, err := repo.GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, "bcast-123")
+		require.NoError(t, err)
+		assert.Equal(t, domain.EmailQueueSourceCounts{Pending: 5, Processing: 1, Paused: 4, FailedRetrying: 2, FailedTerminal: 23}, *counts)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("handles database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+
+		mock.ExpectQuery(`FROM email_queue`).WillReturnError(errors.New("database error"))
+
+		counts, err := repo.GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, "bcast-123")
+		assert.ErrorContains(t, err, "failed to get source counts")
+		assert.Nil(t, counts)
+	})
+}
+
 // TestEmailQueueRepository_TerminalRowsSurvive covers the rows that used to be deleted
 // the moment their attempts ran out, taking the recipient's only trace with them.
 // Keeping them is what makes a retry possible, but it also arms a trap: pausing a
@@ -1193,22 +1236,80 @@ func TestEmailQueueRepository_TerminalRowsSurvive(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("ResetTerminallyFailedBySource revives only what was given up on", func(t *testing.T) {
+	t.Run("ResetTerminallyFailedBySourceTx revives only what was given up on, in the caller's transaction", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
 		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
 
 		// A row still retrying is on its way back by itself; requeueing it would
 		// reset an attempt counter mid-flight.
 		mock.ExpectExec(`UPDATE email_queue.*attempts = 0.*integration_id = .3.*next_retry_at IS NULL`).
 			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123", "integration-1").
 			WillReturnResult(sqlmock.NewResult(0, 23))
+		mock.ExpectCommit()
 
-		requeued, err := repo.ResetTerminallyFailedBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123", "integration-1")
+		requeued, err := repo.ResetTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, "bcast-123", "integration-1")
 		require.NoError(t, err)
 		assert.Equal(t, int64(23), requeued)
+		require.NoError(t, tx.Commit())
 		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("ResetTerminallyFailedBySourceTx wraps a database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		mock.ExpectExec(`UPDATE email_queue`).WillReturnError(errors.New("database error"))
+
+		_, err = repo.ResetTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, "bcast-123", "integration-1")
+		assert.EqualError(t, err, "failed to requeue terminally failed entries: database error")
+	})
+
+	t.Run("DeleteTerminallyFailedBySourceTx deletes only what was given up on, in the caller's transaction", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+
+		mock.ExpectExec(`DELETE FROM email_queue\s+WHERE source_type = \$1 AND source_id = \$2\s+AND status = 'failed' AND next_retry_at IS NULL\s*$`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+
+		deleted, err := repo.DeleteTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, "bcast-123")
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), deleted)
+		require.NoError(t, tx.Commit())
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("DeleteTerminallyFailedBySourceTx wraps a database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		mock.ExpectExec(`DELETE FROM email_queue`).WillReturnError(errors.New("database error"))
+
+		_, err = repo.DeleteTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, "bcast-123")
+		assert.EqualError(t, err, "failed to delete terminally failed entries by source: database error")
 	})
 
 	t.Run("DeleteTerminallyFailedOlderThan spares recent and non-terminal rows", func(t *testing.T) {

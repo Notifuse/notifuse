@@ -17,11 +17,8 @@ import { LicenceBlock } from './LicenceBlock'
  * that is missing, not a login that is broken: magic-code sign-in is unconditional, every SSO
  * account carries a verified email address, and a session already minted is unaffected.
  *
- * It lives in this directory rather than inline in the drawer because
- * src/i18n/locales/catalogues.test.ts exempts src/components/license/ from the eight-language
- * gate by path: the licence wording is expected to change once real operators have read it, and
- * translating it eight times before it settles pays for it twice. English and French, like the
- * rest of the licence surface.
+ * It lives in this directory, with the rest of the licence surface, rather than inline in the
+ * drawer.
  */
 export function SsoLicenceNotice({
   oidcEnabled,

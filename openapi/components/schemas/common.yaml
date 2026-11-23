@@ -48,6 +48,10 @@ InvalidStateErrorResponse:
         status:
           type: string
           example: processing
+        reason:
+          type: string
+          description: What refused the action beyond the status, or what to do first. Absent when the status says it all.
+          example: 'Cancel it first: cancelling empties its email queue.'
   required:
     - error
     - invalid_state

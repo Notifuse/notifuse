@@ -721,11 +721,11 @@ msgstr "{bounced, plural, one {# adreça} other {# adreces}}"
 
 #: src/services/api/licenseErrors.ts:118
 msgid "{capability} requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "{capability}: cal una llicència {tier} de Notifuse."
 
 #: src/services/api/licenseErrors.ts:120
 msgid "{capability} requires a Notifuse licence."
-msgstr ""
+msgstr "{capability}: cal una llicència de Notifuse."
 
 #: src/components/templates/TemplateSelectorInput.tsx:233
 msgid "{categoryLabel} category"
@@ -3967,7 +3967,7 @@ msgstr "Registres d'auditoria"
 
 #: src/components/license/LicenceGateNotice.tsx:56
 msgid "Audit logs require a Notifuse {tier} licence."
-msgstr ""
+msgstr "Els registres d'auditoria requereixen una llicència {tier} de Notifuse."
 
 #: src/components/logs/labels.ts:78
 msgid "Auth email"
@@ -5290,7 +5290,7 @@ msgstr "Amplada del botó"
 
 #: src/components/settings/LicenseSettings.tsx:221
 msgid "Buy a licence"
-msgstr ""
+msgstr "Comprar una llicència"
 
 #: src/components/contacts/ForgetOptOutsCheckbox.tsx:23
 msgid "By default, Notifuse keeps a coded trace of the lists this contact unsubscribed from, bounced on or complained about, for 3 years. If the address comes back, through an import or a form, those lists stay off. Tick this to keep nothing, for test data or when the person asked that nothing remain."
@@ -5555,7 +5555,7 @@ msgstr "URL canònica"
 
 #: src/components/settings/LicenseSettings.tsx:187
 msgid "Capabilities"
-msgstr ""
+msgstr "Funcionalitats"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:172
 msgid "Capitalize"
@@ -6444,7 +6444,7 @@ msgstr "Ports comuns: 587 (TLS), 465 (SSL), 25 (sense xifrar)"
 
 #: src/components/settings/LicenseSettings.tsx:181
 msgid "Community"
-msgstr ""
+msgstr "Community"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:467
 msgid "Compare this period with the previous one and explain the biggest drivers of the change in sessions."
@@ -7278,7 +7278,7 @@ msgstr "No s'ha pogut carregar aquest informe"
 
 #: src/components/settings/LicenseSettings.tsx:60
 msgid "Could not read the licence state"
-msgstr ""
+msgstr "No s'ha pogut llegir l'estat de la llicència"
 
 #: src/components/templates/DeleteTemplateModal.tsx:57
 msgid "Couldn't check where this template is used"
@@ -8189,15 +8189,15 @@ msgstr "Camps de número personalitzats"
 
 #: src/services/api/licenseErrors.ts:49
 msgid "Custom permissions"
-msgstr ""
+msgstr "Permisos personalitzats"
 
 #: src/components/settings/LicenseSettings.tsx:135
 msgid "Custom permissions (RBAC)"
-msgstr ""
+msgstr "Permisos personalitzats (RBAC)"
 
 #: src/components/license/LicenceGateNotice.tsx:53
 msgid "Custom permissions require a Notifuse {tier} licence."
-msgstr ""
+msgstr "Els permisos personalitzats requereixen una llicència {tier} de Notifuse."
 
 #: src/components/logs/periodLabels.ts:16
 #: src/components/web_analytics/usePeriodLabels.ts:26
@@ -10660,7 +10660,7 @@ msgstr "Introdueix una adreça de correu completa"
 
 #: src/components/license/LicenseBanner.tsx:103
 msgid "Enter a licence key"
-msgstr ""
+msgstr "Introduïu una clau de llicència"
 
 #: src/components/email_builder/ui/SaveBlockModal.tsx:139
 msgid "Enter a name for this block"
@@ -11169,7 +11169,7 @@ msgstr "Cada contacte importat s'afegeix a aquestes llistes."
 
 #: src/components/license/LicenceGateNotice.tsx:64
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
-msgstr ""
+msgstr "Cada membre conserva l'accés que té, i encara es pot donar accés complet a qualsevol membre. Només una concessió més limitada necessita una llicència."
 
 #. placeholder {0}: context.minSessions
 #: src/components/web_analytics/explore/ExploreTable.tsx:233
@@ -11193,7 +11193,7 @@ msgstr "Cada vegada"
 
 #: src/components/license/LicenceGateNotice.tsx:66
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
-msgstr ""
+msgstr "Mentrestant, tothom entra amb un codi d'inici de sessió i ningú no queda bloquejat."
 
 #: src/pages/LogsPage.tsx:60
 msgid "Everything sent, received and changed in this workspace"
@@ -11201,7 +11201,7 @@ msgstr "Tot el que s'envia, es rep i es modifica en aquest espai de treball"
 
 #: src/components/license/LicenseBanner.tsx:120
 msgid "Everything the key grants keeps working during the grace period. Renew it to avoid losing licensed capabilities."
-msgstr ""
+msgstr "Tot el que concedeix la clau continua funcionant durant el període de gràcia. Renoveu-la per no perdre les funcionalitats de la llicència."
 
 #: src/components/logs/MessagesTab.tsx:414
 #: src/components/logs/MessagesTab.tsx:454
@@ -11313,15 +11313,15 @@ msgstr "Desplega {label}"
 
 #: src/components/settings/LicenseSettings.tsx:131
 msgid "Expired"
-msgstr ""
+msgstr "Caducat"
 
 #: src/components/settings/LicenseSettings.tsx:130
 msgid "Expired, in grace period"
-msgstr ""
+msgstr "Caducat, en període de gràcia"
 
 #: src/components/settings/LicenseSettings.tsx:183
 msgid "Expires"
-msgstr ""
+msgstr "Caduca"
 
 #: src/pages/AcceptInvitationPage.tsx:198
 msgid "Expires:"
@@ -11736,7 +11736,7 @@ msgstr "No s'ha pogut importar la plantilla. Si us plau, comproveu el format del
 
 #: src/components/settings/LicenseSettings.tsx:120
 msgid "Failed to install the licence key"
-msgstr ""
+msgstr "No s'ha pogut instal·lar la clau de llicència"
 
 #: src/components/settings/WorkspaceMembers.tsx:337
 msgid "Failed to invite member"
@@ -14141,11 +14141,11 @@ msgstr "Instal·lar"
 
 #: src/components/settings/LicenseSettings.tsx:226
 msgid "Install a licence key"
-msgstr ""
+msgstr "Instal·lar una clau de llicència"
 
 #: src/components/settings/LicenseSettings.tsx:242
 msgid "Install licence key"
-msgstr ""
+msgstr "Instal·lar la clau de llicència"
 
 #: src/components/web_analytics/InstallOverlay.tsx:68
 msgid "Install the tracking snippet"
@@ -15059,20 +15059,20 @@ msgstr "Llicència"
 
 #: src/components/settings/LicenseSettings.tsx:107
 msgid "Licence key installed"
-msgstr ""
+msgstr "Clau de llicència instal·lada"
 
 #: src/components/license/LicenceBlock.tsx:63
 msgid "Licence settings"
-msgstr ""
+msgstr "Configuració de la llicència"
 
 #: src/components/license/LicenceBlock.tsx:55
 msgid "Licensed capability"
-msgstr ""
+msgstr "Funcionalitat amb llicència"
 
 #. placeholder {0}: entitlements.org
 #: src/components/settings/LicenseSettings.tsx:157
 msgid "Licensed to {0}"
-msgstr ""
+msgstr "Llicència a nom de {0}"
 
 #: src/components/templates/gallery/labels.ts:31
 msgid "Lifecycle"
@@ -17164,7 +17164,7 @@ msgstr "Sense clau: s'envia sense signar"
 
 #: src/components/settings/LicenseSettings.tsx:128
 msgid "No licence — Community"
-msgstr ""
+msgstr "Sense llicència (Community)"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:115
 msgid "No link"
@@ -18289,11 +18289,11 @@ msgstr "Només un propietari de l'espai de treball pot veure o rotar el secret d
 
 #: src/components/license/LicenseBanner.tsx:125
 msgid "Only an instance administrator can install a licence key — ask the owner of this workspace."
-msgstr ""
+msgstr "Només un administrador de la instància pot instal·lar una clau de llicència. Demaneu-ho al propietari d'aquest espai de treball."
 
 #: src/components/settings/LicenseSettings.tsx:86
 msgid "Only an instance administrator can view or install the licence key."
-msgstr ""
+msgstr "Només un administrador de la instància pot veure o instal·lar la clau de llicència."
 
 #: src/components/file_manager/FileExplorer.tsx:616
 #: src/components/file_manager/FileExplorer.tsx:1033
@@ -19032,7 +19032,7 @@ msgstr "Enganxeu-la a Supabase › Authentication › Hooks"
 
 #: src/components/settings/LicenseSettings.tsx:228
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
-msgstr ""
+msgstr "Enganxeu la clau del correu de compra. Es verifica sense connexió amb una clau de signatura integrada en aquest binari, i no s'envia res enlloc."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:421
 msgid "Paste this snippet before the closing </head> tag of every page of your sites."
@@ -19395,7 +19395,7 @@ msgstr "Text pla (només segur darrere d'un proxy que acabi el TLS)"
 
 #: src/components/settings/LicenseSettings.tsx:180
 msgid "Plan"
-msgstr ""
+msgstr "Pla"
 
 #: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Platform admin"
@@ -21221,7 +21221,7 @@ msgstr "S'està renderitzant…"
 
 #: src/components/license/LicenseBanner.tsx:113
 msgid "Renew licence"
-msgstr ""
+msgstr "Renovar la llicència"
 
 #: src/components/automations/AutomationFlowEditor.tsx:583
 #: src/components/automations/AutomationFlowEditor.tsx:586
@@ -23265,7 +23265,7 @@ msgstr "Enviant webhook de prova..."
 
 #: src/components/license/LicenceGateNotice.tsx:65
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
-msgstr ""
+msgstr "Els enviaments per aquesta integració no es veuen afectats, i un tenant que ja existeix es continua fent servir. Per activar l'aïllament cal una llicència."
 
 #: src/components/analytics/GetStartedChecklist.tsx:257
 msgid "Sends as {marketing}"
@@ -23487,7 +23487,7 @@ msgstr "Aïllament de tenant SES"
 
 #: src/components/license/LicenceGateNotice.tsx:54
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "L'aïllament de tenant SES requereix una llicència {tier} de Notifuse."
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:38
@@ -24141,7 +24141,7 @@ msgstr "Inici de sessió únic (OpenID Connect)"
 
 #: src/components/settings/LicenseSettings.tsx:137
 msgid "Single sign-on (SSO)"
-msgstr ""
+msgstr "Inici de sessió únic (SSO)"
 
 #: src/pages/SignInPage.tsx:150
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
@@ -24154,7 +24154,7 @@ msgstr "L'inici de sessió únic ha fallat. Torneu-ho a provar o utilitzeu un co
 
 #: src/components/license/SsoLicenceNotice.tsx:44
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
-msgstr ""
+msgstr "L'inici de sessió únic està activat, però la llicència d'aquest desplegament no l'inclou."
 
 #: src/pages/SignInPage.tsx:156
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
@@ -24162,7 +24162,7 @@ msgstr "L'inici de sessió únic no està disponible temporalment. Proveu amb un
 
 #: src/components/license/LicenceGateNotice.tsx:55
 msgid "Single sign-on requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "L'inici de sessió únic requereix una llicència {tier} de Notifuse."
 
 #: src/components/contacts/sheet/activityLabel.ts:25
 msgid "Site visit"
@@ -25386,11 +25386,11 @@ msgstr "Conjunt de plantilles"
 #: src/components/settings/LicenseSettings.tsx:139
 #: src/services/api/licenseErrors.ts:53
 msgid "Template translations"
-msgstr ""
+msgstr "Traduccions de plantilles"
 
 #: src/components/license/LicenceGateNotice.tsx:57
 msgid "Template translations require a Notifuse {tier} licence."
-msgstr ""
+msgstr "Les traduccions de plantilles requereixen una llicència {tier} de Notifuse."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:350
 #~ msgid "Template updated successfully"
@@ -26199,7 +26199,7 @@ msgstr "El llançament d'un producte o d'una funcionalitat, en tres punts."
 
 #: src/components/settings/LicenseSettings.tsx:87
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
-msgstr ""
+msgstr "La llicència cobreix tot el desplegament, no només aquest espai de treball. Demaneu-ho a la persona que gestiona aquesta instància de Notifuse."
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:217
 #: src/components/email_builder/blocks/MjImageBlock.tsx:138
@@ -26413,7 +26413,7 @@ msgstr "El lloc es nega a mostrar-se dins d'una altra pàgina, cosa que és un p
 
 #: src/components/license/SsoLicenceNotice.tsx:45
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
-msgstr ""
+msgstr "El botó d'SSO queda amagat a la pàgina d'inici de sessió fins que s'instal·li una llicència que l'inclogui. Mentrestant, tothom entra amb un codi d'inici de sessió: ningú no queda bloquejat i no s'ha tancat cap sessió."
 
 #: src/components/automations/config/AddToListConfigForm.tsx:51
 msgid "The status to assign when adding to the list"
@@ -26792,7 +26792,7 @@ msgstr "Aquesta política elimina més que la vigent, així que aquesta part com
 
 #: src/services/api/licenseErrors.ts:111
 msgid "This deployment has reached the number of workspaces its licence allows. Existing workspaces are unaffected; a licence with a higher limit allows more."
-msgstr ""
+msgstr "Aquest desplegament ha arribat al nombre d'espais de treball que permet la seva llicència. Els espais de treball existents no es veuen afectats; una llicència amb un límit més alt en permet més."
 
 #: src/services/api/licenseErrors.ts:113
 #~ msgid "This deployment is in read-only mode: single sign-on is enabled without a licence that covers it. Turn SSO off, or install a licence, to make changes."
@@ -26905,7 +26905,7 @@ msgstr "Aquest és el vostre editor visual de correu. Feu clic a qualsevol eleme
 
 #: src/components/settings/LicenseSettings.tsx:67
 msgid "This licence covers the whole deployment — one database. A key pasted here takes effect on this API container now, and on any others at their next restart; with several containers, set NOTIFUSE_LICENSE_KEY instead."
-msgstr ""
+msgstr "Aquesta llicència cobreix tot el desplegament, és a dir, una sola base de dades. Una clau enganxada aquí té efecte ara mateix en aquest contenidor de l'API, i en els altres en el proper reinici; si teniu diversos contenidors, definiu NOTIFUSE_LICENSE_KEY."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:301
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
@@ -27796,7 +27796,7 @@ msgstr "Traduccions"
 
 #: src/components/license/LicenceGateNotice.tsx:68
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
-msgstr ""
+msgstr "Les traduccions ja desades es continuen enviant, i sempre es pot desactivar una traducció. Per afegir-ne o editar-ne una cal una llicència."
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:141
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:86
@@ -28134,7 +28134,7 @@ msgstr "Segment desconegut ({id})"
 
 #: src/components/settings/LicenseSettings.tsx:144
 msgid "Unlimited"
-msgstr ""
+msgstr "Il·limitat"
 
 #: src/layouts/app-shell/AppSidebar.tsx:182
 msgid "Unpin sidebar"
@@ -29990,7 +29990,7 @@ msgstr "Espai de treball:"
 #: src/components/settings/LicenseSettings.tsx:186
 #: src/services/api/licenseErrors.ts:54
 msgid "Workspaces"
-msgstr ""
+msgstr "Espais de treball"
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:44
 #~ msgid "Wrapper attributes"
@@ -30434,11 +30434,11 @@ msgstr "L'administrador de Notifuse exigeix l'autenticació de doble factor."
 
 #: src/components/license/LicenseBanner.tsx:152
 msgid "Your Notifuse licence expired on {expiryLabel} and is in its grace period."
-msgstr ""
+msgstr "La vostra llicència de Notifuse va caducar el {expiryLabel} i està en el període de gràcia."
 
 #: src/components/license/LicenseBanner.tsx:153
 msgid "Your Notifuse licence has expired and is in its grace period."
-msgstr ""
+msgstr "La vostra llicència de Notifuse ha caducat i està en el període de gràcia."
 
 #: src/components/templates/TemplateSettingsAside.tsx:118
 msgid "Your October invoice"

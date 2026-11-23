@@ -33,9 +33,10 @@ func TestBroadcastGap_RetryStatusGuardsNoDownstream(t *testing.T) {
 			authOK(d.authService, ctx, "w1")
 			b := testBroadcast("w1", "b1")
 			b.Status = status
-			// Only GetBroadcast is expected: no GetSourceCounts, no GetByID,
-			// no ResetTerminallyFailedBySource.
-			d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
+			// Only GetBroadcastForUpdateTx is expected: no GetSourceCountsTx, no GetByID,
+			// no ResetTerminallyFailedBySourceTx.
+			expectRetryTx(d, "w1")
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 
 			n, err := d.svc.RetryFailedRecipients(ctx, &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"})
 			assert.Equal(t, int64(0), n)
@@ -56,11 +57,12 @@ func TestBroadcastGap_RetryFailedStatusRequeuesExactIntegration(t *testing.T) {
 	authOK(d.authService, ctx, "w1")
 	b := testBroadcast("w1", "b1")
 	b.Status = domain.BroadcastStatusFailed // second allowed status, not just Processed
-	d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
-	d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+	expectRetryTx(d, "w1")
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+	d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 		Return(&domain.EmailQueueSourceCounts{FailedTerminal: 7}, nil)
 	d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(retryWorkspace("w1"), nil)
-	d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySource(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1", "integration-1").
+	d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1", "integration-1").
 		Return(int64(7), nil)
 
 	n, err := d.svc.RetryFailedRecipients(ctx, &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"})
@@ -110,7 +112,8 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
 		sentinel := errors.New("broadcast gone")
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(nil, sentinel)
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(nil, sentinel)
 		n, err := d.svc.RetryFailedRecipients(ctx, req)
 		assert.Equal(t, int64(0), n)
 		assert.ErrorIs(t, err, sentinel)
@@ -122,9 +125,10 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessed
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		sentinel := errors.New("counts boom")
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 			Return(nil, sentinel)
 		n, err := d.svc.RetryFailedRecipients(ctx, req)
 		assert.Equal(t, int64(0), n)
@@ -138,9 +142,10 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessed
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		// InFlight = Pending+Processing+Paused+FailedRetrying; here exactly 1.
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 			Return(&domain.EmailQueueSourceCounts{Processing: 1, FailedTerminal: 5}, nil)
 		n, err := d.svc.RetryFailedRecipients(ctx, req)
 		assert.Equal(t, int64(0), n)
@@ -155,8 +160,9 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusFailed
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 			Return(&domain.EmailQueueSourceCounts{Paused: 2, FailedRetrying: 1, FailedTerminal: 5}, nil)
 		_, err := d.svc.RetryFailedRecipients(ctx, req)
 		var notAllowed *domain.ErrBroadcastRetryNotAllowed
@@ -170,8 +176,9 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessed
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 3}, nil)
 		sentinel := errors.New("workspace gone")
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(nil, sentinel)
@@ -186,8 +193,9 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessed
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 3}, nil)
 		ws := &domain.Workspace{ID: "w1", Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "missing-9"}}
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(ws, nil)
@@ -202,8 +210,9 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessed
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 3}, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(&domain.Workspace{ID: "w1"}, nil)
 		n, err := d.svc.RetryFailedRecipients(ctx, req)
@@ -219,12 +228,13 @@ func TestBroadcastGap_RetryDownstreamErrors(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessed
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(b, nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1").
+		expectRetryTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
 			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 3}, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(retryWorkspace("w1"), nil)
 		sentinel := errors.New("reset boom")
-		d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySource(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "b1", "integration-1").
+		d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1", "integration-1").
 			Return(int64(0), sentinel)
 		n, err := d.svc.RetryFailedRecipients(ctx, req)
 		assert.Equal(t, int64(0), n)

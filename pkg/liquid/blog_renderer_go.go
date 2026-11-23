@@ -27,6 +27,10 @@ const (
 	BlogMaxAssignScore  = 10_000_000
 )
 
+// blogRenderTimeout is the timeout a render runs under: BlogRenderTimeout, except in a
+// test that must see a resource limit fire on a slow machine before any timeout can.
+var blogRenderTimeout = BlogRenderTimeout
+
 // mapFileSystem is a simple in-memory FileSystem for partials
 type mapFileSystem struct {
 	templates map[string]string
@@ -110,7 +114,7 @@ func (r *BlogTemplateRenderer) Render(
 	}
 
 	// Create context with timeout for security
-	ctx, cancel := context.WithTimeout(context.Background(), BlogRenderTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), blogRenderTimeout)
 	defer cancel()
 
 	// Channel to capture result or error
@@ -156,7 +160,7 @@ func (r *BlogTemplateRenderer) Render(
 				// a render over its limits is an error, never a page
 				err = fmt.Errorf("template rendering exceeded its resource limits (output size, work or assigns)")
 			case errors.As(err, &canceled):
-				err = fmt.Errorf("template rendering timeout after %v", BlogRenderTimeout)
+				err = fmt.Errorf("template rendering timeout after %v", blogRenderTimeout)
 			case errors.As(err, &panicked):
 				// a bug, never the theme's fault: the stack goes to the server log
 				logBlogPanicOnce(template, panicked)
@@ -186,7 +190,7 @@ func (r *BlogTemplateRenderer) Render(
 		}
 		return res.output, nil
 	case <-ctx.Done():
-		return "", fmt.Errorf("template rendering timeout after %v", BlogRenderTimeout)
+		return "", fmt.Errorf("template rendering timeout after %v", blogRenderTimeout)
 	}
 }
 

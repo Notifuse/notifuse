@@ -449,13 +449,9 @@ func (r *EmailQueueRepository) MarkAsPermanentlyFailed(ctx context.Context, work
 	return nil
 }
 
-// ResetTerminallyFailedBySource requeues the entries a source gave up on.
-func (r *EmailQueueRepository) ResetTerminallyFailedBySource(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, integrationID string) (int64, error) {
-	db, err := r.getDB(ctx, workspaceID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get database connection: %w", err)
-	}
-
+// ResetTerminallyFailedBySourceTx requeues the entries a source gave up on, inside the
+// caller's transaction.
+func (r *EmailQueueRepository) ResetTerminallyFailedBySourceTx(ctx context.Context, tx *sql.Tx, sourceType domain.EmailQueueSourceType, sourceID string, integrationID string) (int64, error) {
 	query := `
 		UPDATE email_queue
 		SET status = 'pending',
@@ -469,12 +465,22 @@ func (r *EmailQueueRepository) ResetTerminallyFailedBySource(ctx context.Context
 		  AND status = 'failed' AND next_retry_at IS NULL
 	`
 
-	result, err := db.ExecContext(ctx, query, sourceType, sourceID, integrationID)
+	result, err := tx.ExecContext(ctx, query, sourceType, sourceID, integrationID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to requeue terminally failed entries: %w", err)
 	}
 
 	return result.RowsAffected()
+}
+
+// DeleteTerminallyFailedBySourceTx deletes the entries a source gave up on, inside the
+// caller's transaction.
+func (r *EmailQueueRepository) DeleteTerminallyFailedBySourceTx(ctx context.Context, tx *sql.Tx, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	n, err := execBySource(ctx, tx, deleteTerminallyFailedBySourceSQL, sourceType, sourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete terminally failed entries by source: %w", err)
+	}
+	return n, nil
 }
 
 // DeleteTerminallyFailedOlderThan sweeps abandoned entries past the retention window.
@@ -590,7 +596,15 @@ func (r *EmailQueueRepository) GetSourceCounts(ctx context.Context, workspaceID 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database connection: %w", err)
 	}
+	return getSourceCounts(ctx, db, sourceType, sourceID)
+}
 
+// GetSourceCountsTx is the transactional variant of GetSourceCounts.
+func (r *EmailQueueRepository) GetSourceCountsTx(ctx context.Context, tx *sql.Tx, sourceType domain.EmailQueueSourceType, sourceID string) (*domain.EmailQueueSourceCounts, error) {
+	return getSourceCounts(ctx, tx, sourceType, sourceID)
+}
+
+func getSourceCounts(ctx context.Context, q emailQueueExecutor, sourceType domain.EmailQueueSourceType, sourceID string) (*domain.EmailQueueSourceCounts, error) {
 	// 'failed' splits on next_retry_at, not on the attempt count. A row that has been
 	// given up on carries no retry date, and that is true whether it exhausted three
 	// attempts or was refused once by a rejection there is no point repeating — a
@@ -608,7 +622,7 @@ func (r *EmailQueueRepository) GetSourceCounts(ctx context.Context, workspaceID 
 	`
 
 	counts := &domain.EmailQueueSourceCounts{}
-	err = db.QueryRowContext(ctx, query, sourceType, sourceID).Scan(
+	err := q.QueryRowContext(ctx, query, sourceType, sourceID).Scan(
 		&counts.Pending, &counts.Processing, &counts.Paused,
 		&counts.FailedRetrying, &counts.FailedTerminal,
 	)
@@ -622,6 +636,7 @@ func (r *EmailQueueRepository) GetSourceCounts(ctx context.Context, workspaceID 
 // emailQueueExecutor is satisfied by both *sql.DB and *sql.Tx.
 type emailQueueExecutor interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
 // Pausing must not touch an entry that has already been given up on. Sweeping it
@@ -647,6 +662,12 @@ const deleteBySourceSQL = `
 	DELETE FROM email_queue
 	WHERE source_type = $1 AND source_id = $2
 	  AND status IN ('pending', 'failed', 'paused')
+`
+
+const deleteTerminallyFailedBySourceSQL = `
+	DELETE FROM email_queue
+	WHERE source_type = $1 AND source_id = $2
+	  AND status = 'failed' AND next_retry_at IS NULL
 `
 
 func execBySource(ctx context.Context, exec emailQueueExecutor, query string, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
