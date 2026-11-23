@@ -1832,6 +1832,7 @@ func (a *App) InitHandlers() error {
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
 	annotationHandler.RegisterRoutes(a.mux)
+	httpHandler.NewDKIMHandler(a.dkimService, getJWTSecret, a.logger, a.config.IsDemo()).RegisterRoutes(a.mux)
 	auditLogHandler := httpHandler.NewAuditLogHandler(a.auditLogService, getJWTSecret, a.logger)
 	auditLogHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)

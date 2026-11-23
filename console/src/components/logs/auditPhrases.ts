@@ -85,18 +85,22 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'workspaces.connectZapier': msg({ message: 'Connected Zapier as the integration <0>{target}</0>' }),
   'workspaces.create': msg({ message: 'Created the workspace <0>{target}</0>' }),
   'workspaces.createAPIKey': msg({ message: 'Created the API key <0>{target}</0>' }),
+  'workspaces.createDKIMDomain': msg({ message: 'Added a DKIM domain to <0>{target}</0>' }),
   'workspaces.createIntegration': msg({ message: 'Added the integration <0>{target}</0>' }),
   'workspaces.delete': msg({ message: 'Deleted the workspace <0>{target}</0>' }),
+  'workspaces.deleteDKIMDomain': msg({ message: 'Removed a DKIM domain from <0>{target}</0>' }),
   'workspaces.deleteIntegration': msg({ message: 'Removed the integration <0>{target}</0>' }),
   'workspaces.deleteInvitation': msg({ message: 'Cancelled the invitation <0>{target}</0>' }),
   'workspaces.inviteMember': msg({ message: 'Invited <0>{target}</0>' }),
   'workspaces.joinInvitation': msg({ message: 'Joined with the invitation <0>{target}</0>' }),
   'workspaces.removeMember': msg({ message: 'Removed the member <0>{target}</0>' }),
+  'workspaces.regenerateDKIMKey': msg({ message: 'Regenerated a DKIM key of <0>{target}</0>' }),
   'workspaces.setAuditLogSettings': msg({ message: 'Changed the audit log retention of <0>{target}</0>' }),
   'workspaces.setBlogSettings': msg({ message: 'Changed the blog settings of <0>{target}</0>' }),
   'workspaces.setCustomFieldLabels': msg({ message: 'Renamed the custom fields of <0>{target}</0>' }),
   'workspaces.setUserPermissions': msg({ message: 'Changed the permissions of <0>{target}</0>' }),
   'workspaces.setWebAnalyticsSettings': msg({ message: 'Changed the web analytics settings of <0>{target}</0>' }),
   'workspaces.update': msg({ message: 'Updated the workspace settings of <0>{target}</0>' }),
-  'workspaces.updateIntegration': msg({ message: 'Updated the integration <0>{target}</0>' })
+  'workspaces.updateIntegration': msg({ message: 'Updated the integration <0>{target}</0>' }),
+  'workspaces.verifyDKIMDomain': msg({ message: 'Checked a DKIM record of <0>{target}</0>' })
 }

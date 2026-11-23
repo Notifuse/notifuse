@@ -120,6 +120,10 @@ var AuditedActions = map[string]AuditActionSpec{
 	"workspaces.setCustomFieldLabels":    {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setWebAnalyticsSettings": {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setAuditLogSettings":     {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.createDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.regenerateDKIMKey":       {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.verifyDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.deleteDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 
 	// members
 	"workspaces.inviteMember":       {Category: AuditCategoryMembers, TargetType: AuditTargetUser, TargetKey: "email"},
@@ -345,6 +349,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"webhookSubscriptions.list":        {},
 	"workspaces.get":                   {},
 	"workspaces.list":                  {},
+	"workspaces.listDKIMDomains":       {},
 	"workspaces.members":               {},
 	"workspaces.pendingInvitations":    {},
 	"workspaces.verifyInvitationToken": {},
