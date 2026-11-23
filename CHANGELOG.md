@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: TimeScore and Bounce Rate now leave automated traffic out, while Sessions and pageviews still count it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
 
+- **Fix**: The Japanese console now uses one word for each thing: contacts are コンタクト on every screen (some said 連絡先), goals ゴール, the SMTP bridge SMTPリレー, web analytics Webアナリティクス and telemetry テレメトリー, and Japanese text no longer puts a space before or after a Latin word or a number. Three labels that shared one translation now have their own: sending a broadcast now reads 今すぐ (it read 現在, "current"), the source of an incoming webhook reads 送信元 (it used the web traffic source's 流入元), and the region in the web analytics settings reads 地域 (it used the AWS region's リージョン).
+
 - **Fix**: The Gmail app on iOS no longer shows a broken-image icon at the bottom of emails with open tracking. The tracking pixel was a PNG with truncated pixel data, which Gmail could not display; it is now a valid transparent PNG. Opens were recorded correctly all along.
 
 ## [44.0] - 2026-11-19
