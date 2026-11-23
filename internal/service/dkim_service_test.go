@@ -50,6 +50,7 @@ type fakeDKIMRepo struct {
 	writes       int
 	touches      int
 	reads        int
+	lists        int
 	// beforeUpdate runs before UpdateDKIMKeys reads the keys, to simulate a writer
 	// that commits during a lookup.
 	beforeUpdate func(r *fakeDKIMRepo)
@@ -66,6 +67,20 @@ func (r *fakeDKIMRepo) GetWorkspaceDKIMKeys(_ context.Context, _ string) ([]doma
 	defer r.mu.Unlock()
 	r.reads++
 	return append([]domain.DKIMKey{}, r.keys...), nil
+}
+
+func (r *fakeDKIMRepo) ListWorkspacesDKIMMetadata(_ context.Context) ([]domain.WorkspaceDKIMMetadata, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.lists++
+	if len(r.keys) == 0 {
+		return nil, nil
+	}
+	keys := make([]domain.DKIMKey, len(r.keys))
+	for i, k := range r.keys {
+		keys[i] = k.Public()
+	}
+	return []domain.WorkspaceDKIMMetadata{{WorkspaceID: "ws-1", Keys: keys}}, nil
 }
 
 func (r *fakeDKIMRepo) UpdateDKIMKeys(_ context.Context, _ string, mutate domain.DKIMKeysMutator) ([]domain.DKIMKey, error) {
