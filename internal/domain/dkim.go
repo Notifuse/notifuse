@@ -206,6 +206,16 @@ func NewDKIMSelector(now time.Time, random io.Reader) (string, error) {
 	return dkimSelectorPrefix + now.UTC().Format("200601") + hex.EncodeToString(b), nil
 }
 
+// DKIMSnapshot returns the workspace's keys as loaded, for SendEmailProviderRequest:
+// never nil, so that a workspace without keys needs no lookup at send time.
+func (w *Workspace) DKIMSnapshot() *[]DKIMKey {
+	keys := w.Settings.DKIMKeys
+	if keys == nil {
+		keys = []DKIMKey{}
+	}
+	return &keys
+}
+
 // FindDKIMKey returns the index of the key of domain (normalised), or -1.
 func FindDKIMKey(keys []DKIMKey, domain string) int {
 	for i := range keys {

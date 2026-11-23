@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/dkim"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/wneessen/go-mail"
 )
@@ -716,6 +717,24 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		return fmt.Errorf("failed to write message: %w", err)
 	}
 
+	// Sign last, over the exact bytes sent. go-mail encodes every part in 7 bits
+	// (quoted-printable, base64), so no relay re-encodes the body under the signature.
+	message := buf.Bytes()
+	if request.DKIM != nil {
+		if domain.EmailDomain(request.FromAddress) != request.DKIM.Domain {
+			return fmt.Errorf("%w: the key of %s cannot sign for %s", dkim.ErrSign, request.DKIM.Domain, request.FromAddress)
+		}
+		signed, err := dkim.Sign(message, dkim.SignParams{
+			Domain:   request.DKIM.Domain,
+			Selector: request.DKIM.Selector,
+			Key:      request.DKIM.Key,
+		})
+		if err != nil {
+			return err
+		}
+		message = signed
+	}
+
 	// Send using native net/smtp (avoids BODY=8BITMIME extension issues - fix for issue #172)
 	// Use sendRawEmailWithSettings for OAuth2 support
 	if err := sendRawEmailWithSettings(
@@ -723,7 +742,7 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		smtpSettings,
 		request.FromAddress,
 		recipients,
-		buf.Bytes(),
+		message,
 		s.oauth2Provider,
 	); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
