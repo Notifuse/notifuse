@@ -27,7 +27,9 @@ type retentionTestDeps struct {
 	mailer     *pkgmocks.MockMailer
 	eraser     *fakeEraser
 	audit      *fakeAudit
-	now        time.Time
+	// entitlements grants data_retention unless a test takes it away.
+	entitlements *fakeEntitlements
+	now          time.Time
 	// mirrors are the contact policies written for the segment condition (D13).
 	mirrors []domain.ContactPolicyMirror
 }
@@ -40,6 +42,21 @@ type fakeEraser struct {
 func (f *fakeEraser) EraseHistoryOfDeletedContact(_ context.Context, _ string, email string) error {
 	f.erased = append(f.erased, email)
 	return f.err
+}
+
+// fakeEntitlements counts the questions, so a test can show the run never asks.
+type fakeEntitlements struct {
+	revoked bool
+	asked   int
+}
+
+func (f *fakeEntitlements) Entitlements() domain.Entitlements {
+	f.asked++
+	if f.revoked {
+		return domain.CommunityEntitlements()
+	}
+	return domain.Entitlements{Tier: "enterprise", State: domain.LicenseStateActive, MaxWorkspaces: domain.UnlimitedWorkspaces,
+		Features: []domain.Feature{domain.FeatureDataRetention}, ExpiresAt: time.Now().Add(24 * time.Hour)}
 }
 
 type fakeAudit struct{ logs []*domain.AuditLog }
@@ -56,14 +73,15 @@ func newRetentionTest(t *testing.T) *retentionTestDeps {
 		auth:       mocks.NewMockAuthService(ctrl),
 		mailer:     pkgmocks.NewMockMailer(ctrl),
 		eraser:     &fakeEraser{},
-		audit:      &fakeAudit{},
-		now:        time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC),
+		audit:        &fakeAudit{},
+		entitlements: &fakeEntitlements{},
+		now:          time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC),
 	}
 	log := pkgmocks.NewMockLogger(ctrl)
 	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
 	log.EXPECT().Error(gomock.Any()).AnyTimes()
 	log.EXPECT().Warn(gomock.Any()).AnyTimes()
-	d.svc = NewDataRetentionService(d.workspaces, d.settings, d.repo, d.eraser, d.auth, d.mailer, d.audit, log)
+	d.svc = NewDataRetentionService(d.workspaces, d.settings, d.repo, d.eraser, d.auth, d.mailer, d.audit, d.entitlements, log)
 	d.svc.SetClock(func() time.Time { return d.now })
 	d.repo.EXPECT().SegmentsUsingRetentionCondition(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	d.settings.EXPECT().Set(gomock.Any(), DataRetentionLastRunSettingKey, gomock.Any()).Return(nil).AnyTimes()
@@ -239,6 +257,90 @@ func TestDataRetentionService_SetDefaults(t *testing.T) {
 	})
 }
 
+func TestDataRetentionService_LicenceGate(t *testing.T) {
+	unlicensed := func(t *testing.T) *retentionTestDeps {
+		d := newRetentionTest(t).withNoDefaults()
+		d.entitlements.revoked = true
+		d.as("owner")
+		return d
+	}
+	stored := &domain.DataRetentionSettings{Revision: 2, Policy: &domain.DataRetentionPolicy{
+		Categories:    map[domain.RetentionCategory]int{domain.RetentionInactiveContacts: 365, domain.RetentionMessageHistory: 400},
+		ExemptListIDs: []string{"vip"},
+	}}
+
+	t.Run("switching a category on is refused with 402, and nothing is written", func(t *testing.T) {
+		d := unlicensed(t)
+		d.workspaces.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWith(nil), nil)
+		_, err := d.svc.SetPolicy(context.Background(), "ws", contactsPolicy(365))
+		var notLicensed *domain.ErrFeatureNotLicensed
+		require.ErrorAs(t, err, &notLicensed)
+		assert.Equal(t, domain.FeatureDataRetention, notLicensed.Feature)
+		assert.Empty(t, d.mirrors)
+	})
+
+	t.Run("changing a period is refused", func(t *testing.T) {
+		d := unlicensed(t)
+		d.workspaces.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWith(stored), nil)
+		policy := stored.Policy.Clone()
+		policy.Categories[domain.RetentionInactiveContacts] = 730
+		_, err := d.svc.SetPolicy(context.Background(), "ws", policy)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		assert.ErrorAs(t, err, &notLicensed)
+	})
+
+	t.Run("switching a category off and removing an exemption pass", func(t *testing.T) {
+		d := unlicensed(t)
+		d.workspaces.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWith(stored), nil)
+		d.workspaces.EXPECT().SetDataRetentionSettings(gomock.Any(), "ws", 2, gomock.Any()).Return(true, nil)
+		policy := stored.Policy.Clone()
+		policy.Categories[domain.RetentionMessageHistory] = 0
+		policy.ExemptListIDs = nil
+		// Removing an exemption deletes more, so it waits and the owners are told.
+		d.workspaces.EXPECT().GetWorkspaceUsersWithEmail(gomock.Any(), "ws").Return(nil, nil)
+		got, err := d.svc.SetPolicy(context.Background(), "ws", policy)
+		require.NoError(t, err)
+		require.NotNil(t, got.Pending)
+		assert.Equal(t, 0, got.Pending.Policy.Categories[domain.RetentionMessageHistory])
+	})
+
+	t.Run("cancelling a waiting change never asks", func(t *testing.T) {
+		d := unlicensed(t)
+		waiting := &domain.DataRetentionSettings{Revision: 1, Pending: &domain.PendingRetentionChange{Policy: contactsPolicy(365), EffectiveAt: d.now.Add(time.Hour)}}
+		d.workspaces.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWith(waiting), nil)
+		d.workspaces.EXPECT().SetDataRetentionSettings(gomock.Any(), "ws", 1, gomock.Any()).Return(true, nil)
+		_, err := d.svc.CancelPending(context.Background(), "ws")
+		require.NoError(t, err)
+		assert.Zero(t, d.entitlements.asked)
+	})
+
+	t.Run("root: a default switched on is refused, and nothing is stored", func(t *testing.T) {
+		d := unlicensed(t)
+		_, err := d.svc.SetDefaults(context.Background(), map[domain.RetentionCategory]int{domain.RetentionMessageHistory: 365})
+		var notLicensed *domain.ErrFeatureNotLicensed
+		assert.ErrorAs(t, err, &notLicensed)
+	})
+
+	t.Run("root: a technical log switched off passes", func(t *testing.T) {
+		d := unlicensed(t)
+		d.settings.EXPECT().Set(gomock.Any(), DataRetentionDefaultsSettingKey, gomock.Any()).Return(nil)
+		d.workspaces.EXPECT().List(gomock.Any()).Return(nil, nil)
+		_, err := d.svc.SetDefaults(context.Background(), map[domain.RetentionCategory]int{domain.RetentionWebhookDeliveries: 0})
+		require.NoError(t, err)
+	})
+
+	t.Run("licensed: the same first category is saved", func(t *testing.T) {
+		d := newRetentionTest(t).withNoDefaults()
+		d.as("owner")
+		d.workspaces.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWith(nil), nil)
+		d.workspaces.EXPECT().SetDataRetentionSettings(gomock.Any(), "ws", 0, gomock.Any()).Return(true, nil)
+		d.workspaces.EXPECT().GetWorkspaceUsersWithEmail(gomock.Any(), "ws").Return(nil, nil)
+		_, err := d.svc.SetPolicy(context.Background(), "ws", contactsPolicy(365))
+		require.NoError(t, err)
+		assert.Positive(t, d.entitlements.asked)
+	})
+}
+
 func TestDataRetentionService_RunWorkspace(t *testing.T) {
 	inForce := &domain.DataRetentionSettings{Policy: &domain.DataRetentionPolicy{
 		Categories:           map[domain.RetentionCategory]int{domain.RetentionInactiveContacts: 365, domain.RetentionContactTimeline: 90},
@@ -264,6 +366,7 @@ func TestDataRetentionService_RunWorkspace(t *testing.T) {
 
 	t.Run("deletes the expired contacts, erases their history, then runs the other categories", func(t *testing.T) {
 		d := newRetentionTest(t).withNoDefaults()
+		d.entitlements.revoked = true // a policy saved under a key keeps running after it lapses
 		released := false
 		d.repo.EXPECT().TryLock(gomock.Any(), "ws").Return(func() { released = true }, true, nil)
 		run := expectRunRecorded(d)
@@ -290,6 +393,7 @@ func TestDataRetentionService_RunWorkspace(t *testing.T) {
 		d.repo.EXPECT().PurgeCategory(gomock.Any(), "ws", domain.RetentionFailedEmails, gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(0), nil)
 
 		require.NoError(t, d.svc.RunWorkspace(context.Background(), workspaceWith(inForce), nil))
+		assert.Zero(t, d.entitlements.asked, "the run never asks the licence")
 		assert.True(t, released)
 		require.NotEmpty(t, d.mirrors, "every run writes the mirror again")
 		assert.Equal(t, 365, d.mirrors[0].Days)

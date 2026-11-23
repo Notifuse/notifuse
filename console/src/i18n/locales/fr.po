@@ -662,7 +662,7 @@ msgstr "{0} s'est désabonné de {name}"
 
 #. placeholder {0}: number(result.opt_outs_kept)
 #. placeholder {0}: number(row.result.opt_outs_kept)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:250
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:257
 #: src/components/settings/data_retention/RetentionPreviewModal.tsx:111
 msgid "{0} unsubscribes kept as hashes"
 msgstr "{0} désabonnements conservés sous forme d'empreinte"
@@ -719,11 +719,11 @@ msgstr "{ariaLabel} : unité"
 msgid "{bounced, plural, one {# address} other {# addresses}}"
 msgstr "{bounced, plural, one {# adresse} other {# adresses}}"
 
-#: src/services/api/licenseErrors.ts:118
+#: src/services/api/licenseErrors.ts:119
 msgid "{capability} requires a Notifuse {tier} licence."
 msgstr "{capability} nécessite une licence Notifuse {tier}."
 
-#: src/services/api/licenseErrors.ts:120
+#: src/services/api/licenseErrors.ts:121
 msgid "{capability} requires a Notifuse licence."
 msgstr "{capability} nécessite une licence Notifuse."
 
@@ -1127,11 +1127,11 @@ msgstr "{label} : {value}, voir dans le journal des messages"
 msgid "{label}: no data, view in the message log"
 msgstr "{label} : aucune donnée, voir dans le journal des messages"
 
-#: src/components/settings/data_retention/PeriodInput.tsx:41
+#: src/components/settings/data_retention/PeriodInput.tsx:43
 msgid "{label}: period"
 msgstr "{label} : durée"
 
-#: src/components/settings/data_retention/PeriodInput.tsx:51
+#: src/components/settings/data_retention/PeriodInput.tsx:53
 msgid "{label}: unit"
 msgstr "{label} : unité"
 
@@ -1532,18 +1532,18 @@ msgstr "{totalRows, plural, one {# ligne} other {{rowCount} lignes}}"
 msgid "{unsubscribed, plural, one {# contact} other {# contacts}}"
 msgstr "{unsubscribed, plural, one {# contact} other {# contacts}}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:137
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:94
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:143
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:98
 msgid "{value, plural, one {# day} other {# days}}"
 msgstr "{value, plural, one {# jour} other {# jours}}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:136
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:93
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:142
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:97
 msgid "{value, plural, one {# month} other {# months}}"
 msgstr "{value, plural, one {# mois} other {# mois}}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:135
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:92
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:141
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:96
 msgid "{value, plural, one {# year} other {# years}}"
 msgstr "{value, plural, one {# an} other {# ans}}"
 
@@ -1923,7 +1923,7 @@ msgid "A bulk action is already running"
 msgstr "Une action en masse est déjà en cours"
 
 #. placeholder {0}: formatDate(view.pending_at)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:306
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:314
 msgid "A change that deletes more data takes effect on {0}"
 msgstr "Un changement qui supprime plus de données prend effet le {0}"
 
@@ -2068,13 +2068,17 @@ msgstr "Un nombre (1.3) ou des pixels jusqu'à 200px."
 msgid "A one-time code to sign in or confirm an action."
 msgstr "Un code à usage unique pour se connecter ou confirmer une action."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:443
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:451
 msgid "A period is shorter than its category allows"
 msgstr "Une durée est plus courte que le minimum de sa catégorie"
 
 #: src/components/settings/WorkspaceMembers.tsx:279
 msgid "A platform admin reaches every workspace without joining it"
 msgstr "Un administrateur de la plateforme accède à tous les espaces de travail sans les rejoindre"
+
+#: src/components/license/LicenceGateNotice.tsx:70
+msgid "A policy already saved keeps running. Switching a category off and removing an exemption are always allowed. Anything else needs a licence."
+msgstr "Une règle déjà enregistrée continue de s'appliquer. Désactiver une catégorie et retirer une exemption sont toujours permis. Tout le reste nécessite une licence."
 
 #. placeholder {0}: csvData.fileName
 #: src/components/contacts/BulkUpdateDrawer.tsx:414
@@ -3295,7 +3299,7 @@ msgstr "Une invitation à rejoindre une équipe ou un espace."
 msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
 msgstr "Une adresse IP et un ID de cible doivent correspondre exactement ; un email d'acteur correspond à n'importe quelle partie."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:386
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:394
 msgid "An open never counts. Clicks, replies, confirmations, a contact's own subscriptions and identified visits always do."
 msgstr "Une ouverture ne compte jamais. Les clics, les réponses, les confirmations, les inscriptions faites par le contact lui-même et les visites identifiées comptent toujours."
 
@@ -3855,8 +3859,8 @@ msgstr "au moins"
 
 #. placeholder {0}: formatPeriod(minimum(category))
 #. placeholder {0}: formatPeriod(spec.min_days)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:196
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:124
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:203
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:130
 msgid "At least {0}"
 msgstr "Au moins {0}"
 
@@ -5288,7 +5292,7 @@ msgstr "Libellé du bouton"
 msgid "Button width"
 msgstr "Largeur du bouton"
 
-#: src/components/settings/LicenseSettings.tsx:221
+#: src/components/settings/LicenseSettings.tsx:222
 msgid "Buy a licence"
 msgstr "Acheter une licence"
 
@@ -5477,7 +5481,7 @@ msgstr "Annuler la diffusion ?"
 #~ msgid "Cancel Operation?"
 #~ msgstr "Annuler l'opération ?"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:324
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:332
 msgid "Cancel the change"
 msgstr "Annuler le changement"
 
@@ -5489,7 +5493,7 @@ msgstr "Annuler les modifications de la règle"
 msgid "Cancel the scheduled send?"
 msgstr "Annuler l’envoi programmé ?"
 
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:139
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:145
 msgid "Cancel this change"
 msgstr "Annuler ce changement"
 
@@ -5553,7 +5557,7 @@ msgstr "Impossible d'envoyer en mode lecture seule"
 msgid "Canonical URL"
 msgstr "URL canonique"
 
-#: src/components/settings/LicenseSettings.tsx:187
+#: src/components/settings/LicenseSettings.tsx:188
 msgid "Capabilities"
 msgstr "Fonctionnalités"
 
@@ -6442,7 +6446,7 @@ msgstr "Ports courants : 587 (STARTTLS), 465 (TLS implicite), 25 (non chiffré).
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Ports courants : 587 (TLS), 465 (SSL), 25 (non chiffré)"
 
-#: src/components/settings/LicenseSettings.tsx:181
+#: src/components/settings/LicenseSettings.tsx:182
 msgid "Community"
 msgstr "Community"
 
@@ -6554,7 +6558,7 @@ msgstr "Complétez la condition pour actualiser le décompte"
 #: src/components/automations/stats/StepStats.tsx:21
 #: src/components/broadcasts/detail/BroadcastAside.tsx:220
 #: src/components/broadcasts/detail/BroadcastAside.tsx:277
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:227
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:234
 #: src/components/web_analytics/lib/backfill.ts:28
 msgid "Completed"
 msgstr "Terminé"
@@ -7247,11 +7251,11 @@ msgstr "Impossible de charger les annotations"
 msgid "Could not load the dashboard"
 msgstr "Impossible de charger le tableau de bord"
 
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:53
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:55
 msgid "Could not load the data retention defaults"
 msgstr "Impossible de charger les valeurs par défaut de conservation des données"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:66
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:68
 msgid "Could not load the data retention settings"
 msgstr "Impossible de charger les paramètres de conservation des données"
 
@@ -8090,8 +8094,8 @@ msgstr "Événement personnalisé : {0}"
 msgid "Custom events"
 msgstr "Événements personnalisés"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:375
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:379
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:383
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:387
 msgid "Custom events that count as activity"
 msgstr "Événements personnalisés qui comptent comme activité"
 
@@ -8297,7 +8301,7 @@ msgid "Dashed"
 msgstr "Pointillé"
 
 #: src/components/logs/MessageDetail.tsx:320
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:156
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:162
 #: src/components/settings/data_retention/RetentionPreviewModal.tsx:88
 msgid "Data"
 msgstr "Données"
@@ -8308,14 +8312,20 @@ msgstr "Flux de données"
 
 #: src/components/segment/form_leaf.tsx:872
 #: src/components/segment/input.tsx:68
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:44
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:46
+#: src/components/settings/LicenseSettings.tsx:140
 #: src/components/settings/SettingsSidebar.tsx:61
+#: src/services/api/licenseErrors.ts:54
 msgid "Data retention"
 msgstr "Conservation des données"
 
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:82
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:86
 msgid "Data retention defaults saved"
 msgstr "Valeurs par défaut de conservation enregistrées"
+
+#: src/components/license/LicenceGateNotice.tsx:58
+msgid "Data retention policies require a Notifuse {tier} licence."
+msgstr "Les règles de conservation des données nécessitent une licence Notifuse {tier}."
 
 #: src/components/settings/data_retention/RetentionPreviewModal.tsx:58
 msgid "Data retention policy saved"
@@ -8357,7 +8367,7 @@ msgstr "Jour"
 #: src/components/segment/FilterValueInput.tsx:146
 #: src/components/segment/form_leaf.tsx:252
 #: src/components/segment/form_leaf.tsx:886
-#: src/components/settings/data_retention/PeriodInput.tsx:54
+#: src/components/settings/data_retention/PeriodInput.tsx:56
 msgid "days"
 msgstr "jours"
 
@@ -8435,7 +8445,7 @@ msgstr "Langue par défaut : {languageName}"
 msgid "Default marketing"
 msgstr "Marketing par défaut"
 
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:48
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:50
 msgid "Default periods for every workspace. A workspace that sets its own period keeps it. A default that deletes more waits 7 days, and the owners of the workspaces it reaches get an email."
 msgstr "Durées par défaut de tous les espaces de travail. Un espace de travail qui fixe sa propre durée la garde. Une valeur par défaut qui supprime davantage attend 7 jours, et les propriétaires des espaces de travail concernés reçoivent un email."
 
@@ -9112,7 +9122,7 @@ msgstr "Refusé"
 msgid "Deployment"
 msgstr "Déploiement"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:185
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:192
 msgid "Deployment default"
 msgstr "Valeur par défaut du déploiement"
 
@@ -9281,7 +9291,7 @@ msgstr "Règles désactivées"
 #: src/components/layout/SaveBar.tsx:101
 #: src/components/lists/ListDrawer.tsx:214
 #: src/components/segment/SegmentDrawer.tsx:182
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:150
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:156
 #: src/components/templates/CreateTemplateDrawer.tsx:897
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
@@ -11151,7 +11161,7 @@ msgstr "Chaque opération « définir » nécessite une valeur"
 msgid "Every condition and every operation has a value"
 msgstr "Chaque condition et chaque opération a une valeur"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:333
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:341
 msgid "Every day at 05:00 UTC, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance."
 msgstr "Chaque jour à 05:00 UTC, Notifuse supprime ou anonymise ce qui dépasse sa durée. « Désactivé » conserve tout. Un changement qui supprime davantage attend 7 jours : on peut donc encore l'annuler. Les valeurs suggérées suivent les recommandations de la CNIL."
 
@@ -11179,7 +11189,7 @@ msgstr "Tous les champs de la visite"
 msgid "Every imported contact is added to these lists."
 msgstr "Chaque contact importé est ajouté à ces listes."
 
-#: src/components/license/LicenceGateNotice.tsx:64
+#: src/components/license/LicenceGateNotice.tsx:65
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
 msgstr "Chaque membre garde l'accès qu'il a, et tout membre peut toujours recevoir un accès complet. Seul un accès plus restreint nécessite une licence."
 
@@ -11203,7 +11213,7 @@ msgstr "À chaque fois"
 #~ msgid "Every workspace plus deployment-level events — sign-ins, the licence, the system settings. Visible to root users only."
 #~ msgstr "Tous les workspaces plus les événements au niveau du déploiement — connexions, licence, paramètres système. Visible uniquement par les utilisateurs root."
 
-#: src/components/license/LicenceGateNotice.tsx:66
+#: src/components/license/LicenceGateNotice.tsx:67
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
 msgstr "Chacun se connecte avec un code de connexion en attendant ; personne n'est bloqué."
 
@@ -11262,11 +11272,11 @@ msgstr "Exclure les destinataires désinscrits"
 msgid "Excluded"
 msgstr "Exclus"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:352
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:360
 msgid "Exempt lists"
 msgstr "Listes exemptées"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:364
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:372
 msgid "Exempt segments"
 msgstr "Segments exemptés"
 
@@ -11331,7 +11341,7 @@ msgstr "Expirée"
 msgid "Expired, in grace period"
 msgstr "Expirée, en période de grâce"
 
-#: src/components/settings/LicenseSettings.tsx:183
+#: src/components/settings/LicenseSettings.tsx:184
 msgid "Expires"
 msgstr "Expiration"
 
@@ -11358,7 +11368,7 @@ msgstr "Exporter"
 msgid "Export Contacts to CSV"
 msgstr "Exporter les contacts vers CSV"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:422
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:430
 msgid "Export CSV"
 msgstr "Exporter en CSV"
 
@@ -11456,7 +11466,7 @@ msgstr "Très élevé"
 #: src/components/logs/MessagesTab.tsx:287
 #: src/components/logs/MessagesTab.tsx:925
 #: src/components/messages/MessageHistoryTable.tsx:344
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:229
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:236
 #: src/components/settings/WebhookDetail.tsx:540
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
@@ -13694,7 +13704,7 @@ msgstr "Si un contact avec cet email existe déjà, les champs fournis seront é
 msgid "If Notifuse requires two-factor authentication, they set it up again at their next sign-in."
 msgstr "Si Notifuse exige la double authentification, elle sera à configurer de nouveau à sa prochaine connexion."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:371
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:379
 msgid "If one of them is deleted or being rebuilt, no contact is deleted until it is back."
 msgstr "Si l'un d'eux est supprimé ou en cours de reconstruction, aucun contact n'est supprimé avant son retour."
 
@@ -13999,7 +14009,7 @@ msgid "inactive"
 msgstr "inactif"
 
 #: src/components/settings/data_retention/categoryText.ts:6
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:345
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:353
 msgid "Inactive contacts"
 msgstr "Contacts inactifs"
 
@@ -14151,11 +14161,11 @@ msgstr "À l'intérieur de la colonne"
 msgid "Install"
 msgstr "Installer"
 
-#: src/components/settings/LicenseSettings.tsx:226
+#: src/components/settings/LicenseSettings.tsx:227
 msgid "Install a licence key"
 msgstr "Installer une clé de licence"
 
-#: src/components/settings/LicenseSettings.tsx:242
+#: src/components/settings/LicenseSettings.tsx:243
 msgid "Install licence key"
 msgstr "Installer la clé de licence"
 
@@ -14633,7 +14643,7 @@ msgstr "Continuer l'édition"
 msgid "Keep entries for (days)"
 msgstr "Conserver les entrées pendant (jours)"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:168
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:174
 msgid "Keep for"
 msgstr "Conserver pendant"
 
@@ -15064,7 +15074,7 @@ msgstr "Bibliothèque"
 
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:66
-#: src/components/settings/LicenseSettings.tsx:162
+#: src/components/settings/LicenseSettings.tsx:163
 #: src/components/settings/SettingsSidebar.tsx:62
 msgid "Licence"
 msgstr "Licence"
@@ -15082,7 +15092,7 @@ msgid "Licensed capability"
 msgstr "Fonctionnalité sous licence"
 
 #. placeholder {0}: entitlements.org
-#: src/components/settings/LicenseSettings.tsx:157
+#: src/components/settings/LicenseSettings.tsx:158
 msgid "Licensed to {0}"
 msgstr "Sous licence : {0}"
 
@@ -15098,7 +15108,7 @@ msgstr "Cycle de vie"
 msgid "Lime"
 msgstr "Citron vert"
 
-#: src/components/settings/data_retention/PeriodInput.tsx:28
+#: src/components/settings/data_retention/PeriodInput.tsx:30
 msgid "Limit how long {label} is kept"
 msgstr "Limiter la durée de conservation : {label}"
 
@@ -16365,7 +16375,7 @@ msgstr "Mensuel"
 #~ msgid "Monthly partitions older than this are dropped. 0 keeps data forever."
 #~ msgstr ""
 
-#: src/components/settings/data_retention/PeriodInput.tsx:55
+#: src/components/settings/data_retention/PeriodInput.tsx:57
 msgid "months"
 msgstr "mois"
 
@@ -16395,7 +16405,7 @@ msgstr "Plus d'actions"
 msgid "More actions for {name}"
 msgstr "Plus d’actions pour {name}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:251
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:258
 msgid "more at the next run"
 msgstr "la suite à la prochaine exécution"
 
@@ -16579,11 +16589,11 @@ msgstr "Réseau"
 msgid "Never"
 msgstr "Jamais"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:348
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:356
 msgid "Never delete members of these lists"
 msgstr "Ne jamais supprimer les membres de ces listes"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:360
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:368
 msgid "Never delete members of these segments"
 msgstr "Ne jamais supprimer les membres de ces segments"
 
@@ -17192,7 +17202,7 @@ msgstr "Aucun clic sur un lien enregistré pour cette variation pour le moment"
 
 #: src/components/automations/list/AutomationsTable.tsx:193
 #: src/components/contacts/csv-import/ColumnsStep.tsx:222
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:353
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:361
 msgid "No list"
 msgstr "Pas de liste"
 
@@ -17208,17 +17218,17 @@ msgstr "Aucune liste choisie"
 msgid "No lists yet"
 msgstr "Aucune liste pour l'instant"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:293
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:300
 msgid "No longer counts as activity: {name}"
 msgstr "Ne compte plus comme activité : {name}"
 
 #. placeholder {0}: listName(id)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:287
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:294
 msgid "No longer exempt: the list {0}"
 msgstr "N'est plus exemptée : la liste {0}"
 
 #. placeholder {0}: segmentName(id)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:290
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:297
 msgid "No longer exempt: the segment {0}"
 msgstr "N'est plus exempté : le segment {0}"
 
@@ -17388,7 +17398,7 @@ msgstr "Aucune règle n'est désactivée"
 msgid "No rule matches this visit"
 msgstr "Aucune règle ne correspond à cette visite"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:432
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:440
 msgid "No run yet. The first one starts at 05:00 UTC."
 msgstr "Aucune exécution pour l'instant. La première commence à 05:00 UTC."
 
@@ -17410,7 +17420,7 @@ msgstr "Pas encore de blocs enregistrés"
 msgid "No scheduled posts"
 msgstr "Aucun article programmé"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:365
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:373
 msgid "No segment"
 msgstr "Aucun segment"
 
@@ -17646,7 +17656,7 @@ msgstr "aucun"
 #: src/components/email_builder/ui/fields/BorderField.tsx:90
 #: src/components/email_builder/ui/fields/ColorField.tsx:93
 #: src/components/integrations/LLMIntegration.tsx:260
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:380
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:388
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
@@ -17897,7 +17907,7 @@ msgstr "Note : Cela peut être causé par un fichier MJML mal structuré. Le con
 msgid "Notes"
 msgstr "Notes"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:242
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:249
 msgid "Nothing"
 msgstr "Rien"
 
@@ -17936,7 +17946,7 @@ msgstr "Rien ces 7 derniers jours"
 msgid "Nothing in this period"
 msgstr "Rien sur cette période"
 
-#: src/components/license/LicenceGateNotice.tsx:67
+#: src/components/license/LicenceGateNotice.tsx:68
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "Rien n'est enregistré, et rien n'est refusé : cette page, l'export et le réglage de rétention restent disponibles, et les entrées enregistrées pendant qu'une licence couvrait les journaux d'audit restent lisibles."
 
@@ -17995,7 +18005,7 @@ msgstr "Notifuse a désactivé ce webhook automatiquement"
 msgid "Notifuse export (.json)"
 msgstr "Export Notifuse (.json)"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:411
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:419
 msgid "Notifuse is reading past activity from history. Until it finishes, no contact is deleted as inactive."
 msgstr "Notifuse lit l'activité passée dans l'historique. Tant que ce n'est pas terminé, aucun contact n'est supprimé pour inactivité."
 
@@ -18185,8 +18195,8 @@ msgstr "désactivés"
 
 #: src/components/settings/BlogSettings.tsx:334
 #: src/components/settings/data_retention/categoryText.ts:31
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:133
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:90
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:139
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:94
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/setup/setupHooks.ts:54
 #: src/components/transactional/TransactionalDetail.tsx:373
@@ -18993,7 +19003,7 @@ msgstr "Partie d'un email"
 msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any link."
 msgstr "Une partie de l'URL du lien, sans distinction de casse. Laissez vide pour démarrer sur n'importe quel lien."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:228
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:235
 msgid "Partial"
 msgstr "Partiel"
 
@@ -19025,7 +19035,7 @@ msgstr "Réinitialisation du mot de passe"
 #~ msgid "Past 140 characters, most inboxes cut the text."
 #~ msgstr "Au-delà de 140 caractères, la plupart des messageries coupent le texte."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:391
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:399
 msgid "Past activity has been read from history: contacts can be deleted as inactive."
 msgstr "L'activité passée a été lue dans l'historique : les contacts inactifs peuvent être supprimés."
 
@@ -19042,7 +19052,7 @@ msgstr "Sessions passées"
 msgid "Paste it in Supabase › Authentication › Hooks"
 msgstr "Collez-la dans Supabase › Authentication › Hooks"
 
-#: src/components/settings/LicenseSettings.tsx:228
+#: src/components/settings/LicenseSettings.tsx:229
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
 msgstr "Collez la clé reçue par e-mail lors de votre achat. Elle est vérifiée hors ligne avec une clé de signature intégrée à ce binaire — rien n'est envoyé nulle part."
 
@@ -19266,7 +19276,7 @@ msgstr "Période — {detail}"
 #~ msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 #~ msgstr "Vérifier périodiquement les nouvelles versions de Notifuse et les mises à jour de sécurité. Une popup listera les nouvelles versions disponibles."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:331
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:339
 msgid "Periods"
 msgstr "Durées"
 
@@ -19405,7 +19415,7 @@ msgstr "Épingler la barre latérale"
 msgid "Plain text (only safe behind a TLS-terminating proxy)"
 msgstr "Texte en clair (sûr uniquement derrière un proxy terminant le TLS)"
 
-#: src/components/settings/LicenseSettings.tsx:180
+#: src/components/settings/LicenseSettings.tsx:181
 msgid "Plan"
 msgstr "Palier"
 
@@ -19896,7 +19906,7 @@ msgstr "Aperçu"
 msgid "Preview accepts any definition sent to it, not just a saved segment, so anyone holding it together with Contacts read can ask counting questions about contact attributes, list membership, custom events and timeline — one count at a time, on any condition they like. Segments read alone cannot reach it. Segment permissions also quietly decide who may run three kinds of background task on the shared /api/tasks.* endpoints."
 msgstr "L'aperçu accepte n'importe quelle définition qui lui est envoyée, et pas seulement un segment enregistré : quiconque le détient avec la lecture Contacts peut donc poser des questions de comptage sur les attributs des contacts, l'appartenance aux listes, les événements personnalisés et la chronologie — un décompte à la fois, sur la condition de son choix. La lecture Segments seule n'y donne pas accès. Les permissions Segments décident aussi discrètement de qui peut exécuter trois types de tâches en arrière-plan sur les endpoints partagés /api/tasks.*."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:441
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:449
 msgid "Preview and save"
 msgstr "Prévisualiser et enregistrer"
 
@@ -20564,11 +20574,11 @@ msgstr "Lire le guide de configuration Zapier"
 #~ msgid "Read-only: single sign-on is enabled without a licence that covers it. Turn SSO off, or install a licence, to make changes."
 #~ msgstr "Lecture seule : l'authentification unique (SSO) est activée sans licence qui la couvre. Désactivez le SSO, ou installez une licence, pour pouvoir modifier."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:123
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:129
 msgid "Reading past activity again"
 msgstr "Nouvelle lecture de l'activité passée"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:397
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:405
 msgid "Reading past activity from history failed. Until it succeeds, no contact is deleted as inactive."
 msgstr "La lecture de l'activité passée dans l'historique a échoué. Tant qu'elle n'aboutit pas, aucun contact n'est supprimé pour inactivité."
 
@@ -20848,7 +20858,7 @@ msgstr "Référents"
 #: src/components/messages/MessageHistoryTable.tsx:434
 #: src/components/settings/DomainsSettings.tsx:408
 #: src/components/settings/DomainsSettings.tsx:412
-#: src/components/settings/LicenseSettings.tsx:176
+#: src/components/settings/LicenseSettings.tsx:177
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
 #: src/pages/ContactsPage.tsx:721
@@ -21374,7 +21384,7 @@ msgid "Request ID"
 msgstr "ID de requête"
 
 #. placeholder {0}: view.pending.requested_by
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:313
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:321
 msgid "Requested by {0}. The owners were told by email."
 msgstr "Demandé par {0}. Les propriétaires ont été prévenus par email."
 
@@ -21828,7 +21838,7 @@ msgstr "Règle mise à jour"
 msgid "Rules that also write {dimensionList}"
 msgstr "Règles qui écrivent aussi {dimensionList}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:217
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:224
 msgid "Run"
 msgstr "Exécution"
 
@@ -21878,7 +21888,7 @@ msgstr "Lancer le recalcul historique"
 msgid "Run backfill again"
 msgstr "Relancer le recalcul historique"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:402
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:410
 msgid "Run it again"
 msgstr "Relancer"
 
@@ -21896,7 +21906,7 @@ msgstr "Exécutées quand la règle correspond"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:219
 #: src/components/contacts/BulkUpdateDrawer.tsx:183
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:226
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:233
 msgid "Running"
 msgstr "En cours"
 
@@ -21904,7 +21914,7 @@ msgstr "En cours"
 msgid "Running · {progress}"
 msgstr "En cours · {progress}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:418
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:426
 msgid "Runs"
 msgstr "Exécutions"
 
@@ -22100,7 +22110,7 @@ msgstr "Enregistrez d’abord l’automation"
 msgid "Save the broadcast first"
 msgstr "Enregistrez d'abord la newsletter"
 
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:153
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:159
 msgid "Save the defaults"
 msgstr "Enregistrer les valeurs par défaut"
 
@@ -22198,7 +22208,7 @@ msgstr "Blocs enregistrés ({savedCount})"
 msgid "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 msgstr "Les blocs enregistrés sont utilisables dans tous les modèles de l’espace de travail. Les modèles qui contiennent déjà ce bloc ne changent pas."
 
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:146
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:152
 msgid "Saved on its own: the server does not restart."
 msgstr "Enregistré à part : le serveur ne redémarre pas."
 
@@ -22210,7 +22220,7 @@ msgstr "A enregistré le bloc <0>{target}</0>"
 msgid "Saved. The change that deletes more takes effect in 7 days."
 msgstr "Enregistré. Le changement qui supprime davantage prend effet dans 7 jours."
 
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:81
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:85
 msgid "Saved. The defaults that delete more take effect in 7 days."
 msgstr "Enregistré. Les valeurs par défaut qui suppriment davantage prennent effet dans 7 jours."
 
@@ -23279,7 +23289,7 @@ msgstr "Tâche d'envoi"
 msgid "Sending test webhook..."
 msgstr "Envoi du webhook de test..."
 
-#: src/components/license/LicenceGateNotice.tsx:65
+#: src/components/license/LicenceGateNotice.tsx:66
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr "L'envoi via cette intégration n'est pas affecté, et un tenant déjà créé continue d'être utilisé. Activer l'isolation nécessite une licence."
 
@@ -23864,7 +23874,7 @@ msgstr "Partagés"
 msgid "shared with the rest of this AWS account"
 msgstr "partagé avec le reste de ce compte AWS"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:204
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:211
 msgid "Shortest"
 msgstr "Minimum"
 
@@ -24729,9 +24739,9 @@ msgstr "Les statistiques apparaissent dès que la newsletter commence à partir"
 #: src/components/logs/OutgoingWebhooksTab.tsx:189
 #: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/BlogSettings.tsx:332
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:222
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:229
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:61
-#: src/components/settings/LicenseSettings.tsx:169
+#: src/components/settings/LicenseSettings.tsx:170
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
 #: src/components/web_analytics/filters/FilterTable.tsx:310
@@ -25081,7 +25091,7 @@ msgstr "Réussi"
 msgid "Successfully signed in"
 msgstr "Connexion réussie"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:209
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:216
 msgid "Suggested"
 msgstr "Suggéré"
 
@@ -25888,7 +25898,7 @@ msgstr "La catégorie {forcedLabel} est imposée là où ce modèle est créé :
 msgid "The category is set by where this template is used"
 msgstr "La catégorie dépend de l'endroit où ce modèle est utilisé"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:115
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:121
 msgid "The change was cancelled"
 msgstr "Le changement a été annulé"
 
@@ -26086,7 +26096,7 @@ msgid "The email this step sends"
 msgstr "L'email envoyé par cette étape"
 
 #: src/components/logs/AuditLogTab.tsx:151
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:266
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:273
 msgid "The export failed"
 msgstr "L'export a échoué"
 
@@ -26288,7 +26298,7 @@ msgstr "L'opérateur {0} n'est pas pris en charge ici"
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "Le journal des messages sortants : chaque email envoyé par l'espace de travail, son statut de livraison et l'engagement comptabilisé pour lui."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:314
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:322
 msgid "The owners were told by email."
 msgstr "Les propriétaires ont été prévenus par email."
 
@@ -26784,7 +26794,7 @@ msgstr "Cette action est irréversible."
 msgid "This category is not created yet."
 msgstr "Cette catégorie n'est pas encore créée."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:317
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:325
 msgid "This comes from the deployment defaults, set by the administrator of this installation."
 msgstr "Cela vient des valeurs par défaut du déploiement, fixées par l'administrateur de cette installation."
 
@@ -26806,7 +26816,7 @@ msgstr "Ce contact n'est abonné à aucune liste"
 msgid "This deletes more than the policy in force, so that part starts on {0}. The owners get an email and can cancel it until then. The rest applies at the next run."
 msgstr "Cette politique supprime plus que celle en vigueur : cette partie commence le {0}. Les propriétaires reçoivent un email et peuvent l'annuler d'ici là. Le reste s'applique à la prochaine exécution."
 
-#: src/services/api/licenseErrors.ts:111
+#: src/services/api/licenseErrors.ts:112
 msgid "This deployment has reached the number of workspaces its licence allows. Existing workspaces are unaffected; a licence with a higher limit allows more."
 msgstr "Ce déploiement a atteint le nombre d'espaces de travail autorisé par sa licence. Les espaces existants ne sont pas affectés ; une licence avec une limite plus élevée en autorise davantage."
 
@@ -27810,7 +27820,7 @@ msgstr "Traduire en {name}"
 msgid "Translations"
 msgstr "Traductions"
 
-#: src/components/license/LicenceGateNotice.tsx:68
+#: src/components/license/LicenceGateNotice.tsx:69
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
 msgstr "Les traductions déjà enregistrées continuent d'être envoyées, et en désactiver une est toujours permis. En ajouter ou en modifier une nécessite une licence."
 
@@ -28148,7 +28158,7 @@ msgstr "Segment inconnu ({id})"
 #~ msgid "Unknown status"
 #~ msgstr "Statut inconnu"
 
-#: src/components/settings/LicenseSettings.tsx:144
+#: src/components/settings/LicenseSettings.tsx:145
 msgid "Unlimited"
 msgstr "Illimité"
 
@@ -28633,7 +28643,7 @@ msgid "Use the automatic version?"
 msgstr "Utiliser la version automatique ?"
 
 #. placeholder {0}: formatPeriod(view.defaults[spec.category] ?? 0)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:190
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:197
 msgid "Use the default ({0})"
 msgstr "Utiliser la valeur par défaut ({0})"
 
@@ -29265,7 +29275,7 @@ msgid "Waiting for the server to come back"
 msgstr "En attente du retour du serveur"
 
 #. placeholder {0}: new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium' }).format(new Date(pending.effective_at))
-#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:135
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:141
 msgid "Waiting until {0}"
 msgstr "En attente jusqu'au {0}"
 
@@ -29564,7 +29574,7 @@ msgstr "Ce qu'un lecteur de flux montre de chaque article"
 msgid "What gets exported"
 msgstr "Ce qui est exporté"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:236
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:243
 msgid "What it removed"
 msgstr "Ce qui a été supprimé"
 
@@ -30003,8 +30013,8 @@ msgstr "L'écriture Espace de travail est bien plus étroite que son nom : le se
 msgid "Workspace:"
 msgstr "Espace de travail :"
 
-#: src/components/settings/LicenseSettings.tsx:186
-#: src/services/api/licenseErrors.ts:54
+#: src/components/settings/LicenseSettings.tsx:187
+#: src/services/api/licenseErrors.ts:55
 msgid "Workspaces"
 msgstr "Espaces de travail"
 
@@ -30071,7 +30081,7 @@ msgstr "Année en cours"
 msgid "Yearly"
 msgstr "Annuel"
 
-#: src/components/settings/data_retention/PeriodInput.tsx:56
+#: src/components/settings/data_retention/PeriodInput.tsx:58
 msgid "years"
 msgstr "ans"
 
@@ -30267,7 +30277,7 @@ msgstr "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloi
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir fermer ? Vos modifications seront perdues."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:446
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:454
 msgid "You have unsaved data retention changes. Leave without saving?"
 msgstr "Vous avez des modifications de conservation des données non enregistrées. Quitter sans enregistrer ?"
 

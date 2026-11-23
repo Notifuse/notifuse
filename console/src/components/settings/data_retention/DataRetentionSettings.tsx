@@ -17,6 +17,8 @@ import { listsApi } from '../../../services/api/list'
 import { listSegments } from '../../../services/api/segment'
 import { downloadBlob } from '../../../lib/download'
 import { Panel } from '../../layout'
+import { useLicense } from '../../../hooks/useLicense'
+import { LicenceGateNotice } from '../../license/LicenceGateNotice'
 import { useNumberFormat } from '../../layout/format'
 import { SettingsSaveBar } from '../SettingsSaveBar'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, SKIP_REASONS } from './categoryText'
@@ -92,6 +94,10 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
   const [draft, setDraft] = useState<DataRetentionPolicy>(initial)
   const [previewOpen, setPreviewOpen] = useState(false)
   const dirty = normalized(draft) !== normalized(initial)
+  // Without a licence the backend accepts only a save that deletes less of what is set up:
+  // categories switched off, exemptions removed (G7). The controls follow the same rule.
+  const { has } = useLicense()
+  const locked = !has('data_retention')
 
   const lists = useQuery({
     queryKey: ['lists', workspaceId],
@@ -178,13 +184,14 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
               onDays={spec.suggested_days}
               label={label}
               disabled={!isOwner}
+              offOnly={locked && spec.default_days === 0}
               onChange={(next) => setDays(spec.category, next)}
             />
             {!explicit ? (
               <Text type="secondary" className="text-xs">
                 {t`Deployment default`}
               </Text>
-            ) : isOwner && draft.categories[spec.category] !== view.defaults[spec.category] ? (
+            ) : isOwner && !locked && draft.categories[spec.category] !== view.defaults[spec.category] ? (
               <span className="self-start">
                 <Button type="link" size="small" onClick={() => setDays(spec.category, undefined)}>
                   {t`Use the default (${formatPeriod(view.defaults[spec.category] ?? 0)})`}
@@ -299,6 +306,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      <LicenceGateNotice feature="data_retention" workspaceId={workspaceId} className="" />
       {view.pending_at ? (
         <Alert
           type="warning"
@@ -352,7 +360,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
               aria-label={t`Exempt lists`}
               placeholder={t`No list`}
               value={draft.exempt_list_ids}
-              options={listOptions}
+              options={locked ? listOptions.filter((o) => initial.exempt_list_ids?.includes(o.value)) : listOptions}
               onChange={(ids: string[]) => setDraft((current) => ({ ...current, exempt_list_ids: ids }))}
             />
           </div>
@@ -364,7 +372,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
               aria-label={t`Exempt segments`}
               placeholder={t`No segment`}
               value={draft.exempt_segment_ids}
-              options={segmentOptions}
+              options={locked ? segmentOptions.filter((o) => initial.exempt_segment_ids?.includes(o.value)) : segmentOptions}
               onChange={(ids: string[]) => setDraft((current) => ({ ...current, exempt_segment_ids: ids }))}
             />
             <Text type="secondary" className="text-xs">
@@ -375,7 +383,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
             <Text strong>{t`Custom events that count as activity`}</Text>
             <Select
               mode="tags"
-              disabled={!isOwner}
+              disabled={!isOwner || locked}
               aria-label={t`Custom events that count as activity`}
               placeholder={t`None`}
               value={draft.engagement_event_names}

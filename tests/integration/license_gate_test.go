@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
@@ -54,6 +55,7 @@ func TestLicenseGates(t *testing.T) {
 			domain.FeatureSSO,
 			domain.FeatureAuditLogs,
 			domain.FeatureTemplateI18n,
+			domain.FeatureDataRetention,
 		} {
 			assert.True(t, ent.Has(f), "the harness licence must carry %q", f)
 		}
@@ -252,6 +254,76 @@ func TestLicenseGates(t *testing.T) {
 		require.Equal(t, http.StatusOK, status, body)
 		assert.Equal(t, domain.NewFullPermissions(), storedPermissions(t))
 		assert.Equal(t, http.StatusOK, getAs(t, "/api/broadcasts.list"))
+	})
+
+	t.Run("an unlicensed server refuses a new retention policy, lets one be switched off, and keeps purging", func(t *testing.T) {
+		suite := testutil.NewIntegrationTestSuite(t, unlicensed(nil))
+		defer suite.Cleanup()
+
+		client := suite.APIClient
+		rootToken := performCompleteSignInFlow(t, client, rootEmail)
+		client.SetToken(rootToken)
+		workspaceID := createTestWorkspaceWithToken(t, client, rootToken, "Unlicensed retention")
+		application := suite.ServerManager.GetApp()
+		bg := context.Background()
+
+		setPolicy := func(t *testing.T, categories map[string]int) (int, map[string]interface{}) {
+			t.Helper()
+			resp, err := client.Post("/api/dataRetention.set", map[string]interface{}{
+				"workspace_id": workspaceID,
+				"policy":       map[string]interface{}{"categories": categories},
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			var body map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+			return resp.StatusCode, body
+		}
+		stored := func(t *testing.T) *domain.DataRetentionSettings {
+			t.Helper()
+			ws, err := application.GetWorkspaceRepository().GetByID(bg, workspaceID)
+			require.NoError(t, err)
+			return ws.Settings.DataRetention
+		}
+
+		// A first policy is refused, with the body the console renders, and nothing is written.
+		status, refusal := setPolicy(t, map[string]int{"message_history": 365})
+		require.Equal(t, http.StatusPaymentRequired, status, refusal)
+		assert.Equal(t, "license_required", refusal["error"])
+		assert.Equal(t, string(domain.FeatureDataRetention), refusal["feature"])
+		assert.Nil(t, stored(t))
+
+		// A policy saved while a key covered it keeps running after the key is gone.
+		_, err := application.GetWorkspaceRepository().SetDataRetentionSettings(bg, workspaceID, 0, &domain.DataRetentionSettings{
+			Policy: &domain.DataRetentionPolicy{Categories: map[domain.RetentionCategory]int{
+				domain.RetentionMessageHistory: 200, domain.RetentionContactTimeline: 90,
+			}},
+		})
+		require.NoError(t, err)
+		message, err := suite.DataFactory.CreateMessageHistory(workspaceID, testutil.WithMessageHistoryTemplateID("tpl-licence"))
+		require.NoError(t, err)
+		db, err := suite.DataFactory.GetWorkspaceDB(workspaceID)
+		require.NoError(t, err)
+		_, err = db.ExecContext(bg, `UPDATE message_history SET created_at = $2 WHERE id = $1`, message.ID, time.Now().AddDate(0, 0, -300))
+		require.NoError(t, err)
+		retention := application.GetDataRetentionService()
+		ws, err := application.GetWorkspaceRepository().GetByID(bg, workspaceID)
+		require.NoError(t, err)
+		defaults, err := retention.Defaults(bg)
+		require.NoError(t, err)
+		require.NoError(t, retention.RunWorkspace(bg, ws, defaults))
+		var left int
+		// Message history is redacted rather than deleted: the address goes.
+		require.NoError(t, db.QueryRowContext(bg, `SELECT COUNT(*) FROM message_history WHERE id = $1 AND contact_email <> 'DELETED_EMAIL'`, message.ID).Scan(&left))
+		assert.Zero(t, left, "the run purged the old message without a licence")
+
+		// Switching a category off passes; changing a period does not.
+		status, body := setPolicy(t, map[string]int{"message_history": 0, "contact_timeline": 90})
+		require.Equal(t, http.StatusOK, status, body)
+		assert.Equal(t, 0, stored(t).Policy.Categories[domain.RetentionMessageHistory])
+		status, refusal = setPolicy(t, map[string]int{"message_history": 0, "contact_timeline": 120})
+		require.Equal(t, http.StatusPaymentRequired, status, refusal)
+		assert.Equal(t, 90, stored(t).Policy.Categories[domain.RetentionContactTimeline])
 	})
 }
 
