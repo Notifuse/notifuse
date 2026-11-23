@@ -7,8 +7,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lib/pq"
+
 	"github.com/Notifuse/notifuse/internal/domain"
 )
+
+// transactionalNotificationEntity names a transactional notification in typed errors.
+const transactionalNotificationEntity = "transactional_notification"
 
 // TransactionalNotificationRepository implements domain.TransactionalNotificationRepository
 type TransactionalNotificationRepository struct {
@@ -58,10 +63,26 @@ func (r *TransactionalNotificationRepository) Create(ctx context.Context, worksp
 	)
 
 	if err != nil {
+		// The primary key is the only unique constraint, and a deleted notification keeps its
+		// row and its ID. Match the SQLSTATE, never the message, which PostgreSQL translates.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return domain.NewAlreadyExistsError(transactionalNotificationEntity, notification.ID,
+				isTransactionalNotificationDeleted(ctx, db, notification.ID))
+		}
 		return fmt.Errorf("failed to create transactional notification: %w", err)
 	}
 
 	return nil
+}
+
+// isTransactionalNotificationDeleted reports whether the notification holding an ID is
+// soft-deleted. It only refines the error of a create that already failed, so a lookup error
+// answers false: the caller still learns the ID is taken.
+func isTransactionalNotificationDeleted(ctx context.Context, db *sql.DB, id string) bool {
+	var deleted bool
+	err := db.QueryRowContext(ctx, `SELECT deleted_at IS NOT NULL FROM transactional_notifications WHERE id = $1`, id).Scan(&deleted)
+	return err == nil && deleted
 }
 
 // Update updates an existing transactional notification
@@ -110,7 +131,7 @@ func (r *TransactionalNotificationRepository) Update(ctx context.Context, worksp
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("transactional notification not found: %s", notification.ID)
+		return &domain.ErrNotFound{Entity: transactionalNotificationEntity, ID: notification.ID}
 	}
 
 	return nil
@@ -146,7 +167,7 @@ func (r *TransactionalNotificationRepository) Get(ctx context.Context, workspace
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("transactional notification not found: %s", id)
+			return nil, &domain.ErrNotFound{Entity: transactionalNotificationEntity, ID: id}
 		}
 		return nil, fmt.Errorf("failed to get transactional notification: %w", err)
 	}
@@ -256,7 +277,7 @@ func (r *TransactionalNotificationRepository) Delete(ctx context.Context, worksp
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("transactional notification not found: %s", id)
+		return &domain.ErrNotFound{Entity: transactionalNotificationEntity, ID: id}
 	}
 
 	return nil

@@ -57,11 +57,10 @@ func TestBroadcastService_PauseBroadcast_StatusGuard(t *testing.T) {
 			inTx(d, ctx)
 			b := testBroadcast("w1", "b1")
 			b.Status = status
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 
 			err := d.svc.PauseBroadcast(ctx, req)
-			require.EqualError(t, err,
-				"only broadcasts that are sending can be paused, current status: "+string(status))
+			requireInvalidState(t, err, "broadcast", "b1", "pause", string(status))
 		})
 	}
 
@@ -72,7 +71,7 @@ func TestBroadcastService_PauseBroadcast_StatusGuard(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessed
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 				assert.Equal(t, domain.BroadcastStatusPaused, updated.Status)
@@ -106,7 +105,7 @@ func TestBroadcastService_PauseBroadcast_Failures(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		inTx(d, ctx)
 		sentinel := errors.New("not found")
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(nil, sentinel)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(nil, sentinel)
 		err := d.svc.PauseBroadcast(ctx, req)
 		assert.ErrorIs(t, err, sentinel)
 	})
@@ -118,7 +117,7 @@ func TestBroadcastService_PauseBroadcast_Failures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessing
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		sentinel := errors.New("queue locked")
 		d.emailQueueRepo.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(),
@@ -141,11 +140,10 @@ func TestBroadcastService_CancelBroadcast_StatusGuard(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusCancelled
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 
 		err := d.svc.CancelBroadcast(ctx, req)
-		require.EqualError(t, err,
-			"only broadcasts that are scheduled, paused or sending can be cancelled, current status: cancelled")
+		requireInvalidState(t, err, "broadcast", "b1", "cancel", string(domain.BroadcastStatusCancelled))
 	})
 
 	t.Run("a scheduled broadcast cancels and its queue rows are deleted in-tx", func(t *testing.T) {
@@ -155,7 +153,7 @@ func TestBroadcastService_CancelBroadcast_StatusGuard(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusScheduled
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 				assert.Equal(t, domain.BroadcastStatusCancelled, updated.Status)
@@ -177,7 +175,7 @@ func TestBroadcastService_CancelBroadcast_StatusGuard(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		sentinel := errors.New("queue locked")
 		d.emailQueueRepo.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(),

@@ -252,7 +252,7 @@ func TestBroadcastGap_PauseDownstreamFailures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessing
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		sentinel := errors.New("update boom")
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(sentinel)
 		// No PauseBySourceTx / PublishWithAck expectations.
@@ -267,7 +267,7 @@ func TestBroadcastGap_PauseDownstreamFailures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessing
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ *sql.Tx, u *domain.Broadcast) error {
 				assert.Equal(t, domain.BroadcastStatusPaused, u.Status)
@@ -305,9 +305,9 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 			inTx(d, ctx)
 			b := testBroadcast("w1", "b1")
 			b.Status = status
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 			err := d.svc.ResumeBroadcast(ctx, req)
-			assert.EqualError(t, err, "only broadcasts with paused status can be resumed, current status: "+string(status))
+			requireInvalidState(t, err, "broadcast", "b1", "resume", string(status))
 			d.ctrl.Finish()
 		}
 	})
@@ -326,7 +326,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		b.PausedAt = &pausedAt
 		reason := "manual"
 		b.PauseReason = &reason
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ *sql.Tx, u *domain.Broadcast) error {
 				assert.Equal(t, domain.BroadcastStatusScheduled, u.Status)
@@ -355,7 +355,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		b.Status = domain.BroadcastStatusPaused
 		b.Schedule.IsScheduled = true
 		require.NoError(t, b.Schedule.SetScheduledDateTime(time.Now().UTC().Add(-2*time.Hour), "UTC"))
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ *sql.Tx, u *domain.Broadcast) error {
 				assert.Equal(t, domain.BroadcastStatusProcessing, u.Status)
@@ -385,7 +385,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		require.NoError(t, b.Schedule.SetScheduledDateTime(time.Now().UTC().Add(3*time.Hour), "UTC"))
 		started := time.Now().UTC().Add(-time.Hour)
 		b.StartedAt = &started
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ *sql.Tx, u *domain.Broadcast) error {
 				assert.Equal(t, domain.BroadcastStatusProcessing, u.Status)
@@ -409,7 +409,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		sentinel := errors.New("queue locked")
 		d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
@@ -432,7 +432,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 			})
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").Return(int64(1), nil)
 		d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -454,7 +454,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").Return(int64(1), nil)
 		d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -477,7 +477,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 			})
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").Return(int64(1), nil)
 		// The strict event bus mock fails on any PublishWithAck.
@@ -501,10 +501,9 @@ func TestBroadcastGap_CancelBranchesAndFailures(t *testing.T) {
 			inTx(d, ctx)
 			b := testBroadcast("w1", "b1")
 			b.Status = status
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 			err := d.svc.CancelBroadcast(ctx, req)
-			assert.EqualError(t, err,
-				"only broadcasts that are scheduled, paused or sending can be cancelled, current status: "+string(status))
+			requireInvalidState(t, err, "broadcast", "b1", "cancel", string(status))
 			d.ctrl.Finish()
 		}
 	})
@@ -516,7 +515,7 @@ func TestBroadcastGap_CancelBranchesAndFailures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ *sql.Tx, u *domain.Broadcast) error {
 				assert.Equal(t, domain.BroadcastStatusCancelled, u.Status)
@@ -540,7 +539,7 @@ func TestBroadcastGap_CancelBranchesAndFailures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusProcessing
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		sentinel := errors.New("update boom")
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(sentinel)
 		err := d.svc.CancelBroadcast(ctx, req)
@@ -554,7 +553,7 @@ func TestBroadcastGap_CancelBranchesAndFailures(t *testing.T) {
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusScheduled
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		d.emailQueueRepo.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").Return(int64(1), nil)
 		sentinel := errors.New("evt boom")

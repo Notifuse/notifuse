@@ -215,7 +215,7 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 		paused := testBroadcast("w1", "b1")
 		paused.Status = domain.BroadcastStatusPaused
 		paused.TestSettings.Variations[0].SenderID = "sender-since-deleted"
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
 
 		err := d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"})
@@ -232,7 +232,7 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 		completed := time.Now().UTC()
 		paused.CompletedAt = &completed
 		paused.TestSettings.Variations[0].SenderID = "sender-since-deleted"
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 		expectResumed(d)
 
 		require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
@@ -253,7 +253,7 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 		winner := "tplA"
 		paused.WinningTemplate = &winner
 		noTaskStateYet(d)
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
 		expectResumed(d)
 
@@ -288,7 +288,7 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 			paused := testBroadcast("w1", "b1")
 			paused.Status = domain.BroadcastStatusPaused
 			paused.TestSettings.Variations[0].SenderID = "sender-since-deleted"
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 			d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), "w1", "b1").Return(tc.task, tc.readErr)
 			if tc.readErr != nil {
 				// The failed read is logged at Warn once (the strict mock refuses anything else).
@@ -388,7 +388,7 @@ func TestBroadcastService_ResumeBroadcast_ResetsTheRetryBudgetBeforeItCommits(t 
 			})
 		paused := testBroadcast("w1", "b1")
 		paused.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 		d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), "w1", "b1").Return(task, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(newSenderFixture().workspace, nil).AnyTimes()
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)

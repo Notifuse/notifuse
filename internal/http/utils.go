@@ -246,6 +246,34 @@ func writeServiceError(w http.ResponseWriter, err error, fallback string) bool {
 	if writeTemplateRenderError(w, err) {
 		return true
 	}
+	// The three below are the caller's request meeting the object as it is, never a fault of
+	// ours: an object that is not there, one in a state that refuses the action, or an
+	// identifier already taken. Without them these errors fell through to the handler's
+	// fallback and answered 500.
+	var entityNotFound *domain.ErrNotFound
+	if errors.As(err, &entityNotFound) {
+		WriteJSONError(w, entityNotFound.Error(), http.StatusNotFound)
+		return true
+	}
+	var invalidState *domain.InvalidStateError
+	if errors.As(err, &invalidState) {
+		writeJSON(w, http.StatusConflict, map[string]interface{}{
+			"error":         invalidState.Error(),
+			"invalid_state": invalidState,
+		})
+		return true
+	}
+	var alreadyExists *domain.AlreadyExistsError
+	if errors.As(err, &alreadyExists) {
+		writeJSON(w, http.StatusConflict, map[string]interface{}{
+			"error":          alreadyExists.Error(),
+			"already_exists": alreadyExists,
+		})
+		return true
+	}
+	if writeValidationError(w, err) {
+		return true
+	}
 	var unauthorized *domain.ErrUnauthorized
 	if errors.As(err, &unauthorized) {
 		message := unauthorized.Message

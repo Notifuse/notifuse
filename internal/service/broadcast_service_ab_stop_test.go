@@ -68,7 +68,7 @@ func TestBroadcastService_PauseBroadcast_ABTest(t *testing.T) {
 			authOK(d.authService, ctx, req.WorkspaceID)
 			inTransaction(d, req.WorkspaceID)
 
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
 			var written *domain.Broadcast
 			d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 				func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
@@ -101,12 +101,11 @@ func TestBroadcastService_PauseBroadcast_ABTest(t *testing.T) {
 			req := &domain.PauseBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 			authOK(d.authService, ctx, req.WorkspaceID)
 			inTransaction(d, req.WorkspaceID)
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
 
 			err := d.svc.PauseBroadcast(ctx, req)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "only broadcasts that are sending can be paused")
-			assert.Contains(t, err.Error(), "current status: "+string(status))
+			requireInvalidState(t, err, "broadcast", "b1", "pause", string(status))
 		})
 	}
 }
@@ -121,7 +120,7 @@ func TestBroadcastService_CancelBroadcast_ABTest(t *testing.T) {
 			authOK(d.authService, ctx, req.WorkspaceID)
 			inTransaction(d, req.WorkspaceID)
 
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
 			var written *domain.Broadcast
 			d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 				func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
@@ -152,12 +151,11 @@ func TestBroadcastService_CancelBroadcast_ABTest(t *testing.T) {
 			req := &domain.CancelBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 			authOK(d.authService, ctx, req.WorkspaceID)
 			inTransaction(d, req.WorkspaceID)
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(abTestBroadcast(status), nil)
 
 			err := d.svc.CancelBroadcast(ctx, req)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "only broadcasts that are scheduled, paused or sending can be cancelled")
-			assert.Contains(t, err.Error(), "current status: "+string(status))
+			requireInvalidState(t, err, "broadcast", "b1", "cancel", string(status))
 		})
 	}
 }
@@ -326,7 +324,7 @@ func TestBroadcastService_ResumeBroadcast_ABTest(t *testing.T) {
 			noTaskStateYet(d)
 			inTransaction(d, req.WorkspaceID)
 
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(tc.broadcast(), nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(tc.broadcast(), nil)
 			var written *domain.Broadcast
 			d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 				func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
@@ -382,7 +380,7 @@ func TestBroadcastService_ResumeBroadcast_ABTestCountsItsPause(t *testing.T) {
 			sent, paused := testSent, pausedAt
 			b.TestSentAt, b.PausedAt = &sent, &paused
 			tc.edit(b)
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 			var seconds int
 			if tc.counted {
 				d.repo.EXPECT().AddTestPauseTx(gomock.Any(), gomock.Any(), "w1", "b1", pausedAt, gomock.Any()).DoAndReturn(
@@ -429,7 +427,7 @@ func TestBroadcastService_ResumeBroadcast_ABTestPauseCountedOnce(t *testing.T) {
 			b := abTestBroadcast(domain.BroadcastStatusPaused)
 			testSent, paused := time.Now().UTC().Add(-3*time.Hour), time.Now().UTC().Add(-time.Hour)
 			b.TestSentAt, b.PausedAt = &testSent, &paused
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 			d.repo.EXPECT().AddTestPauseTx(gomock.Any(), gomock.Any(), "w1", "b1", paused, gomock.Any()).Return(tc.written, tc.err)
 			d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 

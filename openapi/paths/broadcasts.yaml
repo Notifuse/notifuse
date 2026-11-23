@@ -406,6 +406,12 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The broadcast is not a draft
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
       '500':
         description: Internal server error
         content:
@@ -456,6 +462,12 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The broadcast is not sending
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
       '500':
         description: Internal server error
         content:
@@ -506,6 +518,12 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The broadcast is not paused
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
       '500':
         description: Internal server error
         content:
@@ -617,6 +635,12 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The broadcast cannot be cancelled in its current status
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
       '500':
         description: Internal server error
         content:
@@ -782,6 +806,12 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The broadcast is sending
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
       '500':
         description: Internal server error
         content:
@@ -875,6 +905,18 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast or variation not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The broadcast is not waiting for a winner
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
       '500':
         description: Internal server error
         content:

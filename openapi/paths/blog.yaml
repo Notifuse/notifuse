@@ -600,8 +600,14 @@
               error: 'Insufficient permissions: read access to blog required'
               resource: blog
               permission: read
+      '404':
+        description: Post not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
       '500':
-        description: Internal server error. Also returned when no post matches.
+        description: Internal server error
         content:
           application/json:
             schema:
@@ -674,6 +680,12 @@
               error: 'Insufficient permissions: write access to blog required'
               resource: blog
               permission: write
+      '409':
+        description: The slug is already taken
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/AlreadyExistsErrorResponse'
 
 /api/blogPosts.update:
   post:
@@ -733,6 +745,18 @@
               error: 'Insufficient permissions: write access to blog required'
               resource: blog
               permission: write
+      '404':
+        description: Post not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The slug is already taken
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/AlreadyExistsErrorResponse'
 
 /api/blogPosts.delete:
   post:
@@ -793,6 +817,12 @@
               error: 'Insufficient permissions: write access to blog required'
               resource: blog
               permission: write
+      '404':
+        description: Post not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
 /api/blogPosts.publish:
   post:
@@ -855,6 +885,18 @@
               error: 'Insufficient permissions: write access to blog required'
               resource: blog
               permission: write
+      '404':
+        description: Post not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The post is already published or scheduled
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
 
 /api/blogPosts.unpublish:
   post:
@@ -915,6 +957,18 @@
               error: 'Insufficient permissions: write access to blog required'
               resource: blog
               permission: write
+      '404':
+        description: Post not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '409':
+        description: The post is a draft
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/InvalidStateErrorResponse'
 
 /api/blogThemes.list:
   get:

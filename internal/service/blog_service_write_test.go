@@ -233,3 +233,52 @@ func TestBlogService_UpdatePost_Chain(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+// The repository's typed refusals reach the handler through the service's wraps: a publish of a
+// published post and an unpublish of a draft as InvalidStateError, a missing post as ErrNotFound,
+// a slug taken on update as AlreadyExistsError.
+func TestBlogService_TypedPostErrors(t *testing.T) {
+	t.Run("publish of a published post", func(t *testing.T) {
+		svc, _, postRepo, _, _, _, _, auth := setupBlogServiceTest(t)
+		ctx := expectBlogAuth(auth, "ws-1", true, true)
+		postRepo.EXPECT().GetPost(gomock.Any(), "post-1").Return(&domain.BlogPost{ID: "post-1"}, nil)
+		postRepo.EXPECT().PublishPost(gomock.Any(), "post-1", gomock.Nil()).
+			Return(domain.NewInvalidStateError("blog_post", "post-1", "publish", "published"))
+
+		err := svc.PublishPost(ctx, &domain.PublishBlogPostRequest{ID: "post-1"})
+		requireInvalidState(t, err, "blog_post", "post-1", "publish", "published")
+	})
+
+	t.Run("unpublish of a draft", func(t *testing.T) {
+		svc, _, postRepo, _, _, _, _, auth := setupBlogServiceTest(t)
+		ctx := expectBlogAuth(auth, "ws-1", true, true)
+		postRepo.EXPECT().GetPost(gomock.Any(), "post-1").Return(&domain.BlogPost{ID: "post-1"}, nil)
+		postRepo.EXPECT().UnpublishPost(gomock.Any(), "post-1").
+			Return(domain.NewInvalidStateError("blog_post", "post-1", "unpublish", "draft"))
+
+		err := svc.UnpublishPost(ctx, &domain.UnpublishBlogPostRequest{ID: "post-1"})
+		requireInvalidState(t, err, "blog_post", "post-1", "unpublish", "draft")
+	})
+
+	t.Run("publish of a missing post", func(t *testing.T) {
+		svc, _, postRepo, _, _, _, _, auth := setupBlogServiceTest(t)
+		ctx := expectBlogAuth(auth, "ws-1", true, true)
+		postRepo.EXPECT().GetPost(gomock.Any(), "post-1").Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: "post-1"})
+
+		err := svc.PublishPost(ctx, &domain.PublishBlogPostRequest{ID: "post-1"})
+		requireNotFound(t, err, "blog_post", "post-1")
+	})
+
+	t.Run("update to a slug another post holds", func(t *testing.T) {
+		svc, _, postRepo, _, _, _, _, auth := setupBlogServiceTest(t)
+		ctx := expectBlogAuth(auth, "ws-1", true, true)
+		postRepo.EXPECT().GetPost(gomock.Any(), "post-1").Return(&domain.BlogPost{ID: "post-1", Slug: "old"}, nil)
+		postRepo.EXPECT().GetPostBySlug(gomock.Any(), "taken").Return(&domain.BlogPost{ID: "post-2", Slug: "taken"}, nil)
+
+		_, err := svc.UpdatePost(ctx, &domain.UpdateBlogPostRequest{
+			ID: "post-1", CategoryID: "cat-1", Slug: "taken", Title: "Hello",
+			TemplateID: "tpl-1", TemplateVersion: 1,
+		})
+		requireAlreadyExists(t, err, "blog_post", "taken", false)
+	})
+}

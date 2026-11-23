@@ -511,9 +511,8 @@ func TestBlogPostRepository(t *testing.T) {
 				WillReturnError(sql.ErrNoRows)
 
 			post, err := repo.GetPost(ctx, "nonexistent")
-			require.Error(t, err)
 			assert.Nil(t, post)
-			assert.Contains(t, err.Error(), "blog post not found")
+			requireNotFound(t, err, "blog_post", "nonexistent")
 		})
 	})
 
@@ -612,8 +611,7 @@ func TestBlogPostRepository(t *testing.T) {
 			sqlMock.ExpectRollback()
 
 			err := repo.UpdatePost(ctx, testPost)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "blog post not found")
+			requireNotFound(t, err, "blog_post", testPost.ID)
 		})
 	})
 
@@ -1019,11 +1017,13 @@ func TestBlogPostRepository(t *testing.T) {
 			sqlMock.ExpectBegin()
 			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE blog_posts`)).
 				WillReturnResult(sqlmock.NewResult(0, 0))
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT published_at FROM blog_posts`)).
+				WithArgs(testPost.ID).
+				WillReturnRows(sqlmock.NewRows([]string{"published_at"}).AddRow(time.Now().UTC().Add(-time.Hour)))
 			sqlMock.ExpectRollback()
 
 			err := repo.PublishPost(ctx, testPost.ID, nil)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "not found or already published")
+			requireInvalidState(t, err, "blog_post", testPost.ID, "publish", "published")
 		})
 	})
 
@@ -1055,11 +1055,13 @@ func TestBlogPostRepository(t *testing.T) {
 			sqlMock.ExpectBegin()
 			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE blog_posts`)).
 				WillReturnResult(sqlmock.NewResult(0, 0))
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT published_at FROM blog_posts`)).
+				WithArgs(testPost.ID).
+				WillReturnRows(sqlmock.NewRows([]string{"published_at"}).AddRow(nil))
 			sqlMock.ExpectRollback()
 
 			err := repo.UnpublishPost(ctx, testPost.ID)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "not found or not published")
+			requireInvalidState(t, err, "blog_post", testPost.ID, "unpublish", "draft")
 		})
 	})
 

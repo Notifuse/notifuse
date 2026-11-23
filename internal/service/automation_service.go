@@ -96,6 +96,9 @@ func (s *AutomationService) Get(ctx context.Context, workspaceID, automationID s
 		return nil, fmt.Errorf("failed to get automation: %w", err)
 	}
 
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return automation.WithoutWebhookSecrets(), nil
+	}
 	return automation, nil
 }
 
@@ -119,6 +122,15 @@ func (s *AutomationService) List(ctx context.Context, workspaceID string, filter
 		return nil, 0, fmt.Errorf("failed to list automations: %w", err)
 	}
 
+	// A reader without write gets the webhook nodes without their secret, on copies: the
+	// slice the repository returned is not changed either.
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		redacted := make([]*domain.Automation, len(automations))
+		for i, automation := range automations {
+			redacted[i] = automation.WithoutWebhookSecrets()
+		}
+		return redacted, count, nil
+	}
 	return automations, count, nil
 }
 
@@ -436,13 +448,15 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 
 	// Check if already live
 	if automation.Status == domain.AutomationStatusLive {
-		return fmt.Errorf("automation is already live")
+		return domain.NewInvalidStateError("automation", automationID, "activate", string(automation.Status))
 	}
 
 	// If no list_id, check that there are no email nodes in the embedded nodes
 	if automation.HasEmailNodeRestriction() {
 		if domain.HasEmailNodes(automation.Nodes) {
-			return fmt.Errorf("cannot activate automation with email nodes when list_id is not set")
+			// The automation's configuration is what has to change, not its state: a 400, like
+			// a trigger configuration that cannot be installed.
+			return domain.NewValidationError("cannot activate automation with email nodes when list_id is not set")
 		}
 	}
 
@@ -517,7 +531,7 @@ func (s *AutomationService) Pause(ctx context.Context, workspaceID, automationID
 	// is the state an interrupted pause leaves behind, and refusing it here would make the
 	// leftover trigger undroppable except by activating the automation again first.
 	if automation.Status != domain.AutomationStatusLive && automation.Status != domain.AutomationStatusPaused {
-		return fmt.Errorf("automation is not live")
+		return domain.NewInvalidStateError("automation", automationID, "pause", string(automation.Status))
 	}
 
 	// The status is written before the trigger is dropped, not after.
@@ -575,6 +589,12 @@ func (s *AutomationService) GetContactNodeExecutions(ctx context.Context, worksp
 			domain.PermissionTypeRead,
 			"Insufficient permissions: read access to automations required",
 		)
+	}
+
+	// The automation first: GetByID excludes deleted automations, so an unknown or deleted one
+	// answers ErrNotFound rather than whatever journeys it left behind.
+	if _, err := s.repo.GetByID(ctx, workspaceID, automationID); err != nil {
+		return nil, nil, fmt.Errorf("failed to get automation: %w", err)
 	}
 
 	// Get the contact automation record

@@ -377,10 +377,10 @@ func (h *BlogHandler) HandleGetPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to get post")
-		if writePermissionError(w, err) {
+		if writeServiceError(w, err, "Failed to get post") {
 			return
 		}
+		h.logger.WithField("error", err.Error()).Error("Failed to get post")
 		WriteJSONError(w, "Failed to get post", http.StatusInternalServerError)
 		return
 	}
@@ -415,7 +415,9 @@ func (h *BlogHandler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	post, err := h.service.CreatePost(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create post")
-		if writePermissionError(w, err) {
+		// A post that is not there (404), whose state refuses the action or whose slug is taken
+		// (409); anything else keeps the 400 this endpoint has always answered.
+		if writeServiceError(w, err, "Failed to create post") {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -452,7 +454,9 @@ func (h *BlogHandler) HandleUpdatePost(w http.ResponseWriter, r *http.Request) {
 	post, err := h.service.UpdatePost(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update post")
-		if writePermissionError(w, err) {
+		// A post that is not there (404), whose state refuses the action or whose slug is taken
+		// (409); anything else keeps the 400 this endpoint has always answered.
+		if writeServiceError(w, err, "Failed to update post") {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -488,7 +492,9 @@ func (h *BlogHandler) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.DeletePost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to delete post")
-		if writePermissionError(w, err) {
+		// A post that is not there (404), whose state refuses the action or whose slug is taken
+		// (409); anything else keeps the 400 this endpoint has always answered.
+		if writeServiceError(w, err, "Failed to delete post") {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -524,7 +530,9 @@ func (h *BlogHandler) HandlePublishPost(w http.ResponseWriter, r *http.Request) 
 
 	if err := h.service.PublishPost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to publish post")
-		if writePermissionError(w, err) {
+		// A post that is not there (404), whose state refuses the action or whose slug is taken
+		// (409); anything else keeps the 400 this endpoint has always answered.
+		if writeServiceError(w, err, "Failed to publish post") {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -560,7 +568,9 @@ func (h *BlogHandler) HandleUnpublishPost(w http.ResponseWriter, r *http.Request
 
 	if err := h.service.UnpublishPost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to unpublish post")
-		if writePermissionError(w, err) {
+		// A post that is not there (404), whose state refuses the action or whose slug is taken
+		// (409); anything else keeps the 400 this endpoint has always answered.
+		if writeServiceError(w, err, "Failed to unpublish post") {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)

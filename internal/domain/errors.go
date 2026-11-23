@@ -88,6 +88,51 @@ func NewValidationError(message string) error {
 	}
 }
 
+// InvalidStateError refuses an action because the object is not in a state that allows it:
+// scheduling a broadcast that is no longer a draft, pausing one that is not sending,
+// publishing a post that is already published. The request was well formed and the object
+// exists; what has to change is the object's state, which Status reports as it was read.
+// It answers 409, so a client can tell it from a server fault and from bad input.
+type InvalidStateError struct {
+	Entity string `json:"entity"`
+	ID     string `json:"id"`
+	Action string `json:"action"`
+	Status string `json:"status"`
+}
+
+// Error implements the error interface
+func (e *InvalidStateError) Error() string {
+	return fmt.Sprintf("cannot %s %s %s: its status is %s", e.Action, e.Entity, e.ID, e.Status)
+}
+
+// NewInvalidStateError creates an invalid state error
+func NewInvalidStateError(entity, id, action, status string) *InvalidStateError {
+	return &InvalidStateError{Entity: entity, ID: id, Action: action, Status: status}
+}
+
+// AlreadyExistsError refuses a create whose identifier is taken: a client-chosen ID or a
+// slug. Deleted reports that the row holding it was deleted, since a deleted row keeps its
+// identifier and a client would otherwise look for a live object that is not there. It
+// answers 409.
+type AlreadyExistsError struct {
+	Entity  string `json:"entity"`
+	ID      string `json:"id"`
+	Deleted bool   `json:"deleted"`
+}
+
+// Error implements the error interface
+func (e *AlreadyExistsError) Error() string {
+	if e.Deleted {
+		return fmt.Sprintf("%s %s already exists and was deleted: its identifier cannot be reused", e.Entity, e.ID)
+	}
+	return fmt.Sprintf("%s %s already exists", e.Entity, e.ID)
+}
+
+// NewAlreadyExistsError creates an already exists error
+func NewAlreadyExistsError(entity, id string, deleted bool) *AlreadyExistsError {
+	return &AlreadyExistsError{Entity: entity, ID: id, Deleted: deleted}
+}
+
 // TemplateRenderError is an email that could not be built from its template and the data
 // of the send: a Liquid error, such as a filter that fails or a comparison of a text with a
 // number, or an MJML compilation error. The template or the data has to change; retrying the

@@ -15,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -133,6 +134,37 @@ func TestSegmentRepository_CreateSegment(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create segment")
 	})
+
+	// A deleted segment keeps its row and its ID, so a create of a taken ID says which of the
+	// two it met.
+	for _, deleted := range []bool{false, true} {
+		name := "an ID held by a live segment"
+		if deleted {
+			name = "an ID held by a deleted segment"
+		}
+		t.Run(name, func(t *testing.T) {
+			repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+			testSegment := createTestSegment()
+
+			db, sqlMock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+
+			mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+			sqlMock.ExpectExec(`INSERT INTO segments`).
+				WillReturnError(&pq.Error{Code: "23505", Constraint: "segments_pkey"})
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT status = 'deleted' FROM segments WHERE id = $1`)).
+				WithArgs(testSegment.ID).
+				WillReturnRows(sqlmock.NewRows([]string{"deleted"}).AddRow(deleted))
+
+			err = repo.CreateSegment(context.Background(), "workspace123", testSegment)
+
+			var exists *domain.AlreadyExistsError
+			require.ErrorAs(t, err, &exists)
+			assert.Equal(t, domain.AlreadyExistsError{Entity: "segment", ID: testSegment.ID, Deleted: deleted}, *exists)
+			require.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+	}
 
 	t.Run("workspace connection error", func(t *testing.T) {
 		repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
