@@ -767,7 +767,7 @@
 /api/broadcasts.delete:
   post:
     summary: Delete a broadcast
-    description: Deletes a broadcast. This action is permanent and cannot be undone.
+    description: Deletes a broadcast. This action is permanent and cannot be undone. A broadcast that can still send emails answers 409 until you cancel it. A scheduled broadcast answers 409 until you unschedule it with `broadcasts.unschedule`, which removes its send task.
     operationId: deleteBroadcast
     security:
       - BearerAuth: []
@@ -807,7 +807,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
       '409':
-        description: The broadcast is sending
+        description: The broadcast can still send emails. It is scheduled, sending, paused or in an A/B test, or its email queue still holds emails to send. `invalid_state.reason` says what to do first, usually cancel it with `broadcasts.cancel`, which empties its queue, or unschedule it with `broadcasts.unschedule`.
         content:
           application/json:
             schema:

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { Form, Select, Input, Cascader, ConfigProvider, Alert } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
+import { TriggerTableSchemas } from '../../segment/table_schemas'
 import { ConditionsField } from './ConditionsField'
 import { treeUsesSource } from '../../segment/tree_completeness'
 import type { TreeNode } from '../../../services/api/segment'
@@ -389,6 +390,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
       )}
 
       <ConditionsField
+        schemas={TriggerTableSchemas}
         title={t`Entry conditions`}
         description={t`Only enroll contacts matching these conditions.`}
         addLabel={t`Add entry conditions`}

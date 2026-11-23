@@ -38,6 +38,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The API no longer answers 500 when a broadcast, blog post, segment, automation or transactional notification refuses a request. An action the object's status does not allow, such as scheduling a broadcast that is no longer a draft or publishing a published post, answers 409 with that status; an ID or slug already taken answers 409; an unknown object answers 404; an invalid segment answers 400. Two pauses, resumes or cancellations of the same broadcast sent at the same time no longer both go through.
 
+- **Fix**: Deleting a broadcast whose emails were still queued let them go out after the broadcast was gone, or left paused ones in the queue for good. `broadcasts.delete` now answers 409 for such a broadcast, and for one that is paused or in an A/B test, and asks you to cancel it first. A scheduled broadcast also answers 409 until you unschedule it, which removes its send task.
+
 - **Security**: `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
 
 - **Fix**: `broadcasts.list` no longer repeats or skips broadcasts created at the same instant when it pages: they are ordered by creation date, then by ID.

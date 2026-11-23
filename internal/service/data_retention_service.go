@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,21 +23,32 @@ import (
 // DataRetentionDefaultsSettingKey is the system setting holding the deployment defaults (D6).
 const DataRetentionDefaultsSettingKey = "data_retention_defaults"
 
+// DataRetentionLastRunSettingKey is the system setting holding when the last daily run ended,
+// so a server that was down at 05:00 UTC catches up when it starts.
+const DataRetentionLastRunSettingKey = "data_retention_last_run"
+
 // Run budgets: a first run on a large workspace spreads over several days rather than
 // flooding webhook subscribers with contact.deleted deliveries or holding the database.
 const (
-	retentionContactBatch   = 200
-	retentionContactBudget  = 5000
-	retentionDrainBatch     = 200
-	retentionDrainBudget    = 5000
-	retentionCategoryBatch  = 5000
-	retentionCategoryBudget = 500000
-	retentionRunsShown      = 20
+	retentionContactBatch    = 200
+	retentionContactBudget   = 5000
+	retentionDrainBatch      = 200
+	retentionDrainBudget     = 5000
+	retentionCategoryBatch   = 5000
+	retentionCategoryBudget  = 500000
+	retentionRunsShown       = 20
+	retentionEventNamesShown = 200
 )
 
 // contactHistoryEraser erases what a contact deleted by the purge left behind (ContactService).
 type contactHistoryEraser interface {
 	EraseHistoryOfDeletedContact(ctx context.Context, workspaceID, email string) error
+}
+
+// backfillTasks finds and updates the workspace's engagement backfill task (TaskRepository).
+type backfillTasks interface {
+	List(ctx context.Context, workspace string, filter domain.TaskFilter) ([]*domain.Task, int, error)
+	Update(ctx context.Context, workspace string, task *domain.Task) error
 }
 
 // auditRecorder writes one audit row (AuditLogService).
@@ -55,6 +67,7 @@ type DataRetentionService struct {
 	auth       domain.AuthService
 	mailer     mailer.Mailer
 	audit      auditRecorder
+	tasks      backfillTasks
 	logger     logger.Logger
 	now        func() time.Time
 }
@@ -66,6 +79,44 @@ func NewDataRetentionService(workspaces domain.WorkspaceRepository, settings dom
 		workspaces: workspaces, settings: settings, repo: repo, eraser: eraser, auth: auth,
 		mailer: m, audit: audit, logger: log, now: time.Now,
 	}
+}
+
+// SetTaskRepository supplies the task repository, for RetryBackfill.
+func (s *DataRetentionService) SetTaskRepository(tasks backfillTasks) {
+	s.tasks = tasks
+}
+
+// RetryBackfill puts a failed or paused engagement backfill task back in the queue (owners
+// only). tasks.reset cannot: it only restarts recurring tasks, and the backfill runs once.
+func (s *DataRetentionService) RetryBackfill(ctx context.Context, workspaceID string) error {
+	ctx, _, err := s.authenticate(ctx, workspaceID, true)
+	if err != nil {
+		return err
+	}
+	if s.tasks == nil {
+		return fmt.Errorf("the task repository is not set")
+	}
+	tasks, _, err := s.tasks.List(ctx, workspaceID, domain.TaskFilter{
+		Type:   []string{domain.DataRetentionBackfillTaskType},
+		Status: []domain.TaskStatus{domain.TaskStatusFailed, domain.TaskStatusPaused},
+		Limit:  1,
+	})
+	if err != nil {
+		return err
+	}
+	if len(tasks) == 0 {
+		return domain.NewValidationError("there is no failed engagement backfill to run again")
+	}
+	task := tasks[0]
+	now := s.now()
+	task.Status = domain.TaskStatusPending
+	task.RetryCount = 0
+	task.ErrorMessage = nil
+	task.NextRunAfter = &now
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetWorkspace, workspaceID, "")
+	}
+	return s.tasks.Update(ctx, workspaceID, task)
 }
 
 // SetClock replaces the service's clock: the integration tests move it past a change's date.
@@ -90,6 +141,9 @@ type DataRetentionView struct {
 	// Until then the inactive-contact category deletes nobody.
 	BackfillReady bool                   `json:"backfill_ready"`
 	Runs          []*domain.RetentionRun `json:"runs"`
+	// EventNames are the custom event names the workspace has received, for the picker of
+	// the events that count as engagement.
+	EventNames []string `json:"event_names"`
 }
 
 // DataRetentionPreview is what a policy would remove if it applied now.
@@ -218,6 +272,11 @@ func (s *DataRetentionService) Get(ctx context.Context, workspaceID string) (*Da
 	if view.Runs == nil {
 		view.Runs = []*domain.RetentionRun{}
 	}
+	// The names only feed a picker: a failure to read them leaves it empty, never the page.
+	if view.EventNames, err = s.repo.CustomEventNames(ctx, workspaceID, retentionEventNamesShown); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Warn("Failed to list custom event names")
+		view.EventNames = []string{}
+	}
 	return view, nil
 }
 
@@ -306,6 +365,13 @@ func (s *DataRetentionService) SetPolicy(ctx context.Context, workspaceID string
 	if err != nil {
 		return nil, err
 	}
+	// A segment that uses the expiring-soon condition cannot be exempt: its members would be
+	// exempt, leave it, match again, and join again at every rebuild.
+	if looping, err := s.repo.SegmentsUsingRetentionCondition(ctx, workspaceID, policy.ExemptSegmentIDs); err != nil {
+		return nil, err
+	} else if len(looping) > 0 {
+		return nil, domain.NewValidationError(fmt.Sprintf("a segment that uses the data retention condition cannot be exempt: %s", strings.Join(looping, ", ")))
+	}
 	workspace, err := s.workspaces.GetByID(ctx, workspaceID)
 	if err != nil {
 		return nil, err
@@ -336,10 +402,19 @@ func (s *DataRetentionService) SetPolicy(ctx context.Context, workspaceID string
 	if !written {
 		return nil, &domain.ErrRetentionConflict{Message: errRetentionConflict.Error()}
 	}
+	s.syncMirror(ctx, workspaceID, next, defaults, now)
 	if newlyPending {
 		s.notifyOwners(ctx, workspace, next.Pending.EffectiveAt)
 	}
 	return next, nil
+}
+
+// syncMirror writes the contact policy the segment condition reads (D13). A failure is logged:
+// the next run writes it again, so it lasts a day at most.
+func (s *DataRetentionService) syncMirror(ctx context.Context, workspaceID string, settings *domain.DataRetentionSettings, defaults *domain.RetentionDefaults, now time.Time) {
+	if err := s.repo.WriteContactPolicyMirror(ctx, workspaceID, domain.ContactPolicyMirrorAt(settings, defaults, now)); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Warn("Failed to write the data retention mirror; the next run writes it")
+	}
 }
 
 // CancelPending drops the change that waits (owners only).
@@ -372,6 +447,9 @@ func (s *DataRetentionService) CancelPending(ctx context.Context, workspaceID st
 	}
 	if !written {
 		return nil, &domain.ErrRetentionConflict{Message: errRetentionConflict.Error()}
+	}
+	if defaults, err := s.Defaults(ctx); err == nil {
+		s.syncMirror(ctx, workspaceID, &next, defaults, s.now())
 	}
 	return &next, nil
 }
@@ -416,19 +494,23 @@ func (s *DataRetentionService) SetDefaults(ctx context.Context, categories map[d
 	if err := s.settings.Set(ctx, DataRetentionDefaultsSettingKey, string(raw)); err != nil {
 		return nil, err
 	}
+	workspaces, err := s.workspaces.List(ctx)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Error("Failed to list workspaces after a change of the data retention defaults")
+		return next, nil
+	}
 	if deletesMore {
-		s.notifyInheritingWorkspaces(ctx, stored, next, now)
+		s.notifyInheritingWorkspaces(ctx, workspaces, stored, next, now)
+	}
+	// Every workspace may inherit from the defaults: their mirrors change too.
+	for _, workspace := range workspaces {
+		s.syncMirror(ctx, workspace.ID, workspace.Settings.DataRetention, next, now)
 	}
 	return next, nil
 }
 
 // notifyInheritingWorkspaces emails the owners of the workspaces the new defaults reach.
-func (s *DataRetentionService) notifyInheritingWorkspaces(ctx context.Context, before, after *domain.RetentionDefaults, now time.Time) {
-	workspaces, err := s.workspaces.List(ctx)
-	if err != nil {
-		s.logger.WithField("error", err.Error()).Error("Failed to list workspaces for the data retention notice")
-		return
-	}
+func (s *DataRetentionService) notifyInheritingWorkspaces(ctx context.Context, workspaces []*domain.Workspace, before, after *domain.RetentionDefaults, now time.Time) {
 	for _, workspace := range workspaces {
 		current, _, _ := domain.RetentionInForce(workspace.Settings.DataRetention, before, now)
 		_, pending, at := domain.RetentionInForce(workspace.Settings.DataRetention, after, now)
@@ -527,6 +609,22 @@ func (s *DataRetentionService) RunAll(ctx context.Context) {
 			s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Error("Data retention run failed")
 		}
 	}
+	if err := s.settings.Set(ctx, DataRetentionLastRunSettingKey, s.now().UTC().Format(time.RFC3339)); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to record the data retention run")
+	}
+}
+
+// LastRunAt returns when the last daily run over every workspace ended; false when none has.
+func (s *DataRetentionService) LastRunAt(ctx context.Context) (time.Time, bool) {
+	setting, err := s.settings.Get(ctx, DataRetentionLastRunSettingKey)
+	if err != nil || setting == nil {
+		return time.Time{}, false
+	}
+	at, err := time.Parse(time.RFC3339, setting.Value)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return at, true
 }
 
 // RunWorkspace applies the policy in force to one workspace: categories in a fixed order,
@@ -545,6 +643,7 @@ func (s *DataRetentionService) RunWorkspace(ctx context.Context, workspace *doma
 
 	now := s.now()
 	s.applyDueChange(ctx, workspace, now)
+	s.syncMirror(ctx, workspace.ID, workspace.Settings.DataRetention, defaults, now)
 	inForce, _, _ := domain.RetentionInForce(workspace.Settings.DataRetention, defaults, now)
 
 	run := &domain.RetentionRun{

@@ -79,6 +79,22 @@ func TestAuditRecord_APIKeyAndRoot(t *testing.T) {
 		event, _ := record.Finalize(200)
 		assert.Equal(t, AuditRoleRoot, event.ActorRole)
 	})
+	t.Run("an OAuth call keeps its auth method through SetActorClaims and SetActor", func(t *testing.T) {
+		record := NewAuditRecord("", "", "")
+		record.SetAuthMethod(AuditAuthOAuth)
+		record.SetActorClaims("k1", string(UserTypeAPIKey))
+		record.SetActor(&User{ID: "k1", Email: "key@example.com", Type: UserTypeAPIKey}, &UserWorkspace{WorkspaceID: "ws1", Role: "member"}, false)
+		event, _ := record.Finalize(200)
+		assert.Equal(t, AuditActorAPIKey, event.ActorType)
+		assert.Equal(t, "oauth", event.AuthMethod)
+	})
+	t.Run("an API key resolved after a session default is an API key", func(t *testing.T) {
+		record := NewAuditRecord("", "", "")
+		record.SetActorClaims("k1", string(UserTypeUser))
+		record.SetActor(&User{ID: "k1", Type: UserTypeAPIKey}, nil, false)
+		event, _ := record.Finalize(200)
+		assert.Equal(t, AuditAuthAPIKey, event.AuthMethod)
+	})
 	t.Run("a login method set by the service is kept", func(t *testing.T) {
 		record := NewAuditRecord("", "", "")
 		record.SetAuthMethod(AuditAuthMagicCode)

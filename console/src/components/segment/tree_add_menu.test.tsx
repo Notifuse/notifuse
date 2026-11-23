@@ -58,14 +58,15 @@ const openAddMenu = async () => {
 }
 
 describe('TreeNodeInput — adding', () => {
-  it('lists the four condition types with their description', async () => {
+  it('lists the five condition types with their description', async () => {
     renderTree(treeOf())
     const items = await openAddMenu()
     expect(items.map((item) => item.textContent)).toEqual([
       expect.stringContaining('Contact property'),
       expect.stringContaining('List subscription'),
       expect.stringContaining('Activity'),
-      expect.stringContaining('Goal')
+      expect.stringContaining('Goal'),
+      expect.stringContaining('Data retention')
     ])
     expect(screen.getByText('Is or is not in a list, with a status')).toBeTruthy()
   })

@@ -383,6 +383,11 @@ msgstr "{0, plural, one {¿Eliminar # archivo seleccionado?} other {¿Eliminar #
 msgid "{0, plural, one {Delete the folder {name} and its # file?} other {Delete the folder {name} and its # files?}}"
 msgstr "{0, plural, one {¿Eliminar la carpeta {name} y su # archivo?} other {¿Eliminar la carpeta {name} y sus # archivos?}}"
 
+#. placeholder {0}: leaf.retention.days
+#: src/components/segment/segmentSummary.ts:229
+msgid "{0, plural, one {Deleted as inactive within # day} other {Deleted as inactive within # days}}"
+msgstr "{0, plural, one {Se eliminará por inactividad en # día} other {Se eliminará por inactividad en # días}}"
+
 #. placeholder {0}: checkedFiles.length
 #: src/components/file_manager/FileExplorer.tsx:396
 msgid "{0, plural, one {Downloaded # file} other {Downloaded # files}}"
@@ -655,6 +660,13 @@ msgstr "{0} segundos"
 msgid "{0} unsubscribed from {name}"
 msgstr "{0} se dio de baja de {name}"
 
+#. placeholder {0}: number(result.opt_outs_kept)
+#. placeholder {0}: number(row.result.opt_outs_kept)
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:250
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:111
+msgid "{0} unsubscribes kept as hashes"
+msgstr "{0} bajas conservadas como hash"
+
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
 #: src/pages/AutomationsPage.tsx:231
@@ -709,11 +721,11 @@ msgstr "{bounced, plural, one {# dirección} other {# direcciones}}"
 
 #: src/services/api/licenseErrors.ts:119
 msgid "{capability} requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "{capability} requiere una licencia {tier} de Notifuse."
 
 #: src/services/api/licenseErrors.ts:121
 msgid "{capability} requires a Notifuse licence."
-msgstr ""
+msgstr "{capability} requiere una licencia de Notifuse."
 
 #: src/components/templates/TemplateSelectorInput.tsx:233
 msgid "{categoryLabel} category"
@@ -863,6 +875,10 @@ msgstr "{days, plural, one {{0} vs # día anterior} other {{1} vs # días anteri
 #: src/components/analytics/DashboardKpis.tsx:203
 msgid "{days, plural, one {{shown} vs prev. # d} other {{shown} vs prev. # d}}"
 msgstr "{days, plural, one {{shown} vs # d ant.} other {{shown} vs # d ant.}}"
+
+#: src/components/segment/ConditionSentence.tsx:281
+msgid "{days, plural, one {# day} other {# days}}"
+msgstr "{days, plural, one {# día} other {# días}}"
 
 #. placeholder {0}: int(kpis.contacts.added)
 #. placeholder {1}: int(kpis.contacts.added)
@@ -1111,6 +1127,14 @@ msgstr "{label}: {value}, ver en el registro de mensajes"
 msgid "{label}: no data, view in the message log"
 msgstr "{label}: sin datos, ver en el registro de mensajes"
 
+#: src/components/settings/data_retention/PeriodInput.tsx:41
+msgid "{label}: period"
+msgstr "{label}: período"
+
+#: src/components/settings/data_retention/PeriodInput.tsx:51
+msgid "{label}: unit"
+msgstr "{label}: unidad"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:1061
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr "A la traducción {langName} le faltan campos obligatorios (asunto y vista previa)"
@@ -1123,7 +1147,7 @@ msgstr "¡Código {language} copiado al portapapeles!"
 msgid "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
 msgstr "{LAST_SENT_DAYS, plural, one {Ningún envío correcto en el último # día} other {Ningún envío correcto en los últimos # días}}"
 
-#: src/components/automations/config/ConditionsField.tsx:106
+#: src/components/automations/config/ConditionsField.tsx:110
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr "{leafCount, plural, one {# condición} other {# condiciones}}"
 
@@ -1508,6 +1532,21 @@ msgstr "{totalRows, plural, one {# fila} other {{rowCount} filas}}"
 msgid "{unsubscribed, plural, one {# contact} other {# contacts}}"
 msgstr "{unsubscribed, plural, one {# contacto} other {# contactos}}"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:137
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:94
+msgid "{value, plural, one {# day} other {# days}}"
+msgstr "{value, plural, one {# día} other {# días}}"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:136
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:93
+msgid "{value, plural, one {# month} other {# months}}"
+msgstr "{value, plural, one {# mes} other {# meses}}"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:135
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:92
+msgid "{value, plural, one {# year} other {# years}}"
+msgstr "{value, plural, one {# año} other {# años}}"
+
 #: src/components/layout/format.ts:46
 msgid "{value} pt"
 msgstr "{value} p. p."
@@ -1693,7 +1732,7 @@ msgid "1 block hidden by its condition with this test data."
 msgstr "1 bloque oculto por su condición con estos datos de prueba."
 
 #: src/components/segment/segmentSummary.ts:208
-#: src/components/segment/segmentSummary.ts:229
+#: src/components/segment/segmentSummary.ts:234
 msgid "1 condition"
 msgstr "1 condición"
 
@@ -1867,7 +1906,7 @@ msgstr "90 días"
 msgid "900 - Black"
 msgstr "900 - Negro"
 
-#: src/components/segment/input.tsx:435
+#: src/components/segment/input.tsx:440
 msgid "A branch condition is required..."
 msgstr "Se requiere una condición de rama..."
 
@@ -1883,6 +1922,11 @@ msgstr "Un envío masivo va a una lista; un correo transaccional lo envía tu ap
 msgid "A bulk action is already running"
 msgstr "Ya hay una acción masiva en curso"
 
+#. placeholder {0}: formatDate(view.pending_at)
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:306
+msgid "A change that deletes more data takes effect on {0}"
+msgstr "Un cambio que elimina más datos entra en vigor el {0}"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:337
 #~ msgid "A click on a tracked email link to an allowed domain recognises the recipient: the visit joins their contact timeline, goals and automations. Never for a recipient who refused tracking"
 #~ msgstr "Un clic en un enlace rastreado de un email hacia un dominio permitido reconoce al destinatario: la visita se suma a su cronología de contacto, objetivos y automatizaciones. Nunca para un destinatario que rechazó el seguimiento"
@@ -1894,6 +1938,10 @@ msgstr "Un clic abre la vista previa; un doble clic usa el modelo directamente."
 #: src/components/templates/TemplateSelectorModal.tsx:216
 msgid "A click previews a template; a double click uses it."
 msgstr "Un clic muestra la vista previa de una plantilla; un doble clic la usa."
+
+#: src/components/segment/form_leaf.tsx:898
+msgid "A click, a reply or a visit moves the contact's date forward, and the contact leaves the segment. Exempt contacts never match."
+msgstr "Un clic, una respuesta o una visita retrasan la fecha del contacto, que sale del segmento. Los contactos exentos nunca coinciden."
 
 #: src/components/templates/TemplateSettingsStep.tsx:77
 msgid "A closing Liquid tag ({CLOSE_TAG}) comes before its opening tag ({OPEN_TAG})"
@@ -1943,7 +1991,7 @@ msgstr "Un valor de un contacto en {field} no es un número."
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "Se inserta una copia. Los cambios posteriores en el bloque guardado no la modifican."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:405
+#: src/components/automations/config/TriggerConfigForm.tsx:407
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un recuento de actividad pasada incluye el evento que dispara la automatización, así que \"al menos 3 aperturas\" inscribe en la tercera apertura."
 
@@ -2020,6 +2068,10 @@ msgstr "Un número (1.3) o píxeles hasta 200px."
 msgid "A one-time code to sign in or confirm an action."
 msgstr "Un código de un solo uso para iniciar sesión o confirmar una acción."
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:443
+msgid "A period is shorter than its category allows"
+msgstr "Un período es más corto de lo que permite su categoría"
+
 #: src/components/settings/WorkspaceMembers.tsx:279
 msgid "A platform admin reaches every workspace without joining it"
 msgstr "Un administrador de la plataforma accede a todos los espacios de trabajo sin unirse a ellos"
@@ -2083,7 +2135,7 @@ msgstr "Una imagen cuadrada, mostrada junto al nombre del espacio de trabajo"
 #~ msgid "A tree is required"
 #~ msgstr "Se requiere un árbol"
 
-#: src/components/segment/input.tsx:537
+#: src/components/segment/input.tsx:542
 msgid "A value is required..."
 msgstr "Se requiere un valor..."
 
@@ -2252,7 +2304,7 @@ msgstr "Sobre los destinatarios dados de baja"
 msgid "Accept Invitation"
 msgstr "Aceptar invitación"
 
-#: src/components/logs/auditPhrases.ts:105
+#: src/components/logs/auditPhrases.ts:110
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Aceptó la invitación <0>{target}</0>"
 
@@ -2381,7 +2433,7 @@ msgstr "Filtros activos"
 #~ msgstr "Suscriptor activo"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:310
-#: src/components/segment/form_leaf.tsx:486
+#: src/components/segment/form_leaf.tsx:488
 #: src/components/segment/input.tsx:66
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
@@ -2487,7 +2539,7 @@ msgstr "Añadir anotación"
 msgid "Add at least one condition."
 msgstr "Añade al menos una condición."
 
-#: src/components/segment/form_leaf.tsx:346
+#: src/components/segment/form_leaf.tsx:348
 msgid "Add at least one filter"
 msgstr "Añade al menos un filtro"
 
@@ -2585,7 +2637,7 @@ msgstr "Añadir dominio"
 msgid "Add endpoint"
 msgstr "Añadir punto final"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:394
+#: src/components/automations/config/TriggerConfigForm.tsx:396
 msgid "Add entry conditions"
 msgstr "Añadir condiciones de entrada"
 
@@ -2721,7 +2773,7 @@ msgstr "Añadido"
 msgid "Added {blockType}"
 msgstr "{blockType} añadido"
 
-#: src/components/logs/auditPhrases.ts:109
+#: src/components/logs/auditPhrases.ts:114
 msgid "Added a DKIM domain to <0>{target}</0>"
 msgstr "Añadió un dominio DKIM a <0>{target}</0>"
 
@@ -2738,7 +2790,7 @@ msgstr "Añadida el {addedOn}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "Añadió la anotación <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:110
+#: src/components/logs/auditPhrases.ts:115
 msgid "Added the integration <0>{target}</0>"
 msgstr "Añadió la integración <0>{target}</0>"
 
@@ -2766,20 +2818,20 @@ msgstr "Se añaden a los datos de prueba de la plantilla. Un envío debe proporc
 msgid "Additional context about this event"
 msgstr "Contexto adicional sobre este evento"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:105
+#: src/components/automations/config/TriggerConfigForm.tsx:106
 #: src/components/contacts/contactColumns.ts:69
 #: src/components/contacts/ContactsTable.tsx:341
 msgid "Address"
 msgstr "Dirección"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:107
+#: src/components/automations/config/TriggerConfigForm.tsx:108
 #: src/components/contacts/csv-import/contactFields.ts:33
 #: src/components/contacts/sheet/contactFieldLabels.ts:28
 #: src/components/segment/segmentLabels.ts:26
 msgid "Address Line 1"
 msgstr "Línea de dirección 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:108
+#: src/components/automations/config/TriggerConfigForm.tsx:109
 #: src/components/contacts/csv-import/contactFields.ts:34
 #: src/components/contacts/sheet/contactFieldLabels.ts:29
 #: src/components/segment/segmentLabels.ts:27
@@ -2865,7 +2917,7 @@ msgstr "Después del código que te enviamos por correo, Notifuse pide un segund
 msgid "After your first send"
 msgstr "Tras tu primer envío"
 
-#: src/components/segment/form_leaf.tsx:742
+#: src/components/segment/form_leaf.tsx:744
 msgid "Aggregate"
 msgstr "Agregar"
 
@@ -2936,7 +2988,7 @@ msgstr "Alinear a la derecha"
 msgid "Alignment"
 msgstr "Alineación"
 
-#: src/components/segment/input.tsx:448
+#: src/components/segment/input.tsx:453
 msgid "all"
 msgstr "todas las"
 
@@ -3083,7 +3135,7 @@ msgstr "Todos los correos transaccionales (notificaciones, restablecimientos de 
 msgid "Allowed domains"
 msgstr "Dominios permitidos"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:688
+#: src/components/settings/SystemSettingsDrawer.tsx:689
 #: src/components/setup/SsoPanel.tsx:165
 #: src/components/setup/SsoPanel.tsx:178
 msgid "Allowed email domains"
@@ -3222,6 +3274,10 @@ msgstr "Ocurrió un error durante la exportación"
 msgid "An error occurred with the file manager"
 msgstr "Ocurrió un error con el administrador de archivos"
 
+#: src/components/settings/data_retention/categoryText.ts:33
+msgid "An exempt list or segment is missing or being rebuilt"
+msgstr "Falta una lista o un segmento exento, o se está reconstruyendo"
+
 #: src/components/transactional/TransactionalDetail.tsx:429
 msgid "an integration"
 msgstr "una integración"
@@ -3238,6 +3294,10 @@ msgstr "Una invitación para unirse a un equipo o un espacio."
 #: src/components/logs/AuditLogTab.tsx:393
 msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
 msgstr "Una dirección IP y un ID de destino deben coincidir exactamente; un email de actor coincide con cualquier parte."
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:386
+msgid "An open never counts. Clicks, replies, confirmations, a contact's own subscriptions and identified visits always do."
+msgstr "Una apertura nunca cuenta. Los clics, las respuestas, las confirmaciones, las suscripciones hechas por el propio contacto y las visitas identificadas siempre cuentan."
 
 #: src/components/contacts/sheet/describeActivity.tsx:398
 msgid "an unknown page"
@@ -3259,16 +3319,16 @@ msgstr "ID de ancla"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:66
 #: src/components/segment/ConditionSentence.tsx:166
-#: src/components/segment/ConditionSentence.tsx:305
-#: src/components/segment/form_leaf.tsx:778
+#: src/components/segment/ConditionSentence.tsx:315
+#: src/components/segment/form_leaf.tsx:780
 #: src/components/segment/segmentSummary.ts:214
-#: src/components/segment/segmentSummary.ts:242
+#: src/components/segment/segmentSummary.ts:247
 msgid "and"
 msgstr "y"
 
 #: src/components/segment/ConditionSentence.tsx:141
 #: src/components/segment/input_dimension_filters.tsx:58
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:445
 msgid "AND"
 msgstr "Y"
 
@@ -3332,16 +3392,16 @@ msgstr "Cualquiera"
 msgid "Any API key"
 msgstr "Cualquier clave API"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:371
-#: src/components/segment/form_leaf.tsx:601
+#: src/components/automations/config/TriggerConfigForm.tsx:372
+#: src/components/segment/form_leaf.tsx:603
 msgid "Any broadcast"
 msgstr "Cualquier envío masivo"
 
-#: src/components/segment/form_leaf.tsx:729
+#: src/components/segment/form_leaf.tsx:731
 msgid "Any event"
 msgstr "Cualquier evento"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:336
+#: src/components/automations/config/TriggerConfigForm.tsx:337
 msgid "Any field change triggers automation"
 msgstr "Cualquier cambio de campo activa la automatización"
 
@@ -3349,7 +3409,7 @@ msgstr "Cualquier cambio de campo activa la automatización"
 msgid "Any goal"
 msgstr "Cualquier objetivo"
 
-#: src/components/segment/form_leaf.tsx:726
+#: src/components/segment/form_leaf.tsx:728
 msgid "Any goal name"
 msgstr "Cualquier nombre de objetivo"
 
@@ -3369,10 +3429,10 @@ msgstr "Cualquier envío"
 msgid "Any SMTP server, basic or OAuth2 login"
 msgstr "Cualquier servidor SMTP, inicio de sesión básico u OAuth2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:380
 #: src/components/automations/config/TriggerConfigForm.tsx:381
-#: src/components/segment/form_leaf.tsx:582
-#: src/components/segment/form_leaf.tsx:583
+#: src/components/automations/config/TriggerConfigForm.tsx:382
+#: src/components/segment/form_leaf.tsx:584
+#: src/components/segment/form_leaf.tsx:585
 msgid "Any template"
 msgstr "Cualquier plantilla"
 
@@ -3416,7 +3476,7 @@ msgstr "Documentación de la API"
 msgid "API endpoint"
 msgstr "Punto final de la API"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:303
+#: src/components/settings/SystemSettingsDrawer.tsx:304
 msgid "API Endpoint"
 msgstr "Punto final API"
 
@@ -3531,7 +3591,7 @@ msgstr "Se aplica a cada icono; el borde propio de un icono tiene prioridad."
 msgid "Applies to every icon; an icon's own settings win."
 msgstr "Se aplica a cada icono; los ajustes propios de un icono tienen prioridad."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:745
+#: src/components/settings/SystemSettingsDrawer.tsx:746
 msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
 msgstr "Se aplica a cada workspace que no haya definido su propia retención y a las entradas a nivel de despliegue, como los inicios de sesión. 0 conserva cada entrada para siempre."
 
@@ -3777,7 +3837,7 @@ msgstr "Pídeme ayuda para escribir tu blog..."
 #~ msgid "Ask the person who runs this Notifuse instance to install a licence."
 #~ msgstr ""
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:94
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "Pidió un código de inicio de sesión para <0>{target}</0>"
 
@@ -3793,7 +3853,14 @@ msgstr "En la fecha y hora que elijas"
 msgid "at least"
 msgstr "al menos"
 
-#: src/components/segment/input.tsx:449
+#. placeholder {0}: formatPeriod(minimum(category))
+#. placeholder {0}: formatPeriod(spec.min_days)
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:196
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:124
+msgid "At least {0}"
+msgstr "Al menos {0}"
+
+#: src/components/segment/input.tsx:454
 msgid "at least one"
 msgstr "al menos una de las"
 
@@ -3817,7 +3884,7 @@ msgstr "Se requiere al menos un dominio cuando la creación automática está ha
 msgid "At least one operation is required"
 msgstr "Se requiere al menos una operación"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:102
+#: src/components/settings/SystemSettingsDrawer.tsx:103
 #: src/components/setup/AdministratorPanel.tsx:37
 msgid "At least one root email is required"
 msgstr "Se requiere al menos un correo raíz"
@@ -3825,6 +3892,14 @@ msgstr "Se requiere al menos un correo raíz"
 #: src/components/segment/segmentLabels.ts:307
 msgid "at most"
 msgstr "como máximo"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:121
+msgid "At once"
+msgstr "De inmediato"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:78
+msgid "At the next run"
+msgstr "En la próxima ejecución"
 
 #: src/components/settings/DomainsSettings.tsx:327
 msgid "At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email."
@@ -3870,8 +3945,8 @@ msgstr "Entrada de auditoría"
 
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
-#: src/components/settings/SettingsSidebar.tsx:72
-#: src/components/settings/SystemSettingsDrawer.tsx:739
+#: src/components/settings/SettingsSidebar.tsx:60
+#: src/components/settings/SystemSettingsDrawer.tsx:740
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
 msgstr "Registro de auditoría"
@@ -3892,7 +3967,7 @@ msgstr "Registros de auditoría"
 
 #: src/components/license/LicenceGateNotice.tsx:56
 msgid "Audit logs require a Notifuse {tier} licence."
-msgstr ""
+msgstr "Los registros de auditoría requieren una licencia {tier} de Notifuse."
 
 #: src/components/logs/labels.ts:78
 msgid "Auth email"
@@ -3979,7 +4054,7 @@ msgstr "Automático"
 msgid "Auto-create accounts on first sign-in"
 msgstr "Crear cuentas automáticamente en el primer inicio de sesión"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:678
+#: src/components/settings/SystemSettingsDrawer.tsx:679
 msgid "Auto-create users"
 msgstr "Crear usuarios automáticamente"
 
@@ -4059,6 +4134,10 @@ msgstr "Automatización eliminada exitosamente"
 #: src/services/api/permissions.ts:713
 msgid "Automation flows — their triggers, nodes and per-contact execution history."
 msgstr "Flujos de automatización: sus disparadores, nodos e historial de ejecución por contacto."
+
+#: src/components/settings/data_retention/categoryText.ts:10
+msgid "Automation history"
+msgstr "Historial de automatizaciones"
 
 #: src/components/messages/MessageHistoryTab.tsx:233
 #~ msgid "Automation ID"
@@ -4216,6 +4295,10 @@ msgstr "Volver al inicio de sesión"
 #~ msgid "Back to the dashboard"
 #~ msgstr ""
 
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:133
+msgid "Back to the settings"
+msgstr "Volver a la configuración"
+
 #: src/components/transactional/TransactionalDetail.tsx:106
 msgid "Back to Transactional"
 msgstr "Volver a Transaccional"
@@ -4304,7 +4387,7 @@ msgstr "URL base"
 #~ msgid "Base URL (Optional)"
 #~ msgstr "URL base (Opcional)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:544
+#: src/components/settings/SystemSettingsDrawer.tsx:545
 msgid "Base64 encoded TLS certificate"
 msgstr "Certificado TLS codificado en Base64"
 
@@ -4312,7 +4395,7 @@ msgstr "Certificado TLS codificado en Base64"
 #~ msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 #~ msgstr "Certificado TLS codificado en Base64. Ejecutar: cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:559
+#: src/components/settings/SystemSettingsDrawer.tsx:560
 msgid "Base64 encoded TLS private key"
 msgstr "Clave privada TLS codificada en Base64"
 
@@ -4433,7 +4516,7 @@ msgid "Best TimeScore"
 msgstr "Mejor TimeScore"
 
 #: src/components/segment/ConditionSentence.tsx:164
-#: src/components/segment/ConditionSentence.tsx:303
+#: src/components/segment/ConditionSentence.tsx:313
 #: src/components/segment/segmentLabels.ts:231
 #: src/components/segment/segmentLabels.ts:294
 msgid "between"
@@ -4442,6 +4525,10 @@ msgstr "entre"
 #: src/components/segment/segmentSummary.ts:135
 msgid "between {first} and {second}"
 msgstr "entre el {first} y el {second}"
+
+#: src/components/segment/form_leaf.tsx:882
+msgid "Between 1 and 365 days"
+msgstr "Entre 1 y 365 días"
 
 #: src/components/templates/gallery/labels.ts:28
 msgid "Billing"
@@ -4555,7 +4642,7 @@ msgstr "Bloques"
 #: src/components/settings/BlogSettings.tsx:298
 #: src/components/settings/BlogSettings.tsx:312
 #: src/components/settings/permissionLabels.ts:14
-#: src/components/settings/SettingsSidebar.tsx:70
+#: src/components/settings/SettingsSidebar.tsx:58
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:245
 #: src/pages/BlogPage.tsx:89
@@ -4876,11 +4963,11 @@ msgstr "Ancho del punto de quiebre"
 #~ msgid "Breakpoint Width"
 #~ msgstr "Ancho del punto de quiebre"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:499
+#: src/components/settings/SystemSettingsDrawer.tsx:500
 msgid "Bridge Domain"
 msgstr "Dominio del puente"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:513
+#: src/components/settings/SystemSettingsDrawer.tsx:514
 msgid "Bridge Port"
 msgstr "Puerto del puente"
 
@@ -4910,11 +4997,11 @@ msgstr "Recupera a los contactos inactivos con una oferta."
 msgid "broadcast"
 msgstr "envío masivo"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:366
+#: src/components/automations/config/TriggerConfigForm.tsx:367
 #: src/components/broadcasts/BroadcastsTable.tsx:243
 #: src/components/messages/MessageHistoryTable.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:255
-#: src/components/segment/form_leaf.tsx:591
+#: src/components/segment/form_leaf.tsx:593
 #: src/components/templates/TemplateSelectorModal.tsx:707
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:64
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:120
@@ -5185,7 +5272,7 @@ msgstr "Altura del botón"
 msgid "Button label"
 msgstr "Texto del botón"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:650
+#: src/components/settings/SystemSettingsDrawer.tsx:651
 msgid "Button Label"
 msgstr "Etiqueta del botón"
 
@@ -5203,7 +5290,7 @@ msgstr "Ancho del botón"
 
 #: src/components/settings/LicenseSettings.tsx:222
 msgid "Buy a licence"
-msgstr ""
+msgstr "Comprar una licencia"
 
 #: src/components/contacts/ForgetOptOutsCheckbox.tsx:23
 msgid "By default, Notifuse keeps a coded trace of the lists this contact unsubscribed from, bounced on or complained about, for 3 years. If the address comes back, through an import or a form, those lists stay off. Tick this to keep nothing, for test data or when the person asked that nothing remain."
@@ -5256,7 +5343,7 @@ msgstr "No se puede probar en el navegador"
 #: src/components/automations/AutomationEditor.tsx:390
 #: src/components/automations/AutomationEditor.tsx:400
 #: src/components/automations/AutomationEditor.tsx:414
-#: src/components/automations/config/ConditionsField.tsx:124
+#: src/components/automations/config/ConditionsField.tsx:128
 #: src/components/automations/list/AutomationsTable.tsx:72
 #: src/components/automations/list/AutomationsTable.tsx:79
 #: src/components/automations/list/AutomationsTable.tsx:90
@@ -5315,8 +5402,8 @@ msgstr "No se puede probar en el navegador"
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/lists/ListDrawer.tsx:579
-#: src/components/segment/form_leaf.tsx:204
-#: src/components/segment/input.tsx:311
+#: src/components/segment/form_leaf.tsx:206
+#: src/components/segment/input.tsx:315
 #: src/components/segment/SegmentDrawer.tsx:306
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
@@ -5330,7 +5417,7 @@ msgstr "No se puede probar en el navegador"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:929
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:991
 #: src/components/settings/integrations/TestEmailModal.tsx:68
-#: src/components/settings/SystemSettingsDrawer.tsx:192
+#: src/components/settings/SystemSettingsDrawer.tsx:193
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:576
 #: src/components/settings/WebhookDetail.tsx:595
@@ -5390,6 +5477,10 @@ msgstr "¿Cancelar el envío masivo?"
 #~ msgid "Cancel Operation?"
 #~ msgstr "¿Cancelar operación?"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:324
+msgid "Cancel the change"
+msgstr "Cancelar el cambio"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:200
 msgid "Cancel the rule changes"
 msgstr "Cancelar los cambios de la regla"
@@ -5397,6 +5488,10 @@ msgstr "Cancelar los cambios de la regla"
 #: src/components/broadcasts/useBroadcastActions.tsx:121
 msgid "Cancel the scheduled send?"
 msgstr "¿Cancelar el envío programado?"
+
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:139
+msgid "Cancel this change"
+msgstr "Cancelar este cambio"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:304
 #~ msgid "Cancel Upload?"
@@ -5422,7 +5517,7 @@ msgstr "Cancelado"
 msgid "Cancelled the data retention change of <0>{target}</0>"
 msgstr "Canceló el cambio de retención de datos de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:114
+#: src/components/logs/auditPhrases.ts:119
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "Canceló la invitación <0>{target}</0>"
 
@@ -5430,7 +5525,7 @@ msgstr "Canceló la invitación <0>{target}</0>"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "Canceló la newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:102
 msgid "Cancelled the web analytics backfill"
 msgstr "Canceló el relleno de la analítica web"
 
@@ -5460,7 +5555,7 @@ msgstr "URL canónica"
 
 #: src/components/settings/LicenseSettings.tsx:188
 msgid "Capabilities"
-msgstr ""
+msgstr "Funciones"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:172
 msgid "Capitalize"
@@ -5611,35 +5706,35 @@ msgstr "Cambiar estado para {0}"
 msgid "Change status…"
 msgstr "Cambiar estado…"
 
-#: src/components/logs/auditPhrases.ts:119
+#: src/components/logs/auditPhrases.ts:124
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "Cambió la retención del registro de auditoría de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:120
+#: src/components/logs/auditPhrases.ts:125
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "Cambió la configuración del blog de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:54
+#: src/components/logs/auditPhrases.ts:55
 msgid "Changed the data retention policy of <0>{target}</0>"
 msgstr "Cambió la política de retención de datos de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:55
+#: src/components/logs/auditPhrases.ts:56
 msgid "Changed the default data retention periods"
 msgstr "Cambió los periodos de retención de datos por defecto"
 
-#: src/components/logs/auditPhrases.ts:137
+#: src/components/logs/auditPhrases.ts:142
 msgid "Changed the list status of the contact <0>{target}</0>"
 msgstr "Cambió el estado en la lista del contacto <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:122
+#: src/components/logs/auditPhrases.ts:127
 msgid "Changed the MCP access of <0>{target}</0>"
 msgstr "Cambió el acceso MCP de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:123
+#: src/components/logs/auditPhrases.ts:128
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "Cambió los permisos de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:124
+#: src/components/logs/auditPhrases.ts:129
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "Cambió la configuración de analítica web de <0>{target}</0>"
 
@@ -5696,7 +5791,7 @@ msgstr "Verificar"
 msgid "Check for updates"
 msgstr "Buscar actualizaciones"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:729
+#: src/components/settings/SystemSettingsDrawer.tsx:730
 msgid "Check for Updates"
 msgstr "Buscar actualizaciones"
 
@@ -5712,7 +5807,7 @@ msgstr "Revisa los registros del servidor y luego recarga esta página. Tu confi
 msgid "Checked {ago}"
 msgstr "Comprobado {ago}"
 
-#: src/components/logs/auditPhrases.ts:127
+#: src/components/logs/auditPhrases.ts:132
 msgid "Checked a DKIM record of <0>{target}</0>"
 msgstr "Comprobó un registro DKIM de <0>{target}</0>"
 
@@ -6040,7 +6135,7 @@ msgid "Clicked in an email"
 msgstr "Hizo clic en un correo"
 
 #: src/components/logs/MessagesTab.tsx:297
-#: src/components/segment/form_leaf.tsx:610
+#: src/components/segment/form_leaf.tsx:612
 msgid "Clicked link"
 msgstr "Enlace clicado"
 
@@ -6048,7 +6143,7 @@ msgstr "Enlace clicado"
 msgid "clicked link contains"
 msgstr "el enlace del clic contiene"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:356
+#: src/components/automations/config/TriggerConfigForm.tsx:357
 msgid "Clicked link contains"
 msgstr "El enlace clicado contiene"
 
@@ -6103,7 +6198,7 @@ msgstr "Clics por día"
 msgid "Clicks tracking consent"
 msgstr "Consentimiento de seguimiento de clics"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:118
+#: src/components/automations/config/TriggerConfigForm.tsx:119
 msgid "Clicks Tracking Consent"
 msgstr "Consentimiento de seguimiento de clics"
 
@@ -6118,7 +6213,7 @@ msgstr "No se registraron los clics"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:648
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:664
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:666
-#: src/components/settings/SystemSettingsDrawer.tsx:603
+#: src/components/settings/SystemSettingsDrawer.tsx:604
 #: src/components/setup/SsoPanel.tsx:78
 msgid "Client ID"
 msgstr "ID de cliente"
@@ -6136,7 +6231,7 @@ msgid "Client secret"
 msgstr "Secreto de cliente"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:673
-#: src/components/settings/SystemSettingsDrawer.tsx:613
+#: src/components/settings/SystemSettingsDrawer.tsx:614
 msgid "Client Secret"
 msgstr "Secreto de cliente"
 
@@ -6335,7 +6430,7 @@ msgstr "Las columnas con el nombre de un campo de contacto se asignan solas. Cad
 msgid "Comma-separated values"
 msgstr "Valores separados por comas"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:699
+#: src/components/settings/SystemSettingsDrawer.tsx:700
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Separados por comas. Solo estos dominios pueden crear cuentas automáticamente."
 
@@ -6343,13 +6438,13 @@ msgstr "Separados por comas. Solo estos dominios pueden crear cuentas automátic
 msgid "Common ports: 587 (STARTTLS), 465 (implicit TLS), 25 (unencrypted)."
 msgstr "Puertos habituales: 587 (STARTTLS), 465 (TLS implícito), 25 (sin cifrar)."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:371
+#: src/components/settings/SystemSettingsDrawer.tsx:372
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Puertos comunes: 587 (TLS), 465 (SSL), 25 (sin cifrar)"
 
 #: src/components/settings/LicenseSettings.tsx:182
 msgid "Community"
-msgstr ""
+msgstr "Community"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:467
 msgid "Compare this period with the previous one and explain the biggest drivers of the change in sessions."
@@ -6359,7 +6454,7 @@ msgstr "Compara este periodo con el anterior y explica los mayores impulsores de
 msgid "Compare TimeScore across campaign sources"
 msgstr "Comparar el TimeScore entre fuentes de campaña"
 
-#: src/components/segment/form_leaf.tsx:757
+#: src/components/segment/form_leaf.tsx:759
 msgid "Comparison"
 msgstr "Comparación"
 
@@ -6435,7 +6530,7 @@ msgstr "Completado"
 msgid "Complete days up to yesterday, in the workspace's time zone ({timezone})"
 msgstr "Días completos hasta ayer, en la zona horaria del espacio de trabajo ({timezone})"
 
-#: src/components/segment/form_leaf.tsx:161
+#: src/components/segment/form_leaf.tsx:163
 msgid "Complete or remove the unfinished filters"
 msgstr "Completa o elimina los filtros sin terminar"
 
@@ -6459,6 +6554,7 @@ msgstr "Completa la condición para actualizar el recuento"
 #: src/components/automations/stats/StepStats.tsx:21
 #: src/components/broadcasts/detail/BroadcastAside.tsx:220
 #: src/components/broadcasts/detail/BroadcastAside.tsx:277
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:227
 #: src/components/web_analytics/lib/backfill.ts:28
 msgid "Completed"
 msgstr "Completado"
@@ -6489,7 +6585,7 @@ msgstr "condición"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:364
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:107
 #: src/components/segment/FilterRow.tsx:203
-#: src/components/segment/input.tsx:518
+#: src/components/segment/input.tsx:523
 msgid "Condition"
 msgstr "Condición"
 
@@ -6607,7 +6703,7 @@ msgstr "Configurando {0}"
 
 #: src/components/contacts/BulkActionsBar.tsx:191
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:206
-#: src/components/segment/form_leaf.tsx:207
+#: src/components/segment/form_leaf.tsx:209
 #: src/components/two_factor/SetupWizard.tsx:149
 msgid "Confirm"
 msgstr "Confirmar"
@@ -6675,11 +6771,15 @@ msgstr "Conectado el"
 msgid "Connected apps"
 msgstr "Aplicaciones conectadas"
 
+#: src/components/logs/auditPhrases.ts:68
+msgid "Connected the application <0>{target}</0> with an API key"
+msgstr "Conectó la aplicación <0>{target}</0> con una clave API"
+
 #: src/components/setup/SmtpPanel.tsx:111
 msgid "Connected to {target} · {time}"
 msgstr "Conectado a {target} · {time}"
 
-#: src/components/logs/auditPhrases.ts:106
+#: src/components/logs/auditPhrases.ts:111
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "Conectó Zapier como la integración <0>{target}</0>"
 
@@ -6802,7 +6902,7 @@ msgstr "El contacto no está suscrito a esta lista"
 msgid "Contact not found"
 msgstr "Contacto no encontrado"
 
-#: src/components/segment/form_leaf.tsx:337
+#: src/components/segment/form_leaf.tsx:339
 #: src/components/segment/input.tsx:64
 #: src/components/segment/table_tag.tsx:20
 msgid "Contact property"
@@ -6824,9 +6924,9 @@ msgstr "Registros de contacto y sus campos, líneas de tiempo de contactos y eve
 msgid "Contact removed from the list"
 msgstr "Contacto eliminado de la lista"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:317
-#~ msgid "Contact timeline"
-#~ msgstr ""
+#: src/components/settings/data_retention/categoryText.ts:8
+msgid "Contact timeline"
+msgstr "Línea de tiempo de contactos"
 
 #: src/components/automations/describeTrigger.ts:117
 msgid "Contact updated"
@@ -6860,7 +6960,7 @@ msgstr "Los contactos que ya están en el espacio de trabajo se identifican por 
 msgid "Contacts can subscribe or unsubscribe from the notification center."
 msgstr "Los contactos pueden suscribirse o darse de baja desde el centro de notificaciones."
 
-#: src/components/segment/input.tsx:465
+#: src/components/segment/input.tsx:470
 msgid "Contacts matching"
 msgstr "Contactos que cumplen"
 
@@ -6879,6 +6979,14 @@ msgstr "Los contactos no suscritos a esta lista se omiten."
 #: src/components/broadcasts/compose/AudienceCard.tsx:84
 msgid "Contacts of the list who belong to any of these segments. Leave empty for the whole list."
 msgstr "Contactos de la lista que pertenecen a alguno de estos segmentos. Déjalo vacío para toda la lista."
+
+#: src/components/segment/input.tsx:76
+msgid "Contacts the inactive-contact retention deletes soon"
+msgstr "Los contactos que la retención de contactos inactivos eliminará pronto"
+
+#: src/components/settings/data_retention/categoryText.ts:18
+msgid "Contacts who have not clicked, replied, confirmed or visited for this long. They are deleted with their history; their unsubscribes are kept as hashes for 3 years."
+msgstr "Contactos que no han hecho clic, respondido, confirmado ni visitado durante este tiempo. Se eliminan con su historial; sus bajas se conservan como hash durante 3 años."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1039
 #~ msgid "Contacts will be added to these lists on import (optional)"
@@ -6932,7 +7040,7 @@ msgstr "Fondo del contenedor"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
-#: src/components/segment/form_leaf.tsx:611
+#: src/components/segment/form_leaf.tsx:613
 #: src/components/segment/segmentLabels.ts:221
 #: src/components/web_analytics/lib/filterCatalog.ts:222
 #: src/components/web_analytics/lib/filterLabels.ts:12
@@ -6942,7 +7050,7 @@ msgstr "contiene"
 #: src/components/broadcasts/compose/ContentCard.tsx:123
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:207
 #: src/components/email_builder/panels/LibraryPanel.tsx:268
-#: src/components/settings/SettingsSidebar.tsx:29
+#: src/components/settings/SettingsSidebar.tsx:16
 #: src/components/templates/TemplateDrawerBar.tsx:83
 #: src/components/templates/TemplateSettingsAside.tsx:140
 #: src/components/templates/TemplateTranslationsTab.tsx:424
@@ -7076,7 +7184,7 @@ msgstr "Copiar URL"
 #~ msgid "Copy Webhook endpoint"
 #~ msgstr "Copiar punto final del webhook"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:94
+#: src/components/automations/config/TriggerConfigForm.tsx:95
 msgid "Core Fields"
 msgstr "Campos principales"
 
@@ -7139,6 +7247,14 @@ msgstr "No se pudieron cargar las anotaciones"
 msgid "Could not load the dashboard"
 msgstr "No se pudo cargar el panel"
 
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:53
+msgid "Could not load the data retention defaults"
+msgstr "No se pudieron cargar los valores predeterminados de retención de datos"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:66
+msgid "Could not load the data retention settings"
+msgstr "No se pudo cargar la configuración de retención de datos"
+
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:145
 msgid "Could not load the email sent"
 msgstr "No se pudo cargar el email enviado"
@@ -7166,7 +7282,7 @@ msgstr "No se pudo cargar este informe"
 
 #: src/components/settings/LicenseSettings.tsx:60
 msgid "Could not read the licence state"
-msgstr ""
+msgstr "No se pudo leer el estado de la licencia"
 
 #: src/components/templates/DeleteTemplateModal.tsx:57
 msgid "Couldn't check where this template is used"
@@ -7350,7 +7466,7 @@ msgstr "Contando…"
 msgid "Countries"
 msgstr "Países"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:109
+#: src/components/automations/config/TriggerConfigForm.tsx:110
 #: src/components/contacts/contactColumns.ts:66
 #: src/components/contacts/contactFilterFields.ts:32
 #: src/components/contacts/ContactsTable.tsx:329
@@ -7378,6 +7494,10 @@ msgstr "País · ~111 km"
 #: src/components/segment/segmentLabels.ts:141
 msgid "Country the visit came from"
 msgstr "País del que procede la visita"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:146
+msgid "Counts are for today; they grow as data ages."
+msgstr "Las cifras son de hoy; aumentan a medida que los datos envejecen."
 
 #: src/components/logs/MessagesTab.tsx:566
 msgid "Counts cover {countMax} at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
@@ -7691,6 +7811,10 @@ msgstr "Creados"
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "Creada {0} · Actualizada {1} en {2}"
 
+#: src/components/logs/auditPhrases.ts:69
+msgid "Created an API key for the application <0>{target}</0> and connected it"
+msgstr "Creó una clave API para la aplicación <0>{target}</0> y la conectó"
+
 #: src/components/contacts/contactColumns.ts:71
 #: src/components/contacts/ContactsTable.tsx:349
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:293
@@ -7725,7 +7849,7 @@ msgstr "Creada el {createdOn}"
 msgid "Created or updated the contact <0>{target}</0>"
 msgstr "Creó o actualizó el contacto <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:108
+#: src/components/logs/auditPhrases.ts:113
 msgid "Created the API key <0>{target}</0>"
 msgstr "Creó la clave API <0>{target}</0>"
 
@@ -7745,11 +7869,11 @@ msgstr "Creó la entrada del blog <0>{target}</0>"
 msgid "Created the blog theme <0>{target}</0>"
 msgstr "Creó el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:56
+#: src/components/logs/auditPhrases.ts:57
 msgid "Created the folder <0>{target}</0>"
 msgstr "Creó la carpeta <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:63
+#: src/components/logs/auditPhrases.ts:64
 msgid "Created the list <0>{target}</0>"
 msgstr "Creó la lista <0>{target}</0>"
 
@@ -7757,23 +7881,23 @@ msgstr "Creó la lista <0>{target}</0>"
 msgid "Created the newsletter <0>{target}</0>"
 msgstr "Creó la newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:67
+#: src/components/logs/auditPhrases.ts:72
 msgid "Created the segment <0>{target}</0>"
 msgstr "Creó el segmento <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:77
+#: src/components/logs/auditPhrases.ts:82
 msgid "Created the template <0>{target}</0>"
 msgstr "Creó la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:80
+#: src/components/logs/auditPhrases.ts:85
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "Creó la notificación transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:104
 msgid "Created the webhook <0>{target}</0>"
 msgstr "Creó el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:107
+#: src/components/logs/auditPhrases.ts:112
 msgid "Created the workspace <0>{target}</0>"
 msgstr "Creó el espacio de trabajo <0>{target}</0>"
 
@@ -7880,27 +8004,27 @@ msgstr "Tamaño de fondo personalizado"
 msgid "Custom date {number}"
 msgstr "Fecha personalizada {number}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:144
+#: src/components/automations/config/TriggerConfigForm.tsx:145
 msgid "Custom Date 1"
 msgstr "Fecha personalizada 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:145
+#: src/components/automations/config/TriggerConfigForm.tsx:146
 msgid "Custom Date 2"
 msgstr "Fecha personalizada 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:146
+#: src/components/automations/config/TriggerConfigForm.tsx:147
 msgid "Custom Date 3"
 msgstr "Fecha personalizada 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:147
+#: src/components/automations/config/TriggerConfigForm.tsx:148
 msgid "Custom Date 4"
 msgstr "Fecha personalizada 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:148
+#: src/components/automations/config/TriggerConfigForm.tsx:149
 msgid "Custom Date 5"
 msgstr "Fecha personalizada 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:142
+#: src/components/automations/config/TriggerConfigForm.tsx:143
 msgid "Custom Date Fields"
 msgstr "Campos de fecha personalizados"
 
@@ -7962,6 +8086,15 @@ msgstr "Filtros de eventos personalizados (opcional)"
 msgid "Custom Event: {0}"
 msgstr "Evento personalizado: {0}"
 
+#: src/components/settings/data_retention/categoryText.ts:9
+msgid "Custom events"
+msgstr "Eventos personalizados"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:375
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:379
+msgid "Custom events that count as activity"
+msgstr "Eventos personalizados que cuentan como actividad"
+
 #: src/components/settings/CustomFieldsConfiguration.tsx:158
 msgid "Custom field label removed successfully"
 msgstr "Etiqueta de campo personalizado eliminada exitosamente"
@@ -7974,7 +8107,7 @@ msgstr "Etiqueta de campo personalizado guardada exitosamente"
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
 #: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:275
-#: src/components/settings/SettingsSidebar.tsx:69
+#: src/components/settings/SettingsSidebar.tsx:57
 msgid "Custom fields"
 msgstr "Campos personalizados"
 
@@ -7986,7 +8119,7 @@ msgstr "Campos personalizados"
 msgid "Custom header"
 msgstr "Cabecera personalizada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:464
+#: src/components/settings/SystemSettingsDrawer.tsx:465
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr "Nombre de host personalizado usado en el comando EHLO/HELO de SMTP. Déjalo vacío para usar el predeterminado."
 
@@ -8006,27 +8139,27 @@ msgstr "JSON personalizado {num}"
 msgid "Custom JSON {number}"
 msgstr "JSON personalizado {number}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:154
+#: src/components/automations/config/TriggerConfigForm.tsx:155
 msgid "Custom JSON 1"
 msgstr "JSON personalizado 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:155
+#: src/components/automations/config/TriggerConfigForm.tsx:156
 msgid "Custom JSON 2"
 msgstr "JSON personalizado 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:156
+#: src/components/automations/config/TriggerConfigForm.tsx:157
 msgid "Custom JSON 3"
 msgstr "JSON personalizado 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:157
+#: src/components/automations/config/TriggerConfigForm.tsx:158
 msgid "Custom JSON 4"
 msgstr "JSON personalizado 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:158
+#: src/components/automations/config/TriggerConfigForm.tsx:159
 msgid "Custom JSON 5"
 msgstr "JSON personalizado 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:152
+#: src/components/automations/config/TriggerConfigForm.tsx:153
 msgid "Custom JSON Fields"
 msgstr "Campos JSON personalizados"
 
@@ -8038,41 +8171,41 @@ msgstr "Campos JSON personalizados"
 msgid "Custom number {number}"
 msgstr "Número personalizado {number}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:134
+#: src/components/automations/config/TriggerConfigForm.tsx:135
 msgid "Custom Number 1"
 msgstr "Número personalizado 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:135
+#: src/components/automations/config/TriggerConfigForm.tsx:136
 msgid "Custom Number 2"
 msgstr "Número personalizado 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:136
+#: src/components/automations/config/TriggerConfigForm.tsx:137
 msgid "Custom Number 3"
 msgstr "Número personalizado 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:137
+#: src/components/automations/config/TriggerConfigForm.tsx:138
 msgid "Custom Number 4"
 msgstr "Número personalizado 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:138
+#: src/components/automations/config/TriggerConfigForm.tsx:139
 msgid "Custom Number 5"
 msgstr "Número personalizado 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:132
+#: src/components/automations/config/TriggerConfigForm.tsx:133
 msgid "Custom Number Fields"
 msgstr "Campos de número personalizados"
 
 #: src/services/api/licenseErrors.ts:49
 msgid "Custom permissions"
-msgstr ""
+msgstr "Permisos personalizados"
 
 #: src/components/settings/LicenseSettings.tsx:135
 msgid "Custom permissions (RBAC)"
-msgstr ""
+msgstr "Permisos personalizados (RBAC)"
 
 #: src/components/license/LicenceGateNotice.tsx:53
 msgid "Custom permissions require a Notifuse {tier} licence."
-msgstr ""
+msgstr "Los permisos personalizados requieren una licencia {tier} de Notifuse."
 
 #: src/components/logs/periodLabels.ts:16
 #: src/components/web_analytics/usePeriodLabels.ts:26
@@ -8103,27 +8236,27 @@ msgstr "Remitente personalizado, del proveedor de correo de marketing"
 msgid "Custom sender, from the transactional email provider"
 msgstr "Remitente personalizado, del proveedor de correo transaccional"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:124
+#: src/components/automations/config/TriggerConfigForm.tsx:125
 msgid "Custom String 1"
 msgstr "Cadena personalizada 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:125
+#: src/components/automations/config/TriggerConfigForm.tsx:126
 msgid "Custom String 2"
 msgstr "Cadena personalizada 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:126
+#: src/components/automations/config/TriggerConfigForm.tsx:127
 msgid "Custom String 3"
 msgstr "Cadena personalizada 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:127
+#: src/components/automations/config/TriggerConfigForm.tsx:128
 msgid "Custom String 4"
 msgstr "Cadena personalizada 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:128
+#: src/components/automations/config/TriggerConfigForm.tsx:129
 msgid "Custom String 5"
 msgstr "Cadena personalizada 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:122
+#: src/components/automations/config/TriggerConfigForm.tsx:123
 msgid "Custom String Fields"
 msgstr "Campos de cadena personalizados"
 
@@ -8140,7 +8273,7 @@ msgid "Daily"
 msgstr "Diario"
 
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/SettingsSidebar.tsx:74
+#: src/components/settings/SettingsSidebar.tsx:63
 msgid "Danger zone"
 msgstr "Zona de peligro"
 
@@ -8164,12 +8297,29 @@ msgid "Dashed"
 msgstr "Discontinuo"
 
 #: src/components/logs/MessageDetail.tsx:320
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:156
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:88
 msgid "Data"
 msgstr "Datos"
 
 #: src/components/broadcasts/compose/AdvancedRow.tsx:54
 msgid "Data feeds"
 msgstr "Fuentes de datos"
+
+#: src/components/segment/form_leaf.tsx:872
+#: src/components/segment/input.tsx:68
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:44
+#: src/components/settings/SettingsSidebar.tsx:61
+msgid "Data retention"
+msgstr "Retención de datos"
+
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:82
+msgid "Data retention defaults saved"
+msgstr "Valores predeterminados de retención guardados"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:58
+msgid "Data retention policy saved"
+msgstr "Política de retención de datos guardada"
 
 #: src/components/broadcasts/compose/AdvancedRow.tsx:59
 msgid "Data shared by every recipient, in the global_feed variable"
@@ -8205,11 +8355,14 @@ msgstr "Día"
 #: src/components/segment/ConditionSentence.tsx:158
 #: src/components/segment/FilterValueInput.tsx:141
 #: src/components/segment/FilterValueInput.tsx:146
-#: src/components/segment/form_leaf.tsx:250
+#: src/components/segment/form_leaf.tsx:252
+#: src/components/segment/form_leaf.tsx:886
+#: src/components/settings/data_retention/PeriodInput.tsx:54
 msgid "days"
 msgstr "días"
 
 #: src/components/automations/config/DelayConfigForm.tsx:17
+#: src/components/segment/form_leaf.tsx:884
 msgid "Days"
 msgstr "Días"
 
@@ -8282,7 +8435,11 @@ msgstr "Idioma predeterminado: {languageName}"
 msgid "Default marketing"
 msgstr "Marketing predeterminado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:743
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:48
+msgid "Default periods for every workspace. A workspace that sets its own period keeps it. A default that deletes more waits 7 days, and the owners of the workspaces it reaches get an email."
+msgstr "Períodos predeterminados para todos los espacios de trabajo. Un espacio de trabajo que fija su propio período lo conserva. Un valor predeterminado que elimina más espera 7 días, y los propietarios de los espacios de trabajo afectados reciben un correo."
+
+#: src/components/settings/SystemSettingsDrawer.tsx:744
 msgid "Default retention (days)"
 msgstr "Retención por defecto (días)"
 
@@ -8409,7 +8566,7 @@ msgstr "Retraso"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:309
+#: src/components/segment/input.tsx:313
 #: src/components/settings/DomainsSettings.tsx:139
 #: src/components/settings/DomainsSettings.tsx:356
 #: src/components/settings/Integrations.tsx:271
@@ -8780,11 +8937,19 @@ msgstr "Eliminada"
 #~ msgid "Deleted {deletedCount}, failed {failedCount}"
 #~ msgstr "{deletedCount} eliminado(s), {failedCount} fallido(s)"
 
+#: src/components/segment/segmentSummary.ts:230
+#~ msgid "Deleted as inactive within {days} days"
+#~ msgstr "Se eliminará por inactividad en {days} días"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:156
+msgid "Deleted data stays in your database backups until they expire."
+msgstr "Los datos eliminados siguen en las copias de seguridad de tu base de datos hasta que caducan."
+
 #: src/components/logs/auditPhrases.ts:15
 msgid "Deleted entries past the retention period"
 msgstr "Eliminó las entradas fuera del periodo de retención"
 
-#: src/components/logs/auditPhrases.ts:57
+#: src/components/logs/auditPhrases.ts:58
 msgid "Deleted files"
 msgstr "Eliminó archivos"
 
@@ -8817,11 +8982,11 @@ msgstr "Eliminó la entrada del blog <0>{target}</0>"
 msgid "Deleted the contact <0>{target}</0>"
 msgstr "Eliminó el contacto <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:58
+#: src/components/logs/auditPhrases.ts:59
 msgid "Deleted the folder <0>{target}</0>"
 msgstr "Eliminó la carpeta <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:64
+#: src/components/logs/auditPhrases.ts:65
 msgid "Deleted the list <0>{target}</0>"
 msgstr "Eliminó la lista <0>{target}</0>"
 
@@ -8829,27 +8994,27 @@ msgstr "Eliminó la lista <0>{target}</0>"
 msgid "Deleted the newsletter <0>{target}</0>"
 msgstr "Eliminó la newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:75
+#: src/components/logs/auditPhrases.ts:80
 msgid "Deleted the saved block <0>{target}</0>"
 msgstr "Eliminó el bloque guardado <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:68
+#: src/components/logs/auditPhrases.ts:73
 msgid "Deleted the segment <0>{target}</0>"
 msgstr "Eliminó el segmento <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:78
+#: src/components/logs/auditPhrases.ts:83
 msgid "Deleted the template <0>{target}</0>"
 msgstr "Eliminó la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:86
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "Eliminó la notificación transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:105
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "Eliminó el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:111
+#: src/components/logs/auditPhrases.ts:116
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Eliminó el espacio de trabajo <0>{target}</0>"
 
@@ -8907,6 +9072,10 @@ msgstr "Los eventos de entrega, rebote y queja no están registrados"
 msgid "Deliveries"
 msgstr "Entregas"
 
+#: src/components/settings/data_retention/categoryText.ts:24
+msgid "Deliveries, bounces and replies reported by your email provider."
+msgstr "Entregas, rebotes y respuestas que informa tu proveedor de correo."
+
 #: src/components/logs/labels.ts:39
 msgid "Delivering"
 msgstr "Entregando"
@@ -8942,6 +9111,10 @@ msgstr "Denegado"
 #: src/components/logs/AuditLogTab.tsx:534
 msgid "Deployment"
 msgstr "Despliegue"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:185
+msgid "Deployment default"
+msgstr "Valor predeterminado del despliegue"
 
 #: src/components/settings/integrations/DeprecatedPill.tsx:21
 msgid "Deprecated"
@@ -9108,6 +9281,7 @@ msgstr "Reglas deshabilitadas"
 #: src/components/layout/SaveBar.tsx:101
 #: src/components/lists/ListDrawer.tsx:214
 #: src/components/segment/SegmentDrawer.tsx:182
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:150
 #: src/components/templates/CreateTemplateDrawer.tsx:897
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
@@ -9139,6 +9313,10 @@ msgstr "¿Descartar los cambios?"
 #: src/components/settings/Integrations.tsx:524
 msgid "Disconnect"
 msgstr "Desconectar"
+
+#: src/components/logs/auditPhrases.ts:71
+msgid "Disconnected the application <0>{target}</0>"
+msgstr "Desconectó la aplicación <0>{target}</0>"
 
 #: src/components/contacts/visits/webVisitSource.ts:37
 msgid "Display"
@@ -9235,7 +9413,7 @@ msgstr "La verificación DNS previene la apropiación de dominios"
 #~ msgid "Do you really want to remove this branch?"
 #~ msgstr "¿Realmente quieres eliminar esta rama?"
 
-#: src/components/segment/input.tsx:301
+#: src/components/segment/input.tsx:305
 msgid "Do you really want to remove this condition?"
 msgstr "¿Realmente quieres eliminar esta condición?"
 
@@ -9244,7 +9422,7 @@ msgstr "¿Realmente quieres eliminar esta condición?"
 #~ msgid "Do you really want to remove this filter?"
 #~ msgstr "¿Realmente quieres eliminar este filtro?"
 
-#: src/components/segment/input.tsx:301
+#: src/components/segment/input.tsx:305
 msgid "Do you really want to remove this group?"
 msgstr "¿Seguro que quieres eliminar este grupo?"
 
@@ -9311,7 +9489,7 @@ msgid "Domain the visitor arrived from"
 msgstr "Dominio del que llegó el visitante"
 
 #: src/components/settings/DomainsSettings.tsx:392
-#: src/components/settings/SettingsSidebar.tsx:66
+#: src/components/settings/SettingsSidebar.tsx:54
 msgid "Domains"
 msgstr "Dominios"
 
@@ -9337,7 +9515,7 @@ msgstr "No hacer seguimiento de aperturas y clics en este broadcast"
 
 #: src/components/analytics/GetStartedChecklist.tsx:312
 #: src/components/analytics/GetStartedChecklist.tsx:439
-#: src/components/automations/config/ConditionsField.tsx:142
+#: src/components/automations/config/ConditionsField.tsx:146
 #: src/components/contacts/BulkUpdateDrawer.tsx:189
 #: src/components/contacts/BulkUpdateDrawer.tsx:245
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:195
@@ -9490,8 +9668,8 @@ msgstr "E-commerce"
 msgid "e.g. {0}"
 msgstr "ej. {0}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:360
-#: src/components/segment/form_leaf.tsx:619
+#: src/components/automations/config/TriggerConfigForm.tsx:361
+#: src/components/segment/form_leaf.tsx:621
 msgid "e.g. /pricing"
 msgstr "ej. /pricing"
 
@@ -9591,7 +9769,7 @@ msgstr "ej., Mi integración de Supabase"
 msgid "e.g., Product Updates"
 msgstr "ej., Actualizaciones de producto"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:321
+#: src/components/automations/config/TriggerConfigForm.tsx:322
 msgid "e.g., purchase"
 msgstr "ej., compra"
 
@@ -9643,7 +9821,7 @@ msgstr "Cada variación conserva el remitente de su plantilla, salvo que elijas 
 #~ msgid "edit"
 #~ msgstr "editar"
 
-#: src/components/automations/config/ConditionsField.tsx:112
+#: src/components/automations/config/ConditionsField.tsx:116
 #: src/components/blog/BlogSidebar.tsx:119
 #: src/components/blog/PostsTable.tsx:234
 #: src/components/blog/PostsTable.tsx:238
@@ -9652,8 +9830,8 @@ msgstr "Cada variación conserva el remitente de su plantilla, salvo que elijas 
 #: src/components/contacts/ContactsTable.tsx:93
 #: src/components/email_builder/EmailBuilder.tsx:1138
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
-#: src/components/segment/input.tsx:389
-#: src/components/segment/input.tsx:393
+#: src/components/segment/input.tsx:394
+#: src/components/segment/input.tsx:398
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -9951,7 +10129,7 @@ msgstr "Modo de editor"
 msgid "EHLO hostname"
 msgstr "Nombre de host EHLO"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:462
+#: src/components/settings/SystemSettingsDrawer.tsx:463
 msgid "EHLO Hostname"
 msgstr "Nombre de host EHLO"
 
@@ -10229,7 +10407,7 @@ msgstr "Plantillas de correo en todos los idiomas y los bloques de plantilla reu
 msgid "Email tracking"
 msgstr "Seguimiento de correos"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:115
+#: src/components/automations/config/TriggerConfigForm.tsx:116
 msgid "Email Tracking Consent"
 msgstr "Consentimiento de seguimiento de emails"
 
@@ -10245,7 +10423,7 @@ msgstr "Ancho del email"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Los anchos de correo superiores a 650px podrían no mostrarse correctamente en algunos clientes de correo"
 
-#: src/components/segment/input.tsx:71
+#: src/components/segment/input.tsx:72
 msgid "Email, country, language, custom fields, tracking consent…"
 msgstr "Email, país, idioma, campos personalizados, consentimiento de seguimiento…"
 
@@ -10260,8 +10438,8 @@ msgstr "Correo electrónico:"
 #: src/components/contacts/BulkUpdateDrawer.tsx:399
 #: src/components/contacts/BulkUpdateDrawer.tsx:407
 #: src/components/contacts/sheet/ContactActivityTab.tsx:36
-#: src/components/segment/form_leaf.tsx:520
-#: src/components/segment/form_leaf.tsx:521
+#: src/components/segment/form_leaf.tsx:522
+#: src/components/segment/form_leaf.tsx:523
 msgid "Emails"
 msgstr "Emails"
 
@@ -10307,9 +10485,13 @@ msgstr "Emails enviados"
 msgid "Emails sent per day"
 msgstr "Emails enviados por día"
 
-#: src/components/segment/input.tsx:73
+#: src/components/segment/input.tsx:74
 msgid "Emails sent, opened, clicked… pages viewed and website visits"
 msgstr "Emails enviados, abiertos, clicados… páginas vistas y visitas al sitio"
+
+#: src/components/settings/data_retention/categoryText.ts:26
+msgid "Emails your provider refused and that will not be retried."
+msgstr "Correos que tu proveedor rechazó y que no se volverán a intentar."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:975
 msgid "emails/min"
@@ -10332,7 +10514,7 @@ msgstr "Vacío"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Columna vacía. Añade contenido de texto, botón o imagen."
 
-#: src/components/segment/input.tsx:482
+#: src/components/segment/input.tsx:487
 msgid "Empty: add a condition or a subgroup."
 msgstr "Vacío: añade una condición o un subgrupo."
 
@@ -10401,7 +10583,7 @@ msgstr "¿Habilitar esta regla?"
 msgid "Enable this translation to edit it."
 msgstr "Activa esta traducción para editarla."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:385
+#: src/components/settings/SystemSettingsDrawer.tsx:386
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Habilitar cifrado TLS para conexión SMTP"
 
@@ -10425,8 +10607,8 @@ msgstr "Habilitar webhook"
 #: src/components/settings/BlogSettings.tsx:241
 #: src/components/settings/Integrations.tsx:408
 #: src/components/settings/integrations/providerDetails.ts:54
-#: src/components/settings/SystemSettingsDrawer.tsx:489
-#: src/components/settings/SystemSettingsDrawer.tsx:574
+#: src/components/settings/SystemSettingsDrawer.tsx:490
+#: src/components/settings/SystemSettingsDrawer.tsx:575
 #: src/components/settings/WebAnalyticsSettings.tsx:216
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
@@ -10490,7 +10672,7 @@ msgstr "Introduce una dirección de email completa"
 
 #: src/components/license/LicenseBanner.tsx:103
 msgid "Enter a licence key"
-msgstr ""
+msgstr "Introducir una clave de licencia"
 
 #: src/components/email_builder/ui/SaveBlockModal.tsx:139
 msgid "Enter a name for this block"
@@ -10705,7 +10887,7 @@ msgstr "Introduce el código de tu aplicación de autenticación."
 msgid "Enter the code shown in the app"
 msgstr "Introduce el código que muestra la aplicación"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:318
+#: src/components/automations/config/TriggerConfigForm.tsx:319
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
 msgstr "Introduce el nombre del evento personalizado (ej., 'compra', 'registro')"
 
@@ -10741,7 +10923,7 @@ msgstr "Introduce el nombre del espacio de trabajo"
 msgid "Entered"
 msgstr "Entrados"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:99
 msgid "Entered a two-factor code to sign in"
 msgstr "Introdujo un código de doble factor para iniciar sesión"
 
@@ -10761,7 +10943,7 @@ msgstr "Las entradas más antiguas se eliminan una vez al día. Déjelo vacío p
 msgid "Entry"
 msgstr "Entrada"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:392
+#: src/components/automations/config/TriggerConfigForm.tsx:394
 msgid "Entry conditions"
 msgstr "Condiciones de entrada"
 
@@ -10871,7 +11053,7 @@ msgstr "Errores"
 #~ msgid "Errors ({0} of {1} shown)"
 #~ msgstr "Errores ({0} de {1} mostrados)"
 
-#: src/components/segment/ConditionSentence.tsx:294
+#: src/components/segment/ConditionSentence.tsx:304
 msgid "event"
 msgstr "evento"
 
@@ -10914,11 +11096,11 @@ msgstr "ID del evento"
 msgid "Event invitation"
 msgstr "Invitación a un evento"
 
-#: src/components/segment/form_leaf.tsx:729
+#: src/components/segment/form_leaf.tsx:731
 msgid "event name"
 msgstr "nombre del evento"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:316
+#: src/components/automations/config/TriggerConfigForm.tsx:317
 msgid "Event Name"
 msgstr "Nombre del evento"
 
@@ -10957,6 +11139,10 @@ msgstr "Tipos de eventos"
 msgid "Events"
 msgstr "Eventos"
 
+#: src/components/settings/data_retention/categoryText.ts:21
+msgid "Events older than this are deleted. An event that counts as activity is copied to the contact's last activity first."
+msgstr "Se eliminan los eventos más antiguos que este período. Antes, un evento que cuenta como actividad se copia en la última actividad del contacto."
+
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:81
 msgid "Every \"set\" operation needs a value"
 msgstr "Cada operación \"set\" necesita un valor"
@@ -10964,6 +11150,10 @@ msgstr "Cada operación \"set\" necesita un valor"
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:158
 msgid "Every condition and every operation has a value"
 msgstr "Cada condición y cada operación tiene un valor"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:333
+msgid "Every day at 05:00 UTC, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance."
+msgstr "Cada día a las 05:00 UTC, Notifuse elimina o anonimiza lo que supera su período. «Desactivado» lo conserva todo. Un cambio que elimina más espera 7 días, así que aún se puede cancelar. Los valores sugeridos siguen las recomendaciones de la CNIL."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:236
 msgid "Every domain"
@@ -10991,7 +11181,7 @@ msgstr "Cada contacto importado se añade a estas listas."
 
 #: src/components/license/LicenceGateNotice.tsx:65
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
-msgstr ""
+msgstr "Cada miembro conserva el acceso que tiene, y aún se puede dar acceso completo a cualquier miembro. Solo un acceso más restringido necesita una licencia."
 
 #. placeholder {0}: context.minSessions
 #: src/components/web_analytics/explore/ExploreTable.tsx:233
@@ -11015,7 +11205,7 @@ msgstr "Cada vez"
 
 #: src/components/license/LicenceGateNotice.tsx:67
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
-msgstr ""
+msgstr "Mientras tanto, todos entran con un código de inicio de sesión y nadie se queda sin acceso."
 
 #: src/pages/LogsPage.tsx:60
 msgid "Everything sent, received and changed in this workspace"
@@ -11023,7 +11213,7 @@ msgstr "Todo lo enviado, recibido y modificado en este espacio de trabajo"
 
 #: src/components/license/LicenseBanner.tsx:120
 msgid "Everything the key grants keeps working during the grace period. Renew it to avoid losing licensed capabilities."
-msgstr ""
+msgstr "Todo lo que concede la clave sigue funcionando durante el periodo de gracia. Renuévala para no perder las funciones de la licencia."
 
 #: src/components/logs/MessagesTab.tsx:414
 #: src/components/logs/MessagesTab.tsx:454
@@ -11071,6 +11261,14 @@ msgstr "Excluir destinatarios dados de baja"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:162
 msgid "Excluded"
 msgstr "Excluidos"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:352
+msgid "Exempt lists"
+msgstr "Listas exentas"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:364
+msgid "Exempt segments"
+msgstr "Segmentos exentos"
 
 #: src/components/automations/EditorSettings.tsx:68
 #: src/components/automations/EditorSettings.tsx:81
@@ -11127,15 +11325,15 @@ msgstr "Expandir {label}"
 
 #: src/components/settings/LicenseSettings.tsx:131
 msgid "Expired"
-msgstr ""
+msgstr "Caducada"
 
 #: src/components/settings/LicenseSettings.tsx:130
 msgid "Expired, in grace period"
-msgstr ""
+msgstr "Caducada, en periodo de gracia"
 
 #: src/components/settings/LicenseSettings.tsx:184
 msgid "Expires"
-msgstr ""
+msgstr "Caduca"
 
 #: src/pages/AcceptInvitationPage.tsx:198
 msgid "Expires:"
@@ -11159,6 +11357,10 @@ msgstr "Exportar"
 #: src/components/contacts/ExportContactsModal.tsx:353
 msgid "Export Contacts to CSV"
 msgstr "Exportar contactos a CSV"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:422
+msgid "Export CSV"
+msgstr "Exportar a CSV"
 
 #: src/components/logs/AuditLogActions.tsx:24
 #~ msgid "Export failed"
@@ -11205,7 +11407,7 @@ msgstr "Exportando todos los contactos"
 #~ msgid "Exports the current filter, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
 #~ msgstr "Exporta el filtro actual, hasta {AUDIT_LOG_EXPORT_MAX_ROWS} filas"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:99
+#: src/components/automations/config/TriggerConfigForm.tsx:100
 #: src/components/contacts/contactFilterFields.ts:23
 #: src/components/contacts/csv-import/contactFields.ts:26
 #: src/components/contacts/ExportContactsModal.tsx:66
@@ -11254,6 +11456,7 @@ msgstr "Muy alto"
 #: src/components/logs/MessagesTab.tsx:287
 #: src/components/logs/MessagesTab.tsx:925
 #: src/components/messages/MessageHistoryTable.tsx:344
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:229
 #: src/components/settings/WebhookDetail.tsx:540
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
@@ -11281,6 +11484,10 @@ msgstr "Fallido"
 #: src/components/contacts/SegmentDefinedBy.tsx:115
 msgid "Failed {failedAgo}"
 msgstr "Falló {failedAgo}"
+
+#: src/components/settings/data_retention/categoryText.ts:14
+msgid "Failed emails"
+msgstr "Correos fallidos"
 
 #: src/components/contacts/sheet/describeActivity.tsx:430
 msgid "Failed in the automation {name}"
@@ -11527,7 +11734,7 @@ msgstr "Error al obtener los datos: {0}"
 msgid "Failed to fetch setup status"
 msgstr "Error al obtener estado de configuración"
 
-#: src/pages/WorkspaceSettingsPage.tsx:158
+#: src/pages/WorkspaceSettingsPage.tsx:160
 msgid "Failed to fetch workspace members"
 msgstr "Error al obtener miembros del espacio de trabajo"
 
@@ -11541,7 +11748,7 @@ msgstr "Error al importar plantilla. Por favor verifica el formato del archivo."
 
 #: src/components/settings/LicenseSettings.tsx:120
 msgid "Failed to install the licence key"
-msgstr ""
+msgstr "Error al instalar la clave de licencia"
 
 #: src/components/settings/WorkspaceMembers.tsx:337
 msgid "Failed to invite member"
@@ -11559,7 +11766,7 @@ msgstr "Error al cargar los envíos masivos"
 msgid "Failed to load contact lists"
 msgstr "Error al cargar listas de contactos"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:75
+#: src/components/settings/SystemSettingsDrawer.tsx:76
 msgid "Failed to load settings"
 msgstr "Error al cargar la configuración"
 
@@ -11680,7 +11887,7 @@ msgstr "Error al guardar integración"
 msgid "Failed to save LLM integration"
 msgstr "Error al guardar integración LLM"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:231
+#: src/components/settings/SystemSettingsDrawer.tsx:232
 msgid "Failed to save settings"
 msgstr "Error al guardar la configuración"
 
@@ -11900,7 +12107,7 @@ msgstr "Imagen destacada"
 #~ msgid "Featured Image URL"
 #~ msgstr "URL de imagen destacada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:716
+#: src/components/settings/SystemSettingsDrawer.tsx:717
 msgid "Features"
 msgstr "Funciones"
 
@@ -12078,7 +12285,7 @@ msgstr "Condiciones de filtro"
 msgid "Filtered by"
 msgstr "Filtrado por"
 
-#: src/components/segment/form_leaf.tsx:631
+#: src/components/segment/form_leaf.tsx:633
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:237
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -12122,6 +12329,10 @@ msgstr "Encuentra esto en Google Cloud Console > APIs y servicios > Credenciales
 msgid "Finer precision needs Region or City on"
 msgstr "Más precisión requiere la región o la ciudad"
 
+#: src/components/settings/data_retention/categoryText.ts:22
+msgid "Finished journeys older than this are deleted. Contacts are never enrolled twice in a one-time automation."
+msgstr "Se eliminan los recorridos terminados más antiguos que este período. Un contacto nunca se inscribe dos veces en una automatización de ejecución única."
+
 #: src/services/api/permissions.ts:651
 msgid "Fire a test data-feed request for a named recipient"
 msgstr "Lanzar una solicitud de prueba del feed de datos para un destinatario concreto"
@@ -12158,7 +12369,7 @@ msgstr "Primera visita identificada"
 msgid "First line of the contact's address"
 msgstr "Primera línea de la dirección del contacto"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:96
+#: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
 #: src/components/contacts/ContactsTable.tsx:325
@@ -12180,6 +12391,10 @@ msgstr "Primera apertura"
 #: src/components/broadcasts/detail/EngagementChart.tsx:100
 #~ msgid "First opens counts the messages opened or clicked, once each; first clicks, the messages clicked once each."
 #~ msgstr "Primeras aperturas cuenta los mensajes abiertos o con clic, una vez cada uno; primeros clics, los mensajes con clic, una vez cada uno."
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:102
+msgid "First run removes"
+msgstr "La primera ejecución elimina"
 
 #: src/components/automations/AutomationFlowEditor.tsx:135
 #: src/components/automations/AutomationFlowEditor.tsx:139
@@ -12460,7 +12675,7 @@ msgstr "Desde console.anthropic.com"
 msgid "From email"
 msgstr "Correo del remitente"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:429
+#: src/components/settings/SystemSettingsDrawer.tsx:430
 msgid "From Email"
 msgstr "Correo del remitente"
 
@@ -12480,7 +12695,7 @@ msgstr "Desde Google AI Studio"
 msgid "From name"
 msgstr "Nombre del remitente"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:445
+#: src/components/settings/SystemSettingsDrawer.tsx:446
 msgid "From Name"
 msgstr "Nombre del remitente"
 
@@ -12604,8 +12819,8 @@ msgid "gemini-4-argon or a custom model ID"
 msgstr "gemini-4-argon o un ID de modelo personalizado"
 
 #: src/components/settings/GeneralSettings.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:63
-#: src/components/settings/SystemSettingsDrawer.tsx:276
+#: src/components/settings/SettingsSidebar.tsx:51
+#: src/components/settings/SystemSettingsDrawer.tsx:277
 msgid "General"
 msgstr "General"
 
@@ -12648,7 +12863,7 @@ msgstr "Se genera a partir del nombre hasta que lo edites"
 msgid "Generated HTML"
 msgstr "HTML generado"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:97
 msgid "Generated new recovery codes"
 msgstr "Generó nuevos códigos de recuperación"
 
@@ -12724,7 +12939,7 @@ msgid "Go to Sign In"
 msgstr "Ir a iniciar sesión"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:311
-#: src/components/segment/form_leaf.tsx:683
+#: src/components/segment/form_leaf.tsx:685
 #: src/components/segment/input.tsx:67
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
@@ -12749,8 +12964,8 @@ msgstr "Panel de objetivos"
 msgid "Goal dashboard: {goalName}"
 msgstr "Panel del objetivo: {goalName}"
 
-#: src/components/segment/ConditionSentence.tsx:288
-#: src/components/segment/form_leaf.tsx:726
+#: src/components/segment/ConditionSentence.tsx:298
+#: src/components/segment/form_leaf.tsx:728
 msgid "goal name"
 msgstr "nombre del objetivo"
 
@@ -12900,7 +13115,7 @@ msgstr "Cuadrícula"
 msgid "Groove"
 msgstr "Ranura"
 
-#: src/components/segment/input.tsx:528
+#: src/components/segment/input.tsx:533
 msgid "Group"
 msgstr "Grupo"
 
@@ -12932,7 +13147,7 @@ msgstr "Grupo al que pertenece el canal de adquisición"
 msgid "Group width"
 msgstr "Ancho del grupo"
 
-#: src/components/segment/input.tsx:472
+#: src/components/segment/input.tsx:477
 msgid "Group:"
 msgstr "Grupo:"
 
@@ -12969,13 +13184,13 @@ msgstr "Tuvo un correo rebotado"
 #~ msgid "has not"
 #~ msgstr "no tiene"
 
-#: src/components/segment/ConditionSentence.tsx:283
-#: src/components/segment/form_leaf.tsx:702
+#: src/components/segment/ConditionSentence.tsx:293
+#: src/components/segment/form_leaf.tsx:704
 msgid "has not reached"
 msgstr "no ha alcanzado"
 
-#: src/components/segment/ConditionSentence.tsx:283
-#: src/components/segment/form_leaf.tsx:701
+#: src/components/segment/ConditionSentence.tsx:293
+#: src/components/segment/form_leaf.tsx:703
 msgid "has reached"
 msgstr "ha alcanzado"
 
@@ -13154,8 +13369,8 @@ msgstr "Cómo funciona:"
 msgid "How long to wait before proceeding to the next step"
 msgstr "Cuánto tiempo esperar antes de proceder al siguiente paso"
 
-#: src/components/segment/form_leaf.tsx:538
-#: src/components/segment/form_leaf.tsx:543
+#: src/components/segment/form_leaf.tsx:540
+#: src/components/segment/form_leaf.tsx:545
 msgid "How many"
 msgstr "Cuántas"
 
@@ -13479,6 +13694,10 @@ msgstr "Si ya existe un contacto con este correo, los campos proporcionados se s
 msgid "If Notifuse requires two-factor authentication, they set it up again at their next sign-in."
 msgstr "Si Notifuse exige la autenticación de doble factor, la vuelve a configurar en su próximo inicio de sesión."
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:371
+msgid "If one of them is deleted or being rebuilt, no contact is deleted until it is back."
+msgstr "Si uno de ellos se elimina o se está reconstruyendo, no se elimina ningún contacto hasta que vuelva."
+
 #: src/components/transactional/ApiCommandDrawer.tsx:111
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Si el correo del contacto no existe en tu espacio de trabajo, se creará automáticamente."
@@ -13779,6 +13998,11 @@ msgstr "En uso"
 msgid "inactive"
 msgstr "inactivo"
 
+#: src/components/settings/data_retention/categoryText.ts:6
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:345
+msgid "Inactive contacts"
+msgstr "Contactos inactivos"
+
 #: src/components/settings/Integrations.tsx:236
 #~ msgid "inbound replies"
 #~ msgstr "respuestas entrantes"
@@ -13929,11 +14153,11 @@ msgstr "Instalar"
 
 #: src/components/settings/LicenseSettings.tsx:227
 msgid "Install a licence key"
-msgstr ""
+msgstr "Instalar una clave de licencia"
 
 #: src/components/settings/LicenseSettings.tsx:243
 msgid "Install licence key"
-msgstr ""
+msgstr "Instalar la clave de licencia"
 
 #: src/components/web_analytics/InstallOverlay.tsx:68
 msgid "Install the tracking snippet"
@@ -13989,7 +14213,7 @@ msgstr "Integración actualizada exitosamente"
 #: src/components/logs/labels.ts:12
 #: src/components/settings/Integrations.tsx:712
 #: src/components/settings/integrations/IntegrationDrawer.tsx:25
-#: src/components/settings/SettingsSidebar.tsx:65
+#: src/components/settings/SettingsSidebar.tsx:53
 msgid "Integrations"
 msgstr "Integraciones"
 
@@ -13997,7 +14221,7 @@ msgstr "Integraciones"
 msgid "Invalid display condition"
 msgstr "Condición de visualización no válida"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:433
+#: src/components/settings/SystemSettingsDrawer.tsx:434
 msgid "Invalid email"
 msgstr "Correo inválido"
 
@@ -14006,7 +14230,7 @@ msgid "Invalid email format"
 msgstr "Formato de correo inválido"
 
 #. placeholder {0}: invalid.join(', ')
-#: src/components/settings/SystemSettingsDrawer.tsx:107
+#: src/components/settings/SystemSettingsDrawer.tsx:108
 #: src/components/setup/AdministratorPanel.tsx:20
 msgid "Invalid email: {0}"
 msgstr "Correo inválido: {0}"
@@ -14133,7 +14357,7 @@ msgstr "Invitar miembro"
 msgid "Invite your team"
 msgstr "Invita a tu equipo"
 
-#: src/components/logs/auditPhrases.ts:115
+#: src/components/logs/auditPhrases.ts:120
 msgid "Invited <0>{target}</0>"
 msgstr "Invitó a <0>{target}</0>"
 
@@ -14181,7 +14405,7 @@ msgid "is greater than or equal to"
 msgstr "es mayor o igual que"
 
 #: src/components/segment/ConditionSentence.tsx:208
-#: src/components/segment/form_leaf.tsx:407
+#: src/components/segment/form_leaf.tsx:409
 msgid "is in"
 msgstr "está en"
 
@@ -14203,7 +14427,7 @@ msgid "is not empty"
 msgstr "no está vacío"
 
 #: src/components/segment/ConditionSentence.tsx:208
-#: src/components/segment/form_leaf.tsx:408
+#: src/components/segment/form_leaf.tsx:410
 msgid "is not in"
 msgstr "no está en"
 
@@ -14212,7 +14436,7 @@ msgstr "no está en"
 msgid "is not set"
 msgstr "no está definido"
 
-#: src/components/segment/input.tsx:72
+#: src/components/segment/input.tsx:73
 msgid "Is or is not in a list, with a status"
 msgstr "Está o no está en una lista, con un estado"
 
@@ -14233,7 +14457,7 @@ msgstr "aislado"
 msgid "isolation requested but not provisioned"
 msgstr "aislamiento solicitado pero no aprovisionado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:584
+#: src/components/settings/SystemSettingsDrawer.tsx:585
 #: src/components/setup/SsoPanel.tsx:66
 msgid "Issuer URL"
 msgstr "URL del emisor"
@@ -14364,7 +14588,7 @@ msgstr "Entró en el segmento {chip}"
 msgid "Joined segment {segment}"
 msgstr "Se unió al segmento {segment}"
 
-#: src/components/logs/auditPhrases.ts:116
+#: src/components/logs/auditPhrases.ts:121
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "Se unió con la invitación <0>{target}</0>"
 
@@ -14417,6 +14641,10 @@ msgstr "Seguir editando"
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:97
 msgid "Keep entries for (days)"
 msgstr "Conservar entradas durante (días)"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:168
+msgid "Keep for"
+msgstr "Conservar durante"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:135
 msgid "Keep going"
@@ -14530,7 +14758,7 @@ msgstr "Ruta de destino"
 msgid "Landing URL"
 msgstr "URL de destino"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:101
+#: src/components/automations/config/TriggerConfigForm.tsx:102
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/contactColumns.ts:67
 #: src/components/contacts/contactFilterFields.ts:28
@@ -14648,7 +14876,7 @@ msgstr "Última hora"
 #~ msgid "Last modified"
 #~ msgstr "Última modificación"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:97
+#: src/components/automations/config/TriggerConfigForm.tsx:98
 #: src/components/contacts/contactColumns.ts:63
 #: src/components/contacts/contactFilterFields.ts:25
 #: src/components/contacts/ContactsTable.tsx:326
@@ -14726,7 +14954,7 @@ msgstr "Déjalo vacío para un servidor que acepta correo sin inicio de sesión"
 msgid "Leave empty for full container width"
 msgstr "Deja vacío para el ancho completo del contenedor"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:634
+#: src/components/settings/SystemSettingsDrawer.tsx:635
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "Déjalo vacío para derivarla del punto final API. Indícala cuando la llamada de retorno pase por un proxy o un dominio personalizado."
 
@@ -14734,7 +14962,7 @@ msgstr "Déjalo vacío para derivarla del punto final API. Indícala cuando la l
 msgid "Leave empty to keep the template's sender. Only the senders of the marketing email integration are offered."
 msgstr "Déjalo vacío para conservar el remitente de la plantilla. Solo se ofrecen los remitentes de la integración de email de marketing."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:332
+#: src/components/automations/config/TriggerConfigForm.tsx:333
 msgid "Leave empty to trigger on any field change"
 msgstr "Deja vacío para activar en cualquier cambio de campo"
 
@@ -14846,26 +15074,26 @@ msgstr "Biblioteca"
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:66
 #: src/components/settings/LicenseSettings.tsx:163
-#: src/components/settings/SettingsSidebar.tsx:73
+#: src/components/settings/SettingsSidebar.tsx:62
 msgid "Licence"
 msgstr "Licencia"
 
 #: src/components/settings/LicenseSettings.tsx:107
 msgid "Licence key installed"
-msgstr ""
+msgstr "Clave de licencia instalada"
 
 #: src/components/license/LicenceBlock.tsx:63
 msgid "Licence settings"
-msgstr ""
+msgstr "Configuración de la licencia"
 
 #: src/components/license/LicenceBlock.tsx:55
 msgid "Licensed capability"
-msgstr ""
+msgstr "Función con licencia"
 
 #. placeholder {0}: entitlements.org
 #: src/components/settings/LicenseSettings.tsx:158
 msgid "Licensed to {0}"
-msgstr ""
+msgstr "Licencia a nombre de {0}"
 
 #: src/components/templates/gallery/labels.ts:31
 msgid "Lifecycle"
@@ -14878,6 +15106,10 @@ msgstr "Ciclo de vida"
 #: src/components/segment/segmentLabels.ts:326
 msgid "Lime"
 msgstr "Lima"
+
+#: src/components/settings/data_retention/PeriodInput.tsx:28
+msgid "Limit how long {label} is kept"
+msgstr "Limitar el tiempo de conservación: {label}"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:193
 msgid "Limited to the top {EXPANDED_ROWS} values for performance"
@@ -15066,7 +15298,7 @@ msgstr "El Liquid colocado entre los bloques de una sección o una columna puede
 
 #: src/components/automations/config/AddToListConfigForm.tsx:32
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:26
-#: src/components/automations/config/TriggerConfigForm.tsx:274
+#: src/components/automations/config/TriggerConfigForm.tsx:275
 #: src/components/automations/describeTrigger.ts:32
 #: src/components/automations/EditorSettings.tsx:38
 #: src/components/automations/list/AutomationsTable.tsx:184
@@ -15178,7 +15410,7 @@ msgstr "Estado en la lista"
 msgid "List Status"
 msgstr "Estado de lista"
 
-#: src/components/segment/form_leaf.tsx:393
+#: src/components/segment/form_leaf.tsx:395
 #: src/components/segment/input.tsx:65
 #: src/components/segment/table_tag.tsx:25
 msgid "List subscription"
@@ -15760,7 +15992,7 @@ msgstr "El rango máximo es de 2 años. Las fechas se leen en {timezone}."
 msgid "Me"
 msgstr "Yo"
 
-#: src/components/segment/form_leaf.tsx:733
+#: src/components/segment/form_leaf.tsx:735
 msgid "Measure"
 msgstr "Medida"
 
@@ -15849,6 +16081,10 @@ msgstr "Puede que los miembros estén incompletos: vuelve a calcular el segmento
 #: src/components/logs/MessagesTab.tsx:664
 msgid "Message"
 msgstr "Mensaje"
+
+#: src/components/settings/data_retention/categoryText.ts:7
+msgid "Message history"
+msgstr "Historial de mensajes"
 
 #: src/components/settings/permissionLabels.ts:13
 #: src/services/api/errors.ts:88
@@ -16138,6 +16374,10 @@ msgstr "Mensual"
 #~ msgid "Monthly partitions older than this are dropped. 0 keeps data forever."
 #~ msgstr ""
 
+#: src/components/settings/data_retention/PeriodInput.tsx:55
+msgid "months"
+msgstr "meses"
+
 #: src/components/automations/AutomationEditor.tsx:519
 #: src/components/automations/list/AutomationsTable.tsx:296
 #: src/components/blog/CategoryDrawer.tsx:199
@@ -16164,6 +16404,10 @@ msgstr "Más acciones"
 msgid "More actions for {name}"
 msgstr "Más acciones para {name}"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:251
+msgid "more at the next run"
+msgstr "más en la próxima ejecución"
+
 #: src/components/blog_editor/toolbars/components/MoreMenu.tsx:97
 msgid "More options"
 msgstr "Más opciones"
@@ -16182,8 +16426,8 @@ msgstr "Páginas más vistas"
 #~ msgid "Move later"
 #~ msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:588
-#: src/components/settings/SystemSettingsDrawer.tsx:630
+#: src/components/settings/SystemSettingsDrawer.tsx:589
+#: src/components/settings/SystemSettingsDrawer.tsx:631
 #: src/components/setup/SsoPanel.tsx:70
 msgid "Must be a valid https URL"
 msgstr "Debe ser una URL https válida"
@@ -16323,7 +16567,7 @@ msgstr "Nombres que gestionas tú en AWS"
 #~ msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 #~ msgstr "Nombrar un espacio lo renombra en todos los sitios donde aparece: paneles, el selector de exploración y las reglas de atribución."
 
-#: src/components/segment/form_leaf.tsx:724
+#: src/components/segment/form_leaf.tsx:726
 msgid "Narrowed to"
 msgstr "Limitado a"
 
@@ -16343,6 +16587,14 @@ msgstr "Red"
 #: src/components/settings/DomainsSettings.tsx:207
 msgid "Never"
 msgstr "Nunca"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:348
+msgid "Never delete members of these lists"
+msgstr "No eliminar nunca a los miembros de estas listas"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:360
+msgid "Never delete members of these segments"
+msgstr "No eliminar nunca a los miembros de estos segmentos"
 
 #: src/components/web_analytics/lib/backfill.ts:25
 msgid "Never run"
@@ -16700,10 +16952,14 @@ msgstr "Sin datos de ciudades"
 msgid "No comparison"
 msgstr "Sin comparación"
 
-#: src/components/automations/config/ConditionsField.tsx:92
+#: src/components/automations/config/ConditionsField.tsx:96
 #: src/components/automations/nodes/FilterNode.tsx:44
 msgid "No conditions"
 msgstr "Sin condiciones"
+
+#: src/components/segment/form_leaf.tsx:894
+msgid "No contact is deleted as inactive in this workspace: until a period is set in Settings > Data retention, this condition matches nobody."
+msgstr "En este espacio de trabajo no se elimina ningún contacto por inactividad: mientras no se defina un periodo en Configuración > Retención de datos, esta condición no coincide con nadie."
 
 #: src/components/analytics/NewContactsTable.tsx:83
 msgid "No contact yet"
@@ -16929,7 +17185,7 @@ msgstr "Sin clave: se envía sin firmar"
 
 #: src/components/settings/LicenseSettings.tsx:128
 msgid "No licence — Community"
-msgstr ""
+msgstr "Sin licencia (Community)"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:115
 msgid "No link"
@@ -16945,6 +17201,7 @@ msgstr "Aún no se han registrado clics en enlaces para esta variación"
 
 #: src/components/automations/list/AutomationsTable.tsx:193
 #: src/components/contacts/csv-import/ColumnsStep.tsx:222
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:353
 msgid "No list"
 msgstr "Sin lista"
 
@@ -16959,6 +17216,20 @@ msgstr "Ninguna lista elegida"
 #: src/components/contacts/ContactsRail.tsx:97
 msgid "No lists yet"
 msgstr "Aún no hay listas"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:293
+msgid "No longer counts as activity: {name}"
+msgstr "Ya no cuenta como actividad: {name}"
+
+#. placeholder {0}: listName(id)
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:287
+msgid "No longer exempt: the list {0}"
+msgstr "Ya no está exenta: la lista {0}"
+
+#. placeholder {0}: segmentName(id)
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:290
+msgid "No longer exempt: the segment {0}"
+msgstr "Ya no está exento: el segmento {0}"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:371
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:189
@@ -17126,6 +17397,10 @@ msgstr "Ninguna regla está deshabilitada"
 msgid "No rule matches this visit"
 msgstr "Ninguna regla coincide con esta visita"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:432
+msgid "No run yet. The first one starts at 05:00 UTC."
+msgstr "Aún no hay ejecuciones. La primera empieza a las 05:00 UTC."
+
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1200
 #~ msgid "No sample values available"
 #~ msgstr "No hay valores de muestra disponibles"
@@ -17143,6 +17418,10 @@ msgstr "Sin bloques guardados aún"
 #: src/components/blog/PostsTable.tsx:442
 msgid "No scheduled posts"
 msgstr "No hay artículos programados"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:365
+msgid "No segment"
+msgstr "Sin segmento"
 
 #: src/components/contacts/ContactsRail.tsx:132
 msgid "No segments yet"
@@ -17376,6 +17655,7 @@ msgstr "ninguno"
 #: src/components/email_builder/ui/fields/BorderField.tsx:90
 #: src/components/email_builder/ui/fields/ColorField.tsx:93
 #: src/components/integrations/LLMIntegration.tsx:260
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:380
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
@@ -17626,6 +17906,10 @@ msgstr "Nota: Esto podría ser causado por un archivo MJML estructurado incorrec
 msgid "Notes"
 msgstr "Notas"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:242
+msgid "Nothing"
+msgstr "Nada"
+
 #: src/components/analytics/SendingCard.tsx:60
 msgid "Nothing can be sent until an email provider is chosen for marketing or transactional emails."
 msgstr "No se puede enviar nada hasta que se elija un proveedor de correo para los correos de marketing o transaccionales."
@@ -17720,9 +18004,17 @@ msgstr "Notifuse ha deshabilitado este webhook automáticamente"
 msgid "Notifuse export (.json)"
 msgstr "Exportación de Notifuse (.json)"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:411
+msgid "Notifuse is reading past activity from history. Until it finishes, no contact is deleted as inactive."
+msgstr "Notifuse está leyendo la actividad pasada del historial. Hasta que termine, no se elimina ningún contacto por inactividad."
+
 #: src/components/setup/SetupRestartView.tsx:52
 msgid "Notifuse is ready"
 msgstr "Notifuse está listo"
+
+#: src/components/segment/form_leaf.tsx:890
+msgid "Notifuse is still reading past activity from history: until it finishes, this condition matches nobody."
+msgstr "Notifuse aún está leyendo la actividad pasada del historial: hasta que termine, esta condición no coincide con nadie."
 
 #: src/components/two_factor/RecoveryCodesList.tsx:25
 msgid "Notifuse recovery codes"
@@ -17778,7 +18070,7 @@ msgstr "Nulo"
 msgid "Number"
 msgstr "Número"
 
-#: src/components/segment/form_leaf.tsx:248
+#: src/components/segment/form_leaf.tsx:250
 msgid "Number of days"
 msgstr "Número de días"
 
@@ -17884,11 +18176,11 @@ msgstr "De un usuario de IAM autorizado a enviar con SES"
 #~ msgid "of emails sent that day"
 #~ msgstr "de los emails enviados ese día"
 
-#: src/components/segment/input.tsx:474
+#: src/components/segment/input.tsx:479
 msgid "of the conditions"
 msgstr "condiciones"
 
-#: src/components/segment/input.tsx:467
+#: src/components/segment/input.tsx:472
 msgid "of the following conditions"
 msgstr "condiciones siguientes"
 
@@ -17901,6 +18193,9 @@ msgid "off"
 msgstr "desactivados"
 
 #: src/components/settings/BlogSettings.tsx:334
+#: src/components/settings/data_retention/categoryText.ts:31
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:133
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:90
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/setup/setupHooks.ts:54
 #: src/components/transactional/TransactionalDetail.tsx:373
@@ -18015,11 +18310,11 @@ msgstr "Solo un propietario del espacio de trabajo puede ver o rotar el secreto 
 
 #: src/components/license/LicenseBanner.tsx:125
 msgid "Only an instance administrator can install a licence key — ask the owner of this workspace."
-msgstr ""
+msgstr "Solo un administrador de la instancia puede instalar una clave de licencia. Pídeselo al propietario de este espacio de trabajo."
 
 #: src/components/settings/LicenseSettings.tsx:86
 msgid "Only an instance administrator can view or install the licence key."
-msgstr ""
+msgstr "Solo un administrador de la instancia puede ver o instalar la clave de licencia."
 
 #: src/components/file_manager/FileExplorer.tsx:616
 #: src/components/file_manager/FileExplorer.tsx:1033
@@ -18034,7 +18329,7 @@ msgstr "Solo un propietario puede cambiar la configuración de almacenamiento"
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr "Aquí solo aparecen los clics registrados desde que se habilitó el seguimiento por enlace; los clics anteriores siguen contando en el total de clics de la variación."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:393
+#: src/components/automations/config/TriggerConfigForm.tsx:395
 msgid "Only enroll contacts matching these conditions."
 msgstr "Inscribir solo a los contactos que cumplan estas condiciones."
 
@@ -18054,12 +18349,12 @@ msgstr "Solo para una regla de recepción que configures tú; registrar los webh
 #~ msgid "Only goals from visitors identified with identify() are recorded. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
 #~ msgstr ""
 
-#: src/components/automations/config/TriggerConfigForm.tsx:366
+#: src/components/automations/config/TriggerConfigForm.tsx:367
 msgid "Only links in emails of this broadcast."
 msgstr "Solo los enlaces de los emails de este envío masivo."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:375
-#: src/components/automations/config/TriggerConfigForm.tsx:382
+#: src/components/automations/config/TriggerConfigForm.tsx:376
+#: src/components/automations/config/TriggerConfigForm.tsx:383
 msgid "Only links in emails sent with this template."
 msgstr "Solo los enlaces de los emails enviados con esta plantilla."
 
@@ -18367,7 +18662,7 @@ msgstr "Abre este email en el navegador. El enlace se rellena en los envíos mas
 msgid "Opens tracking consent"
 msgstr "Consentimiento de seguimiento de aperturas"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:117
+#: src/components/automations/config/TriggerConfigForm.tsx:118
 msgid "Opens Tracking Consent"
 msgstr "Consentimiento de seguimiento de aperturas"
 
@@ -18431,9 +18726,9 @@ msgstr "opcional"
 #: src/components/analytics/GetStartedChecklist.tsx:367
 #: src/components/analytics/GetStartedChecklist.tsx:387
 #: src/components/contacts/csv-import/ColumnsStep.tsx:215
-#: src/components/settings/SystemSettingsDrawer.tsx:407
-#: src/components/settings/SystemSettingsDrawer.tsx:420
-#: src/components/settings/SystemSettingsDrawer.tsx:475
+#: src/components/settings/SystemSettingsDrawer.tsx:408
+#: src/components/settings/SystemSettingsDrawer.tsx:421
+#: src/components/settings/SystemSettingsDrawer.tsx:476
 #: src/components/setup/SmtpPanel.tsx:195
 #: src/components/setup/SmtpPanel.tsx:204
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
@@ -18480,12 +18775,12 @@ msgstr "Opciones"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:122
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
-#: src/components/segment/segmentSummary.ts:242
+#: src/components/segment/segmentSummary.ts:247
 #: src/pages/SignInPage.tsx:330
 msgid "or"
 msgstr "o"
 
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:445
 msgid "OR"
 msgstr "O"
 
@@ -18562,6 +18857,10 @@ msgstr "Suscripciones de webhook salientes —a dónde publica (POST) el espacio
 #: src/components/logs/AuditLogTab.tsx:263
 msgid "Outcome"
 msgstr "Resultado"
+
+#: src/components/settings/data_retention/categoryText.ts:25
+msgid "Outgoing webhook calls and their responses."
+msgstr "Llamadas de webhook salientes y sus respuestas."
 
 #: src/components/settings/WebhooksSettings.tsx:462
 #: src/pages/LogsPage.tsx:93
@@ -18699,9 +18998,13 @@ msgstr "Marco principal"
 msgid "Part of an email"
 msgstr "Parte de un email"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:357
+#: src/components/automations/config/TriggerConfigForm.tsx:358
 msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any link."
 msgstr "Parte de la URL del enlace, sin distinguir mayúsculas y minúsculas. Déjalo vacío para empezar con cualquier enlace."
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:228
+msgid "Partial"
+msgstr "Parcial"
 
 #. placeholder {0}: state.partition_index
 #: src/components/web_analytics/filters/BackfillStatus.tsx:121
@@ -18731,6 +19034,10 @@ msgstr "Restablecimiento de contraseña"
 #~ msgid "Past 140 characters, most inboxes cut the text."
 #~ msgstr "A partir de 140 caracteres, la mayoría de bandejas de entrada cortan el texto."
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:391
+msgid "Past activity has been read from history: contacts can be deleted as inactive."
+msgstr "La actividad pasada ya se leyó del historial: los contactos inactivos se pueden eliminar."
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:382
 msgid "Past sessions"
 msgstr "Sesiones pasadas"
@@ -18746,7 +19053,7 @@ msgstr "Pégala en Supabase › Authentication › Hooks"
 
 #: src/components/settings/LicenseSettings.tsx:229
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
-msgstr ""
+msgstr "Pega la clave del correo de tu compra. Se verifica sin conexión con una clave de firma incluida en este binario y no se envía nada a ningún sitio."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:421
 msgid "Paste this snippet before the closing </head> tag of every page of your sites."
@@ -18968,6 +19275,10 @@ msgstr "Periodo — {detail}"
 #~ msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 #~ msgstr "Verificar periódicamente nuevas versiones de Notifuse y actualizaciones de seguridad. Una ventana emergente listará las nuevas versiones disponibles."
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:331
+msgid "Periods"
+msgstr "Períodos"
+
 #: src/services/api/permissions.ts:215
 msgid "Permanently delete any contact"
 msgstr "Eliminar permanentemente cualquier contacto"
@@ -18991,7 +19302,7 @@ msgstr "Permisos"
 msgid "Permissions updated successfully"
 msgstr "Permisos actualizados exitosamente"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:98
+#: src/components/automations/config/TriggerConfigForm.tsx:99
 #: src/components/contacts/contactColumns.ts:65
 #: src/components/contacts/contactFilterFields.ts:27
 #: src/components/contacts/ContactsTable.tsx:328
@@ -19105,7 +19416,7 @@ msgstr "Texto plano (solo es seguro detrás de un proxy que termine el TLS)"
 
 #: src/components/settings/LicenseSettings.tsx:181
 msgid "Plan"
-msgstr ""
+msgstr "Plan"
 
 #: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Platform admin"
@@ -19327,7 +19638,7 @@ msgstr "Por favor, selecciona una fecha"
 #~ msgid "Please select a field"
 #~ msgstr "Por favor, selecciona un campo"
 
-#: src/components/segment/form_leaf.tsx:709
+#: src/components/segment/form_leaf.tsx:711
 msgid "Please select a goal type"
 msgstr "Por favor, selecciona un tipo de objetivo"
 
@@ -19336,7 +19647,7 @@ msgid "Please select a JSON file"
 msgstr "Por favor, selecciona un archivo JSON"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:249
-#: src/components/segment/form_leaf.tsx:416
+#: src/components/segment/form_leaf.tsx:418
 msgid "Please select a list"
 msgstr "Por favor, selecciona una lista"
 
@@ -19354,7 +19665,7 @@ msgid "Please select a page size"
 msgstr "Por favor, selecciona un tamaño de página"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:277
-#: src/components/segment/form_leaf.tsx:440
+#: src/components/segment/form_leaf.tsx:442
 msgid "Please select a status"
 msgstr "Por favor, selecciona un estado"
 
@@ -19375,7 +19686,7 @@ msgstr "Por favor, selecciona una hora"
 msgid "Please select a timezone"
 msgstr "Por favor, selecciona una zona horaria"
 
-#: src/components/segment/form_leaf.tsx:737
+#: src/components/segment/form_leaf.tsx:739
 msgid "Please select aggregate"
 msgstr "Por favor, selecciona agregado"
 
@@ -19383,7 +19694,7 @@ msgstr "Por favor, selecciona agregado"
 msgid "Please select an email template"
 msgstr "Por favor, selecciona una plantilla de correo"
 
-#: src/components/segment/form_leaf.tsx:495
+#: src/components/segment/form_leaf.tsx:497
 msgid "Please select an event type"
 msgstr "Por favor, selecciona un tipo de evento"
 
@@ -19403,7 +19714,7 @@ msgstr "Por favor, selecciona un proveedor OAuth2"
 msgid "Please select at least one event type"
 msgstr "Por favor, selecciona al menos un tipo de evento"
 
-#: src/components/segment/form_leaf.tsx:752
+#: src/components/segment/form_leaf.tsx:754
 msgid "Please select operator"
 msgstr "Por favor, selecciona operador"
 
@@ -19431,8 +19742,8 @@ msgstr "Puerto"
 #~ msgid "Port for the SMTP bridge server (default: 587)"
 #~ msgstr "Puerto para el servidor de retransmisión SMTP (predeterminado: 587)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:367
-#: src/components/settings/SystemSettingsDrawer.tsx:520
+#: src/components/settings/SystemSettingsDrawer.tsx:368
+#: src/components/settings/SystemSettingsDrawer.tsx:521
 msgid "Port must be 1-65535"
 msgstr "El puerto debe estar entre 1 y 65535"
 
@@ -19486,7 +19797,7 @@ msgstr "Publicación desprogramada"
 msgid "Post updated successfully"
 msgstr "Publicación actualizada exitosamente"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:111
+#: src/components/automations/config/TriggerConfigForm.tsx:112
 #: src/components/contacts/csv-import/contactFields.ts:35
 #: src/components/contacts/sheet/contactFieldLabels.ts:32
 #: src/components/segment/segmentLabels.ts:28
@@ -19593,6 +19904,10 @@ msgstr "Vista previa"
 #: src/services/api/permissions.ts:304
 msgid "Preview accepts any definition sent to it, not just a saved segment, so anyone holding it together with Contacts read can ask counting questions about contact attributes, list membership, custom events and timeline — one count at a time, on any condition they like. Segments read alone cannot reach it. Segment permissions also quietly decide who may run three kinds of background task on the shared /api/tasks.* endpoints."
 msgstr "La vista previa acepta cualquier definición que se le envíe, no solo un segmento guardado, así que quien la tenga junto con la lectura de Contactos puede hacer preguntas de recuento sobre atributos de contacto, pertenencia a listas, eventos personalizados y línea de tiempo — un recuento cada vez, sobre cualquier condición que quiera. La lectura de Segmentos por sí sola no llega a ella. Los permisos de Segmentos también deciden discretamente quién puede ejecutar tres tipos de tarea en segundo plano en los endpoints compartidos /api/tasks.*."
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:441
+msgid "Preview and save"
+msgstr "Previsualizar y guardar"
 
 #: src/components/blog/ThemeSelectionModal.tsx:77
 #~ msgid "Preview Coming Soon"
@@ -19843,7 +20158,7 @@ msgstr "Perfil actualizado: {diffs}"
 msgid "Progress"
 msgstr "Progreso"
 
-#: src/components/segment/form_leaf.tsx:813
+#: src/components/segment/form_leaf.tsx:815
 msgid "Properties"
 msgstr "Propiedades"
 
@@ -19854,6 +20169,10 @@ msgstr "Nombre de la propiedad"
 #: src/components/settings/Integrations.tsx:450
 msgid "Provider"
 msgstr "Proveedor"
+
+#: src/components/settings/data_retention/categoryText.ts:12
+msgid "Provider events"
+msgstr "Eventos del proveedor"
 
 #: src/components/templates/TemplateSettingsStep.tsx:272
 msgid "Provider's default sender"
@@ -19951,7 +20270,7 @@ msgstr "Publicó el tema del blog <0>{target}</0>"
 msgid "Purchase"
 msgstr "Compra"
 
-#: src/components/segment/input.tsx:74
+#: src/components/segment/input.tsx:75
 msgid "Purchases, sign-ups, leads… count them or add up their value"
 msgstr "Compras, registros, leads… contarlos o sumar su valor"
 
@@ -19978,6 +20297,10 @@ msgstr "Los correos en cola no se enviarán. Los envíos en curso se completará
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:283
 msgid "Quick test"
 msgstr "Prueba rápida"
+
+#: src/components/logs/auditPhrases.ts:54
+msgid "Ran the reading of past activity again in <0>{target}</0>"
+msgstr "Volvió a leer la actividad pasada en <0>{target}</0>"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:958
 msgid "Rate for marketing"
@@ -20058,7 +20381,7 @@ msgstr "Volver a suscribir…"
 msgid "Re-subscribed the contact <0>{target}</0> after they opted out"
 msgstr "Volvió a suscribir al contacto <0>{target}</0> tras su baja"
 
-#: src/components/logs/auditPhrases.ts:65
+#: src/components/logs/auditPhrases.ts:66
 msgid "Re-subscribed the contact <0>{target}</0> after they unsubscribed"
 msgstr "Volvió a suscribir al contacto <0>{target}</0> tras darse de baja"
 
@@ -20250,6 +20573,14 @@ msgstr "Lee la guía de configuración de Zapier"
 #~ msgid "Read-only: single sign-on is enabled without a licence that covers it. Turn SSO off, or install a licence, to make changes."
 #~ msgstr ""
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:123
+msgid "Reading past activity again"
+msgstr "Volviendo a leer la actividad pasada"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:397
+msgid "Reading past activity from history failed. Until it succeeds, no contact is deleted as inactive."
+msgstr "Falló la lectura de la actividad pasada del historial. Hasta que funcione, no se elimina ningún contacto por inactividad."
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:339
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
@@ -20303,7 +20634,7 @@ msgstr "Esfuerzo de razonamiento"
 msgid "Rebuild segment"
 msgstr "Reconstruir segmento"
 
-#: src/components/logs/auditPhrases.ts:69
+#: src/components/logs/auditPhrases.ts:74
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "Recalculó el segmento <0>{target}</0>"
 
@@ -20430,11 +20761,11 @@ msgstr "el valor del registro"
 msgid "Recorded a custom event for the contact <0>{target}</0>"
 msgstr "Registró un evento personalizado para el contacto <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:60
+#: src/components/logs/auditPhrases.ts:61
 msgid "Recording resumed"
 msgstr "Registro reanudado"
 
-#: src/components/logs/auditPhrases.ts:61
+#: src/components/logs/auditPhrases.ts:62
 msgid "Recording stopped: no valid licence"
 msgstr "Registro detenido: sin licencia válida"
 
@@ -20464,7 +20795,7 @@ msgstr "Códigos de recuperación copiados"
 msgid "Red"
 msgstr "Rojo"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:628
+#: src/components/settings/SystemSettingsDrawer.tsx:629
 #: src/components/setup/SsoPanel.tsx:101
 #: src/components/setup/SsoPanel.tsx:107
 #: src/components/setup/SsoPanel.tsx:114
@@ -20586,11 +20917,11 @@ msgstr "¿Regenerar secreto?"
 msgid "Regenerate the key of {domain}?"
 msgstr "¿Regenerar la clave de {domain}?"
 
-#: src/components/logs/auditPhrases.ts:118
+#: src/components/logs/auditPhrases.ts:123
 msgid "Regenerated a DKIM key of <0>{target}</0>"
 msgstr "Regeneró una clave DKIM de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:106
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Regeneró el secreto del webhook <0>{target}</0>"
 
@@ -20640,7 +20971,7 @@ msgstr "Registra los webhooks para configurar el reenvío de respuestas y luego 
 msgid "Register webhooks?"
 msgstr "¿Registrar webhooks?"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:109
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Registró los webhooks del proveedor de <0>{target}</0>"
 
@@ -20687,8 +21018,8 @@ msgstr "¿Recargar la automatización?"
 msgid "Reload the page to update your saved blocks."
 msgstr "Recarga la página para actualizar tus bloques guardados."
 
-#: src/components/automations/config/ConditionsField.tsx:123
-#: src/components/automations/config/ConditionsField.tsx:128
+#: src/components/automations/config/ConditionsField.tsx:127
+#: src/components/automations/config/ConditionsField.tsx:132
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
@@ -20737,7 +21068,7 @@ msgstr "Quitar un contacto de una lista (también necesita escritura de Contacto
 msgid "Remove a contact from a list (also needs Lists write)"
 msgstr "Quitar un contacto de una lista (también necesita escritura de Listas)"
 
-#: src/components/automations/config/ConditionsField.tsx:120
+#: src/components/automations/config/ConditionsField.tsx:124
 msgid "Remove conditions"
 msgstr "Quitar condiciones"
 
@@ -20810,8 +21141,8 @@ msgstr "¿Eliminar la condición de visualización?"
 msgid "Remove this author?"
 msgstr "¿Eliminar este autor?"
 
-#: src/components/segment/input.tsx:313
 #: src/components/segment/input.tsx:317
+#: src/components/segment/input.tsx:321
 msgid "Remove this condition"
 msgstr "Eliminar esta condición"
 
@@ -20822,8 +21153,8 @@ msgstr "Eliminar esta condición"
 msgid "Remove this filter"
 msgstr "Eliminar este filtro"
 
-#: src/components/segment/input.tsx:313
 #: src/components/segment/input.tsx:317
+#: src/components/segment/input.tsx:321
 msgid "Remove this group"
 msgstr "Eliminar este grupo"
 
@@ -20844,7 +21175,7 @@ msgstr "Eliminar la variante {letter}"
 msgid "Removed"
 msgstr "Eliminado"
 
-#: src/components/logs/auditPhrases.ts:112
+#: src/components/logs/auditPhrases.ts:117
 msgid "Removed a DKIM domain from <0>{target}</0>"
 msgstr "Eliminó un dominio DKIM de <0>{target}</0>"
 
@@ -20860,11 +21191,11 @@ msgstr "Eliminado de {name}"
 msgid "Removed the contact <0>{target}</0> from a list"
 msgstr "Quitó al contacto <0>{target}</0> de una lista"
 
-#: src/components/logs/auditPhrases.ts:113
+#: src/components/logs/auditPhrases.ts:118
 msgid "Removed the integration <0>{target}</0>"
 msgstr "Quitó la integración <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:117
+#: src/components/logs/auditPhrases.ts:122
 msgid "Removed the member <0>{target}</0>"
 msgstr "Quitó al miembro <0>{target}</0>"
 
@@ -20889,7 +21220,7 @@ msgstr "Renombrar una categoría o cambiar su slug"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Renombrar las etiquetas de los campos de contacto personalizados del espacio de trabajo"
 
-#: src/components/logs/auditPhrases.ts:121
+#: src/components/logs/auditPhrases.ts:126
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "Renombró los campos personalizados de <0>{target}</0>"
 
@@ -20911,7 +21242,7 @@ msgstr "Renderizando…"
 
 #: src/components/license/LicenseBanner.tsx:113
 msgid "Renew licence"
-msgstr ""
+msgstr "Renovar la licencia"
 
 #: src/components/automations/AutomationFlowEditor.tsx:583
 #: src/components/automations/AutomationFlowEditor.tsx:586
@@ -21051,16 +21382,21 @@ msgstr "El aislamiento de reputación está activado. Estos remitentes no tienen
 msgid "Request ID"
 msgstr "ID de solicitud"
 
+#. placeholder {0}: view.pending.requested_by
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:313
+msgid "Requested by {0}. The owners were told by email."
+msgstr "Solicitado por {0}. Se avisó a los propietarios por correo."
+
 #: src/components/settings/SystemSecuritySettings.tsx:40
 #: src/components/settings/SystemSecuritySettings.tsx:46
 msgid "Require two-factor authentication for everyone"
 msgstr "Exigir la autenticación de doble factor a todos"
 
 #: src/components/contacts/csv-import/ColumnsStep.tsx:87
-#: src/components/settings/SystemSettingsDrawer.tsx:305
-#: src/components/settings/SystemSettingsDrawer.tsx:348
-#: src/components/settings/SystemSettingsDrawer.tsx:362
-#: src/components/settings/SystemSettingsDrawer.tsx:432
+#: src/components/settings/SystemSettingsDrawer.tsx:306
+#: src/components/settings/SystemSettingsDrawer.tsx:349
+#: src/components/settings/SystemSettingsDrawer.tsx:363
+#: src/components/settings/SystemSettingsDrawer.tsx:433
 msgid "Required"
 msgstr "Obligatorio"
 
@@ -21073,19 +21409,19 @@ msgstr "Obligatorio"
 msgid "Required to create the notification"
 msgstr "Necesario para crear la notificación"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:693
+#: src/components/settings/SystemSettingsDrawer.tsx:694
 msgid "Required when auto-create is enabled"
 msgstr "Obligatorio cuando la creación automática está habilitada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:501
-#: src/components/settings/SystemSettingsDrawer.tsx:538
-#: src/components/settings/SystemSettingsDrawer.tsx:553
+#: src/components/settings/SystemSettingsDrawer.tsx:502
+#: src/components/settings/SystemSettingsDrawer.tsx:539
+#: src/components/settings/SystemSettingsDrawer.tsx:554
 msgid "Required when bridge is enabled"
 msgstr "Obligatorio cuando el puente está habilitado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:587
-#: src/components/settings/SystemSettingsDrawer.tsx:605
-#: src/components/settings/SystemSettingsDrawer.tsx:615
+#: src/components/settings/SystemSettingsDrawer.tsx:588
+#: src/components/settings/SystemSettingsDrawer.tsx:606
+#: src/components/settings/SystemSettingsDrawer.tsx:616
 msgid "Required when SSO is enabled"
 msgstr "Obligatorio cuando el SSO está habilitado"
 
@@ -21151,7 +21487,7 @@ msgstr "Restablecer reemplaza todo el contenido por el del idioma predeterminado
 msgid "reset the filter"
 msgstr "restablecer el filtro"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:101
 msgid "Reset the two-factor authentication of <0>{target}</0>"
 msgstr "Restableció la autenticación de doble factor de <0>{target}</0>"
 
@@ -21203,7 +21539,7 @@ msgstr "Respuesta"
 #~ msgid "Response Body:"
 #~ msgstr "Cuerpo de respuesta:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:183
+#: src/components/settings/SystemSettingsDrawer.tsx:184
 msgid "Restart Server?"
 msgstr "¿Reiniciar el servidor?"
 
@@ -21373,6 +21709,10 @@ msgstr "Reintentando"
 msgid "Revoke all"
 msgstr "Revocar todo"
 
+#: src/components/logs/auditPhrases.ts:70
+msgid "Revoked a token issued to the application <0>{target}</0>"
+msgstr "Revocó un token emitido para la aplicación <0>{target}</0>"
+
 #: src/components/email_builder/ui/fields/BorderField.tsx:96
 msgid "Ridge"
 msgstr "Cresta"
@@ -21428,7 +21768,7 @@ msgstr "Administrador"
 msgid "Root email"
 msgstr "Correo root"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:280
+#: src/components/settings/SystemSettingsDrawer.tsx:281
 msgid "Root Email"
 msgstr "Correo raíz"
 
@@ -21497,6 +21837,10 @@ msgstr "Regla actualizada"
 msgid "Rules that also write {dimensionList}"
 msgstr "Reglas que también escriben {dimensionList}"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:217
+msgid "Run"
+msgstr "Ejecución"
+
 #: src/services/api/permissions.ts:872
 msgid "Run a backfill task immediately"
 msgstr "Ejecutar una tarea de relleno retroactivo inmediatamente"
@@ -21543,6 +21887,10 @@ msgstr "Ejecutar relleno retroactivo"
 msgid "Run backfill again"
 msgstr "Ejecutar el relleno retroactivo de nuevo"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:402
+msgid "Run it again"
+msgstr "Volver a ejecutar"
+
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:395
 #~ msgid "Run test"
 #~ msgstr "Ejecutar prueba"
@@ -21557,12 +21905,17 @@ msgstr "Se ejecutan cuando la regla coincide"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:219
 #: src/components/contacts/BulkUpdateDrawer.tsx:183
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:226
 msgid "Running"
 msgstr "Ejecutando"
 
 #: src/components/web_analytics/lib/backfill.ts:37
 msgid "Running · {progress}"
 msgstr "Ejecutando · {progress}"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:418
+msgid "Runs"
+msgstr "Ejecuciones"
 
 #: src/components/file_manager/buttonSettings.tsx:244
 msgid "S3 access key"
@@ -21672,13 +22025,13 @@ msgstr "Modo sandbox"
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:853
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:994
-#: src/components/settings/SystemSettingsDrawer.tsx:262
+#: src/components/settings/SystemSettingsDrawer.tsx:263
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 msgid "Save"
 msgstr "Guardar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:191
+#: src/components/settings/SystemSettingsDrawer.tsx:192
 msgid "Save & Restart"
 msgstr "Guardar y reiniciar"
 
@@ -21755,6 +22108,14 @@ msgstr "Guarda primero la automatización"
 #: src/components/broadcasts/RecipientFeedSettings.tsx:113
 msgid "Save the broadcast first"
 msgstr "Primero guarda el envío masivo"
+
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:153
+msgid "Save the defaults"
+msgstr "Guardar los valores predeterminados"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:136
+msgid "Save the policy"
+msgstr "Guardar la política"
 
 #: src/components/email_builder/panels/LibraryPanel.tsx:304
 msgid "Save the selected block"
@@ -21846,11 +22207,23 @@ msgstr "Bloques guardados ({savedCount})"
 msgid "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 msgstr "Los bloques guardados se pueden usar en todas las plantillas del espacio de trabajo. Las plantillas que ya contienen este bloque no cambian."
 
-#: src/components/logs/auditPhrases.ts:74
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:146
+msgid "Saved on its own: the server does not restart."
+msgstr "Se guarda por separado: el servidor no se reinicia."
+
+#: src/components/logs/auditPhrases.ts:79
 msgid "Saved the block <0>{target}</0>"
 msgstr "Guardó el bloque <0>{target}</0>"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:173
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:57
+msgid "Saved. The change that deletes more takes effect in 7 days."
+msgstr "Guardado. El cambio que elimina más entra en vigor en 7 días."
+
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:81
+msgid "Saved. The defaults that delete more take effect in 7 days."
+msgstr "Guardado. Los valores predeterminados que eliminan más entran en vigor en 7 días."
+
+#: src/components/settings/SystemSettingsDrawer.tsx:174
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Guardar la configuración reiniciará el servidor. Tendrás que iniciar sesión de nuevo."
 
@@ -21933,7 +22306,7 @@ msgstr "Programó la newsletter <0>{target}</0>"
 msgid "Scheduled today"
 msgstr "Programado para hoy"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:663
+#: src/components/settings/SystemSettingsDrawer.tsx:664
 #: src/components/setup/SsoPanel.tsx:136
 msgid "Scopes"
 msgstr "Ámbitos"
@@ -22076,7 +22449,7 @@ msgstr "Buscando: \"{0}\""
 msgid "Second line of the contact's address"
 msgstr "Segunda línea de la dirección del contacto"
 
-#: src/components/segment/form_leaf.tsx:788
+#: src/components/segment/form_leaf.tsx:790
 msgid "Second value must be greater than first value"
 msgstr "El segundo valor debe ser mayor que el primer valor"
 
@@ -22133,7 +22506,7 @@ msgstr "Sección — {0}"
 msgid "Sections"
 msgstr "Secciones"
 
-#: src/components/settings/SettingsSidebar.tsx:33
+#: src/components/settings/SettingsSidebar.tsx:20
 #: src/components/settings/SystemSecuritySettings.tsx:35
 #: src/components/transactional/ApiCommandDrawer.tsx:145
 #: src/components/updates/UpdateDrawer.tsx:63
@@ -22209,7 +22582,7 @@ msgstr "Ver las novedades"
 msgid "See who clicked"
 msgstr "Ver quién hizo clic"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:295
+#: src/components/automations/config/TriggerConfigForm.tsx:296
 #: src/components/automations/describeTrigger.ts:46
 #: src/components/contacts/ExportContactsModal.tsx:119
 #: src/components/contacts/sheet/describeActivity.tsx:225
@@ -22318,7 +22691,7 @@ msgstr "Selecciona un archivo"
 #: src/components/contacts/BulkActionsBar.tsx:201
 #: src/components/contacts/BulkUpdateDrawer.tsx:323
 #: src/components/contacts/sheet/ContactListsCard.tsx:253
-#: src/components/segment/form_leaf.tsx:422
+#: src/components/segment/form_leaf.tsx:424
 msgid "Select a list"
 msgstr "Selecciona una lista"
 
@@ -22330,7 +22703,7 @@ msgstr "Selecciona una lista para habilitar nodos de correo"
 #: src/components/automations/config/AddToListConfigForm.tsx:37
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:27
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:31
-#: src/components/automations/config/TriggerConfigForm.tsx:279
+#: src/components/automations/config/TriggerConfigForm.tsx:280
 msgid "Select a list..."
 msgstr "Selecciona una lista..."
 
@@ -22346,7 +22719,7 @@ msgstr "Selecciona un modelo"
 msgid "Select a section"
 msgstr "Selecciona una sección"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:300
+#: src/components/automations/config/TriggerConfigForm.tsx:301
 msgid "Select a segment..."
 msgstr "Selecciona un segmento..."
 
@@ -22378,7 +22751,7 @@ msgstr "Selecciona una integración de correo"
 msgid "Select an event type"
 msgstr "Selecciona un tipo de evento"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:261
+#: src/components/automations/config/TriggerConfigForm.tsx:262
 msgid "Select an event..."
 msgstr "Selecciona un evento..."
 
@@ -22453,7 +22826,7 @@ msgstr "Selecciona plantilla de correo"
 msgid "Select email template..."
 msgstr "Selecciona plantilla de correo..."
 
-#: src/components/segment/form_leaf.tsx:502
+#: src/components/segment/form_leaf.tsx:504
 msgid "Select event"
 msgstr "Seleccionar evento"
 
@@ -22531,7 +22904,7 @@ msgstr "Selecciona listas (opcional)"
 msgid "Select segments (optional)"
 msgstr "Selecciona segmentos (opcional)"
 
-#: src/components/segment/form_leaf.tsx:446
+#: src/components/segment/form_leaf.tsx:448
 msgid "Select status"
 msgstr "Seleccionar estado"
 
@@ -22555,7 +22928,7 @@ msgstr "Seleccionar plantilla"
 msgid "Select the email template to send"
 msgstr "Selecciona la plantilla de correo a enviar"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:249
+#: src/components/automations/config/TriggerConfigForm.tsx:250
 msgid "Select the event that will trigger this automation"
 msgstr "Selecciona el evento que activará esta automatización"
 
@@ -22573,11 +22946,11 @@ msgstr "Seleccionar zona horaria"
 msgid "Select timezone..."
 msgstr "Selecciona zona horaria..."
 
-#: src/components/segment/form_leaf.tsx:714
+#: src/components/segment/form_leaf.tsx:716
 msgid "Select type"
 msgstr "Seleccionar tipo"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:276
+#: src/components/automations/config/TriggerConfigForm.tsx:277
 msgid "Select which list this trigger applies to"
 msgstr "Selecciona a qué lista aplica este disparador"
 
@@ -22593,7 +22966,7 @@ msgstr "Selecciona en qué lista verificar el estado del contacto"
 msgid "Select which list to remove the contact from"
 msgstr "Selecciona de qué lista eliminar el contacto"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:297
+#: src/components/automations/config/TriggerConfigForm.tsx:298
 msgid "Select which segment this trigger applies to"
 msgstr "Selecciona a qué segmento aplica este disparador"
 
@@ -22875,7 +23248,7 @@ msgstr "Enviando"
 #: src/components/broadcasts/BroadcastsTable.tsx:346
 #: src/components/broadcasts/compose/SendingCard.tsx:47
 #: src/components/broadcasts/compose/SendingCard.tsx:85
-#: src/components/settings/SettingsSidebar.tsx:28
+#: src/components/settings/SettingsSidebar.tsx:15
 #: src/components/transactional/NotificationChecks.tsx:238
 msgctxt "section"
 msgid "Sending"
@@ -22917,7 +23290,7 @@ msgstr "Enviando webhook de prueba..."
 
 #: src/components/license/LicenceGateNotice.tsx:66
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
-msgstr ""
+msgstr "El envío a través de esta integración no se ve afectado, y un tenant que ya existe se sigue usando. Activar el aislamiento necesita una licencia."
 
 #: src/components/analytics/GetStartedChecklist.tsx:257
 msgid "Sends as {marketing}"
@@ -22964,7 +23337,7 @@ msgctxt "newsletter status"
 msgid "Sent"
 msgstr "Enviado"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:88
 msgid "Sent a test email of the template <0>{target}</0>"
 msgstr "Envió un correo de prueba de la plantilla <0>{target}</0>"
 
@@ -23001,6 +23374,10 @@ msgstr "enviado por el proveedor transaccional"
 msgid "Sent content"
 msgstr "Contenido enviado"
 
+#: src/components/settings/data_retention/categoryText.ts:19
+msgid "Sent emails older than this are anonymized. The address and the content go; the counts in broadcast reports stay."
+msgstr "Se anonimizan los correos enviados más antiguos que este período. La dirección y el contenido desaparecen; las cifras de los informes de envíos masivos se mantienen."
+
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:218
 msgid "Sent on {date} at {time}"
 msgstr "Enviado el {date} a las {time}"
@@ -23013,7 +23390,7 @@ msgstr "Devolvió la newsletter <0>{target}</0> a borrador"
 msgid "Sent the newsletter <0>{target}</0> to one recipient"
 msgstr "Envió la newsletter <0>{target}</0> a un destinatario"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:87
 msgid "Sent the transactional notification <0>{target}</0>"
 msgstr "Envió la notificación transaccional <0>{target}</0>"
 
@@ -23091,15 +23468,15 @@ msgstr "Servidor"
 #~ msgid "Server is restarting with new configuration..."
 #~ msgstr "El servidor se está reiniciando con la nueva configuración..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:199
+#: src/components/settings/SystemSettingsDrawer.tsx:200
 msgid "Server is restarting..."
 msgstr "El servidor se está reiniciando..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:224
+#: src/components/settings/SystemSettingsDrawer.tsx:225
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Tiempo de espera de reinicio del servidor. Por favor, actualiza la página manualmente."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:211
+#: src/components/settings/SystemSettingsDrawer.tsx:212
 msgid "Server restarted successfully!"
 msgstr "¡El servidor se ha reiniciado correctamente!"
 
@@ -23135,7 +23512,7 @@ msgstr "Aislamiento de tenant SES"
 
 #: src/components/license/LicenceGateNotice.tsx:54
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "El aislamiento de tenant SES requiere una licencia {tier} de Notifuse."
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:38
@@ -23241,7 +23618,7 @@ msgstr "Definido por {integrationName}. Edita la propia plantilla para cambiar s
 msgid "Set by environment"
 msgstr "Definido por el entorno"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:116
+#: src/components/settings/SystemSettingsDrawer.tsx:117
 msgid "Set by environment variable"
 msgstr "Establecido por variable de entorno"
 
@@ -23332,7 +23709,7 @@ msgstr "Establecer solo cuando esté vacío"
 msgid "Set Publication Date"
 msgstr "Establecer fecha de publicación"
 
-#: src/components/logs/auditPhrases.ts:62
+#: src/components/logs/auditPhrases.ts:63
 msgid "Set the licence <0>{target}</0>"
 msgstr "Estableció la licencia <0>{target}</0>"
 
@@ -23356,7 +23733,7 @@ msgstr "Configurar un proveedor de email"
 msgid "Set up sending"
 msgstr "Configura el envío"
 
-#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:78
 msgid "Set up this Notifuse installation"
 msgstr "Configuró esta instalación de Notifuse"
 
@@ -23416,7 +23793,7 @@ msgstr "Configurando…"
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
 #: src/layouts/app-shell/menuItems.ts:248
-#: src/pages/WorkspaceSettingsPage.tsx:273
+#: src/pages/WorkspaceSettingsPage.tsx:278
 msgid "Settings"
 msgstr "Configuración"
 
@@ -23495,6 +23872,10 @@ msgstr "Compartidos"
 #: src/components/settings/integrations/providerDetails.ts:125
 msgid "shared with the rest of this AWS account"
 msgstr "compartido con el resto de esta cuenta de AWS"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:204
+msgid "Shortest"
+msgstr "Mínimo"
 
 #: src/components/settings/WebhookDetail.tsx:378
 msgid "Show"
@@ -23640,7 +24021,7 @@ msgstr "Iniciar sesión"
 msgid "Sign in again"
 msgstr "Volver a iniciar sesión"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:268
+#: src/components/settings/SystemSettingsDrawer.tsx:269
 msgid "Sign in again to change system settings"
 msgstr "Vuelve a iniciar sesión para cambiar la configuración del sistema"
 
@@ -23672,7 +24053,7 @@ msgstr "Vuelve a iniciar sesión para restablecer la autenticación de doble fac
 msgid "Sign in with {rootEmail}."
 msgstr "Inicia sesión con {rootEmail}."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:656
+#: src/components/settings/SystemSettingsDrawer.tsx:657
 #: src/components/setup/SsoPanel.tsx:97
 #: src/pages/SignInPage.tsx:342
 msgid "Sign in with SSO"
@@ -23698,7 +24079,7 @@ msgstr "Firmado"
 msgid "Signed · record missing {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
 msgstr "Firmado · registro ausente {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
 
-#: src/components/logs/auditPhrases.ts:59
+#: src/components/logs/auditPhrases.ts:60
 msgid "Signed an upload URL for <0>{target}</0>"
 msgstr "Firmó una URL de subida para <0>{target}</0>"
 
@@ -23706,7 +24087,7 @@ msgstr "Firmó una URL de subida para <0>{target}</0>"
 #~ msgid "Signed in as <0>{target}</0>"
 #~ msgstr "Inició sesión como <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:93
 msgid "Signed in as root <0>{target}</0>"
 msgstr "Inició sesión como root <0>{target}</0>"
 
@@ -23714,8 +24095,8 @@ msgstr "Inició sesión como root <0>{target}</0>"
 #~ msgid "Signed in with"
 #~ msgstr "Sesión iniciada con"
 
-#: src/components/logs/auditPhrases.ts:86
-#: src/components/logs/auditPhrases.ts:87
+#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:92
 msgid "Signed in with single sign-on"
 msgstr "Inició sesión con inicio de sesión único"
 
@@ -23723,7 +24104,7 @@ msgstr "Inició sesión con inicio de sesión único"
 #~ msgid "Signed in with single sign-on as <0>{target}</0>"
 #~ msgstr "Inició sesión con inicio de sesión único como <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:90
 msgid "Signed out"
 msgstr "Cerró la sesión"
 
@@ -23785,7 +24166,7 @@ msgstr "Inicio de sesión único (OpenID Connect)"
 
 #: src/components/settings/LicenseSettings.tsx:137
 msgid "Single sign-on (SSO)"
-msgstr ""
+msgstr "Inicio de sesión único (SSO)"
 
 #: src/pages/SignInPage.tsx:150
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
@@ -23796,9 +24177,9 @@ msgstr "El inicio de sesión único no puede crear una cuenta para tu dominio de
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "El inicio de sesión único ha fallado. Inténtalo de nuevo o usa un código mágico."
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:41
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
-msgstr ""
+msgstr "El inicio de sesión único está activado, pero la licencia de este despliegue no lo incluye."
 
 #: src/pages/SignInPage.tsx:156
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
@@ -23806,7 +24187,7 @@ msgstr "El inicio de sesión único no está disponible temporalmente. Prueba co
 
 #: src/components/license/LicenceGateNotice.tsx:55
 msgid "Single sign-on requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "El inicio de sesión único requiere una licencia {tier} de Notifuse."
 
 #: src/components/contacts/sheet/activityLabel.ts:25
 msgid "Site visit"
@@ -23892,14 +24273,14 @@ msgstr "SMS"
 msgid "SMTP"
 msgstr "SMTP"
 
-#: src/components/settings/SettingsSidebar.tsx:68
+#: src/components/settings/SettingsSidebar.tsx:56
 #: src/components/settings/SMTPBridgeSettings.tsx:19
 #: src/components/setup/BridgePanel.tsx:30
 #: src/components/setup/setupHooks.ts:47
 msgid "SMTP bridge"
 msgstr "Puente SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:485
+#: src/components/settings/SystemSettingsDrawer.tsx:486
 msgid "SMTP Bridge"
 msgstr "Retransmisión SMTP"
 
@@ -23927,11 +24308,11 @@ msgstr "Servidor de retransmisión SMTP para reenviar correos transaccionales"
 #~ msgid "SMTP connection successful!"
 #~ msgstr "¡Conexión SMTP exitosa!"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:135
+#: src/components/settings/SystemSettingsDrawer.tsx:136
 msgid "SMTP connection test failed"
 msgstr "La prueba de conexión SMTP ha fallado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:133
+#: src/components/settings/SystemSettingsDrawer.tsx:134
 msgid "SMTP connection test successful"
 msgstr "Prueba de conexión SMTP correcta"
 
@@ -23951,7 +24332,7 @@ msgstr "Guías SMTP:"
 msgid "SMTP host"
 msgstr "Host SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:346
+#: src/components/settings/SystemSettingsDrawer.tsx:347
 msgid "SMTP Host"
 msgstr "Host SMTP"
 
@@ -23959,7 +24340,7 @@ msgstr "Host SMTP"
 msgid "SMTP host is required"
 msgstr "El host SMTP es requerido"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:414
+#: src/components/settings/SystemSettingsDrawer.tsx:415
 msgid "SMTP Password"
 msgstr "Contraseña SMTP"
 
@@ -23967,7 +24348,7 @@ msgstr "Contraseña SMTP"
 msgid "SMTP port"
 msgstr "Puerto SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:359
+#: src/components/settings/SystemSettingsDrawer.tsx:360
 msgid "SMTP Port"
 msgstr "Puerto SMTP"
 
@@ -24005,7 +24386,7 @@ msgstr "Usuario SMTP"
 #~ msgid "SMTP User"
 #~ msgstr "Usuario SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:401
+#: src/components/settings/SystemSettingsDrawer.tsx:402
 msgid "SMTP Username"
 msgstr "Nombre de usuario SMTP"
 
@@ -24119,7 +24500,7 @@ msgstr "Origen"
 #~ msgid "source {0} not found"
 #~ msgstr "fuente {0} no encontrada"
 
-#: src/components/segment/input.tsx:334
+#: src/components/segment/input.tsx:338
 msgid "source {source} not found"
 msgstr "no se encontró la fuente {source}"
 
@@ -24193,7 +24574,7 @@ msgstr "Dividir"
 msgid "SQL Arguments:"
 msgstr "Argumentos SQL:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:569
+#: src/components/settings/SystemSettingsDrawer.tsx:570
 msgid "SSO (OpenID Connect)"
 msgstr "SSO (OpenID Connect)"
 
@@ -24290,19 +24671,23 @@ msgstr "Iniciado"
 msgid "Started from “{0}”"
 msgstr "Basada en «{0}»"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:98
 msgid "Started setting up an authenticator app"
 msgstr "Empezó a configurar una aplicación de autenticación"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:103
 msgid "Started the web analytics backfill"
 msgstr "Inició el relleno de la analítica web"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:119
+msgid "Starts"
+msgstr "Inicio"
 
 #: src/components/broadcasts/compose/SendingCard.tsx:88
 msgid "Starts as soon as you send it"
 msgstr "Empieza en cuanto lo envíes"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:353
+#: src/components/automations/config/TriggerConfigForm.tsx:354
 msgid "Starts the first time a contact clicks each link of an email. A click on an email this automation sent does not start it again."
 msgstr "Se inicia la primera vez que un contacto hace clic en cada enlace de un email. Un clic en un email enviado por esta automatización no la vuelve a iniciar."
 
@@ -24327,7 +24712,7 @@ msgstr "STARTTLS en {port}"
 msgid "STARTTLS required"
 msgstr "STARTTLS requerido"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:110
+#: src/components/automations/config/TriggerConfigForm.tsx:111
 #: src/components/contacts/csv-import/contactFields.ts:36
 #: src/components/contacts/sheet/contactFieldLabels.ts:31
 #: src/components/segment/segmentLabels.ts:29
@@ -24353,6 +24738,7 @@ msgstr "Las estadísticas aparecen cuando el envío masivo empieza a enviarse"
 #: src/components/logs/OutgoingWebhooksTab.tsx:189
 #: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/BlogSettings.tsx:332
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:222
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:61
 #: src/components/settings/LicenseSettings.tsx:170
 #: src/components/settings/WebAnalyticsSettings.tsx:281
@@ -24613,7 +24999,7 @@ msgstr "Suscrito de nuevo a {name}"
 msgid "Subscribed on: {0}"
 msgstr "Suscrito el: {0}"
 
-#: src/components/logs/auditPhrases.ts:138
+#: src/components/logs/auditPhrases.ts:143
 msgid "Subscribed the contact <0>{target}</0> to a list"
 msgstr "Suscribió al contacto <0>{target}</0> a una lista"
 
@@ -24703,6 +25089,10 @@ msgstr "Exitoso"
 #: src/pages/SignInPage.tsx:42
 msgid "Successfully signed in"
 msgstr "Sesión iniciada correctamente"
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:209
+msgid "Suggested"
+msgstr "Sugerido"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:462
 msgid "Summarise the current period and tell me what changed versus the comparison period."
@@ -24795,12 +25185,12 @@ msgstr "Fuentes del sistema"
 #~ msgid "System Fonts"
 #~ msgstr "Fuentes del sistema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:243
-#: src/components/settings/SystemSettingsDrawer.tsx:254
+#: src/components/settings/SystemSettingsDrawer.tsx:244
+#: src/components/settings/SystemSettingsDrawer.tsx:255
 msgid "System Settings"
 msgstr "Configuración del sistema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:332
+#: src/components/settings/SystemSettingsDrawer.tsx:333
 msgid "System SMTP"
 msgstr "SMTP del sistema"
 
@@ -24858,7 +25248,7 @@ msgstr "Tipo de tarea"
 #~ msgid "Team"
 #~ msgstr "Equipo"
 
-#: src/components/settings/SettingsSidebar.tsx:64
+#: src/components/settings/SettingsSidebar.tsx:52
 #: src/components/settings/WorkspaceMembers.tsx:474
 msgid "Team & API keys"
 msgstr "Equipo y claves API"
@@ -24875,7 +25265,7 @@ msgstr "Se ha alcanzado el límite de miembros del equipo. Mejora tu plan para a
 msgid "Technical performance insights"
 msgstr "Información sobre el rendimiento técnico"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:720
+#: src/components/settings/SystemSettingsDrawer.tsx:721
 msgid "Telemetry"
 msgstr "Telemetría"
 
@@ -24887,14 +25277,14 @@ msgstr "Avisa a tus sistemas cuando algo cambia"
 msgid "template"
 msgstr "plantilla"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:375
+#: src/components/automations/config/TriggerConfigForm.tsx:376
 #: src/components/broadcasts/compose/ContentCard.tsx:131
 #: src/components/lists/ListHeader.tsx:71
 #: src/components/logs/MessageDetail.tsx:681
 #: src/components/logs/MessagesTab.tsx:474
 #: src/components/messages/MessageHistoryTable.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:242
-#: src/components/segment/form_leaf.tsx:578
+#: src/components/segment/form_leaf.tsx:580
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
 #: src/pages/TemplatesPage.tsx:379
@@ -25021,11 +25411,11 @@ msgstr "Conjunto de plantillas"
 #: src/components/settings/LicenseSettings.tsx:139
 #: src/services/api/licenseErrors.ts:53
 msgid "Template translations"
-msgstr ""
+msgstr "Traducciones de plantillas"
 
 #: src/components/license/LicenceGateNotice.tsx:57
 msgid "Template translations require a Notifuse {tier} licence."
-msgstr ""
+msgstr "Las traducciones de plantillas requieren una licencia {tier} de Notifuse."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:350
 #~ msgid "Template updated successfully"
@@ -25152,7 +25542,7 @@ msgstr "Prueba completada"
 msgid "Test connection"
 msgstr "Probar la conexión"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:340
+#: src/components/settings/SystemSettingsDrawer.tsx:341
 msgid "Test Connection"
 msgstr "Probar conexión"
 
@@ -25424,7 +25814,7 @@ msgstr "La dirección del archivo CSS de la fuente, o una salida Liquid."
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "El asistente de IA: chat a través de la integración LLM configurada en el espacio de trabajo, y las herramientas del lado del servidor que puede llamar."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:177
+#: src/components/settings/SystemSettingsDrawer.tsx:178
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "El endpoint de la API ha cambiado. Tras el reinicio, la consola estará disponible en:"
 
@@ -25507,6 +25897,10 @@ msgstr "La categoría {forcedLabel} está impuesta donde se crea esta plantilla:
 msgid "The category is set by where this template is used"
 msgstr "La categoría depende de dónde se usa esta plantilla"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:115
+msgid "The change was cancelled"
+msgstr "Se canceló el cambio"
+
 #: src/components/segment/SegmentDrawer.tsx:181
 msgid "The changes made since the segment was opened will be lost."
 msgstr "Se perderán los cambios hechos desde que se abrió el segmento."
@@ -25543,7 +25937,8 @@ msgstr "El periodo de comparación como columnas adicionales"
 msgid "The confirmation email each new subscriber receives"
 msgstr "El correo de confirmación que recibe cada nuevo suscriptor"
 
-#: src/components/segment/form_leaf.tsx:688
+#: src/components/segment/form_leaf.tsx:690
+#: src/components/segment/form_leaf.tsx:877
 msgid "The contact"
 msgstr "El contacto"
 
@@ -25607,7 +26002,7 @@ msgstr "Los contactos siguen en el espacio de trabajo y pueden volver a suscribi
 msgid "The count failed."
 msgstr "El recuento ha fallado."
 
-#: src/components/segment/form_leaf.tsx:201
+#: src/components/segment/form_leaf.tsx:203
 msgid "The count follows what you write."
 msgstr "El recuento sigue lo que escribes."
 
@@ -25700,6 +26095,7 @@ msgid "The email this step sends"
 msgstr "El correo que envía este paso"
 
 #: src/components/logs/AuditLogTab.tsx:151
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:266
 msgid "The export failed"
 msgstr "La exportación falló"
 
@@ -25828,7 +26224,7 @@ msgstr "El lanzamiento de un producto o una funcionalidad, en tres puntos."
 
 #: src/components/settings/LicenseSettings.tsx:87
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
-msgstr ""
+msgstr "La licencia cubre todo el despliegue, no solo este espacio de trabajo. Pregunta a la persona que administra esta instancia de Notifuse."
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:217
 #: src/components/email_builder/blocks/MjImageBlock.tsx:138
@@ -25900,6 +26296,10 @@ msgstr "El operador {0} no es compatible aquí"
 #: src/services/api/permissions.ts:770
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "El registro de mensajes salientes: todos los correos que envió el espacio de trabajo, su estado de entrega y la interacción contabilizada sobre ellos."
+
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:314
+msgid "The owners were told by email."
+msgstr "Se avisó a los propietarios por correo."
 
 #: src/components/settings/BlogSettings.tsx:513
 msgid "The pages stop being served; posts and settings are kept"
@@ -26036,9 +26436,9 @@ msgstr "El servidor no devolvió ninguna plantilla"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "El sitio se niega a mostrarse dentro de otra página, lo cual es una configuración de seguridad habitual. Ábrelo en una pestaña nueva para verlo."
 
-#: src/components/license/SsoLicenceNotice.tsx:45
+#: src/components/license/SsoLicenceNotice.tsx:42
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
-msgstr ""
+msgstr "El botón de SSO sigue oculto en la página de inicio de sesión hasta que se instale una licencia que lo incluya. Mientras tanto, todos entran con un código de inicio de sesión: nadie se queda sin acceso y no se ha cerrado ninguna sesión."
 
 #: src/components/automations/config/AddToListConfigForm.tsx:51
 msgid "The status to assign when adding to the list"
@@ -26072,7 +26472,7 @@ msgstr "La plantilla de este mensaje no está disponible"
 msgid "The template has no unsubscribe link ({languages})"
 msgstr "La plantilla no tiene enlace de baja ({languages})"
 
-#: src/components/segment/form_leaf.tsx:584
+#: src/components/segment/form_leaf.tsx:586
 msgid "The template of the emails this condition counts"
 msgstr "La plantilla de los correos que cuenta esta condición"
 
@@ -26157,7 +26557,7 @@ msgstr "La URL del webhook apunta a una dirección privada o interna ({host}), a
 msgid "The webhook will stop receiving events."
 msgstr "El webhook dejará de recibir eventos."
 
-#: src/components/automations/config/ConditionsField.tsx:121
+#: src/components/automations/config/ConditionsField.tsx:125
 msgid "The whole condition tree will be deleted."
 msgstr "Se eliminará todo el árbol de condiciones."
 
@@ -26393,6 +26793,10 @@ msgstr "Esto no se puede deshacer."
 msgid "This category is not created yet."
 msgstr "Esta categoría aún no se ha creado."
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:317
+msgid "This comes from the deployment defaults, set by the administrator of this installation."
+msgstr "Esto viene de los valores predeterminados del despliegue, fijados por el administrador de esta instalación."
+
 #: src/components/license/LicenseBanner.tsx:191
 #: src/components/settings/LicenseSettings.tsx:127
 #~ msgid "This console is read-only: single sign-on is enabled and this deployment's licence does not include it."
@@ -26406,9 +26810,14 @@ msgstr "Este contacto no está en ningún segmento"
 msgid "This contact is not subscribed to any lists"
 msgstr "Este contacto no está suscrito a ninguna lista"
 
+#. placeholder {0}: new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium' }).format(new Date(preview.data.pending_at))
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:152
+msgid "This deletes more than the policy in force, so that part starts on {0}. The owners get an email and can cancel it until then. The rest applies at the next run."
+msgstr "Esta política elimina más que la vigente, así que esa parte empieza el {0}. Los propietarios reciben un correo y pueden cancelarla hasta entonces. El resto se aplica en la próxima ejecución."
+
 #: src/services/api/licenseErrors.ts:112
 msgid "This deployment has reached the number of workspaces its licence allows. Existing workspaces are unaffected; a licence with a higher limit allows more."
-msgstr ""
+msgstr "Este despliegue ha alcanzado el número de espacios de trabajo que permite su licencia. Los espacios de trabajo existentes no se ven afectados; una licencia con un límite más alto permite más."
 
 #: src/services/api/licenseErrors.ts:113
 #~ msgid "This deployment is in read-only mode: single sign-on is enabled without a licence that covers it. Turn SSO off, or install a licence, to make changes."
@@ -26426,7 +26835,7 @@ msgstr "Este email se envía solo en HTML"
 #~ msgid "This email will be used for the root administrator account"
 #~ msgstr "Este correo se usará para la cuenta de administrador raíz"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:413
+#: src/components/automations/config/TriggerConfigForm.tsx:415
 msgid "This event fires often. These conditions are evaluated for every matching event."
 msgstr "Este evento se dispara a menudo. Estas condiciones se evalúan para cada evento coincidente."
 
@@ -26434,10 +26843,10 @@ msgstr "Este evento se dispara a menudo. Estas condiciones se evalúan para cada
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Esta función realiza una solicitud HTTP para cada destinatario antes de enviar su email. Esto puede ralentizar significativamente el procesamiento del broadcast. Si la solicitud del feed falla después de los reintentos, el broadcast se pausará automáticamente."
 
-#: src/components/segment/form_leaf.tsx:217
-#: src/components/segment/form_leaf.tsx:402
-#: src/components/segment/form_leaf.tsx:553
-#: src/components/segment/form_leaf.tsx:667
+#: src/components/segment/form_leaf.tsx:219
+#: src/components/segment/form_leaf.tsx:404
+#: src/components/segment/form_leaf.tsx:555
+#: src/components/segment/form_leaf.tsx:669
 msgid "This field is required"
 msgstr "Este campo es obligatorio"
 
@@ -26521,7 +26930,7 @@ msgstr "Este es tu editor visual de correo. Haz clic en cualquier elemento de tu
 
 #: src/components/settings/LicenseSettings.tsx:67
 msgid "This licence covers the whole deployment — one database. A key pasted here takes effect on this API container now, and on any others at their next restart; with several containers, set NOTIFUSE_LICENSE_KEY instead."
-msgstr ""
+msgstr "Esta licencia cubre todo el despliegue, es decir, una base de datos. Una clave pegada aquí se aplica ya en este contenedor de la API, y en los demás en su próximo reinicio. Con varios contenedores, define NOTIFUSE_LICENSE_KEY en su lugar."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:301
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
@@ -26856,7 +27265,11 @@ msgstr "Patrones temporales"
 #~ msgid "Timeline"
 #~ msgstr "Línea de tiempo"
 
-#: src/components/segment/form_leaf.tsx:557
+#: src/components/settings/data_retention/categoryText.ts:20
+msgid "Timeline entries older than this are deleted."
+msgstr "Se eliminan las entradas de la línea de tiempo más antiguas que este período."
+
+#: src/components/segment/form_leaf.tsx:559
 msgid "times"
 msgstr "veces"
 
@@ -26905,7 +27318,7 @@ msgstr "El TimeScore es la mediana del tiempo de interacción de las sesiones hu
 #~ msgid "Timestamp"
 #~ msgstr "Marca de tiempo"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:100
+#: src/components/automations/config/TriggerConfigForm.tsx:101
 #: src/components/blog/PublishModal.tsx:184
 #: src/components/broadcasts/compose/SendingCard.tsx:116
 #: src/components/broadcasts/compose/SendingCard.tsx:118
@@ -26991,7 +27404,7 @@ msgstr "TLS"
 msgid "TLS certificate (Base64)"
 msgstr "Certificado TLS (Base64)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:536
+#: src/components/settings/SystemSettingsDrawer.tsx:537
 msgid "TLS Certificate (Base64)"
 msgstr "Certificado TLS (Base64)"
 
@@ -27003,7 +27416,7 @@ msgstr "El certificado TLS es requerido"
 #~ msgid "TLS Enabled"
 #~ msgstr "TLS habilitado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:551
+#: src/components/settings/SystemSettingsDrawer.tsx:552
 msgid "TLS Key (Base64)"
 msgstr "Clave TLS (Base64)"
 
@@ -27408,7 +27821,7 @@ msgstr "Traducciones"
 
 #: src/components/license/LicenceGateNotice.tsx:69
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
-msgstr ""
+msgstr "Las traducciones ya guardadas se siguen enviando, y siempre se puede desactivar una. Añadir o editar una necesita una licencia."
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:141
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:86
@@ -27428,11 +27841,11 @@ msgstr "Prueba"
 msgid "Trigger"
 msgstr "Disparador"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:247
+#: src/components/automations/config/TriggerConfigForm.tsx:248
 msgid "Trigger Event"
 msgstr "Evento disparador"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:331
+#: src/components/automations/config/TriggerConfigForm.tsx:332
 msgid "Trigger on specific field changes"
 msgstr "Activar en cambios de campo específicos"
 
@@ -27540,19 +27953,19 @@ msgstr "Activar o desactivar el blog y cambiar su título, su SEO, su paginació
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Activar o desactivar las analíticas web y cambiar sus dominios permitidos, filtros, etiquetas de dimensiones personalizadas e identificación por enlace de correo"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:95
 msgid "Turned off two-factor authentication"
 msgstr "Desactivó la autenticación de doble factor"
 
-#: src/components/logs/auditPhrases.ts:71
+#: src/components/logs/auditPhrases.ts:76
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "Activó el aislamiento de tenants de Amazon SES para <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:96
 msgid "Turned on two-factor authentication"
 msgstr "Activó la autenticación de doble factor"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:107
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Activó o desactivó el webhook <0>{target}</0>"
 
@@ -27746,7 +28159,7 @@ msgstr "Segmento desconocido ({id})"
 
 #: src/components/settings/LicenseSettings.tsx:145
 msgid "Unlimited"
-msgstr ""
+msgstr "Sin límite"
 
 #: src/layouts/app-shell/AppSidebar.tsx:182
 msgid "Unpin sidebar"
@@ -28001,11 +28414,11 @@ msgstr "Actualizó la entrada del blog <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "Actualizó el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:126
+#: src/components/logs/auditPhrases.ts:131
 msgid "Updated the integration <0>{target}</0>"
 msgstr "Actualizó la integración <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:66
+#: src/components/logs/auditPhrases.ts:67
 msgid "Updated the list <0>{target}</0>"
 msgstr "Actualizó la lista <0>{target}</0>"
 
@@ -28017,11 +28430,11 @@ msgstr "Actualizó la newsletter <0>{target}</0>"
 msgid "Updated the preview text"
 msgstr "Texto de vista previa actualizado"
 
-#: src/components/logs/auditPhrases.ts:76
+#: src/components/logs/auditPhrases.ts:81
 msgid "Updated the saved block <0>{target}</0>"
 msgstr "Actualizó el bloque guardado <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:70
+#: src/components/logs/auditPhrases.ts:75
 msgid "Updated the segment <0>{target}</0>"
 msgstr "Actualizó el segmento <0>{target}</0>"
 
@@ -28033,23 +28446,23 @@ msgstr "Asunto actualizado"
 msgid "Updated the subject and the preview text"
 msgstr "Asunto y texto de vista previa actualizados"
 
-#: src/components/logs/auditPhrases.ts:72
+#: src/components/logs/auditPhrases.ts:77
 msgid "Updated the system settings"
 msgstr "Actualizó la configuración del sistema"
 
-#: src/components/logs/auditPhrases.ts:79
+#: src/components/logs/auditPhrases.ts:84
 msgid "Updated the template <0>{target}</0>"
 msgstr "Actualizó la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:89
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "Actualizó la notificación transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:108
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Actualizó el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:125
+#: src/components/logs/auditPhrases.ts:130
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Actualizó la configuración del espacio de trabajo <0>{target}</0>"
 
@@ -28159,7 +28572,7 @@ msgid "Use"
 msgstr "Usar"
 
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:109
-#: src/components/settings/SystemSettingsDrawer.tsx:753
+#: src/components/settings/SystemSettingsDrawer.tsx:754
 msgid "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS} and {AUDIT_LOG_MAX_RETENTION_DAYS}"
 msgstr "Use 0 para conservar para siempre, o un valor entre {AUDIT_LOG_MIN_RETENTION_DAYS} y {AUDIT_LOG_MAX_RETENTION_DAYS}"
 
@@ -28228,6 +28641,11 @@ msgstr "Usar la versión automática"
 msgid "Use the automatic version?"
 msgstr "¿Usar la versión automática?"
 
+#. placeholder {0}: formatPeriod(view.defaults[spec.category] ?? 0)
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:190
+msgid "Use the default ({0})"
+msgstr "Usar el valor predeterminado ({0})"
+
 #: src/components/email_builder/blocks/MjFontBlock.tsx:75
 msgid "Use the font name in text elements:"
 msgstr "Usa el nombre de la fuente en elementos de texto:"
@@ -28261,7 +28679,7 @@ msgstr "Usar esta plantilla"
 #~ msgstr "Usar este tema"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:593
-#: src/components/settings/SystemSettingsDrawer.tsx:384
+#: src/components/settings/SystemSettingsDrawer.tsx:385
 #: src/components/setup/SmtpPanel.tsx:180
 #: src/components/setup/SmtpPanel.tsx:184
 msgid "Use TLS"
@@ -28485,7 +28903,7 @@ msgstr "Error de validación"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:254
-#: src/components/segment/form_leaf.tsx:769
+#: src/components/segment/form_leaf.tsx:771
 #: src/components/settings/DomainsSettings.tsx:336
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
@@ -28503,7 +28921,7 @@ msgstr "Valor"
 msgid "Value {value}"
 msgstr "Valor {value}"
 
-#: src/components/segment/form_leaf.tsx:799
+#: src/components/segment/form_leaf.tsx:801
 msgid "Value 2"
 msgstr "Valor 2"
 
@@ -28573,7 +28991,7 @@ msgstr "Variantes"
 msgid "Verification code"
 msgstr "Código de verificación"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:100
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Verificó el código de inicio de sesión de <0>{target}</0>"
 
@@ -28843,6 +29261,10 @@ msgstr "Duración de espera"
 msgid "Waiting"
 msgstr "En espera"
 
+#: src/components/settings/data_retention/categoryText.ts:32
+msgid "Waiting for past activity to be read"
+msgstr "Esperando la lectura de la actividad pasada"
+
 #: src/pages/SetupWizard.tsx:338
 #~ msgid "Waiting for server restart..."
 #~ msgstr "Esperando reinicio del servidor..."
@@ -28850,6 +29272,11 @@ msgstr "En espera"
 #: src/components/setup/SetupRestartView.tsx:75
 msgid "Waiting for the server to come back"
 msgstr "Esperando a que vuelva el servidor"
+
+#. placeholder {0}: new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium' }).format(new Date(pending.effective_at))
+#: src/components/settings/data_retention/RetentionDefaultsSection.tsx:135
+msgid "Waiting until {0}"
+msgstr "En espera hasta el {0}"
 
 #: src/components/automations/AutomationEditor.tsx:329
 msgid "Warning"
@@ -28878,7 +29305,8 @@ msgstr "Web"
 #: src/components/contacts/sheet/describeActivity.tsx:393
 #: src/components/contacts/sheet/describeActivity.tsx:418
 #: src/components/logs/labels.ts:22
-#: src/components/settings/SettingsSidebar.tsx:71
+#: src/components/settings/data_retention/categoryText.ts:11
+#: src/components/settings/SettingsSidebar.tsx:59
 #: src/components/settings/WebAnalyticsSettings.tsx:201
 #: src/components/settings/WebAnalyticsSettings.tsx:264
 msgid "Web analytics"
@@ -28951,6 +29379,10 @@ msgstr "Visitas web"
 msgid "Webhook"
 msgstr "Webhook"
 
+#: src/components/settings/data_retention/categoryText.ts:13
+msgid "Webhook deliveries"
+msgstr "Envíos de webhooks"
+
 #: src/components/settings/WebhookDetail.tsx:178
 msgid "Webhook disabled"
 msgstr "Webhook deshabilitado"
@@ -29008,7 +29440,7 @@ msgid "Webhook URL"
 msgstr "URL del webhook"
 
 #: src/components/logs/labels.ts:13
-#: src/components/settings/SettingsSidebar.tsx:67
+#: src/components/settings/SettingsSidebar.tsx:55
 #: src/components/settings/WebhooksSettings.tsx:456
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -29026,8 +29458,8 @@ msgid "Webhooks registered successfully"
 msgstr "Webhooks registrados exitosamente"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:139
-#: src/components/segment/form_leaf.tsx:527
-#: src/components/segment/form_leaf.tsx:528
+#: src/components/segment/form_leaf.tsx:529
+#: src/components/segment/form_leaf.tsx:530
 #: src/components/settings/GeneralSettings.tsx:228
 #: src/components/settings/GeneralSettings.tsx:344
 msgid "Website"
@@ -29124,7 +29556,7 @@ msgstr "¡Bienvenido al constructor de correos!"
 msgid "Welcomes a new subscriber with three first steps."
 msgstr "Da la bienvenida a un nuevo suscriptor con tres primeros pasos."
 
-#: src/components/segment/form_leaf.tsx:491
+#: src/components/segment/form_leaf.tsx:493
 msgid "What"
 msgstr "Qué"
 
@@ -29141,13 +29573,21 @@ msgstr "Lo que un lector de feeds muestra de cada artículo"
 msgid "What gets exported"
 msgstr "Qué se exporta"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:236
+msgid "What it removed"
+msgstr "Lo que eliminó"
+
+#: src/components/settings/data_retention/RetentionPreviewModal.tsx:128
+msgid "What this policy removes"
+msgstr "Lo que elimina esta política"
+
 #: src/components/updates/UpdateDrawer.tsx:26
 msgid "What's new since {current}"
 msgstr "Novedades desde la {current}"
 
-#: src/components/segment/form_leaf.tsx:224
-#: src/components/segment/form_leaf.tsx:560
-#: src/components/segment/form_leaf.tsx:807
+#: src/components/segment/form_leaf.tsx:226
+#: src/components/segment/form_leaf.tsx:562
+#: src/components/segment/form_leaf.tsx:809
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:40
 msgid "When"
 msgstr "Cuándo"
@@ -29296,6 +29736,10 @@ msgstr "¿Quién debe estar en este segmento?"
 msgid "Whole deployment"
 msgstr "Todo el despliegue"
 
+#: src/components/settings/data_retention/categoryText.ts:23
+msgid "Whole months older than this are deleted."
+msgstr "Se eliminan los meses completos más antiguos que este período."
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:466
 msgid "Why did traffic change?"
 msgstr "¿Por qué cambió el tráfico?"
@@ -29308,6 +29752,11 @@ msgstr "¿Por qué cambió el tráfico?"
 #: src/components/email_builder/blocks/MjImageBlock.tsx:156
 msgid "Width"
 msgstr "Ancho"
+
+#: src/components/segment/ConditionSentence.tsx:280
+#: src/components/segment/form_leaf.tsx:878
+msgid "will be deleted as inactive within"
+msgstr "se eliminará por inactividad en"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:444
 msgid "will be deleted, with their history"
@@ -29416,7 +29865,7 @@ msgstr "Sin condiciones, esta regla coincide con todas las visitas."
 msgid "With no condition, this rule runs on every session."
 msgstr "Sin condiciones, esta regla se ejecuta en cada sesión."
 
-#: src/components/segment/ConditionSentence.tsx:317
+#: src/components/segment/ConditionSentence.tsx:327
 msgid "with properties"
 msgstr "con propiedades"
 
@@ -29425,7 +29874,7 @@ msgstr "con propiedades"
 #~ msgstr "Con estadísticas"
 
 #: src/components/segment/ConditionSentence.tsx:212
-#: src/components/segment/form_leaf.tsx:436
+#: src/components/segment/form_leaf.tsx:438
 msgid "with status"
 msgstr "con estado"
 
@@ -29475,7 +29924,7 @@ msgstr "Funciona una vez creada"
 #: src/components/settings/GeneralSettings.tsx:225
 #: src/components/settings/GeneralSettings.tsx:323
 #: src/components/settings/permissionLabels.ts:12
-#: src/components/settings/SettingsSidebar.tsx:27
+#: src/components/settings/SettingsSidebar.tsx:14
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
 #: src/services/api/errors.ts:87
 msgid "Workspace"
@@ -29570,7 +30019,7 @@ msgstr "Espacio de trabajo:"
 #: src/components/settings/LicenseSettings.tsx:187
 #: src/services/api/licenseErrors.ts:55
 msgid "Workspaces"
-msgstr ""
+msgstr "Espacios de trabajo"
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:44
 #~ msgid "Wrapper attributes"
@@ -29634,6 +30083,10 @@ msgstr "Año hasta la fecha"
 #: src/components/web_analytics/toolbar.tsx:148
 msgid "Yearly"
 msgstr "Anual"
+
+#: src/components/settings/data_retention/PeriodInput.tsx:56
+msgid "years"
+msgstr "años"
 
 #: src/components/automations/edges/edgeLabel.ts:33
 #: src/components/blog/PostDrawer.tsx:306
@@ -29827,6 +30280,10 @@ msgstr "Tienes cambios sin guardar. ¿Estás seguro de que quieres cerrar?"
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Tienes cambios sin guardar. ¿Estás seguro de que quieres cerrar? Tus cambios se perderán."
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:446
+msgid "You have unsaved data retention changes. Leave without saving?"
+msgstr "Tienes cambios de retención de datos sin guardar. ¿Salir sin guardar?"
+
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:135
 msgid "You have unsaved retention changes. Leave without saving?"
 msgstr "Tiene cambios de retención sin guardar. ¿Salir sin guardar?"
@@ -30006,11 +30463,11 @@ msgstr "Tu administrador de Notifuse exige la autenticación de doble factor."
 
 #: src/components/license/LicenseBanner.tsx:152
 msgid "Your Notifuse licence expired on {expiryLabel} and is in its grace period."
-msgstr ""
+msgstr "Tu licencia de Notifuse caducó el {expiryLabel} y está en su periodo de gracia."
 
 #: src/components/license/LicenseBanner.tsx:153
 msgid "Your Notifuse licence has expired and is in its grace period."
-msgstr ""
+msgstr "Tu licencia de Notifuse ha caducado y está en su periodo de gracia."
 
 #: src/components/templates/TemplateSettingsAside.tsx:118
 msgid "Your October invoice"

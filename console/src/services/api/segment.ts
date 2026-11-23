@@ -16,7 +16,7 @@ export type SegmentStatus = 'active' | 'deleted' | 'building'
 // Tree structure types
 export type TreeNodeKind = 'branch' | 'leaf'
 export type BooleanOperator = 'and' | 'or'
-export type SourceType = 'contacts' | 'contact_lists' | 'contact_timeline' | 'custom_events_goals'
+export type SourceType = 'contacts' | 'contact_lists' | 'contact_timeline' | 'custom_events_goals' | 'retention'
 
 // Dimension filter types
 export type FieldType = 'string' | 'number' | 'time' | 'json'
@@ -128,6 +128,13 @@ export interface TreeNodeLeaf {
   contact_list?: ContactListCondition
   contact_timeline?: ContactTimelineCondition
   custom_events_goal?: CustomEventsGoalCondition
+  retention?: RetentionCondition
+}
+
+/** Contacts the inactive-contact retention category deletes within `days` (1 to 365). */
+export interface RetentionCondition {
+  operator: 'expires_within_days'
+  days: number
 }
 
 export interface TreeNodeBranch {

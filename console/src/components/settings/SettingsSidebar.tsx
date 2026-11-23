@@ -2,20 +2,7 @@ import type { ReactNode } from 'react'
 import type { MessageDescriptor } from '@lingui/core'
 import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
-import {
-  BadgeCheck,
-  Blocks,
-  BookOpen,
-  Braces,
-  ChartLine,
-  Globe,
-  Mail,
-  ScrollText,
-  ShieldAlert,
-  SlidersHorizontal,
-  Users,
-  Webhook
-} from 'lucide-react'
+import { BadgeCheck, Blocks, BookOpen, Braces, ChartLine, Globe, Hourglass, Mail, ScrollText, ShieldAlert, SlidersHorizontal, Users, Webhook } from 'lucide-react'
 import { RailItem, RailSection } from '../layout'
 
 /**
@@ -30,7 +17,7 @@ export const SETTINGS_GROUPS = [
   // Licence is deployment-wide rather than workspace-wide, and rendered only for a root user —
   // but listed here unconditionally, because this list is what makes a URL valid and a root user
   // must be able to reach /settings/licence from the banner whatever workspace they are in.
-  { title: msg`Security`, sections: ['audit-logs', 'licence', 'danger-zone'] }
+  { title: msg`Security`, sections: ['audit-logs', 'data-retention', 'licence', 'danger-zone'] }
 ] as const satisfies ReadonlyArray<{ title: MessageDescriptor; sections: readonly string[] }>
 
 export type SettingsSection = (typeof SETTINGS_GROUPS)[number]['sections'][number]
@@ -55,6 +42,7 @@ const ICONS: Record<SettingsSection, ReactNode> = {
   blog: <BookOpen size={ICON_SIZE} />,
   'web-analytics': <ChartLine size={ICON_SIZE} />,
   'audit-logs': <ScrollText size={ICON_SIZE} />,
+  'data-retention': <Hourglass size={ICON_SIZE} />,
   licence: <BadgeCheck size={ICON_SIZE} />,
   'danger-zone': <ShieldAlert size={ICON_SIZE} />
 }
@@ -70,6 +58,7 @@ const LABELS: Record<SettingsSection, MessageDescriptor> = {
   blog: msg`Blog`,
   'web-analytics': msg`Web analytics`,
   'audit-logs': msg`Audit log`,
+  'data-retention': msg`Data retention`,
   licence: msg`Licence`,
   'danger-zone': msg`Danger zone`
 }
@@ -88,7 +77,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner, isRoo
 
   const visible = (section: SettingsSection) => {
     // Retention and deletion are an owner's decisions; the log itself is read under Logs.
-    if (section === 'audit-logs' || section === 'danger-zone') return isOwner
+    if (section === 'audit-logs' || section === 'data-retention' || section === 'danger-zone') return isOwner
     if (section === 'licence') return isRoot
     return true
   }

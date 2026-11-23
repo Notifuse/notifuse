@@ -214,8 +214,20 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(configJS))
 }
 
-// serveConsole handles serving static files, with a fallback for SPA routing
+// consoleOAuthAuthorizePath is the console's OAuth authorization page, whose
+// URL carries the request ID.
+const consoleOAuthAuthorizePath = "/console/oauth/authorize"
+
+// serveConsole handles serving static files, with a fallback for SPA routing.
+// No console page may be framed by another site, and the OAuth authorization
+// page never sends its URL, which names an authorization request, in a
+// Referer.
 func (h *RootHandler) serveConsole(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
+	w.Header().Set("X-Frame-Options", "DENY")
+	if r.URL.Path == consoleOAuthAuthorizePath || r.URL.Path == consoleOAuthAuthorizePath+"/" {
+		w.Header().Set("Referrer-Policy", "no-referrer")
+	}
 	// The brand-dependent paths answer HEAD too, so they are taken before the GET-only guard.
 	if h.serveBrandingAsset(w, r) {
 		return

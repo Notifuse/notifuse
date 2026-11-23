@@ -92,6 +92,7 @@ func TestV45DataRetentionMigration(t *testing.T) {
 		`DROP TABLE IF EXISTS contact_opt_out_hash_key`,
 		`DROP TABLE IF EXISTS contact_engagement`,
 		`DROP TABLE IF EXISTS data_retention_state`,
+		`DROP FUNCTION IF EXISTS contact_retention_expires_at(TEXT)`,
 		`DROP TABLE IF EXISTS data_retention_runs`,
 		`DROP TABLE IF EXISTS data_retention_erasure_queue`,
 	}, pre45Bodies(t)...) {
@@ -139,7 +140,8 @@ func TestV45DataRetentionMigration(t *testing.T) {
 	assert.Equal(t, 1, keys, "one 32-byte key, generated once")
 	for _, function := range []string{"contact_opt_out_hash", "restore_contact_opt_outs", "track_contact_list_changes",
 		"webhook_contact_lists_trigger", "track_message_history_changes",
-		"track_contact_segment_changes", "webhook_contact_segments_trigger", "webhook_contacts_trigger"} {
+		"track_contact_segment_changes", "webhook_contact_segments_trigger", "webhook_contacts_trigger",
+		"contact_retention_expires_at"} {
 		assert.Equal(t, functionDefinition(t, freshDB, function), functionDefinition(t, db, function), function)
 	}
 	var triggers int

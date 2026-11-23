@@ -587,6 +587,97 @@ func (r *dataRetentionRepository) DropWebAnalyticsMonth(ctx context.Context, wor
 	return tx.Commit()
 }
 
+// WriteContactPolicyMirror writes the mirror and marks the segments that use the retention
+// condition for a rebuild in the same transaction: their members change with the policy.
+func (r *dataRetentionRepository) WriteContactPolicyMirror(ctx context.Context, workspaceID string, mirror domain.ContactPolicyMirror) error {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `INSERT INTO data_retention_state (id, contacts_days, exempt_list_ids, exempt_segment_ids,
+			engagement_event_names, contacts_pending_days, contacts_pending_at, pending_exempt_list_ids,
+			pending_exempt_segment_ids, pending_engagement_event_names)
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (id) DO UPDATE SET contacts_days = EXCLUDED.contacts_days,
+			exempt_list_ids = EXCLUDED.exempt_list_ids, exempt_segment_ids = EXCLUDED.exempt_segment_ids,
+			engagement_event_names = EXCLUDED.engagement_event_names,
+			contacts_pending_days = EXCLUDED.contacts_pending_days, contacts_pending_at = EXCLUDED.contacts_pending_at,
+			pending_exempt_list_ids = EXCLUDED.pending_exempt_list_ids,
+			pending_exempt_segment_ids = EXCLUDED.pending_exempt_segment_ids,
+			pending_engagement_event_names = EXCLUDED.pending_engagement_event_names`,
+		mirror.Days, pq.Array(nonNil(mirror.ExemptListIDs)), pq.Array(nonNil(mirror.ExemptSegmentIDs)),
+		pq.Array(nonNil(mirror.EngagementEventNames)), mirror.PendingDays, mirror.PendingAt,
+		pq.Array(nonNil(mirror.PendingExemptListIDs)), pq.Array(nonNil(mirror.PendingExemptSegmentIDs)),
+		pq.Array(nonNil(mirror.PendingEngagementEventNames))); err != nil {
+		return fmt.Errorf("failed to write the contact policy mirror: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE segments SET recompute_after = NOW()
+		WHERE status <> 'deleted' AND jsonb_path_exists(tree, '$.** ? (@.source == "retention")')`); err != nil {
+		return fmt.Errorf("failed to queue the segments that use the retention condition: %w", err)
+	}
+	return tx.Commit()
+}
+
+func (r *dataRetentionRepository) SegmentsUsingRetentionCondition(ctx context.Context, workspaceID string, segmentIDs []string) ([]string, error) {
+	if len(segmentIDs) == 0 {
+		return nil, nil
+	}
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.QueryContext(ctx, `SELECT id FROM segments
+		WHERE id = ANY($1::text[]) AND jsonb_path_exists(tree, '$.** ? (@.source == "retention")') ORDER BY id`, pq.Array(segmentIDs))
+	if err != nil {
+		return nil, fmt.Errorf("failed to check the exempt segments: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (r *dataRetentionRepository) CustomEventNames(ctx context.Context, workspaceID string, limit int) ([]string, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	// A skip scan along the primary key (event_name, external_id): one index probe per
+	// distinct name, rather than reading every event. Soft-deleted events are not filtered out:
+	// a name they carry is still a name the workspace sends.
+	rows, err := db.QueryContext(ctx, `WITH RECURSIVE names AS (
+			(SELECT event_name FROM custom_events ORDER BY event_name LIMIT 1)
+			UNION ALL
+			SELECT (SELECT c.event_name FROM custom_events c WHERE c.event_name > n.event_name ORDER BY c.event_name LIMIT 1)
+			FROM names n WHERE n.event_name IS NOT NULL
+		)
+		SELECT event_name FROM names WHERE event_name IS NOT NULL LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list custom event names: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	names := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
+}
+
 func (r *dataRetentionRepository) BackfillCompleted(ctx context.Context, workspaceID string) (bool, error) {
 	db, err := r.db(ctx, workspaceID)
 	if err != nil {

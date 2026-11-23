@@ -50,7 +50,6 @@ type fixture struct {
 	templates   *mocks.MockTemplateService
 	broadcasts  *mocks.MockBroadcastService
 	bcastRows   *mocks.MockBroadcastRepository
-	queue       *mocks.MockEmailQueueRepository
 	notifs      *mocks.MockTransactionalNotificationService
 	notifRows   *mocks.MockTransactionalNotificationRepository
 	messages    *mocks.MockMessageHistoryService
@@ -64,6 +63,9 @@ type fixture struct {
 	server      *Server
 	url         string
 	keyID       string
+	// caller, when set, is the MCPCaller every request carries; by default a
+	// header key of keyID.
+	caller *domain.MCPCaller
 }
 
 // newFixture builds the server with the given tools, or the catalogue when
@@ -89,7 +91,6 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 		templates:   mocks.NewMockTemplateService(ctrl),
 		broadcasts:  mocks.NewMockBroadcastService(ctrl),
 		bcastRows:   mocks.NewMockBroadcastRepository(ctrl),
-		queue:       mocks.NewMockEmailQueueRepository(ctrl),
 		notifs:      mocks.NewMockTransactionalNotificationService(ctrl),
 		notifRows:   mocks.NewMockTransactionalNotificationRepository(ctrl),
 		messages:    mocks.NewMockMessageHistoryService(ctrl),
@@ -123,7 +124,6 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 		Templates:        f.templates,
 		Broadcasts:       f.broadcasts,
 		BroadcastRows:    f.bcastRows,
-		Queue:            f.queue,
 		Transactional:    f.notifs,
 		NotificationRows: f.notifRows,
 		Messages:         f.messages,
@@ -145,7 +145,11 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 
 	handler := f.server.Handler()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := domain.WithMCPCaller(r.Context(), &domain.MCPCaller{Kind: domain.MCPCredentialHeader, APIKeyUserID: f.keyID})
+		caller := f.caller
+		if caller == nil {
+			caller = &domain.MCPCaller{Kind: domain.MCPCredentialHeader, APIKeyUserID: f.keyID}
+		}
+		ctx := domain.WithMCPCaller(r.Context(), caller)
 		ctx = WithRequestMeta(ctx, RequestMeta{IP: "203.0.113.7", UserAgent: "test-agent", RequestID: "req-1"})
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	}))

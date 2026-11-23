@@ -328,7 +328,7 @@ func TestInitializeDatabase_Comprehensive(t *testing.T) {
 func TestInitializeDatabase_MultipleRootEmails(t *testing.T) {
 	// Number of table + migration statements run before any root user creation.
 	schemaStatements := len(schema.TableDefinitions) + len(schema.GetMigrationStatements()) + len(schema.AuditLogsTableDefinitions()) +
-		len(schema.TwoFactorTableDefinitions())
+		len(schema.TwoFactorTableDefinitions()) + len(schema.OAuthTableDefinitions())
 
 	expectSchema := func(mock sqlmock.Sqlmock) {
 		for i := 0; i < schemaStatements; i++ {
@@ -668,4 +668,42 @@ func TestInitializeWorkspaceDatabase_CreatesTheSegmentLastErrorColumns(t *testin
 	table := rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS segments")
 	assert.Contains(t, table, schema.SegmentLastErrorColumn+",")
 	assert.Contains(t, table, schema.SegmentLastErrorAtColumn+"\n")
+}
+
+// A fresh system database gets the OAuth tables of the v45 migration, after the
+// tables their foreign keys name and after the two-factor tables.
+func TestInitializeDatabase_CreatesTheOAuthTables(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	for _, statement := range schema.TableDefinitions {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	for _, statement := range schema.GetMigrationStatements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	for _, statement := range schema.AuditLogsTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	for _, statement := range schema.TwoFactorTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	for _, statement := range schema.OAuthTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	require.NoError(t, InitializeDatabase(db, nil))
+	require.NoError(t, mock.ExpectationsWereMet())
+
+	t.Run("a failure names the OAuth tables", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		for i := 0; i < len(schema.TableDefinitions)+len(schema.GetMigrationStatements())+len(schema.AuditLogsTableDefinitions())+len(schema.TwoFactorTableDefinitions()); i++ {
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectExec(".+").WillReturnError(errors.New("boom"))
+		err = InitializeDatabase(db, nil)
+		require.ErrorContains(t, err, "failed to create the OAuth tables")
+	})
 }

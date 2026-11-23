@@ -28,6 +28,8 @@ type retentionTestDeps struct {
 	eraser     *fakeEraser
 	audit      *fakeAudit
 	now        time.Time
+	// mirrors are the contact policies written for the segment condition (D13).
+	mirrors []domain.ContactPolicyMirror
 }
 
 type fakeEraser struct {
@@ -63,6 +65,13 @@ func newRetentionTest(t *testing.T) *retentionTestDeps {
 	log.EXPECT().Warn(gomock.Any()).AnyTimes()
 	d.svc = NewDataRetentionService(d.workspaces, d.settings, d.repo, d.eraser, d.auth, d.mailer, d.audit, log)
 	d.svc.SetClock(func() time.Time { return d.now })
+	d.repo.EXPECT().SegmentsUsingRetentionCondition(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	d.settings.EXPECT().Set(gomock.Any(), DataRetentionLastRunSettingKey, gomock.Any()).Return(nil).AnyTimes()
+	d.repo.EXPECT().WriteContactPolicyMirror(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, mirror domain.ContactPolicyMirror) error {
+			d.mirrors = append(d.mirrors, mirror)
+			return nil
+		}).AnyTimes()
 	return d
 }
 
@@ -126,6 +135,8 @@ func TestDataRetentionService_SetPolicy(t *testing.T) {
 		require.NotNil(t, got.Pending)
 		assert.Equal(t, d.now.Add(domain.RetentionPendingDelay), got.Pending.EffectiveAt)
 		assert.Equal(t, "owner@example.com", got.Pending.RequestedBy)
+		require.Len(t, d.mirrors, 1, "the segment condition reads the new policy")
+		assert.Equal(t, domain.ContactPolicyMirror{Days: 0, PendingDays: 365, PendingAt: &got.Pending.EffectiveAt}, d.mirrors[0])
 	})
 
 	t.Run("saving the same waiting policy again keeps its date and tells nobody", func(t *testing.T) {
@@ -280,6 +291,9 @@ func TestDataRetentionService_RunWorkspace(t *testing.T) {
 
 		require.NoError(t, d.svc.RunWorkspace(context.Background(), workspaceWith(inForce), nil))
 		assert.True(t, released)
+		require.NotEmpty(t, d.mirrors, "every run writes the mirror again")
+		assert.Equal(t, 365, d.mirrors[0].Days)
+		assert.Equal(t, []string{"vip"}, d.mirrors[0].ExemptListIDs)
 		assert.Equal(t, []string{"a@x"}, d.eraser.erased)
 		assert.Equal(t, domain.RetentionRunCompleted, run.Status)
 		assert.EqualValues(t, 1, run.Results[domain.RetentionInactiveContacts].Affected)
@@ -429,4 +443,69 @@ func TestDataRetentionService_SetDefaultsStoresTheWholeMap(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(saved), &back))
 	assert.Equal(t, 0, back.ResolvedDefaults(d.now.Add(domain.RetentionPendingDelay))[domain.RetentionMessageHistory])
 	assert.Equal(t, 365, back.ResolvedDefaults(d.now)[domain.RetentionMessageHistory], "the current defaults hold until then")
+}
+
+// Any member reads the policy, what is in force, the runs and the event names to pick from.
+func TestDataRetentionService_Get(t *testing.T) {
+	d := newRetentionTest(t).withNoDefaults()
+	d.as("member")
+	d.workspaces.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWith(&domain.DataRetentionSettings{Policy: contactsPolicy(1095)}), nil)
+	d.repo.EXPECT().BackfillCompleted(gomock.Any(), "ws").Return(true, nil)
+	d.repo.EXPECT().ListRuns(gomock.Any(), "ws", retentionRunsShown).Return(nil, nil)
+	d.repo.EXPECT().CustomEventNames(gomock.Any(), "ws", retentionEventNamesShown).Return([]string{"purchase"}, nil)
+	view, err := d.svc.Get(context.Background(), "ws")
+	require.NoError(t, err)
+	assert.Equal(t, 1095, view.InForce[domain.RetentionInactiveContacts])
+	assert.Equal(t, 7, view.Defaults[domain.RetentionWebhookDeliveries])
+	assert.Equal(t, []string{"purchase"}, view.EventNames)
+	assert.NotNil(t, view.Runs, "an empty list, not null")
+	assert.True(t, view.BackfillReady)
+}
+
+type fakeBackfillTasks struct {
+	tasks   []*domain.Task
+	updated *domain.Task
+	filter  domain.TaskFilter
+}
+
+func (f *fakeBackfillTasks) List(_ context.Context, _ string, filter domain.TaskFilter) ([]*domain.Task, int, error) {
+	f.filter = filter
+	return f.tasks, len(f.tasks), nil
+}
+func (f *fakeBackfillTasks) Update(_ context.Context, _ string, task *domain.Task) error {
+	f.updated = task
+	return nil
+}
+
+func TestDataRetentionService_RetryBackfill(t *testing.T) {
+	t.Run("puts the failed backfill back in the queue", func(t *testing.T) {
+		d := newRetentionTest(t).withNoDefaults()
+		d.as("owner")
+		failure := "connection reset"
+		tasks := &fakeBackfillTasks{tasks: []*domain.Task{{ID: "t1", Status: domain.TaskStatusFailed, RetryCount: 10, ErrorMessage: &failure}}}
+		d.svc.SetTaskRepository(tasks)
+		require.NoError(t, d.svc.RetryBackfill(context.Background(), "ws"))
+		assert.Equal(t, []string{domain.DataRetentionBackfillTaskType}, tasks.filter.Type)
+		require.NotNil(t, tasks.updated)
+		assert.Equal(t, domain.TaskStatusPending, tasks.updated.Status)
+		assert.Zero(t, tasks.updated.RetryCount)
+		assert.Nil(t, tasks.updated.ErrorMessage)
+		assert.Equal(t, d.now, *tasks.updated.NextRunAfter)
+	})
+
+	t.Run("nothing failed: a validation error", func(t *testing.T) {
+		d := newRetentionTest(t).withNoDefaults()
+		d.as("owner")
+		d.svc.SetTaskRepository(&fakeBackfillTasks{})
+		var validation domain.ValidationError
+		assert.ErrorAs(t, d.svc.RetryBackfill(context.Background(), "ws"), &validation)
+	})
+
+	t.Run("owners only", func(t *testing.T) {
+		d := newRetentionTest(t).withNoDefaults()
+		d.as("member")
+		d.svc.SetTaskRepository(&fakeBackfillTasks{})
+		var unauthorized *domain.ErrUnauthorized
+		assert.ErrorAs(t, d.svc.RetryBackfill(context.Background(), "ws"), &unauthorized)
+	})
 }

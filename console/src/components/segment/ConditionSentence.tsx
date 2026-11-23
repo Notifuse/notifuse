@@ -273,6 +273,16 @@ function ActivitySentence({ condition, props }: { condition: ContactTimelineCond
   )
 }
 
+function RetentionSentence({ days }: { days: number }) {
+  const { t } = useLingui()
+  return (
+    <SentenceLine>
+      <Word>{t`will be deleted as inactive within`}</Word>
+      <Token tone="value">{plural(days, { one: '# day', other: '# days' })}</Token>
+    </SentenceLine>
+  )
+}
+
 function GoalSentence({ condition }: { condition: CustomEventsGoalCondition }) {
   const { t, i18n } = useLingui()
   const sign = GOAL_COMPARISON_SIGNS[condition.operator]
@@ -332,6 +342,8 @@ export function ConditionSentence(props: ConditionSentenceProps) {
       return leaf.contact_timeline ? <ActivitySentence condition={leaf.contact_timeline} props={props} /> : null
     case 'custom_events_goals':
       return leaf.custom_events_goal ? <GoalSentence condition={leaf.custom_events_goal} /> : null
+    case 'retention':
+      return leaf.retention ? <RetentionSentence days={leaf.retention.days} /> : null
     default:
       return null
   }

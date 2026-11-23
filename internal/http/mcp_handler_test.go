@@ -2,9 +2,9 @@ package http
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -41,27 +41,38 @@ func apiKeyToken(t *testing.T, userID string) string {
 }
 
 // mcpHandlerFixture is the /mcp handler in front of a probe that records the
-// context the MCP server would receive.
+// context the MCP server would receive. API keys go through the real
+// AuthService, over a mock of its account lookup; OAuth access tokens through
+// a mock of the OAuth service.
 type mcpHandlerFixture struct {
 	handler   *MCPHandler
-	auth      *mocks.MockAuthService
+	accounts  *mocks.MockAuthRepository
+	oauth     *mocks.MockOAuthService
 	limiter   *ratelimiter.RateLimiter
 	reached   int
 	reachedCx context.Context
 }
 
+func newMCPKeyAuth(accounts domain.AuthRepository) *service.AuthService {
+	return service.NewAuthService(service.AuthServiceConfig{
+		Repository: accounts,
+		GetSecret:  func() ([]byte, error) { return mcpTestSecret, nil },
+	})
+}
+
 func newMCPHandlerFixture(t *testing.T, edit func(*MCPHandlerConfig)) *mcpHandlerFixture {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-	f := &mcpHandlerFixture{auth: mocks.NewMockAuthService(ctrl), limiter: ratelimiter.NewRateLimiter()}
+	f := &mcpHandlerFixture{accounts: mocks.NewMockAuthRepository(ctrl), oauth: mocks.NewMockOAuthService(ctrl), limiter: ratelimiter.NewRateLimiter()}
 	t.Cleanup(f.limiter.Stop)
 	f.limiter.SetPolicy(MCPAuthFailRateLimitNamespace, 60, time.Minute)
+	f.oauth.EXPECT().Unavailable().Return("").AnyTimes()
 	cfg := MCPHandlerConfig{
-		Enabled:      true,
-		APIEndpoint:  func() string { return "https://notifuse.example.com" },
-		GetJWTSecret: func() ([]byte, error) { return mcpTestSecret, nil },
-		Auth:         f.auth,
-		RateLimiter:  f.limiter,
+		Enabled:     true,
+		APIEndpoint: func() string { return "https://notifuse.example.com" },
+		Auth:        newMCPKeyAuth(f.accounts),
+		OAuth:       f.oauth,
+		RateLimiter: f.limiter,
 		Server: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			f.reached++
 			f.reachedCx = r.Context()
@@ -76,7 +87,7 @@ func newMCPHandlerFixture(t *testing.T, edit func(*MCPHandlerConfig)) *mcpHandle
 }
 
 func (f *mcpHandlerFixture) expectKey(userID string) {
-	f.auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).Return(&domain.User{ID: userID, Type: domain.UserTypeAPIKey}, nil).AnyTimes()
+	f.accounts.EXPECT().GetUserByID(gomock.Any(), userID).Return(&domain.User{ID: userID, Type: domain.UserTypeAPIKey}, nil).AnyTimes()
 }
 
 type mcpRequest struct {
@@ -177,9 +188,12 @@ func TestMCPHandler_HostCheck(t *testing.T) {
 	})
 
 	t.Run("a default port in API_ENDPOINT is not one", func(t *testing.T) {
-		endpoint, err := canonicalAPIEndpoint("https://notifuse.example.com:443/")
+		endpoint, err := domain.CanonicalAPIEndpoint("https://notifuse.example.com:443/")
 		require.NoError(t, err)
-		assert.Equal(t, canonicalEndpoint{url: "https://notifuse.example.com", origin: "https://notifuse.example.com", host: "notifuse.example.com"}, endpoint)
+		assert.Equal(t, "https://notifuse.example.com", endpoint.URL)
+		assert.Equal(t, "https://notifuse.example.com", endpoint.Origin)
+		assert.Equal(t, "notifuse.example.com", endpoint.Host)
+		assert.False(t, endpoint.HasPort)
 	})
 }
 
@@ -231,7 +245,7 @@ func TestMCPHandler_RefusesEveryCredentialButALiveAPIKey(t *testing.T) {
 	expiry := jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))}
 	cases := map[string]struct {
 		authorization string
-		account       func(*mocks.MockAuthService)
+		account       func(*mocks.MockAuthRepository)
 	}{
 		"no header":           {authorization: ""},
 		"basic scheme":        {authorization: "Basic a2V5Og=="},
@@ -243,26 +257,32 @@ func TestMCPHandler_RefusesEveryCredentialButALiveAPIKey(t *testing.T) {
 		"api key, no user ID": {authorization: "Bearer " + signMCPTestToken(t, service.UserClaims{Type: "api_key", RegisteredClaims: expiry}, mcpTestSecret)},
 		"revoked key": {
 			authorization: "Bearer " + apiKeyToken(t, "key-1"),
-			account: func(auth *mocks.MockAuthService) {
-				auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).Return(nil, fmt.Errorf("%w: user not found", domain.ErrAPIKeyRevoked))
+			account: func(accounts *mocks.MockAuthRepository) {
+				accounts.EXPECT().GetUserByID(gomock.Any(), "key-1").Return(nil, sql.ErrNoRows)
 			},
 		},
 		"key naming a person's account": {
 			authorization: "Bearer " + apiKeyToken(t, "u1"),
-			account: func(auth *mocks.MockAuthService) {
-				auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).Return(&domain.User{ID: "u1", Type: domain.UserTypeUser}, nil)
+			account: func(accounts *mocks.MockAuthRepository) {
+				accounts.EXPECT().GetUserByID(gomock.Any(), "u1").Return(&domain.User{ID: "u1", Type: domain.UserTypeUser}, nil)
 			},
 		},
+		// An OAuth refresh token is for the token endpoint: refused without a lookup.
+		"OAuth refresh token": {authorization: "Bearer nfmcp_rt_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			f := newMCPHandlerFixture(t, nil)
+			f := newMCPHandlerFixture(t, func(cfg *MCPHandlerConfig) { cfg.OAuth = nil })
 			if tc.account != nil {
-				tc.account(f.auth)
+				tc.account(f.accounts)
 			}
 			w := f.serve(mcpRequest{authorization: tc.authorization})
 			assert.Equal(t, http.StatusUnauthorized, w.Code)
-			assert.Equal(t, "Bearer", w.Header().Get("WWW-Authenticate"))
+			challenge := `Bearer error="invalid_token"`
+			if tc.authorization == "" {
+				challenge = "Bearer"
+			}
+			assert.Equal(t, challenge, w.Header().Get("WWW-Authenticate"))
 			assert.Equal(t, 0, f.reached, "the MCP server never sees the request")
 		})
 	}
@@ -272,18 +292,11 @@ func TestMCPHandler_RefusesEveryCredentialButALiveAPIKey(t *testing.T) {
 // the MCPCaller in its context, never a session ID or the system-call marker.
 func TestMCPHandler_ALiveKeyReachesTheServer(t *testing.T) {
 	f := newMCPHandlerFixture(t, nil)
-	var lookedUp context.Context
-	f.auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).DoAndReturn(func(ctx context.Context) (*domain.User, error) {
-		lookedUp = ctx
-		return &domain.User{ID: "key-1", Type: domain.UserTypeAPIKey}, nil
-	})
+	f.accounts.EXPECT().GetUserByID(gomock.Any(), "key-1").Return(&domain.User{ID: "key-1", Type: domain.UserTypeAPIKey}, nil)
 
 	w := f.serve(mcpRequest{authorization: "bearer " + apiKeyToken(t, "key-1"), remoteAddr: "198.51.100.4:5555"})
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Equal(t, 1, f.reached)
-
-	assert.Equal(t, "key-1", lookedUp.Value(domain.UserIDKey))
-	assert.Equal(t, "api_key", lookedUp.Value(domain.UserTypeKey))
 
 	ctx := f.reachedCx
 	assert.Equal(t, "key-1", ctx.Value(domain.UserIDKey))
@@ -301,13 +314,13 @@ func TestMCPHandler_FailedCredentialBucket(t *testing.T) {
 	f := newMCPHandlerFixture(t, nil)
 	lookups := 0
 	dbDown := false
-	f.auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).DoAndReturn(func(ctx context.Context) (*domain.User, error) {
+	f.accounts.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, userID string) (*domain.User, error) {
 		lookups++
 		if dbDown {
 			return nil, errors.New("connection refused")
 		}
-		if ctx.Value(domain.UserIDKey) == "revoked" {
-			return nil, domain.ErrAPIKeyRevoked
+		if userID == "revoked" {
+			return nil, sql.ErrNoRows
 		}
 		return &domain.User{ID: "key-1", Type: domain.UserTypeAPIKey}, nil
 	}).AnyTimes()
@@ -351,8 +364,8 @@ func TestMCPHandler_FailedCredentialBucket(t *testing.T) {
 // connects over 127.0.0.1 with the public Host, and that request is served.
 func TestMCPHandler_ServesALoopbackConnectionWithTheCanonicalHost(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	auth := mocks.NewMockAuthService(ctrl)
-	auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).Return(&domain.User{ID: "key-1", Type: domain.UserTypeAPIKey}, nil)
+	accounts := mocks.NewMockAuthRepository(ctrl)
+	accounts.EXPECT().GetUserByID(gomock.Any(), "key-1").Return(&domain.User{ID: "key-1", Type: domain.UserTypeAPIKey}, nil)
 	limiter := ratelimiter.NewRateLimiter()
 	defer limiter.Stop()
 	limiter.SetPolicy(MCPAuthFailRateLimitNamespace, 60, time.Minute)
@@ -364,12 +377,11 @@ func TestMCPHandler_ServesALoopbackConnectionWithTheCanonicalHost(t *testing.T) 
 		RateLimiter: limiter,
 	})
 	handler := NewMCPHandler(MCPHandlerConfig{
-		Enabled:      true,
-		APIEndpoint:  func() string { return "https://notifuse.example.com" },
-		GetJWTSecret: func() ([]byte, error) { return mcpTestSecret, nil },
-		Auth:         auth,
-		RateLimiter:  limiter,
-		Server:       server.Handler(),
+		Enabled:     true,
+		APIEndpoint: func() string { return "https://notifuse.example.com" },
+		Auth:        newMCPKeyAuth(accounts),
+		RateLimiter: limiter,
+		Server:      server.Handler(),
 	})
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
@@ -388,4 +400,91 @@ func TestMCPHandler_ServesALoopbackConnectionWithTheCanonicalHost(t *testing.T) 
 	body, _ := io.ReadAll(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.StatusCode, string(body))
 	assert.Contains(t, string(body), `"supportedVersions"`)
+}
+
+const mcpTestPRM = `resource_metadata="https://notifuse.example.com/.well-known/oauth-protected-resource/mcp", scope="mcp"`
+
+// An OAuth access token reaches the server as its grant's key: the key's
+// claims, and an MCPCaller naming the grant and its client.
+func TestMCPHandler_AnOAuthAccessTokenReachesTheServerAsItsKey(t *testing.T) {
+	f := newMCPHandlerFixture(t, nil)
+	const token = "nfmcp_at_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
+	f.oauth.EXPECT().ResolveAccessToken(gomock.Any(), token).Return(&domain.OAuthAccess{
+		Grant: &domain.OAuthGrant{ID: "grant-1", APIKeyUserID: "key-1", ClientName: "Claude"},
+		Key:   &domain.User{ID: "key-1", Type: domain.UserTypeAPIKey},
+	}, nil)
+
+	w := f.serve(mcpRequest{authorization: "Bearer " + token, remoteAddr: "198.51.100.4:5555"})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	require.Equal(t, 1, f.reached)
+
+	ctx := f.reachedCx
+	assert.Equal(t, "key-1", ctx.Value(domain.UserIDKey))
+	assert.Equal(t, "api_key", ctx.Value(domain.UserTypeKey))
+	assert.Nil(t, ctx.Value(domain.SessionIDKey))
+	assert.Nil(t, ctx.Value(domain.SystemCallKey))
+	assert.Equal(t, &domain.MCPCaller{Kind: domain.MCPCredentialOAuth, APIKeyUserID: "key-1", GrantID: "grant-1", ClientName: "Claude"}, domain.MCPCallerFromContext(ctx))
+}
+
+// Every refusal names the protected resource metadata while OAuth is
+// available, so that a client without a credential discovers the
+// authorization server; a credential that was sent adds invalid_token.
+func TestMCPHandler_RefusalsNameTheProtectedResourceMetadata(t *testing.T) {
+	const token = "nfmcp_at_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
+
+	t.Run("no credential", func(t *testing.T) {
+		f := newMCPHandlerFixture(t, nil)
+		w := f.serve(mcpRequest{})
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, "Bearer "+mcpTestPRM, w.Header().Get("WWW-Authenticate"))
+	})
+
+	t.Run("an access token that does not resolve", func(t *testing.T) {
+		f := newMCPHandlerFixture(t, nil)
+		f.oauth.EXPECT().ResolveAccessToken(gomock.Any(), token).Return(nil, domain.ErrOAuthInvalidToken)
+		w := f.serve(mcpRequest{authorization: "Bearer " + token})
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, "Bearer "+mcpTestPRM+`, error="invalid_token"`, w.Header().Get("WWW-Authenticate"))
+		assert.Equal(t, 0, f.reached)
+	})
+
+	t.Run("a refresh token is refused without a lookup", func(t *testing.T) {
+		f := newMCPHandlerFixture(t, nil)
+		w := f.serve(mcpRequest{authorization: "Bearer nfmcp_rt_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"})
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, "Bearer "+mcpTestPRM+`, error="invalid_token"`, w.Header().Get("WWW-Authenticate"))
+	})
+
+	t.Run("a revoked API key", func(t *testing.T) {
+		f := newMCPHandlerFixture(t, nil)
+		f.accounts.EXPECT().GetUserByID(gomock.Any(), "key-1").Return(nil, sql.ErrNoRows)
+		w := f.serve(mcpRequest{authorization: "Bearer " + apiKeyToken(t, "key-1")})
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, "Bearer "+mcpTestPRM+`, error="invalid_token"`, w.Header().Get("WWW-Authenticate"))
+	})
+
+	t.Run("plain Bearer while OAuth is unavailable", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		unavailable := mocks.NewMockOAuthService(ctrl)
+		unavailable.EXPECT().Unavailable().Return("API_ENDPOINT is not https").AnyTimes()
+		unavailable.EXPECT().ResolveAccessToken(gomock.Any(), token).Return(nil, domain.ErrOAuthInvalidToken)
+		f := newMCPHandlerFixture(t, func(cfg *MCPHandlerConfig) { cfg.OAuth = unavailable })
+		w := f.serve(mcpRequest{})
+		assert.Equal(t, "Bearer", w.Header().Get("WWW-Authenticate"))
+		w = f.serve(mcpRequest{authorization: "Bearer " + token})
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, `Bearer error="invalid_token"`, w.Header().Get("WWW-Authenticate"))
+	})
+}
+
+// A token the server could not check is a 500, never a 401 that would make a
+// client drop it.
+func TestMCPHandler_AnAccessTokenThatCannotBeCheckedIsA500(t *testing.T) {
+	f := newMCPHandlerFixture(t, nil)
+	const token = "nfmcp_at_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
+	f.oauth.EXPECT().ResolveAccessToken(gomock.Any(), token).Return(nil, errors.New("connection refused"))
+	w := f.serve(mcpRequest{authorization: "Bearer " + token})
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Empty(t, w.Header().Get("WWW-Authenticate"))
+	assert.Equal(t, 0, f.reached)
 }

@@ -25,6 +25,18 @@ func NewUserRepository(db *sql.DB) domain.UserRepository {
 }
 
 func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) error {
+	return insertUserRow(ctx, r.systemDB, user)
+}
+
+// sqlExecer is a *sql.DB or a *sql.Tx, for the writes that run alone or
+// inside another repository's transaction.
+type sqlExecer interface {
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
+// insertUserRow writes a users row. Shared by CreateUser and by the OAuth
+// repository, which creates an API key in the transaction of its grant.
+func insertUserRow(ctx context.Context, exec sqlExecer, user *domain.User) error {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -44,7 +56,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) erro
 		INSERT INTO users (id, email, name, type, language, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
-	_, err := r.systemDB.ExecContext(ctx, query,
+	_, err := exec.ExecContext(ctx, query,
 		user.ID,
 		user.Email,
 		user.Name,

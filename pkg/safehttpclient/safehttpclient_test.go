@@ -1,6 +1,7 @@
 package safehttpclient
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -171,4 +172,18 @@ func TestNew_CheckRedirectLimitsHops(t *testing.T) {
 	err := client.CheckRedirect(req, via)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "too many redirects")
+}
+
+// DialContext is the guard other clients build on: a loopback or private
+// address is refused before any connection is made.
+func TestDialContext_RefusesPrivateAddresses(t *testing.T) {
+	for _, addr := range []string{"127.0.0.1:80", "localhost:443", "10.0.0.1:80", "[::1]:80", "169.254.169.254:80"} {
+		conn, err := DialContext(context.Background(), "tcp", addr)
+		if conn != nil {
+			_ = conn.Close()
+		}
+		assert.ErrorIs(t, err, ErrPrivateIP, addr)
+	}
+	_, err := DialContext(context.Background(), "tcp", "no-port")
+	assert.ErrorContains(t, err, "invalid address")
 }

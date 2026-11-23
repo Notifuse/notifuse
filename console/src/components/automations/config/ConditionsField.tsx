@@ -5,6 +5,7 @@ import { useLingui } from '@lingui/react/macro'
 import { Plural } from '@lingui/react/macro'
 import { TreeNodeInput } from '../../segment/input'
 import { TableSchemas } from '../../segment/table_schemas'
+import type { TableSchema } from '../../../services/api/segment'
 import { asEditableRoot, HasLeaf, pruneIncompleteConditions } from '../../segment/tree_completeness'
 import { useAutomation } from '../context'
 import type { TreeNode } from '../../../services/api/segment'
@@ -38,6 +39,8 @@ interface ConditionsFieldProps {
   onClear: () => void
   /** Guidance shown above the editor, inside the drawer. */
   notice?: React.ReactNode
+  /** The condition types offered; every type by default. */
+  schemas?: { [key: string]: TableSchema }
 }
 
 /**
@@ -61,7 +64,8 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
   value,
   onChange,
   onClear,
-  notice
+  notice,
+  schemas
 }) => {
   const { t } = useLingui()
   const { lists, workspace, canReadTemplates, readOnly } = useAutomation()
@@ -145,7 +149,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
         <TreeNodeInput
           value={asEditableRoot(value) ?? EMPTY_TREE}
           onChange={onChange}
-          schemas={TableSchemas}
+          schemas={schemas ?? TableSchemas}
           lists={lists}
           workspaceId={workspace.id}
           canReadTemplates={canReadTemplates}

@@ -568,6 +568,25 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 		// Check method not allowed
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
+
+	// No console page may be framed by another site; the OAuth authorization
+	// page alone also keeps its URL, which names a request, out of the Referer.
+	t.Run("FramingAndReferrerHeaders", func(t *testing.T) {
+		for path, referrerPolicy := range map[string]string{
+			"/console":                  "",
+			"/console/style.css":        "",
+			"/console/workspace/w1":     "",
+			"/console/oauth/authorize":  "no-referrer",
+			"/console/oauth/authorize/": "no-referrer",
+		} {
+			rr := httptest.NewRecorder()
+			handler.Handle(rr, httptest.NewRequest(http.MethodGet, path+"?request=abc", nil))
+			assert.Equal(t, http.StatusOK, rr.Code, path)
+			assert.Equal(t, "frame-ancestors 'none'", rr.Header().Get("Content-Security-Policy"), path)
+			assert.Equal(t, "DENY", rr.Header().Get("X-Frame-Options"), path)
+			assert.Equal(t, referrerPolicy, rr.Header().Get("Referrer-Policy"), path)
+		}
+	})
 }
 
 func TestRootHandler_Handle_Comprehensive(t *testing.T) {

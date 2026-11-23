@@ -2,8 +2,8 @@ package domain
 
 import "sort"
 
-// The audit catalogue. Every /api/ route is named in exactly one of the three
-// maps below — audited, logged-read or excluded — and a test in internal/http
+// The audit catalogue. Every /api/ route is named in exactly one of the four
+// maps below — audited, logged-read, excluded or self-recorded — and a test in internal/http
 // walks the registered routes to enforce it, so a route added later has to be
 // classified before the build is green. The action name recorded for an
 // audited route is the route itself (workspaces.inviteMember); the console and
@@ -87,6 +87,8 @@ const (
 	AuditTargetLicence      = "licence"
 	AuditTargetSettings     = "settings"
 	AuditTargetAuditLog     = "audit_log"
+	// An OAuth connection of an API key (internal/domain/oauth.go).
+	AuditTargetOAuthGrant = "oauth_grant"
 )
 
 // AuditActionSpec describes an audited POST route. TargetKey names the key of
@@ -118,7 +120,7 @@ var AuditedActions = map[string]AuditActionSpec{
 	"user.twoFactor.regenerateRecoveryCodes": {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
 	"user.twoFactor.verify":                  {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
 	"users.resetTwoFactor":                   {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
-	"setup.initialize":   {Category: AuditCategorySystem, TargetType: AuditTargetSettings},
+	"setup.initialize":                       {Category: AuditCategorySystem, TargetType: AuditTargetSettings},
 
 	// licence and system settings — deployment-level, root only
 	"licence.set":     {Category: AuditCategoryLicence, TargetType: AuditTargetLicence},
@@ -136,6 +138,7 @@ var AuditedActions = map[string]AuditActionSpec{
 	"workspaces.setAuditLogSettings":     {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"dataRetention.set":                  {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"dataRetention.cancelPending":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"dataRetention.retryBackfill":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.createDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.regenerateDKIMKey":       {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.verifyDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
@@ -297,6 +300,12 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"demo.reset":                   {},
 	"demo.seed":                    {},
 	"detect-favicon":               {},
+	// The OAuth authorization page: a read, and a denial that creates nothing.
+	// The calls that create or end a connection record themselves
+	// (AuditSelfRecordedRoutes).
+	"oauth.getAuthorizationRequest": {},
+	"oauth.listWorkspaceGrants":     {},
+	"oauth.deny":                    {},
 	// task plumbing and the cron endpoint
 	"cron":          {},
 	"cron.status":   {},
@@ -401,6 +410,27 @@ var MCPAuditedActions = map[string]AuditActionSpec{
 	"transactional.testTemplate": {Category: AuditCategoryTransactional, TargetType: AuditTargetTemplate},
 }
 
+// AuditSelfRecordedRoutes are the routes whose service writes its rows itself,
+// so that the middleware never does: the OAuth authorization server records
+// in the workspace of the grant's key, which no request body names, and a
+// call can write two rows (a key created with its connection) or a row under
+// another action (a refresh token reused revokes the grant). oauth.revoke is
+// POST /oauth/revoke, outside /api/; the others are /api/ routes.
+var AuditSelfRecordedRoutes = map[string]AuditActionSpec{
+	AuditActionOAuthApproveWithKey:      {Category: AuditCategoryAPIKeys, TargetType: AuditTargetOAuthGrant},
+	AuditActionOAuthCreateKeyAndApprove: {Category: AuditCategoryAPIKeys, TargetType: AuditTargetOAuthGrant},
+	AuditActionOAuthRevokeGrant:         {Category: AuditCategoryAPIKeys, TargetType: AuditTargetOAuthGrant},
+	AuditActionOAuthRevoke:              {Category: AuditCategoryAPIKeys, TargetType: AuditTargetOAuthGrant},
+}
+
+// Action names of the OAuth authorization server.
+const (
+	AuditActionOAuthApproveWithKey      = "oauth.approveWithKey"
+	AuditActionOAuthCreateKeyAndApprove = "oauth.createKeyAndApprove"
+	AuditActionOAuthRevokeGrant         = "oauth.revokeGrant"
+	AuditActionOAuthRevoke              = "oauth.revoke"
+)
+
 // AuditSystemActions are written by the server itself, outside any request.
 var AuditSystemActions = map[string]AuditActionSpec{
 	"audit.purged":             {Category: AuditCategoryAudit, TargetType: AuditTargetAuditLog},
@@ -420,13 +450,17 @@ const (
 
 // AuditActionCatalogue lists every action the log can contain, sorted by
 // name: audited routes, logged reads under their recorded name, the routes
-// only an MCP tool records, and the system actions.
+// only an MCP tool records, the routes whose service records itself, and the
+// system actions.
 func AuditActionCatalogue() []AuditActionDescriptor {
-	out := make([]AuditActionDescriptor, 0, len(AuditedActions)+len(AuditLoggedReads)+len(MCPAuditedActions)+len(AuditSystemActions))
+	out := make([]AuditActionDescriptor, 0, len(AuditedActions)+len(AuditLoggedReads)+len(MCPAuditedActions)+len(AuditSelfRecordedRoutes)+len(AuditSystemActions))
 	for action, spec := range AuditedActions {
 		out = append(out, AuditActionDescriptor{Action: action, Category: spec.Category, TargetType: spec.TargetType})
 	}
 	for action, spec := range MCPAuditedActions {
+		out = append(out, AuditActionDescriptor{Action: action, Category: spec.Category, TargetType: spec.TargetType})
+	}
+	for action, spec := range AuditSelfRecordedRoutes {
 		out = append(out, AuditActionDescriptor{Action: action, Category: spec.Category, TargetType: spec.TargetType})
 	}
 	for _, read := range AuditLoggedReads {

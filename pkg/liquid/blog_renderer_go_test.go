@@ -595,8 +595,14 @@ func TestBlogRendererGo_RenderTakesAQuotedName(t *testing.T) {
 // A theme is written by users: its render is bounded by liquidgo's resource limits,
 // partials included, and a reached limit is an error, never a page holding
 // "Liquid error: Memory limits exceeded". Each error is the limit's, not the
-// timeout's: the limit stops the render first.
+// timeout's: the limit stops the render first. The timeout is raised for this test
+// because under -race and coverage a slow CI runner can take more than five seconds to
+// reach a limit; without the limits, the loop cases still complete or time out, and fail.
 func TestBlogTemplateRenderer_ResourceLimits(t *testing.T) {
+	previous := blogRenderTimeout
+	blogRenderTimeout = time.Minute
+	t.Cleanup(func() { blogRenderTimeout = previous })
+
 	cases := []struct {
 		name     string
 		template string

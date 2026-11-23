@@ -93,16 +93,22 @@ func NewValidationError(message string) error {
 // publishing a post that is already published. The request was well formed and the object
 // exists; what has to change is the object's state, which Status reports as it was read.
 // It answers 409, so a client can tell it from a server fault and from bad input.
+// Reason, when set, says what refused the action beyond the status, or what to do first.
 type InvalidStateError struct {
 	Entity string `json:"entity"`
 	ID     string `json:"id"`
 	Action string `json:"action"`
 	Status string `json:"status"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // Error implements the error interface
 func (e *InvalidStateError) Error() string {
-	return fmt.Sprintf("cannot %s %s %s: its status is %s", e.Action, e.Entity, e.ID, e.Status)
+	message := fmt.Sprintf("cannot %s %s %s: its status is %s", e.Action, e.Entity, e.ID, e.Status)
+	if e.Reason != "" {
+		message += ". " + e.Reason
+	}
+	return message
 }
 
 // NewInvalidStateError creates an invalid state error

@@ -23,6 +23,7 @@ type dataRetentionService interface {
 	CancelPending(ctx context.Context, workspaceID string) (*domain.DataRetentionSettings, error)
 	ListRuns(ctx context.Context, workspaceID string, limit int) ([]*domain.RetentionRun, error)
 	ExportRuns(ctx context.Context, workspaceID string, w io.Writer) error
+	RetryBackfill(ctx context.Context, workspaceID string) error
 }
 
 // DataRetentionHandler serves the dataRetention.* routes.
@@ -46,6 +47,7 @@ func (h *DataRetentionHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/dataRetention.preview", requireAuth(http.HandlerFunc(h.handlePreview)))
 	mux.Handle("/api/dataRetention.set", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSet))))
 	mux.Handle("/api/dataRetention.cancelPending", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleCancelPending))))
+	mux.Handle("/api/dataRetention.retryBackfill", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleRetryBackfill))))
 	mux.Handle("/api/dataRetention.runs", requireAuth(http.HandlerFunc(h.handleRuns)))
 	mux.Handle("/api/dataRetention.exportRuns", requireAuth(http.HandlerFunc(h.handleExportRuns)))
 }
@@ -170,6 +172,31 @@ func (h *DataRetentionHandler) handleCancelPending(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, map[string]interface{}{"data_retention": settings})
 }
 
+// POST /api/dataRetention.retryBackfill {workspace_id} — runs a failed engagement backfill
+// again (owners).
+func (h *DataRetentionHandler) handleRetryBackfill(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		WorkspaceID string `json:"workspace_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.WorkspaceID == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+	if err := h.service.RetryBackfill(r.Context(), req.WorkspaceID); err != nil {
+		h.writeError(w, err, "Failed to run the engagement backfill again")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+}
+
 // GET /api/dataRetention.runs?workspace_id=…&limit=…
 func (h *DataRetentionHandler) handleRuns(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := h.workspaceIDFromQuery(w, r)
@@ -185,12 +212,25 @@ func (h *DataRetentionHandler) handleRuns(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, map[string]interface{}{"runs": runs})
 }
 
-// GET /api/dataRetention.exportRuns?workspace_id=… — CSV, counts only.
+// POST /api/dataRetention.exportRuns {workspace_id} — CSV, counts only. A POST, like
+// auditLogs.export, so the console's download helper can fetch it.
 func (h *DataRetentionHandler) handleExportRuns(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := h.workspaceIDFromQuery(w, r)
-	if !ok {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	var req struct {
+		WorkspaceID string `json:"workspace_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.WorkspaceID == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+	workspaceID := req.WorkspaceID
 	// Rendered first, so an error still answers JSON rather than a broken file.
 	var buf bytes.Buffer
 	if err := h.service.ExportRuns(r.Context(), workspaceID, &buf); err != nil {

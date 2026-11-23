@@ -77,6 +77,7 @@ type AppInterface interface {
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
 	GetDataRetentionService() *service.DataRetentionService
+	GetOAuthService() *service.OAuthService
 	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
 	GetCustomEventRepository() domain.CustomEventRepository
 
@@ -151,6 +152,7 @@ type App struct {
 	webAnalyticsRepo              domain.WebAnalyticsRepository
 	annotationRepo                domain.AnnotationRepository
 	auditLogRepo                  domain.AuditLogRepository
+	oauthRepo                     domain.OAuthRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -200,6 +202,8 @@ type App struct {
 	licenseService                   *service.LicenseService
 	auditLogService                  *service.AuditLogService
 	auditLogPurgeWorker              *service.AuditLogPurgeWorker
+	oauthService                     *service.OAuthService
+	oauthWorker                      *service.OAuthWorker
 	dataRetentionWorker              *service.DataRetentionWorker
 	dataRetentionService             *service.DataRetentionService
 	dkimKeyStore                     *service.DKIMKeyStore
@@ -693,6 +697,7 @@ func (a *App) InitRepositories() error {
 	a.invitationTxRepo = repository.NewInvitationTxRepository()
 	a.settingRepo = repository.NewSQLSettingRepository(a.db)
 	a.auditLogRepo = repository.NewAuditLogRepository(a.db)
+	a.oauthRepo = repository.NewOAuthRepository(a.db)
 	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey, connManager)
 	a.contactRepo = repository.NewContactRepository(a.workspaceRepo)
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
@@ -868,6 +873,13 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy(mcpserver.RateLimitNamespace, 120, 1*time.Minute)
 	a.rateLimiter.SetPolicy(mcpserver.SendRateLimitNamespace, 30, 1*time.Minute)
 	a.rateLimiter.SetPolicy(httpHandler.MCPAuthFailRateLimitNamespace, 60, 1*time.Minute)
+	// The OAuth authorization server of /mcp, per IP but the last. Hosted clients
+	// share their egress addresses, so the per-IP limits are generous; the token
+	// endpoint is also limited per presented code or refresh token.
+	a.rateLimiter.SetPolicy(httpHandler.OAuthAuthorizeRateLimitNamespace, 30, 1*time.Minute)
+	a.rateLimiter.SetPolicy(httpHandler.OAuthApproveRateLimitNamespace, 20, 1*time.Minute)
+	a.rateLimiter.SetPolicy(httpHandler.OAuthTokenIPRateLimitNamespace, 600, 1*time.Minute)
+	a.rateLimiter.SetPolicy(httpHandler.OAuthTokenCredentialRateLimitNamespace, 10, 1*time.Minute)
 
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
@@ -1036,6 +1048,7 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 	a.dataRetentionWorker.SetRunner(a.dataRetentionService)
+	a.dataRetentionService.SetTaskRepository(a.taskRepo)
 
 	// Initialize contact list service
 	a.contactListService = service.NewContactListService(
@@ -1343,6 +1356,21 @@ func (a *App) InitServices() error {
 		},
 	)
 	a.workspaceService.SetDKIMKeyStore(a.dkimKeyStore)
+
+	// The OAuth authorization server of /mcp: an API key behind an OAuth page.
+	// It creates keys through the workspace service's rules, so it comes after it.
+	a.oauthService = service.NewOAuthService(service.OAuthServiceConfig{
+		Repo:        a.oauthRepo,
+		Auth:        a.authService,
+		Keys:        a.workspaceService,
+		Workspaces:  a.workspaceRepo,
+		Fetcher:     service.NewHTTPOAuthClientFetcher(),
+		Recorder:    a.auditLogService,
+		APIEndpoint: func() string { return a.config.APIEndpoint },
+		IsRootEmail: a.config.IsRootEmail,
+		Logger:      a.logger,
+	})
+	a.oauthWorker = service.NewOAuthWorker(a.oauthService, a.logger)
 
 	// Initialize and register segment build processor
 	segmentBuildProcessor := service.NewSegmentBuildProcessor(
@@ -2064,7 +2092,6 @@ func (a *App) InitHandlers() error {
 		Templates:        a.templateService,
 		Broadcasts:       a.broadcastService,
 		BroadcastRows:    a.broadcastRepo,
-		Queue:            a.emailQueueRepo,
 		Transactional:    a.transactionalNotificationService,
 		NotificationRows: a.transactionalNotificationRepo,
 		Messages:         a.messageHistoryService,
@@ -2083,10 +2110,22 @@ func (a *App) InitHandlers() error {
 		IsDemo:         a.config.IsDemo(),
 		APIEndpoint:    func() string { return a.config.APIEndpoint },
 		AllowedOrigins: a.config.MCP.AllowedOrigins,
-		GetJWTSecret:   getJWTSecret,
 		Auth:           a.authService,
+		OAuth:          a.oauthService,
 		RateLimiter:    a.rateLimiter,
 		Server:         mcpServer.Handler(),
+	}).RegisterRoutes(a.mux)
+	// The OAuth authorization server of /mcp and its discovery documents, inside
+	// the mux for the same reason. They answer 404 when /mcp does, and while
+	// API_ENDPOINT is neither https nor loopback, or has a path.
+	httpHandler.NewOAuthHandler(httpHandler.OAuthHandlerConfig{
+		Enabled:      a.config.MCP.Enabled,
+		IsDemo:       a.config.IsDemo(),
+		APIEndpoint:  func() string { return a.config.APIEndpoint },
+		Service:      a.oauthService,
+		GetJWTSecret: getJWTSecret,
+		RateLimiter:  a.rateLimiter,
+		Logger:       a.logger,
 	}).RegisterRoutes(a.mux)
 
 	// The audit middleware wraps the whole mux. It is applied here, not in the
@@ -2187,6 +2226,12 @@ func (a *App) Start() error {
 	// consults the licence, so it runs in every licence state and in demo mode.
 	if a.auditLogPurgeWorker != nil {
 		go a.auditLogPurgeWorker.Start(a.GetShutdownContext())
+	}
+
+	// OAuth housekeeping: hourly, after its own initial delay. It revokes grants
+	// left without a credential and purges expired rows; it fetches nothing.
+	if a.oauthWorker != nil {
+		go a.oauthWorker.Start(a.GetShutdownContext())
 	}
 
 	// Data retention housekeeping: daily, after its own initial delay. It only deletes
@@ -2895,6 +2940,12 @@ func (a *App) GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer {
 // GetDataRetentionService returns the data retention service (integration tests run it).
 func (a *App) GetDataRetentionService() *service.DataRetentionService {
 	return a.dataRetentionService
+}
+
+// GetOAuthService exposes the OAuth authorization server, whose metadata
+// document fetcher the integration suite replaces.
+func (a *App) GetOAuthService() *service.OAuthService {
+	return a.oauthService
 }
 
 // SetHandler allows setting a custom HTTP handler

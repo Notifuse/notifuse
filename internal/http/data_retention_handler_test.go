@@ -41,6 +41,7 @@ func (f *fakeRetentionService) CancelPending(_ context.Context, id string) (*dom
 func (f *fakeRetentionService) ListRuns(_ context.Context, _ string, _ int) ([]*domain.RetentionRun, error) {
 	return []*domain.RetentionRun{}, f.err
 }
+func (f *fakeRetentionService) RetryBackfill(_ context.Context, _ string) error { return f.err }
 func (f *fakeRetentionService) ExportRuns(_ context.Context, _ string, w io.Writer) error {
 	if f.err != nil {
 		return f.err
@@ -64,7 +65,7 @@ func TestDataRetentionHandler(t *testing.T) {
 			handler http.HandlerFunc
 			method  string
 		}{
-			{h.handleGet, http.MethodPost}, {h.handleRuns, http.MethodPost}, {h.handleExportRuns, http.MethodPost},
+			{h.handleGet, http.MethodPost}, {h.handleRuns, http.MethodPost}, {h.handleExportRuns, http.MethodGet},
 			{h.handlePreview, http.MethodGet}, {h.handleSet, http.MethodGet}, {h.handleCancelPending, http.MethodGet},
 		} {
 			rec := httptest.NewRecorder()
@@ -122,14 +123,14 @@ func TestDataRetentionHandler(t *testing.T) {
 	t.Run("the export is a CSV file, and an error still answers JSON", func(t *testing.T) {
 		h := newRetentionHandler(t, &fakeRetentionService{})
 		rec := httptest.NewRecorder()
-		h.handleExportRuns(rec, httptest.NewRequest(http.MethodGet, "/?workspace_id=ws", nil))
+		h.handleExportRuns(rec, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"workspace_id": "ws"}`)))
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Header().Get("Content-Type"), "text/csv")
 		assert.Contains(t, rec.Header().Get("Content-Disposition"), "attachment")
 
 		h = newRetentionHandler(t, &fakeRetentionService{err: domain.NewValidationError("nope")})
 		rec = httptest.NewRecorder()
-		h.handleExportRuns(rec, httptest.NewRequest(http.MethodGet, "/?workspace_id=ws", nil))
+		h.handleExportRuns(rec, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"workspace_id": "ws"}`)))
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
 	})

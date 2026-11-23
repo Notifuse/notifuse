@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -43,7 +45,9 @@ type AuthService struct {
 	// requireTwoFactor: the instance requires every person to pass a second factor.
 	requireTwoFactor bool
 
-	// Cached secret
+	// The cached secret. Every request that checks a token reads it, and
+	// InvalidateSecretCache clears it, so both go through secretMu.
+	secretMu     sync.RWMutex
 	cachedSecret []byte
 	secretLoaded bool
 }
@@ -73,19 +77,29 @@ func NewAuthService(cfg AuthServiceConfig) *AuthService {
 	}
 }
 
-// ensureSecret loads and caches JWT secret if not already loaded
-func (s *AuthService) ensureSecret() error {
+// jwtSecret returns the JWT secret, loading and caching it on first use.
+func (s *AuthService) jwtSecret() ([]byte, error) {
+	s.secretMu.RLock()
 	if s.secretLoaded {
-		return nil
+		secret := s.cachedSecret
+		s.secretMu.RUnlock()
+		return secret, nil
+	}
+	s.secretMu.RUnlock()
+
+	s.secretMu.Lock()
+	defer s.secretMu.Unlock()
+	if s.secretLoaded {
+		return s.cachedSecret, nil
 	}
 
 	secret, err := s.getSecret()
 	if err != nil {
-		return fmt.Errorf("JWT secret not available: %w", err)
+		return nil, fmt.Errorf("JWT secret not available: %w", err)
 	}
 
 	if len(secret) == 0 {
-		return fmt.Errorf("JWT secret cannot be empty")
+		return nil, fmt.Errorf("JWT secret cannot be empty")
 	}
 
 	// Warn if secret is less than recommended length
@@ -95,12 +109,15 @@ func (s *AuthService) ensureSecret() error {
 
 	s.cachedSecret = secret
 	s.secretLoaded = true
-	return nil
+	return secret, nil
 }
 
 // InvalidateSecretCache clears the cached secret, forcing it to be reloaded on next use
 func (s *AuthService) InvalidateSecretCache() {
+	s.secretMu.Lock()
+	defer s.secretMu.Unlock()
 	s.secretLoaded = false
+	s.cachedSecret = nil
 }
 func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.User, error) {
 	user, _, err := s.authenticateContext(ctx)
@@ -151,6 +168,31 @@ func (s *AuthService) authenticateContext(ctx context.Context) (*domain.User, *d
 		return user, nil, err
 	}
 	return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+}
+
+// AuthenticateAPIKeyToken resolves a bearer string as /mcp resolves its header: a JWT of
+// type api_key, signed by this installation, whose account still exists and is an API key.
+// Anything that is not such a token (malformed, signed elsewhere, a console session, an
+// invitation) answers domain.ErrNotAnAPIKey; a key whose account was deleted answers
+// domain.ErrAPIKeyRevoked. The token is never logged.
+func (s *AuthService) AuthenticateAPIKeyToken(ctx context.Context, token string) (*domain.User, error) {
+	secret, err := s.jwtSecret()
+	if err != nil {
+		return nil, err
+	}
+	claims := &UserClaims{}
+	parsed, err := jwt.ParseWithClaims(strings.TrimSpace(token), claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return secret, nil
+	})
+	if err != nil || !parsed.Valid || claims.UserID == "" || claims.Type != string(domain.UserTypeAPIKey) {
+		return nil, domain.ErrNotAnAPIKey
+	}
+	keyCtx := context.WithValue(ctx, domain.UserIDKey, claims.UserID)
+	keyCtx = context.WithValue(keyCtx, domain.UserTypeKey, claims.Type)
+	return s.AuthenticateUserFromContext(keyCtx)
 }
 
 // AuthenticateUserForWorkspace checks if the user exists and the session is valid for a specific workspace.
@@ -400,7 +442,8 @@ func (s *AuthService) verifySession(ctx context.Context, userID, sessionID strin
 
 // GenerateUserAuthToken generates an authentication token for a user
 func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string, expiresAt time.Time) string {
-	if err := s.ensureSecret(); err != nil {
+	secret, err := s.jwtSecret()
+	if err != nil {
 		if s.logger != nil {
 			s.logger.WithField("error", err.Error()).Error("Cannot generate auth token")
 		}
@@ -420,7 +463,7 @@ func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(s.cachedSecret)
+	signed, err := token.SignedString(secret)
 	if err != nil && s.logger != nil {
 		s.logger.WithField("error", err.Error()).Error("Failed to sign token")
 		return ""
@@ -431,7 +474,8 @@ func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string,
 
 // GenerateAPIAuthToken generates an authentication token for an API key
 func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
-	if err := s.ensureSecret(); err != nil {
+	secret, err := s.jwtSecret()
+	if err != nil {
 		if s.logger != nil {
 			s.logger.WithField("error", err.Error()).Error("Cannot generate API token")
 		}
@@ -450,7 +494,7 @@ func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(s.cachedSecret)
+	signed, err := token.SignedString(secret)
 	if err != nil && s.logger != nil {
 		s.logger.WithField("error", err.Error()).Error("Failed to sign API token")
 		return ""
@@ -461,7 +505,8 @@ func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
 
 // GenerateInvitationToken generates a JWT token for a workspace invitation
 func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvitation) string {
-	if err := s.ensureSecret(); err != nil {
+	secret, err := s.jwtSecret()
+	if err != nil {
 		if s.logger != nil {
 			s.logger.WithField("error", err.Error()).Error("Cannot generate invitation token")
 		}
@@ -480,7 +525,7 @@ func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvita
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(s.cachedSecret)
+	signed, err := token.SignedString(secret)
 	if err != nil && s.logger != nil {
 		s.logger.WithField("error", err.Error()).Error("Failed to sign invitation token")
 		return ""
@@ -491,7 +536,8 @@ func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvita
 
 // ValidateInvitationToken validates a JWT invitation token and returns the invitation details
 func (s *AuthService) ValidateInvitationToken(tokenString string) (invitationID, workspaceID, email string, err error) {
-	if err := s.ensureSecret(); err != nil {
+	secret, err := s.jwtSecret()
+	if err != nil {
 		return "", "", "", fmt.Errorf("secret not available: %w", err)
 	}
 
@@ -503,7 +549,7 @@ func (s *AuthService) ValidateInvitationToken(tokenString string) (invitationID,
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return s.cachedSecret, nil
+		return secret, nil
 	}, jwt.WithExpirationRequired())
 
 	// CRITICAL: Check both error AND token.Valid

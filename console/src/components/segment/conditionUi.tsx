@@ -72,13 +72,14 @@ export function TypeBadge({ type }: { type: string }) {
   )
 }
 
-export type ConditionTone = 'contacts' | 'contact_lists' | 'contact_timeline' | 'custom_events_goals' | 'group'
+export type ConditionTone = 'contacts' | 'contact_lists' | 'contact_timeline' | 'custom_events_goals' | 'retention' | 'group'
 
 const ICON_TONE: Record<ConditionTone, string> = {
   contacts: 'bg-primary-100 text-primary-700',
   contact_lists: 'bg-success-bg text-success-fg',
   contact_timeline: 'bg-info-bg text-info-fg',
   custom_events_goals: 'bg-warning-bg text-warning-fg',
+  retention: 'bg-danger-bg text-danger-fg',
   group: 'bg-fill text-ink-2'
 }
 

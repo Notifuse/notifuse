@@ -4,14 +4,16 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/Notifuse/notifuse/internal/domain"
 )
 
-// CORSMiddleware handles CORS headers for all requests but the MCP endpoint,
-// which answers its own (ApplyMCPCORS): CORS_ALLOW_ORIGIN and credentials do
-// not apply there.
+// CORSMiddleware handles CORS headers for all requests but the MCP endpoint
+// and the OAuth authorization server, which answer their own (ApplyMCPCORS,
+// ApplyOAuthCORS): CORS_ALLOW_ORIGIN and credentials do not apply there.
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if IsMCPPath(r.URL.Path) {
+		if IsMCPPath(r.URL.Path) || IsOAuthPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -93,7 +95,7 @@ func resolveAllowOrigin(configured, requestOrigin string) (allowOrigin string, v
 }
 
 // MCPPath is the path of the MCP endpoint.
-const MCPPath = "/mcp"
+const MCPPath = domain.MCPPath
 
 // mcpAllowedHeaders are the request headers an MCP client may send from a
 // browser: the API's own plus the MCP transport's.
@@ -119,6 +121,50 @@ func ApplyMCPCORS(w http.ResponseWriter, r *http.Request) (preflight bool) {
 		w.Header().Set("Access-Control-Allow-Headers", mcpAllowedHeaders)
 		w.Header().Set("Access-Control-Expose-Headers", "WWW-Authenticate")
 	}
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+	return false
+}
+
+// The paths of the OAuth authorization server of /mcp, and of the discovery
+// documents clients read before it.
+const (
+	OAuthPathPrefix              = "/oauth/"
+	OAuthAuthorizePath           = "/oauth/authorize"
+	OAuthTokenPath               = "/oauth/token"
+	OAuthRevokePath              = "/oauth/revoke"
+	OAuthProtectedResourcePath   = "/.well-known/oauth-protected-resource"
+	OAuthAuthorizationServerPath = "/.well-known/oauth-authorization-server"
+	OpenIDConfigurationPath      = "/.well-known/openid-configuration"
+)
+
+// IsOAuthPath reports whether a path belongs to the OAuth authorization
+// server or its discovery documents, which handle CORS themselves.
+func IsOAuthPath(path string) bool {
+	if path == "/oauth" || strings.HasPrefix(path, OAuthPathPrefix) {
+		return true
+	}
+	for _, document := range []string{OAuthProtectedResourcePath, OAuthAuthorizationServerPath, OpenIDConfigurationPath} {
+		if path == document || strings.HasPrefix(path, document+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+// ApplyOAuthCORS writes the CORS headers of the token and revocation
+// endpoints and the discovery documents: any origin may call them, since a
+// browser-based client holds no cookie of this server and sends none.
+// Credentials are never allowed. It reports whether the request was a
+// preflight, which it answers. GET /oauth/authorize is a navigation and never
+// calls it.
+func ApplyOAuthCORS(w http.ResponseWriter, r *http.Request) (preflight bool) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", mcpAllowedHeaders)
+	w.Header().Set("Access-Control-Expose-Headers", "WWW-Authenticate")
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusNoContent)
 		return true

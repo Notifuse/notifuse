@@ -61,7 +61,17 @@ func newTestDataRetentionWorker(t *testing.T, lister workspaceLister, purger opt
 func TestDataRetentionWorker_Defaults(t *testing.T) {
 	w := newTestDataRetentionWorker(t, fakeWorkspaceLister{}, &fakeHashPurger{})
 	assert.Equal(t, 24*time.Hour, w.interval)
-	assert.Equal(t, 5*time.Minute, w.initialDelay)
+	assert.LessOrEqual(t, w.initialDelay, 24*time.Hour)
+}
+
+// The run starts every day at 05:00 UTC, the time the settings page states.
+func TestDataRetentionWorker_RunsAtFiveUTC(t *testing.T) {
+	at := func(h, m int) time.Time { return time.Date(2026, 11, 23, h, m, 0, 0, time.UTC) }
+	assert.Equal(t, 2*time.Hour, untilNextRun(at(3, 0)))
+	assert.Equal(t, 24*time.Hour, untilNextRun(at(5, 0)), "at 05:00 exactly, the next one is tomorrow")
+	assert.Equal(t, 23*time.Hour+30*time.Minute, untilNextRun(at(5, 30)))
+	paris := time.FixedZone("CET", 3600)
+	assert.Equal(t, time.Hour, untilNextRun(time.Date(2026, 11, 23, 5, 0, 0, 0, paris)), "05:00 in Paris is 04:00 UTC")
 }
 
 func TestDataRetentionWorker_RunOnce(t *testing.T) {
@@ -114,9 +124,40 @@ func TestDataRetentionWorker_StartStopsOnCancel(t *testing.T) {
 	}
 }
 
-type fakeRetentionRunner struct{ runs int }
+type fakeRetentionRunner struct {
+	runs    int
+	lastRun *time.Time
+}
 
 func (f *fakeRetentionRunner) RunAll(context.Context) { f.runs++ }
+func (f *fakeRetentionRunner) LastRunAt(context.Context) (time.Time, bool) {
+	if f.lastRun == nil {
+		return time.Time{}, false
+	}
+	return *f.lastRun, true
+}
+
+// A server that missed 05:00 UTC catches up 5 minutes after it starts.
+func TestDataRetentionWorker_CatchesUpAMissedRun(t *testing.T) {
+	now := time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC)
+	recent, stale := now.Add(-7*time.Hour), now.Add(-30*time.Hour)
+	for name, tc := range map[string]struct {
+		last *time.Time
+		want time.Duration
+	}{
+		"never ran":        {nil, 5 * time.Minute},
+		"ran long ago":     {&stale, 5 * time.Minute},
+		"ran this morning": {&recent, 17 * time.Hour},
+	} {
+		t.Run(name, func(t *testing.T) {
+			w := newTestDataRetentionWorker(t, fakeWorkspaceLister{}, &fakeHashPurger{})
+			w.nowFn = func() time.Time { return now }
+			w.initialDelay = untilNextRun(now)
+			w.SetRunner(&fakeRetentionRunner{lastRun: tc.last})
+			assert.Equal(t, tc.want, w.firstDelay(context.Background()))
+		})
+	}
+}
 
 // The policies run after the hashes, in every licence state: the worker holds no licence.
 func TestDataRetentionWorker_RunsThePolicies(t *testing.T) {
