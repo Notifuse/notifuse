@@ -490,6 +490,10 @@ type WorkspaceSettings struct {
 	AuditLogs       *AuditLogSettings `json:"audit_logs,omitempty"`
 	DefaultLanguage string            `json:"default_language"`
 	Languages       []string          `json:"languages"`
+	// DKIMKeys are the keys Notifuse signs the workspace's SMTP emails with, one per
+	// domain. Written only by WorkspaceRepository.UpdateDKIMKeys: Update() keeps the
+	// stored ones whatever this field holds. Never opened by AfterLoad.
+	DKIMKeys []DKIMKey `json:"dkim_keys,omitempty"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
