@@ -6,6 +6,7 @@ package pkgmocks
 
 import (
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 )
@@ -45,6 +46,20 @@ func (m *MockMailer) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3, arg4 string
 func (mr *MockMailerMockRecorder) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCircuitBreakerAlert", reflect.TypeOf((*MockMailer)(nil).SendCircuitBreakerAlert), arg0, arg1, arg2, arg3, arg4)
+}
+
+// SendDataRetentionPending mocks base method.
+func (m *MockMailer) SendDataRetentionPending(arg0, arg1, arg2 string, arg3 time.Time, arg4 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendDataRetentionPending", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendDataRetentionPending indicates an expected call of SendDataRetentionPending.
+func (mr *MockMailerMockRecorder) SendDataRetentionPending(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendDataRetentionPending", reflect.TypeOf((*MockMailer)(nil).SendDataRetentionPending), arg0, arg1, arg2, arg3, arg4)
 }
 
 // SendMagicCode mocks base method.

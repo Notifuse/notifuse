@@ -18,13 +18,20 @@ type workspaceLister interface {
 	List(ctx context.Context) ([]*domain.Workspace, error)
 }
 
-// DataRetentionWorker runs the daily data retention housekeeping. For now it deletes the
-// opt-out hashes of deleted contacts once they are three years old (domain.OptOutHashExpiry),
-// and those of lists deleted since. It holds no licence provider and must never be given
-// one: it only deletes, and licensing never blocks a deletion.
+// retentionRunner runs every workspace's retention policy once (DataRetentionService).
+type retentionRunner interface {
+	RunAll(ctx context.Context)
+}
+
+// DataRetentionWorker runs the daily data retention housekeeping: it deletes the opt-out
+// hashes of deleted contacts once they are three years old (domain.OptOutHashExpiry), and
+// those of lists deleted since, then runs every workspace's retention policy. It holds no
+// licence provider and must never be given one: it only deletes, and licensing never blocks
+// a deletion.
 type DataRetentionWorker struct {
 	workspaces   workspaceLister
 	hashes       optOutHashPurger
+	runner       retentionRunner
 	logger       logger.Logger
 	interval     time.Duration
 	initialDelay time.Duration
@@ -65,9 +72,21 @@ func (w *DataRetentionWorker) Start(ctx context.Context) {
 	}
 }
 
+// SetRunner supplies the retention policy runner.
+func (w *DataRetentionWorker) SetRunner(runner retentionRunner) {
+	w.runner = runner
+}
+
 // RunOnce purges every workspace once, going on past one that fails. Exported so tests
 // and the integration suite can run it without waiting a day.
 func (w *DataRetentionWorker) RunOnce(ctx context.Context) {
+	w.purgeOptOutHashes(ctx)
+	if w.runner != nil && ctx.Err() == nil {
+		w.runner.RunAll(ctx)
+	}
+}
+
+func (w *DataRetentionWorker) purgeOptOutHashes(ctx context.Context) {
 	workspaces, err := w.workspaces.List(ctx)
 	if err != nil {
 		w.logger.WithField("error", err.Error()).Error("Data retention: failed to list workspaces")

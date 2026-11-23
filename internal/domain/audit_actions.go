@@ -115,6 +115,8 @@ var AuditedActions = map[string]AuditActionSpec{
 	// licence and system settings — deployment-level, root only
 	"licence.set":     {Category: AuditCategoryLicence, TargetType: AuditTargetLicence},
 	"settings.update": {Category: AuditCategorySystem, TargetType: AuditTargetSettings},
+	// The deployment's data retention defaults (root).
+	"dataRetention.setDefaults": {Category: AuditCategorySystem, TargetType: AuditTargetSettings},
 
 	// workspaces
 	"workspaces.create":                  {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "id"},
@@ -124,6 +126,8 @@ var AuditedActions = map[string]AuditActionSpec{
 	"workspaces.setCustomFieldLabels":    {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setWebAnalyticsSettings": {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setAuditLogSettings":     {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"dataRetention.set":                  {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"dataRetention.cancelPending":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.createDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.regenerateDKIMKey":       {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.verifyDKIMDomain":        {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
@@ -327,6 +331,11 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"contacts.getByEmail":              {},
 	"contacts.getByExternalID":         {},
 	"customEvents.get":                 {},
+	"dataRetention.exportRuns":         {}, // counts only, never an address
+	"dataRetention.get":                {},
+	"dataRetention.getDefaults":        {},
+	"dataRetention.preview":            {}, // counts only; writes nothing
+	"dataRetention.runs":               {},
 	"customEvents.list":                {},
 	"inboundWebhookEvents.list":        {},
 	"licence.get":                      {},
@@ -389,6 +398,8 @@ var AuditSystemActions = map[string]AuditActionSpec{
 	"audit.purged":             {Category: AuditCategoryAudit, TargetType: AuditTargetAuditLog},
 	"licence.recordingStopped": {Category: AuditCategoryLicence, TargetType: AuditTargetAuditLog},
 	"licence.recordingResumed": {Category: AuditCategoryLicence, TargetType: AuditTargetAuditLog},
+	// A data retention run, with its counts per category, never an address.
+	"dataRetention.purged": {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace},
 }
 
 // Non-HTTP action names, so callers and tests share one spelling.
@@ -396,6 +407,7 @@ const (
 	AuditActionPurged           = "audit.purged"
 	AuditActionRecordingStopped = "licence.recordingStopped"
 	AuditActionRecordingResumed = "licence.recordingResumed"
+	AuditActionRetentionPurged  = "dataRetention.purged"
 )
 
 // AuditActionCatalogue lists every action the log can contain, sorted by

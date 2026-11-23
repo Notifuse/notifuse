@@ -392,6 +392,47 @@ func (r *workspaceRepository) SetMCPSettings(ctx context.Context, workspaceID st
 	return nil
 }
 
+// settingsKeepingDataRetention is the settings document Update writes, with the stored
+// data_retention kept (or kept absent).
+const settingsKeepingDataRetention = `(CASE WHEN workspaces.settings ? 'data_retention' THEN jsonb_set($2::jsonb, '{data_retention}', workspaces.settings->'data_retention') ELSE $2::jsonb - 'data_retention' END)`
+
+// SetDataRetentionSettings writes the workspace's data retention settings alone, if the
+// stored ones are still at expectedRevision, and stamps the next revision. It reports false
+// when another write came first: the caller reads again. Two saves, or a save and the
+// worker applying a due change, cannot silently overwrite each other.
+func (r *workspaceRepository) SetDataRetentionSettings(ctx context.Context, workspaceID string, expectedRevision int, settings *domain.DataRetentionSettings) (bool, error) {
+	next := *settings
+	next.Revision = expectedRevision + 1
+	doc, err := json.Marshal(&next)
+	if err != nil {
+		return false, err
+	}
+	result, err := r.systemDB.ExecContext(ctx, `
+		UPDATE workspaces
+		SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb), '{data_retention}', $2::jsonb), updated_at = $3
+		WHERE id = $1 AND COALESCE((settings->'data_retention'->>'revision')::int, 0) = $4
+	`, workspaceID, doc, time.Now().UTC(), expectedRevision)
+	if err != nil {
+		return false, err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if rows == 0 {
+		var exists bool
+		if err := r.systemDB.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM workspaces WHERE id = $1)`, workspaceID).Scan(&exists); err != nil {
+			return false, err
+		}
+		if !exists {
+			return false, &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID}
+		}
+		return false, nil
+	}
+	settings.Revision = next.Revision
+	return true, nil
+}
+
 func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {
 	workspace.UpdatedAt = time.Now().UTC()
 
@@ -404,10 +445,11 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	// Two settings have a single writer each, so a save made from a copy read earlier
+	// Three settings have a single writer each, so a save made from a copy read earlier
 	// keeps their stored values: dkim_keys (UpdateDKIMKeys), so that a settings save
 	// cannot undo a key created, verified or downgraded meanwhile; mcp (SetMCPSettings),
-	// so that it cannot switch MCP back on. The row is re-read under its lock, so the
+	// so that it cannot switch MCP back on; data_retention (SetDataRetentionSettings), so
+	// that it cannot undo a retention change or bring back a cancelled one. The row is re-read under its lock, so the
 	// values kept are the last committed ones.
 	query := `
 		UPDATE workspaces
@@ -415,9 +457,9 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 			settings = CASE
 				WHEN workspaces.settings ? 'dkim_keys'
 					THEN jsonb_set(
-						CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', workspaces.settings->'mcp') ELSE $2::jsonb - 'mcp' END,
+						CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set(` + settingsKeepingDataRetention + `, '{mcp}', workspaces.settings->'mcp') ELSE ` + settingsKeepingDataRetention + ` - 'mcp' END,
 						'{dkim_keys}', workspaces.settings->'dkim_keys', true)
-				ELSE (CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', workspaces.settings->'mcp') ELSE $2::jsonb - 'mcp' END) - 'dkim_keys'
+				ELSE (CASE WHEN workspaces.settings ? 'mcp' THEN jsonb_set(` + settingsKeepingDataRetention + `, '{mcp}', workspaces.settings->'mcp') ELSE ` + settingsKeepingDataRetention + ` - 'mcp' END) - 'dkim_keys'
 			END,
 			integrations = $3, updated_at = $4
 		WHERE id = $5

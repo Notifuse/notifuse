@@ -2,6 +2,7 @@ package mailer
 
 import (
 	"fmt"
+	"html"
 	"log"
 	"strings"
 	"time"
@@ -20,6 +21,9 @@ type Mailer interface {
 	SendMagicCode(email, code, language string) error
 	// SendCircuitBreakerAlert sends a notification when a broadcast is paused due to circuit breaker
 	SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason, language string) error
+	// SendDataRetentionPending tells a workspace owner that a data retention change that
+	// deletes more is scheduled, when it applies, and where to cancel it.
+	SendDataRetentionPending(email, workspaceID, workspaceName string, effectiveAt time.Time, language string) error
 }
 
 // Config holds the configuration for the mailer
@@ -438,5 +442,74 @@ func (m *ConsoleMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastN
 	fmt.Printf("%s\n%s\n", t.CircuitBreaker.SignOff, t.Common.TeamName)
 	fmt.Println("==============================================================")
 
+	return nil
+}
+
+// dataRetentionURL is the console page of a workspace's data retention settings.
+func (m *SMTPMailer) dataRetentionURL(workspaceID string) string {
+	endpoint := strings.TrimSuffix(m.config.APIEndpoint, "/")
+	return fmt.Sprintf("%s/console/workspace/%s/settings/data-retention", endpoint, workspaceID)
+}
+
+// dataRetentionPendingMessage builds the email that tells an owner a data retention change
+// that deletes more is scheduled. The date is the UTC day it applies.
+func (m *SMTPMailer) dataRetentionPendingMessage(email, workspaceID, workspaceName string, effectiveAt time.Time, language string) (*mail.Msg, error) {
+	t := GetTranslations(language)
+	subject := fmt.Sprintf(t.RetentionPending.Subject, workspaceName)
+	date := effectiveAt.UTC().Format("2006-01-02")
+	link := m.dataRetentionURL(workspaceID)
+	body := fmt.Sprintf(t.RetentionPending.Body, "<strong>"+html.EscapeString(workspaceName)+"</strong>", "<strong>"+date+"</strong>")
+	htmlBody := fmt.Sprintf(`
+	<html lang="%s">
+		<body>
+			<h1>%s</h1>
+			<p>%s</p>
+			<p>%s</p>
+			<p>%s</p>
+			<p><a href="%s" style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">%s</a></p>
+			<p>%s<br>%s</p>
+		</body>
+	</html>`,
+		t.Lang, t.RetentionPending.Heading, t.Common.Greeting, body, t.RetentionPending.CancelNote,
+		link, t.RetentionPending.LinkText, t.RetentionPending.SignOff, t.Common.TeamName)
+	plain := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s: %s\n\n%s\n%s",
+		t.Common.Greeting, fmt.Sprintf(t.RetentionPending.Body, workspaceName, date), t.RetentionPending.CancelNote,
+		t.RetentionPending.LinkText, link, t.RetentionPending.SignOff, t.Common.TeamName)
+	return m.newSystemMessage(email, subject, plain, htmlBody)
+}
+
+// SendDataRetentionPending implements Mailer.
+func (m *SMTPMailer) SendDataRetentionPending(email, workspaceID, workspaceName string, effectiveAt time.Time, language string) error {
+	msg, err := m.dataRetentionPendingMessage(email, workspaceID, workspaceName, effectiveAt, language)
+	if err != nil {
+		return err
+	}
+	client, err := m.createSMTPClient()
+	if err != nil {
+		return err
+	}
+	if client == nil {
+		log.Printf("Sending data retention notice to: %s (workspace %s, applies %s)", email, workspaceName, effectiveAt.UTC().Format("2006-01-02"))
+		return nil
+	}
+	if err := client.DialAndSend(msg); err != nil {
+		return fmt.Errorf("failed to send data retention notice: %w", err)
+	}
+	return nil
+}
+
+// SendDataRetentionPending prints the data retention notice to the console.
+func (m *ConsoleMailer) SendDataRetentionPending(email, workspaceID, workspaceName string, effectiveAt time.Time, language string) error {
+	t := GetTranslations(language)
+	date := effectiveAt.UTC().Format("2006-01-02")
+	fmt.Println("==============================================================")
+	fmt.Println("                DATA RETENTION CHANGE SCHEDULED               ")
+	fmt.Println("==============================================================")
+	fmt.Printf("To: %s\n", email)
+	fmt.Printf("Subject: %s\n\n", fmt.Sprintf(t.RetentionPending.Subject, workspaceName))
+	fmt.Printf("%s\n\n%s\n\n", t.RetentionPending.Heading, t.Common.Greeting)
+	fmt.Printf("%s\n\n%s\n\n", fmt.Sprintf(t.RetentionPending.Body, workspaceName, date), t.RetentionPending.CancelNote)
+	fmt.Printf("Workspace: %s\n\n%s\n%s\n", workspaceID, t.RetentionPending.SignOff, t.Common.TeamName)
+	fmt.Println("==============================================================")
 	return nil
 }

@@ -271,6 +271,30 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 			Info("Contact row already absent; continuing with dependent cleanup")
 	}
 
+	return s.eraseHistory(ctx, workspaceID, email)
+}
+
+// EraseHistoryOfDeletedContact erases what a contact deleted by the retention purge left
+// behind: their messages (redacted), provider events, and everything eraseHistory removes.
+// The purge has already deleted the contact row, their list rows (opt-outs kept as hashes),
+// segment memberships and queued mail, in one transaction. List rows are not touched here:
+// any that exist belong to the address created again since, and may be opt-outs the restore
+// trigger just put back. It is idempotent, so a run that stopped half-way finishes it. It
+// does not authenticate: the purge worker calls it, never a request.
+func (s *ContactService) EraseHistoryOfDeletedContact(ctx context.Context, workspaceID, email string) error {
+	if err := s.messageHistoryRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
+		return fmt.Errorf("failed to delete message history: %w", err)
+	}
+	if err := s.inboundWebhookEventRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
+		return fmt.Errorf("failed to delete webhook events: %w", err)
+	}
+	return s.eraseHistory(ctx, workspaceID, email)
+}
+
+// eraseHistory erases what follows the contact row in a deletion, in an order the comments
+// explain: custom events, segment memberships, timeline, segment queue, automation journeys,
+// engagement date, webhook deliveries; web analytics rows are anonymised.
+func (s *ContactService) eraseHistory(ctx context.Context, workspaceID, email string) error {
 	// Deleting these does not corrupt revenue reporting, which is worth stating
 	// because the web analytics comment below makes the opposite argument for its
 	// own table. custom_events is read only per-contact — repository lists, and the

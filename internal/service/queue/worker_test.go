@@ -1664,6 +1664,17 @@ func TestEmailQueueWorker_RetentionSweep(t *testing.T) {
 		w.cleanupTerminallyFailed()
 	})
 
+	t.Run("each workspace keeps its own period; 0 keeps all", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		w, queueRepo, workspaceRepo := newWorker(t, cfg)
+		w.SetRetentionPeriod(func(_ context.Context, ws *domain.Workspace) int {
+			return map[string]int{"long": 30, "off": 0}[ws.ID]
+		})
+		workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{{ID: "long"}, {ID: "off"}}, nil)
+		queueRepo.EXPECT().DeleteTerminallyFailedOlderThan(gomock.Any(), "long", 30).Return(int64(0), nil)
+		w.cleanupTerminallyFailed()
+	})
+
 	t.Run("does not sweep during startup", func(t *testing.T) {
 		// Left at the zero time it would DELETE across every workspace database on the
 		// first poll tick, a second after boot, when nothing can have aged out yet.
