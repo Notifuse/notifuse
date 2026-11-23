@@ -116,6 +116,14 @@ func (rl *RateLimiter) Allow(namespace, key string) bool {
 	return true
 }
 
+// Policy returns the policy configured for a namespace.
+func (rl *RateLimiter) Policy(namespace string) (RatePolicy, bool) {
+	rl.mu.RLock()
+	defer rl.mu.RUnlock()
+	policy, exists := rl.policies[namespace]
+	return policy, exists
+}
+
 // Reset clears all recorded attempts for the given namespace and key,
 // effectively resetting the rate limit for that combination.
 //

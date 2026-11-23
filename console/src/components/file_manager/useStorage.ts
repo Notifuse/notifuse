@@ -1,19 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
-  S3Client
-} from '@aws-sdk/client-s3'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
+import { filesApi } from '../../services/api/files'
 import type { FileManagerSettings, StorageObject } from './interfaces'
-import {
-  deleteFolder as deleteFolderObjects,
-  listAllObjects,
-  MAX_OBJECTS,
-  toStorageItems,
-  type DeleteFolderResult
-} from './storageObjects'
+import { fromStoredObjects, toStorageItems, type DeleteFolderResult } from './storageObjects'
 
 // Spaces become dashes and the extension is lowercased, as uploads always have been.
 export const sanitizeFilename = (filename: string): string => {
@@ -26,46 +17,47 @@ export const sanitizeFilename = (filename: string): string => {
 
 export type UploadStatus = 'uploading' | 'done' | 'failed'
 
+// The most keys one files.delete call takes (domain.MaxDeletedStorageKeys).
+export const DELETE_BATCH_SIZE = 1000
+
 export interface UseStorageOptions {
   workspaceId: string
   settings?: FileManagerSettings
-  /** Objects read at most; the file manager's cap unless a test gives a smaller one. */
-  maxObjects?: number
 }
 
+export interface FolderFileCount {
+  count: number
+  /** More files than the server lists: count is a floor. */
+  capped: boolean
+}
+
+// A fetch that never reached the bucket (network, CORS) throws a TypeError; the message
+// says where to look, since the bucket must accept PUT from the console's origin.
+const uploadError = (error: unknown): string =>
+  error instanceof TypeError
+    ? i18n._(
+        msg`The storage did not answer. Check that the bucket accepts PUT requests from this origin (CORS).`
+      )
+    : String(error)
+
 /**
- * The bucket of the workspace: its objects, read through every page of ListObjectsV2 and cached
- * for a minute, and the writes, each of which lists the bucket again.
+ * The bucket of the workspace, through the API: the server lists it (cached for a minute),
+ * creates folders and deletes, and signs a short-lived URL the browser uploads each file to.
  */
-export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: UseStorageOptions) {
+export function useStorage({ workspaceId, settings }: UseStorageOptions) {
   const queryClient = useQueryClient()
   const endpoint = settings?.endpoint ?? ''
   const bucket = settings?.bucket ?? ''
   const accessKey = settings?.access_key ?? ''
-  const secretKey = settings?.secret_key ?? ''
-  const region = settings?.region || 'us-east-1'
-  const forcePathStyle = settings?.force_path_style ?? false
   const cdnEndpoint = settings?.cdn_endpoint
+  const configured = endpoint !== '' && bucket !== ''
 
-  // Rebuilt only when a connection setting changes, not on every new settings object.
-  const client = useMemo(
-    () =>
-      endpoint
-        ? new S3Client({
-            endpoint,
-            credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
-            region,
-            forcePathStyle
-          })
-        : undefined,
-    [endpoint, accessKey, secretKey, region, forcePathStyle]
-  )
-
-  // Shared by the file manager page and the image picker.
+  // Shared by the file manager page and the image picker. The endpoint and the bucket are in
+  // the key, so a settings change lists the new bucket.
   const query = useQuery({
     queryKey: ['storage-objects', workspaceId, bucket, endpoint],
-    queryFn: () => listAllObjects(client as S3Client, bucket, { maxObjects }),
-    enabled: client !== undefined && bucket !== '',
+    queryFn: () => filesApi.list(workspaceId),
+    enabled: configured,
     staleTime: 60_000
   })
 
@@ -73,7 +65,7 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
   const items: StorageObject[] = useMemo(
     () =>
       query.data
-        ? toStorageItems(query.data.objects, {
+        ? toStorageItems(fromStoredObjects(query.data.objects), {
             endpoint,
             bucket,
             access_key: accessKey,
@@ -89,20 +81,6 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
     [queryClient, workspaceId]
   )
 
-  // New connection settings (keys, region, path style are not in the key): list again with the
-  // client they build, once it exists. Skipped on mount, where the query lists on its own.
-  const firstClientRef = useRef(client)
-  useEffect(() => {
-    if (client === firstClientRef.current) return
-    firstClientRef.current = client
-    void invalidate()
-  }, [client, invalidate])
-
-  const requireClient = useCallback((): S3Client => {
-    if (!client) throw new Error('S3 client is not initialized.')
-    return client
-  }, [client])
-
   /**
    * Uploads the files into a folder one after the other, reporting each one's status, then lists
    * the bucket again. Returns the keys written; an abort stops the file being sent and the next.
@@ -116,7 +94,6 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
         onStatus?: (index: number, status: UploadStatus, error?: string) => void
       } = {}
     ): Promise<string[]> => {
-      const s3 = requireClient()
       const written: string[] = []
       try {
         for (let index = 0; index < files.length; index++) {
@@ -125,21 +102,28 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
           const key = folder + sanitizeFilename(file.name)
           options.onStatus?.(index, 'uploading')
           try {
-            const body = new Uint8Array(await file.arrayBuffer())
-            await s3.send(
-              new PutObjectCommand({
-                Bucket: bucket,
-                Key: key,
-                Body: body,
-                ContentType: file.type
-              }),
-              { abortSignal: options.signal }
-            )
+            const signed = await filesApi.presignUpload({
+              workspace_id: workspaceId,
+              key,
+              content_type: file.type,
+              size: file.size
+            })
+            // The API call takes no signal: an abort during it is honoured here.
+            if (options.signal?.aborted) break
+            const response = await fetch(signed.url, {
+              method: 'PUT',
+              headers: signed.headers,
+              body: file,
+              signal: options.signal
+            })
+            if (!response.ok) {
+              throw new Error(`${response.status} ${response.statusText}`.trim())
+            }
             written.push(key)
             options.onStatus?.(index, 'done')
           } catch (error) {
             if ((error as Error).name === 'AbortError') break
-            options.onStatus?.(index, 'failed', String(error))
+            options.onStatus?.(index, 'failed', uploadError(error))
           }
         }
       } finally {
@@ -148,79 +132,74 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
       }
       return written
     },
-    [requireClient, bucket, invalidate]
+    [workspaceId, invalidate]
   )
 
   /** Creates a folder marker; "exists" when something already lives under that prefix. */
   const createFolder = useCallback(
     async (folderKey: string): Promise<'created' | 'exists'> => {
-      const s3 = requireClient()
-      const existing = await s3.send(
-        new ListObjectsV2Command({ Bucket: bucket, Prefix: folderKey, MaxKeys: 1 })
-      )
-      if (existing.Contents && existing.Contents.length > 0) return 'exists'
-      await s3.send(new PutObjectCommand({ Bucket: bucket, Key: folderKey, Body: '' }))
-      void invalidate()
-      return 'created'
+      const { status } = await filesApi.createFolder(workspaceId, folderKey)
+      if (status === 'created') void invalidate()
+      return status
     },
-    [requireClient, bucket, invalidate]
+    [workspaceId, invalidate]
   )
 
   const deleteFile = useCallback(
     async (key: string) => {
-      const s3 = requireClient()
-      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+      const result = await filesApi.delete(workspaceId, [key])
       void invalidate()
+      if (result.failed > 0) throw new Error(i18n._(msg`The storage refused to delete ${key}`))
     },
-    [requireClient, bucket, invalidate]
+    [workspaceId, invalidate]
   )
 
-  /** Deletes files one at a time, as the folder delete does, counting the failures. */
+  /** Deletes files in batches the server accepts, counting the failures. */
   const deleteFiles = useCallback(
     async (keys: string[]): Promise<{ deleted: number; failed: number }> => {
-      const s3 = requireClient()
-      let deleted = 0
-      let failed = 0
+      const total = { deleted: 0, failed: 0 }
       try {
-        for (const key of keys) {
-          try {
-            await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
-            deleted++
-          } catch (error) {
-            console.error(`Failed to delete ${key}:`, error)
-            failed++
-          }
+        for (let start = 0; start < keys.length; start += DELETE_BATCH_SIZE) {
+          const batch = await filesApi.delete(workspaceId, keys.slice(start, start + DELETE_BATCH_SIZE))
+          total.deleted += batch.deleted
+          total.failed += batch.failed
+        }
+        return total
+      } finally {
+        void invalidate()
+      }
+    },
+    [workspaceId, invalidate]
+  )
+
+  /** Deletes everything under a folder; the server lists it, files first, then the folders. */
+  const deleteFolder = useCallback(
+    async (prefix: string): Promise<DeleteFolderResult> => {
+      try {
+        const result = await filesApi.deleteFolder(workspaceId, prefix)
+        return {
+          deleted: result.deleted,
+          failed: result.failed,
+          deletedFiles: result.deleted_files,
+          failedFiles: result.failed_files
         }
       } finally {
         void invalidate()
       }
-      return { deleted, failed }
     },
-    [requireClient, bucket, invalidate]
-  )
-
-  /** Deletes everything under a folder, read from its own listing rather than the cached one. */
-  const deleteFolder = useCallback(
-    async (prefix: string): Promise<DeleteFolderResult> => {
-      try {
-        return await deleteFolderObjects(requireClient(), bucket, prefix)
-      } finally {
-        void invalidate()
-      }
-    },
-    [requireClient, bucket, invalidate]
+    [workspaceId, invalidate]
   )
 
   /** The number of files under a folder (markers left out), from a listing of its own. */
   const countFolderFiles = useCallback(
-    async (prefix: string): Promise<number> => {
-      const { objects } = await listAllObjects(requireClient(), bucket, {
-        prefix,
-        maxObjects: Number.POSITIVE_INFINITY
-      })
-      return objects.filter((object) => object.Key && !object.Key.endsWith('/')).length
+    async (prefix: string): Promise<FolderFileCount> => {
+      const listing = await filesApi.list(workspaceId, prefix)
+      return {
+        count: listing.objects.filter((object) => !object.key.endsWith('/')).length,
+        capped: listing.capped
+      }
     },
-    [requireClient, bucket]
+    [workspaceId]
   )
 
   return {
@@ -230,7 +209,7 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
     isFetching: query.isFetching,
     error: query.error,
     isCapped: query.data?.capped ?? false,
-    cutShort: query.data?.cutShort ?? false,
+    cutShort: query.data?.cut_short ?? false,
     refetch: query.refetch,
     invalidate,
     upload,

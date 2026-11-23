@@ -3,7 +3,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
-import { HelpTip, Mono, Panel, Pill } from '../../layout'
+import { HelpTip, Panel, Pill } from '../../layout'
 import {
   dkimApi,
   dkimQueryKeys,
@@ -58,11 +58,6 @@ export function SMTPDkimPanel({ workspaceId, senders }: SMTPDkimPanelProps) {
 
   const columns: ColumnsType<SenderDomainRow> = [
     { title: t`Domain`, key: 'domain', render: (_, row) => <span className="font-medium text-ink">{row.domain}</span> },
-    {
-      title: t`Key`,
-      key: 'key',
-      render: (_, row) => (row.key ? <Mono>{row.key.selector}</Mono> : <span className="text-ink-4">—</span>)
-    },
     { title: t`Status`, key: 'status', render: (_, row) => statusPill(row) }
   ]
 

@@ -76,8 +76,11 @@ export interface FileManagerSettings {
   access_key: string
   bucket: string
   region?: string
+  /** Write only: sent to set or change the secret, never received. Empty keeps the stored one. */
   secret_key?: string
-  encrypted_secret_key?: string
+  /** Received only: whether a secret is stored, and its last characters when it is long enough. */
+  has_secret_key?: boolean
+  secret_key_hint?: string
   cdn_endpoint?: string
   force_path_style?: boolean
 }

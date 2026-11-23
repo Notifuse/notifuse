@@ -1,0 +1,226 @@
+package mcp
+
+import (
+	"regexp"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+)
+
+func TestCatalogue_ToolNames(t *testing.T) {
+	s := newBareServer(Deps{})
+	assert.Equal(t, []string{
+		"list_workspaces",
+		"get_workspace_overview",
+		"search_contacts",
+		"get_contact",
+		"count_contacts",
+		"get_contact_timeline",
+		"list_lists",
+		"list_segments",
+		"get_segment",
+		"preview_segment",
+		"list_templates",
+		"get_template",
+		"render_template",
+		"list_broadcasts",
+		"get_broadcast",
+		"get_broadcast_report",
+		"list_transactional_notifications",
+		"get_transactional_notification",
+		"search_messages",
+		"list_analytics_schemas",
+		"query_analytics",
+		"list_automations",
+		"get_automation",
+		"get_automation_journey",
+		"get_automation_stats",
+		"list_blog_posts",
+		"get_blog_post",
+		"list_blog_categories",
+	}, toolNames(s.catalogue()))
+}
+
+// No description points to a write tool, since none exists yet.
+func TestCatalogue_DescriptionsNameNoWriteTool(t *testing.T) {
+	s := newBareServer(Deps{})
+	writeTool := regexp.MustCompile(`\b(create|update|delete|send|upsert|import|cancel|schedule|pause|resume|publish|archive|remove|add)_[a-z_]+`)
+	var texts func(name string, v any)
+	texts = func(name string, v any) {
+		switch v := v.(type) {
+		case string:
+			assert.Empty(t, writeTool.FindAllString(v, -1), "%s: %s", name, v)
+			assert.NotContains(t, v, "through MCP", name)
+			assert.NotContains(t, v, "deletion", name)
+		case map[string]any:
+			for _, item := range v {
+				texts(name, item)
+			}
+		case []any:
+			for _, item := range v {
+				texts(name, item)
+			}
+		}
+	}
+	for _, tool := range s.catalogue() {
+		texts(tool.Name, tool.Description)
+		texts(tool.Name, tool.InputSchema)
+	}
+}
+
+// Each tool's class, permission pairs and workspace argument, as spec §6.2
+// states them.
+func TestCatalogue_ToolDefinitions(t *testing.T) {
+	s := newBareServer(Deps{})
+	type definition struct {
+		class            Class
+		pairs            []Pair
+		withoutWorkspace bool
+	}
+	want := map[string]definition{
+		"list_workspaces":                  {class: ClassRead, pairs: nil, withoutWorkspace: true},
+		"get_workspace_overview":           {class: ClassRead, pairs: []Pair{{Resource: "workspace", Verb: "read"}, {Resource: "lists", Verb: "read"}}},
+		"search_contacts":                  {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"get_contact":                      {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"count_contacts":                   {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"get_contact_timeline":             {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"list_lists":                       {class: ClassRead, pairs: []Pair{{Resource: "lists", Verb: "read"}}},
+		"list_segments":                    {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}}},
+		"get_segment":                      {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}}},
+		"preview_segment":                  {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}, {Resource: "contacts", Verb: "read"}}},
+		"list_templates":                   {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
+		"get_template":                     {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
+		"render_template":                  {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
+		"list_broadcasts":                  {class: ClassRead, pairs: []Pair{{Resource: "broadcasts", Verb: "read"}}},
+		"get_broadcast":                    {class: ClassRead, pairs: []Pair{{Resource: "broadcasts", Verb: "read"}}},
+		"get_broadcast_report":             {class: ClassRead, pairs: []Pair{{Resource: "broadcasts", Verb: "read"}, {Resource: "message_history", Verb: "read"}}},
+		"list_transactional_notifications": {class: ClassRead, pairs: []Pair{{Resource: "transactional", Verb: "read"}}},
+		"get_transactional_notification":   {class: ClassRead, pairs: []Pair{{Resource: "transactional", Verb: "read"}}},
+		"search_messages":                  {class: ClassRead, pairs: []Pair{{Resource: "message_history", Verb: "read"}}},
+		// Per schema: query_analytics checks the pair of its schema argument,
+		// and analytics.schemas lists only the schemas the key may read.
+		"list_analytics_schemas": {class: ClassRead, pairs: nil},
+		"query_analytics":        {class: ClassRead, pairs: nil},
+		"list_automations":       {class: ClassRead, pairs: []Pair{{Resource: "automations", Verb: "read"}}},
+		"get_automation":         {class: ClassRead, pairs: []Pair{{Resource: "automations", Verb: "read"}}},
+		"get_automation_journey": {class: ClassRead, pairs: []Pair{{Resource: "automations", Verb: "read"}}},
+		"get_automation_stats":   {class: ClassRead, pairs: []Pair{{Resource: "automations", Verb: "read"}}},
+		"list_blog_posts":        {class: ClassRead, pairs: []Pair{{Resource: "blog", Verb: "read"}}},
+		// The body also needs templates:read, which the tool checks itself: a
+		// key without it reads the post with body null.
+		"get_blog_post":        {class: ClassRead, pairs: []Pair{{Resource: "blog", Verb: "read"}}},
+		"list_blog_categories": {class: ClassRead, pairs: []Pair{{Resource: "blog", Verb: "read"}}},
+	}
+	for _, tool := range s.catalogue() {
+		expected, ok := want[tool.Name]
+		require.True(t, ok, tool.Name)
+		assert.Equal(t, expected.class, tool.Class, tool.Name)
+		assert.Equal(t, expected.pairs, tool.Pairs, tool.Name)
+		assert.Equal(t, expected.withoutWorkspace, tool.WithoutWorkspace, tool.Name)
+		assert.Equal(t, "object", tool.InputSchema["type"], tool.Name)
+		assert.Equal(t, false, tool.InputSchema["additionalProperties"], tool.Name)
+		if !tool.WithoutWorkspace {
+			assert.Contains(t, tool.InputSchema["required"], "workspace_id", tool.Name)
+		}
+	}
+}
+
+func TestAnnotations_PerClass(t *testing.T) {
+	type hints struct {
+		readOnly, destructive, openWorld, idempotent bool
+	}
+	want := map[Class]hints{
+		ClassRead:           {readOnly: true, destructive: false, openWorld: false, idempotent: true},
+		ClassWrite:          {readOnly: false, destructive: false, openWorld: false, idempotent: false},
+		ClassWriteOpenWorld: {readOnly: false, destructive: false, openWorld: true, idempotent: false},
+		ClassSend:           {readOnly: false, destructive: true, openWorld: true, idempotent: false},
+		ClassDestructive:    {readOnly: false, destructive: true, openWorld: false, idempotent: true},
+	}
+	for class, expected := range want {
+		annotations := (&Tool{Class: class}).Annotations()
+		assert.Equal(t, expected.readOnly, annotations.ReadOnlyHint, class)
+		require.NotNil(t, annotations.DestructiveHint, class)
+		assert.Equal(t, expected.destructive, *annotations.DestructiveHint, class)
+		require.NotNil(t, annotations.OpenWorldHint, class)
+		assert.Equal(t, expected.openWorld, *annotations.OpenWorldHint, class)
+		assert.Equal(t, expected.idempotent, annotations.IdempotentHint, class)
+	}
+	assert.Len(t, classAnnotations, 5, "a new class needs its annotations pinned above")
+}
+
+func TestAnnotations_ToolOverridesIdempotentHint(t *testing.T) {
+	assert.True(t, (&Tool{Class: ClassSend, Idempotent: boolPtr(true)}).Annotations().IdempotentHint)
+	assert.False(t, (&Tool{Class: ClassDestructive, Idempotent: boolPtr(false)}).Annotations().IdempotentHint)
+}
+
+func TestPrepare_RefusesASendOrDestructiveToolWithoutAWritePair(t *testing.T) {
+	read := []Pair{{Resource: domain.PermissionResourceContacts, Verb: domain.PermissionTypeRead}}
+	write := []Pair{{Resource: domain.PermissionResourceContacts, Verb: domain.PermissionTypeWrite}}
+
+	for _, class := range []Class{ClassSend, ClassDestructive} {
+		assert.Panics(t, func() { fakeTool("t", class, read, "contacts.delete", nil).prepare() }, class)
+		assert.Panics(t, func() { fakeTool("t", class, nil, "contacts.delete", nil).prepare() }, class)
+		assert.NotPanics(t, func() { fakeTool("t", class, write, "contacts.delete", nil).prepare() }, class)
+	}
+}
+
+// Every catalogue tool passes the registration checks, so a send or
+// destructive tool added without a write pair fails this test before it ships.
+func TestCatalogue_EveryToolPassesRegistration(t *testing.T) {
+	for _, tool := range newBareServer(Deps{}).catalogue() {
+		assert.NotPanics(t, tool.prepare, tool.Name)
+		if tool.Class == ClassSend || tool.Class == ClassDestructive {
+			assert.True(t, tool.declaresWrite(), "%s must declare a write pair", tool.Name)
+		}
+	}
+}
+
+func TestPrepare_RefusesANonReadToolWithoutAnAuditAction(t *testing.T) {
+	write := []Pair{{Resource: domain.PermissionResourceContacts, Verb: domain.PermissionTypeWrite}}
+	assert.Panics(t, func() { fakeTool("t", ClassWrite, write, "", nil).prepare() })
+	assert.Panics(t, func() { fakeTool("t", ClassWrite, write, "no.such.route", nil).prepare() })
+	// Excluded from the API's audit and absent from MCPAuditedActions.
+	assert.Panics(t, func() { fakeTool("t", ClassWriteOpenWorld, write, "contacts.upsert", nil).prepare() })
+	assert.NotPanics(t, func() { fakeTool("t", ClassWrite, write, "contacts.delete", nil).prepare() })
+	assert.NotPanics(t, func() { fakeTool("t", ClassRead, nil, "", nil).prepare() })
+}
+
+func TestPrepare_RefusesAWorkspaceToolWithoutARequiredWorkspaceID(t *testing.T) {
+	tool := fakeTool("t", ClassRead, nil, "", nil)
+	tool.InputSchema = objectSchema(map[string]any{"workspace_id": map[string]any{"type": "string"}})
+	assert.Panics(t, tool.prepare)
+
+	open := fakeTool("t", ClassRead, nil, "", nil)
+	open.InputSchema = map[string]any{"type": "object", "properties": map[string]any{}}
+	assert.Panics(t, open.prepare, "additionalProperties must be false")
+}
+
+func TestAuditSpec_UsesTheMCPTableForARouteTheAPIDoesNotAudit(t *testing.T) {
+	_, ok := auditSpec("contacts.upsert")
+	assert.False(t, ok)
+
+	domain.MCPAuditedActions["contacts.upsert"] = domain.AuditActionSpec{Category: domain.AuditCategoryContacts, TargetType: domain.AuditTargetContact}
+	defer delete(domain.MCPAuditedActions, "contacts.upsert")
+
+	spec, ok := auditSpec("contacts.upsert")
+	require.True(t, ok)
+	assert.Equal(t, domain.AuditActionSpec{Category: domain.AuditCategoryContacts, TargetType: domain.AuditTargetContact}, spec)
+
+	spec, ok = auditSpec("contacts.delete")
+	require.True(t, ok)
+	assert.Equal(t, domain.AuditedActions["contacts.delete"], spec)
+}
+
+func TestRegister_RefusesADuplicateName(t *testing.T) {
+	s := newBareServer(Deps{})
+	s.register(fakeTool("dup", ClassRead, nil, "", nil))
+	assert.Panics(t, func() { s.register(fakeTool("dup", ClassRead, nil, "", nil)) })
+}
+
+func TestCall_WorkspaceRef(t *testing.T) {
+	call := &Call{WorkspaceID: "ws1", Workspace: &domain.Workspace{ID: "ws1", Name: "Acme"}}
+	assert.Equal(t, WorkspaceRef{ID: "ws1", Name: "Acme"}, call.WorkspaceRef())
+}

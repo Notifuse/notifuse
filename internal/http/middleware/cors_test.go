@@ -206,3 +206,81 @@ func TestCORSMiddleware_OriginList(t *testing.T) {
 		assert.Empty(t, w.Header().Get("Vary"))
 	})
 }
+
+// The global CORS policy leaves the MCP endpoint alone, whatever
+// CORS_ALLOW_ORIGIN says: no header written and a preflight passed through to
+// the MCP handler, which answers it. Every other path keeps the global policy.
+func TestCORSMiddleware_LeavesTheMCPEndpointToItsOwnPolicy(t *testing.T) {
+	t.Setenv("CORS_ALLOW_ORIGIN", "https://console.example.com")
+
+	reached := 0
+	handler := CORSMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reached++
+		w.WriteHeader(http.StatusTeapot)
+	}))
+
+	for _, path := range []string{"/mcp", "/mcp/", "/mcp/anything"} {
+		for _, method := range []string{http.MethodPost, http.MethodOptions} {
+			reached = 0
+			req := httptest.NewRequest(method, path, nil)
+			req.Header.Set("Origin", "https://console.example.com")
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			assert.Equal(t, 1, reached, "%s %s reaches the MCP handler", method, path)
+			assert.Equal(t, http.StatusTeapot, w.Code)
+			for _, header := range []string{"Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Headers", "Access-Control-Allow-Methods"} {
+				assert.Empty(t, w.Header().Get(header), "%s %s must not carry %s", method, path, header)
+			}
+		}
+	}
+
+	for _, path := range []string{"/api/contacts.list", "/mcpx", "/console/mcp"} {
+		reached = 0
+		req := httptest.NewRequest(http.MethodOptions, path, nil)
+		req.Header.Set("Origin", "https://console.example.com")
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		assert.Equal(t, 0, reached, "%s preflight is answered by the global policy", path)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "https://console.example.com", w.Header().Get("Access-Control-Allow-Origin"))
+		assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
+		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization", w.Header().Get("Access-Control-Allow-Headers"))
+	}
+}
+
+func TestApplyMCPCORS(t *testing.T) {
+	t.Run("an accepted origin is reflected, without credentials", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+		req.Header.Set("Origin", "http://localhost:6274")
+		w := httptest.NewRecorder()
+
+		assert.False(t, ApplyMCPCORS(w, req))
+		assert.Equal(t, "http://localhost:6274", w.Header().Get("Access-Control-Allow-Origin"))
+		assert.Equal(t, "Origin", w.Header().Get("Vary"))
+		assert.Empty(t, w.Header().Get("Access-Control-Allow-Credentials"))
+		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, Mcp-Protocol-Version, Mcp-Method, Mcp-Name, Mcp-Session-Id",
+			w.Header().Get("Access-Control-Allow-Headers"))
+		assert.Equal(t, "WWW-Authenticate", w.Header().Get("Access-Control-Expose-Headers"))
+	})
+
+	t.Run("a preflight is answered", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodOptions, "/mcp", nil)
+		req.Header.Set("Origin", "http://localhost:6274")
+		w := httptest.NewRecorder()
+
+		assert.True(t, ApplyMCPCORS(w, req))
+		assert.Equal(t, http.StatusNoContent, w.Code)
+		assert.Equal(t, "http://localhost:6274", w.Header().Get("Access-Control-Allow-Origin"))
+	})
+
+	t.Run("no Origin, no CORS header", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+		w := httptest.NewRecorder()
+
+		assert.False(t, ApplyMCPCORS(w, req))
+		assert.Empty(t, w.Header().Get("Access-Control-Allow-Origin"))
+		assert.Empty(t, w.Header().Get("Access-Control-Allow-Headers"))
+	})
+}

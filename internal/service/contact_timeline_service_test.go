@@ -410,11 +410,11 @@ func TestContactTimelineService_List_EntityTypes(t *testing.T) {
 // as readable with contacts alone.
 func TestTimelineEntityTypes_AllClassified(t *testing.T) {
 	for _, entityType := range domain.TimelineEntityTypes {
-		_, gated := timelineEntityPermissions[entityType]
+		_, gated := domain.TimelineEntityPermissions[entityType]
 		public := slices.Contains(timelinePublicEntityTypes, entityType)
-		assert.True(t, gated != public, "%s must be in exactly one of timelineEntityPermissions and timelinePublicEntityTypes", entityType)
+		assert.True(t, gated != public, "%s must be in exactly one of domain.TimelineEntityPermissions and timelinePublicEntityTypes", entityType)
 	}
-	for entityType := range timelineEntityPermissions {
+	for entityType := range domain.TimelineEntityPermissions {
 		assert.Contains(t, domain.TimelineEntityTypes, entityType)
 	}
 	for _, entityType := range timelinePublicEntityTypes {

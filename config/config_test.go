@@ -506,3 +506,88 @@ func TestLoadWithOptions_LicenseKey(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "", cfg.LicenseKey, "unset means no key, not a stale one")
 }
+
+// MCP stays off until the console can manage it, and its origin list accepts
+// what an operator types: spaces, trailing slashes and stray commas.
+func TestLoad_MCPSettings(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+
+	t.Run("off with no extra origin by default", func(t *testing.T) {
+		_ = os.Unsetenv("MCP_ENABLED")
+		_ = os.Unsetenv("MCP_ALLOWED_ORIGINS")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.False(t, cfg.MCP.Enabled)
+		assert.Empty(t, cfg.MCP.AllowedOrigins)
+	})
+
+	t.Run("switched on and given origins by the environment", func(t *testing.T) {
+		_ = os.Setenv("MCP_ENABLED", "true")
+		_ = os.Setenv("MCP_ALLOWED_ORIGINS", " http://localhost:6274/ ,, HTTPS://Inspector.Example.com,  ")
+		defer func() {
+			_ = os.Unsetenv("MCP_ENABLED")
+			_ = os.Unsetenv("MCP_ALLOWED_ORIGINS")
+		}()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.True(t, cfg.MCP.Enabled)
+		assert.Equal(t, []string{"http://localhost:6274", "https://inspector.example.com"}, cfg.MCP.AllowedOrigins)
+	})
+
+	// A browser leaves the scheme's default port out of its Origin header, so
+	// an entry that names it must still match.
+	t.Run("the scheme's default port is dropped", func(t *testing.T) {
+		_ = os.Setenv("MCP_ALLOWED_ORIGINS", "https://app.example.com:443,http://app.example.com:80,https://[::1]:443,https://app.example.com:8443,http://app.example.com:443")
+		defer func() { _ = os.Unsetenv("MCP_ALLOWED_ORIGINS") }()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, []string{
+			"https://app.example.com", "http://app.example.com", "https://[::1]",
+			"https://app.example.com:8443", "http://app.example.com:443",
+		}, cfg.MCP.AllowedOrigins)
+	})
+
+	t.Run("a list of separators only gives no origin", func(t *testing.T) {
+		_ = os.Setenv("MCP_ALLOWED_ORIGINS", " , ,")
+		defer func() { _ = os.Unsetenv("MCP_ALLOWED_ORIGINS") }()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Empty(t, cfg.MCP.AllowedOrigins)
+	})
+
+	for _, invalid := range []string{"*", "https://app.example.com/path", "app.example.com", "ftp://app.example.com"} {
+		t.Run("an entry that is not an origin stops the start: "+invalid, func(t *testing.T) {
+			_ = os.Setenv("MCP_ALLOWED_ORIGINS", "http://localhost:6274,"+invalid)
+			defer func() { _ = os.Unsetenv("MCP_ALLOWED_ORIGINS") }()
+
+			_, err := LoadWithOptions(LoadOptions{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "MCP_ALLOWED_ORIGINS")
+		})
+	}
+}
+
+func TestLoad_FileStorageSSRFProtectionDefault(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+
+	t.Run("defaults to off (SSRF protection enabled)", func(t *testing.T) {
+		_ = os.Unsetenv("FILE_STORAGE_ALLOW_PRIVATE_HOSTS")
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.False(t, cfg.FileStorage.AllowPrivateHosts, "file storage SSRF protection must be ON by default")
+	})
+
+	t.Run("opt-in via env var", func(t *testing.T) {
+		_ = os.Setenv("FILE_STORAGE_ALLOW_PRIVATE_HOSTS", "true")
+		defer func() { _ = os.Unsetenv("FILE_STORAGE_ALLOW_PRIVATE_HOSTS") }()
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.True(t, cfg.FileStorage.AllowPrivateHosts)
+	})
+}

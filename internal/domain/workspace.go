@@ -644,6 +644,9 @@ func (ws *WorkspaceSettings) ResolveEndpoint(apiEndpoint string) string {
 
 // Value implements the driver.Valuer interface for database serialization
 func (b WorkspaceSettings) Value() (driver.Value, error) {
+	// Response-only fields: a client that sends the settings back must not store them.
+	b.FileManager.SecretKeyHint = ""
+	b.FileManager.HasSecretKey = false
 	return json.Marshal(b)
 }
 
@@ -771,6 +774,10 @@ func (w *Workspace) Validate(passphrase string) error {
 }
 
 func (w *Workspace) BeforeSave(globalSecretKey string) error {
+	// Response-only fields: a client that sends the settings back must not store them.
+	w.Settings.FileManager.SecretKeyHint = ""
+	w.Settings.FileManager.HasSecretKey = false
+
 	// Only process FileManager if there's a SecretKey to encrypt
 	if w.Settings.FileManager.SecretKey != "" {
 		if err := w.Settings.FileManager.EncryptSecretKey(globalSecretKey); err != nil {
@@ -932,6 +939,12 @@ type FileManagerSettings struct {
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"secret_key,omitempty"`
+
+	// What a response carries in place of the secret, set by Workspace.Redact and never
+	// stored: the last characters of the secret when it is long enough, and whether one
+	// is set at all (a secret too short for a hint still needs to show as set).
+	SecretKeyHint string `json:"secret_key_hint,omitempty"`
+	HasSecretKey  bool   `json:"has_secret_key,omitempty"`
 }
 
 func (f *FileManagerSettings) DecryptSecretKey(passphrase string) error {

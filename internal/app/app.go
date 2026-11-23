@@ -18,6 +18,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	httpHandler "github.com/Notifuse/notifuse/internal/http"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
+	mcpserver "github.com/Notifuse/notifuse/internal/mcp"
 	"github.com/Notifuse/notifuse/internal/migrations"
 	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/internal/service"
@@ -764,6 +765,13 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("oidc:start", 10, 1*time.Minute)    // start an SSO redirect, by IP
 	a.rateLimiter.SetPolicy("oidc:callback", 10, 1*time.Minute) // IdP callbacks, by IP
 	a.rateLimiter.SetPolicy("oidc:exchange", 10, 1*time.Minute) // one-time-code exchange, by IP
+	// MCP, registered whether MCP_ENABLED is on or not, for the same reason. The
+	// first two are per API key: every call (tools/list included), then the calls
+	// that send or change what sends emit. The third is per IP, for requests whose
+	// credential fails, and bounds the lookups an invalid key can cause.
+	a.rateLimiter.SetPolicy(mcpserver.RateLimitNamespace, 120, 1*time.Minute)
+	a.rateLimiter.SetPolicy(mcpserver.SendRateLimitNamespace, 30, 1*time.Minute)
+	a.rateLimiter.SetPolicy(httpHandler.MCPAuthFailRateLimitNamespace, 60, 1*time.Minute)
 
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
@@ -1854,12 +1862,57 @@ func (a *App) InitHandlers() error {
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
 	annotationHandler.RegisterRoutes(a.mux)
+	fileStorageHandler := httpHandler.NewFileStorageHandler(
+		service.NewFileStorageService(a.authService, a.workspaceRepo, service.NewS3ObjectStoreFactory(
+			// The server calls the endpoint an owner typed: SSRF-protected unless
+			// FILE_STORAGE_ALLOW_PRIVATE_HOSTS lets it reach a bucket on the local network.
+			newOutgoingWebhookClient(a.config.FileStorage.AllowPrivateHosts, a.config.Tracing.Enabled, 30*time.Second),
+		)),
+		getJWTSecret,
+		a.logger,
+		a.config.IsDemo(),
+	)
+	fileStorageHandler.RegisterRoutes(a.mux)
 	httpHandler.NewDKIMHandler(a.dkimService, getJWTSecret, a.logger, a.config.IsDemo()).RegisterRoutes(a.mux)
 	auditLogHandler := httpHandler.NewAuditLogHandler(a.auditLogService, getJWTSecret, a.logger)
 	auditLogHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
 	llmHandler.RegisterRoutes(a.mux)
+
+	// /mcp sits inside the mux, under the audit middleware, so that the
+	// integration harness serves it as production does. It answers 404 while
+	// MCP_ENABLED is off and on demo deployments.
+	mcpServer := mcpserver.NewServer(mcpserver.Deps{
+		Auth:             a.authService,
+		Workspaces:       a.workspaceRepo,
+		WorkspaceService: a.workspaceService,
+		Contacts:         a.contactService,
+		Timeline:         a.contactTimelineService,
+		Lists:            a.listService,
+		Segments:         a.segmentService,
+		Templates:        a.templateService,
+		Broadcasts:       a.broadcastService,
+		Transactional:    a.transactionalNotificationService,
+		Messages:         a.messageHistoryService,
+		Analytics:        a.analyticsService,
+		Automations:      a.automationService,
+		Blog:             a.blogService,
+		Recorder:         a.auditLogService,
+		RateLimiter:      a.rateLimiter,
+		Logger:           a.logger,
+		Version:          a.config.Version,
+	})
+	httpHandler.NewMCPHandler(httpHandler.MCPHandlerConfig{
+		Enabled:        a.config.MCP.Enabled,
+		IsDemo:         a.config.IsDemo(),
+		APIEndpoint:    func() string { return a.config.APIEndpoint },
+		AllowedOrigins: a.config.MCP.AllowedOrigins,
+		GetJWTSecret:   getJWTSecret,
+		Auth:           a.authService,
+		RateLimiter:    a.rateLimiter,
+		Server:         mcpServer.Handler(),
+	}).RegisterRoutes(a.mux)
 
 	// The audit middleware wraps the whole mux. It is applied here, not in the
 	// Start() chain, because the integration harness serves GetHandler() and

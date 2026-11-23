@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
+- **Change**: The file manager lists, uploads and deletes files through the API, and the browser sends each upload straight to the bucket through a short-lived signed URL, so the storage credentials stay on the server. Members see the files with any access to Templates or the Blog, and need write access to one of them to upload or delete; only owners change the storage settings. The bucket's endpoint must now be reachable from the Notifuse server as well as from browsers, its CORS rules need only `GET` and `PUT`, and a selfhost_s3 server must run v1.4 or later. The server refuses an endpoint on a private address unless `FILE_STORAGE_ALLOW_PRIVATE_HOSTS=true`, which a bucket on your own network (MinIO, selfhost_s3) needs.
+
 - **Feature**: The web analytics dashboard opens with an Automated traffic card. It counts the sessions that load a page and never send a second signal, which is how crawlers, AI agents and headless browsers behave. The card shows their share of all sessions, its change since the comparison period, and the landing pages, browsers and countries they come from. The new Traffic Type dimension (`human` or `automated`) filters any report, and `analytics.query` gains the `automated_sessions` and `automated_share` measures. The demo workspace now has automated traffic too, with one overnight crawl.
 
 - **Improvement**: TimeScore and Bounce Rate now leave automated traffic out, while Sessions and pageviews still count it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
@@ -29,6 +31,10 @@ All notable changes to this project will be documented in this file.
 - **Fix**: The API no longer answers 500 when a broadcast, blog post, segment, automation or transactional notification refuses a request. An action the object's status does not allow, such as scheduling a broadcast that is no longer a draft or publishing a published post, answers 409 with that status; an ID or slug already taken answers 409; an unknown object answers 404; an invalid segment answers 400. Two pauses, resumes or cancellations of the same broadcast sent at the same time no longer both go through.
 
 - **Security**: `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
+
+- **Fix**: `broadcasts.list` no longer repeats or skips broadcasts created at the same instant when it pages: they are ordered by creation date, then by ID.
+
+- **Fix**: `contacts.list` no longer answers 500 when asked for the page after a contact whose email contains `~`. The cursor joins a date and an email with that character, and the email's own `~` broke it.
 
 ## [44.0] - 2026-11-19
 

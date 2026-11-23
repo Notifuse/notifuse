@@ -61,11 +61,11 @@ const renderDomains = (isOwner = true) =>
 
 const rowOf = (domain: string) => screen.getByText(domain, { selector: 'span.font-medium' }).closest('tr') as HTMLElement
 
-/** Opens the ⋯ menu of a row and returns the menu shown. */
-const openMenu = async (domain: string) => {
-  fireEvent.click(within(rowOf(domain)).getByRole('button', { name: `More actions for ${domain}` }))
-  const menus = await screen.findAllByRole('menu')
-  return menus[menus.length - 1]
+/** Opens the panel of a domain by clicking its row, and returns the panel. */
+const openPanel = async (domain: string) => {
+  fireEvent.click(rowOf(domain))
+  const record = await screen.findByTestId('dkim-dns-record')
+  return record.closest('[role="dialog"]') as HTMLElement
 }
 
 describe('DomainsSettings', () => {
@@ -75,50 +75,52 @@ describe('DomainsSettings', () => {
     vi.mocked(api.get).mockResolvedValue({ domains: [published, pending, mismatch, degrading, stopped] })
   })
 
-  it('lists the domains of the workspace with their state, selector and users', async () => {
+  it('lists the domains of the workspace with their state and users, without the selector', async () => {
     renderDomains()
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
     expect(api.get).toHaveBeenCalledWith('/api/workspaces.listDKIMDomains?workspace_id=ws-1')
 
     expect(within(rowOf('acme.io')).getByText('Published · signing')).toBeInTheDocument()
-    expect(within(rowOf('acme.io')).getByText('Checked 3 minutes ago')).toBeInTheDocument()
+    expect(within(rowOf('acme.io')).getByText('3 minutes ago')).toBeInTheDocument()
     expect(within(rowOf('acme.io')).getByText('Office relay')).toBeInTheDocument()
     expect(within(rowOf('news.acme.io')).getByText('DNS not found · not signing yet')).toBeInTheDocument()
     expect(within(rowOf('news.acme.io')).getByText('No SMTP integration yet')).toBeInTheDocument()
     expect(within(rowOf('brand-b.com')).getByText('Wrong key · not signing')).toBeInTheDocument()
-    expect(within(rowOf('brand-b.com')).getByText("the published key is not this domain's key")).toBeInTheDocument()
     expect(within(rowOf('deg.io')).getByText('Record missing 1/3 · still signing')).toBeInTheDocument()
     expect(within(rowOf('stopped.io')).getByText('Signing stopped')).toBeInTheDocument()
-    expect(within(rowOf('stopped.io')).getByText(/Stopped on Nov 20, 2026: no TXT record found/)).toBeInTheDocument()
+    expect(screen.queryByText('notifuse202611a3f29c1b04e87d21')).toBeNull()
+
+    // The reason behind a status is in the panel of the domain.
+    let panel = await openPanel('brand-b.com')
+    expect(within(panel).getByText("the published key is not this domain's key")).toBeInTheDocument()
+    panel = await openPanel('stopped.io')
+    expect(within(panel).getByText(/Stopped on Nov 20, 2026: no TXT record found/)).toBeInTheDocument()
   })
 
-  it('shows the DNS record of the first domain that does not sign, then of the row clicked', async () => {
+  it('opens a panel with the whole DNS record when a row is clicked', async () => {
     renderDomains()
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
-    const dns = screen.getByTestId('dkim-dns-record')
-    expect(screen.getByText('Publish this record for news.acme.io')).toBeInTheDocument()
-    expect(within(dns).getByText(pending.dns_record.name)).toBeInTheDocument()
-    expect(within(dns).getByText('v=DKIM1; k=rsa; p=NEWS')).toBeInTheDocument()
+    expect(screen.queryByTestId('dkim-dns-record')).toBeNull()
 
-    fireEvent.click(rowOf('acme.io'))
-    expect(screen.getByText('Publish this record for acme.io')).toBeInTheDocument()
-    expect(within(dns).getByText(published.dns_record.name)).toBeInTheDocument()
+    const panel = await openPanel('news.acme.io')
+    const record = within(panel).getByTestId('dkim-dns-record')
+    expect(within(record).getByText(pending.dns_record.name)).toBeInTheDocument()
+    expect(within(record).getByText('v=DKIM1; k=rsa; p=NEWS')).toBeInTheDocument()
+    expect(within(panel).getByText('DNS not found · not signing yet')).toBeInTheDocument()
   })
 
   it('offers Regenerate only on a key that does not sign, and blocks Delete while senders use the domain', async () => {
     renderDomains()
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
-    let menu = await openMenu('acme.io')
-    expect(within(menu).queryByRole('menuitem', { name: 'Regenerate' })).toBeNull()
-    expect(within(menu).getByRole('menuitem', { name: 'Delete' })).toHaveAttribute('aria-disabled', 'true')
-    fireEvent.keyDown(menu, { key: 'Escape' })
+    let panel = await openPanel('acme.io')
+    expect(within(panel).queryByRole('button', { name: 'Regenerate' })).toBeNull()
+    expect(within(panel).getByRole('button', { name: 'Delete' })).toBeDisabled()
 
-    menu = await openMenu('news.acme.io')
-    expect(within(menu).getByRole('menuitem', { name: 'Regenerate' })).toBeInTheDocument()
-    fireEvent.keyDown(menu, { key: 'Escape' })
+    panel = await openPanel('news.acme.io')
+    expect(within(panel).getByRole('button', { name: 'Regenerate' })).toBeEnabled()
 
-    menu = await openMenu('brand-b.com')
-    expect(within(menu).getByRole('menuitem', { name: 'Delete' })).not.toHaveAttribute('aria-disabled', 'true')
+    panel = await openPanel('brand-b.com')
+    expect(within(panel).getByRole('button', { name: 'Delete' })).toBeEnabled()
   })
 
   it('creates a key from the dialog', async () => {
@@ -135,6 +137,24 @@ describe('DomainsSettings', () => {
       expect(api.post).toHaveBeenCalledWith('/api/workspaces.createDKIMDomain', { workspace_id: 'ws-1', domain: 'new.io' })
     )
     await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
+  })
+
+  it('opens the panel of the new domain, with the record to publish', async () => {
+    const created = record({ domain: 'new.io', status: 'pending', dns_record: { type: 'TXT', name: 's._domainkey.new.io', value: 'v=DKIM1; k=rsa; p=NEW' } })
+    vi.mocked(api.post).mockResolvedValue({ domain: created })
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ domains: [published] })
+      .mockResolvedValue({ domains: [published, created] })
+    renderDomains()
+    await screen.findByText('acme.io', { selector: 'span.font-medium' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add domain' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Domain'), { target: { value: 'new.io' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }))
+
+    const recordBlock = await screen.findByTestId('dkim-dns-record')
+    expect(within(recordBlock).getByText('s._domainkey.new.io')).toBeInTheDocument()
   })
 
   it('sends one request when Enter is pressed twice, and none for an empty field', async () => {
@@ -166,11 +186,27 @@ describe('DomainsSettings', () => {
     renderDomains()
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
 
-    fireEvent.click(within(rowOf('news.acme.io')).getByRole('button', { name: 'Verify' }))
+    const panel = await openPanel('news.acme.io')
+    fireEvent.click(within(panel).getByRole('button', { name: 'Verify' }))
     await waitFor(() =>
       expect(api.post).toHaveBeenCalledWith('/api/workspaces.verifyDKIMDomain', { workspace_id: 'ws-1', domain: 'news.acme.io' })
     )
     expect(await screen.findByText(/No DNS record found for news.acme.io yet/)).toBeInTheDocument()
+  })
+
+  it("shows a check's result only in the panel of the domain checked", async () => {
+    let finish: (value: unknown) => void = () => {}
+    vi.mocked(api.post).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+    renderDomains()
+    await screen.findByText('acme.io', { selector: 'span.font-medium' })
+
+    let panel = await openPanel('news.acme.io')
+    fireEvent.click(within(panel).getByRole('button', { name: 'Verify' }))
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1))
+    panel = await openPanel('brand-b.com')
+    finish({ domain: pending, check: { result: 'ok' } })
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
+    expect(within(panel).queryByText(/DNS record found/)).toBeNull()
   })
 
   it('deletes after confirmation, and shows the refusal the server gives', async () => {
@@ -178,9 +214,10 @@ describe('DomainsSettings', () => {
     renderDomains()
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
 
-    const menu = await openMenu('brand-b.com')
-    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete' }))
-    const confirm = await screen.findByRole('dialog')
+    const panel = await openPanel('brand-b.com')
+    fireEvent.click(within(panel).getByRole('button', { name: 'Delete' }))
+    const confirms = await screen.findAllByRole('dialog')
+    const confirm = confirms[confirms.length - 1]
     fireEvent.click(within(confirm).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() =>
@@ -193,9 +230,11 @@ describe('DomainsSettings', () => {
     renderDomains(false)
     await screen.findByText('acme.io', { selector: 'span.font-medium' })
     expect(screen.getByRole('button', { name: 'Add domain' })).toBeDisabled()
-    expect(screen.queryByRole('button', { name: 'Verify' })).toBeNull()
-    expect(screen.queryByRole('button', { name: /More actions/ })).toBeNull()
-    expect(screen.getByTestId('dkim-dns-record')).toBeInTheDocument()
+    const panel = await openPanel('news.acme.io')
+    expect(within(panel).getByTestId('dkim-dns-record')).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Verify' })).toBeDisabled()
+    expect(within(panel).getByRole('button', { name: 'Regenerate' })).toBeDisabled()
+    expect(within(panel).getByRole('button', { name: 'Delete' })).toBeDisabled()
   })
 
   it('after a downgrade, shows the latest check, keeping the date signing stopped', async () => {
@@ -213,39 +252,10 @@ describe('DomainsSettings', () => {
     renderDomains()
     await screen.findByText('later.io', { selector: 'span.font-medium' })
     expect(within(rowOf('later.io')).getByText('Wrong key · not signing')).toBeInTheDocument()
+    const panel = await openPanel('later.io')
     expect(
-      within(rowOf('later.io')).getByText(/Stopped on Nov 20, 2026: 2 TXT records found, a selector must publish one/)
+      within(panel).getByText(/Stopped on Nov 20, 2026: 2 TXT records found, a selector must publish one/)
     ).toBeInTheDocument()
-  })
-
-  it('keeps a spinner on each domain being checked until its own check ends', async () => {
-    const finishers: Record<string, (value: unknown) => void> = {}
-    vi.mocked(api.post).mockImplementation(
-      (_url: string, body: unknown) =>
-        new Promise((resolve) => (finishers[(body as { domain: string }).domain] = resolve)) as never
-    )
-    renderDomains()
-    await screen.findByText('acme.io', { selector: 'span.font-medium' })
-    const verifyOf = (domain: string) => within(rowOf(domain)).getByRole('button', { name: /Verify/ })
-
-    fireEvent.click(verifyOf('news.acme.io'))
-    fireEvent.click(verifyOf('brand-b.com'))
-    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2))
-    finishers['news.acme.io']({ domain: pending, check: { result: 'not_found' } })
-    await waitFor(() => expect(verifyOf('news.acme.io').className).not.toContain('ant-btn-loading'))
-    expect(verifyOf('brand-b.com').className).toContain('ant-btn-loading')
-    finishers['brand-b.com']({ domain: mismatch, check: { result: 'mismatch' } })
-  })
-
-  it('hides the DNS record when the list fails to load again', async () => {
-    renderDomains()
-    await screen.findByText('acme.io', { selector: 'span.font-medium' })
-    expect(screen.getByTestId('dkim-dns-record')).toBeInTheDocument()
-
-    vi.mocked(api.get).mockRejectedValue(new ApiError('database down', 500))
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
-    expect(await screen.findByText("Couldn't load the domains")).toBeInTheDocument()
-    expect(screen.queryByTestId('dkim-dns-record')).toBeNull()
   })
 
   it('says when there is no domain yet', async () => {
