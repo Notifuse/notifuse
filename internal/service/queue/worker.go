@@ -11,6 +11,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/dkim"
 	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
@@ -730,6 +731,8 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 		entry.ContactEmail,
 		&integration.EmailProvider,
 	)
+	// The round already holds the workspace and its DKIM keys: no lookup per email.
+	request.DKIMSnapshot = workspace.DKIMSnapshot()
 
 	// Stop-on-reply for capture providers (e.g. SES, which overwrites the Message-ID): give
 	// the send a place to write the provider-returned MessageId so we can store the
@@ -821,6 +824,21 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 				"entry_id": entry.ID,
 				"error":    err.Error(),
 			}).Warn("Send aborted at shutdown; the email will be retried after the restart")
+			return nil
+		}
+
+		// A key that should sign and cannot is a fault of this instance, not of the
+		// provider, which was never asked: neither the circuit breaker nor the pace hear
+		// of it, a probe is given back (deferred above), and the email is retried with
+		// backoff, then fails for good, never sent unsigned.
+		if errors.Is(err, dkim.ErrSign) {
+			w.logger.WithFields(map[string]interface{}{
+				"entry_id":       entry.ID,
+				"workspace_id":   workspace.ID,
+				"integration_id": integration.ID,
+				"error":          err.Error(),
+			}).Error("Failed to sign the email with its domain's DKIM key; retrying it later")
+			w.retryUnsent(workspace, entry, fmt.Sprintf("failed to sign the email: %v", err))
 			return nil
 		}
 

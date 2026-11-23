@@ -26,6 +26,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/cache"
 	pkgCrypto "github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
+	"github.com/Notifuse/notifuse/pkg/dkim"
 	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"github.com/Notifuse/notifuse/pkg/geoip"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -187,6 +188,11 @@ type App struct {
 	auditLogService                  *service.AuditLogService
 	auditLogPurgeWorker              *service.AuditLogPurgeWorker
 	dataRetentionWorker              *service.DataRetentionWorker
+	dkimKeyStore                     *service.DKIMKeyStore
+	dkimService                      *service.DKIMService
+	dkimVerificationWorker           *service.DKIMVerificationWorker
+	// dkimResolver looks up DKIM records; nil means the system resolver.
+	dkimResolver dkim.TXTResolver
 	// handler is the mux wrapped in the audit middleware; see GetHandler.
 	handler http.Handler
 	// providers
@@ -261,6 +267,14 @@ func WithMockDB(db *sql.DB) AppOption {
 func WithMockMailer(m mailer.Mailer) AppOption {
 	return func(a *App) {
 		a.mailer = m
+	}
+}
+
+// WithDKIMTXTResolver makes DKIM record checks ask resolver instead of the system
+// resolver, so tests can publish records.
+func WithDKIMTXTResolver(resolver dkim.TXTResolver) AppOption {
+	return func(a *App) {
+		a.dkimResolver = resolver
 	}
 }
 
@@ -948,6 +962,13 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 	)
 
+	// DKIM: one key store, shared by the sends that sign and the service and worker
+	// that change the keys, so a change is seen by the next send on this instance.
+	a.dkimKeyStore = service.NewDKIMKeyStore(a.workspaceRepo, a.config.Security.SecretKey)
+	a.emailService.SetDKIMKeyStore(a.dkimKeyStore)
+	a.dkimService = service.NewDKIMService(a.workspaceRepo, a.authService, a.dkimKeyStore, a.dkimResolver, a.config.Security.SecretKey, a.logger)
+	a.dkimVerificationWorker = service.NewDKIMVerificationWorker(a.workspaceRepo, a.db, a.dkimResolver, a.dkimKeyStore, a.logger)
+
 	// Initialize webhook registration service
 	a.webhookRegistrationService = service.NewWebhookRegistrationService(
 		a.workspaceRepo,
@@ -1169,6 +1190,7 @@ func (a *App) InitServices() error {
 		a.blogService,
 		a.licenseService,
 	)
+	a.workspaceService.SetDKIMKeyStore(a.dkimKeyStore)
 
 	// Initialize and register segment build processor
 	segmentBuildProcessor := service.NewSegmentBuildProcessor(
@@ -1816,6 +1838,7 @@ func (a *App) InitHandlers() error {
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
 	annotationHandler.RegisterRoutes(a.mux)
+	httpHandler.NewDKIMHandler(a.dkimService, getJWTSecret, a.logger, a.config.IsDemo()).RegisterRoutes(a.mux)
 	auditLogHandler := httpHandler.NewAuditLogHandler(a.auditLogService, getJWTSecret, a.logger)
 	auditLogHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
@@ -1927,6 +1950,12 @@ func (a *App) Start() error {
 	// it never consults the licence and runs in every licence state.
 	if a.dataRetentionWorker != nil {
 		go a.dataRetentionWorker.Start(a.GetShutdownContext())
+	}
+
+	// DKIM record checks: hourly, one instance at a time. Not in demo mode, which
+	// sends nothing.
+	if a.dkimVerificationWorker != nil && !a.config.IsDemo() {
+		go a.dkimVerificationWorker.Start(a.GetShutdownContext())
 	}
 
 	// Start internal task scheduler if enabled (with 30 second delay)

@@ -1867,9 +1867,13 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(workspace, nil)
 		mockTaskRepo.EXPECT().DeleteAll(ctx, workspaceID).Return(nil)
 		mockRepo.EXPECT().Delete(ctx, workspaceID).Return(nil)
+		invalidated := &recordingInvalidator{}
+		service.SetDKIMKeyStore(invalidated)
+		defer service.SetDKIMKeyStore(nil)
 
 		err := service.DeleteWorkspace(ctx, workspaceID)
 		require.NoError(t, err)
+		assert.Equal(t, []string{workspaceID}, invalidated.ids, "the cached DKIM keys of the workspace are dropped")
 	})
 
 	t.Run("successful delete as owner with integrations", func(t *testing.T) {
@@ -7179,6 +7183,10 @@ func TestWorkspaceService_UserOwnsAWorkspace(t *testing.T) {
 	})
 }
 
+// recordingInvalidator records the workspaces whose DKIM keys were invalidated.
+type recordingInvalidator struct{ ids []string }
+
+func (r *recordingInvalidator) Invalidate(workspaceID string) { r.ids = append(r.ids, workspaceID) }
 func TestWorkspaceService_SetMCPSettings(t *testing.T) {
 	const workspaceID = "ws1"
 
