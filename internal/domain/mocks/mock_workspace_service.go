@@ -345,6 +345,21 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetCustomFieldLabels(arg0, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCustomFieldLabels", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetCustomFieldLabels), arg0, arg1, arg2)
 }
 
+// SetMCPSettings mocks base method.
+func (m *MockWorkspaceServiceInterface) SetMCPSettings(arg0 context.Context, arg1 string, arg2 *domain.MCPSettings) (*domain.MCPSettings, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMCPSettings", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*domain.MCPSettings)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetMCPSettings indicates an expected call of SetMCPSettings.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetMCPSettings(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMCPSettings", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetMCPSettings), arg0, arg1, arg2)
+}
+
 // SetUserPermissions mocks base method.
 func (m *MockWorkspaceServiceInterface) SetUserPermissions(arg0 context.Context, arg1, arg2 string, arg3 domain.UserPermissions) error {
 	m.ctrl.T.Helper()

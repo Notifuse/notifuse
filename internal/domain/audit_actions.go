@@ -120,6 +120,7 @@ var AuditedActions = map[string]AuditActionSpec{
 	"workspaces.setCustomFieldLabels":    {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setWebAnalyticsSettings": {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setAuditLogSettings":     {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.setMCPSettings":          {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 
 	// members
 	"workspaces.inviteMember":       {Category: AuditCategoryMembers, TargetType: AuditTargetUser, TargetKey: "email"},

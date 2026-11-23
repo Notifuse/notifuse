@@ -102,7 +102,7 @@ msgstr "(predeterminado)"
 msgid "(empty)"
 msgstr "(vacío)"
 
-#: src/components/blog/PostDrawer.tsx:774
+#: src/components/blog/PostDrawer.tsx:775
 msgid "(has checks left)"
 msgstr "(quedan revisiones)"
 
@@ -1324,7 +1324,7 @@ msgstr "{providerName} · remitente predeterminado {email}"
 msgid "{providerName} has no default sender"
 msgstr "{providerName} no tiene remitente predeterminado"
 
-#: src/components/blog/PostDrawer.tsx:1081
+#: src/components/blog/PostDrawer.tsx:1082
 msgid "{readingTime} min read"
 msgstr "{readingTime} min de lectura"
 
@@ -1449,7 +1449,7 @@ msgstr "Libres: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} hora local"
 
-#: src/components/blog/PostDrawer.tsx:1115
+#: src/components/blog/PostDrawer.tsx:1116
 #: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, one {# por revisar} other {# por revisar}}"
@@ -2989,7 +2989,7 @@ msgstr "Todos los artículos"
 msgid "all sessions"
 msgstr "todas las sesiones"
 
-#: src/components/blog/PostDrawer.tsx:1118
+#: src/components/blog/PostDrawer.tsx:1119
 #: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
@@ -3050,7 +3050,7 @@ msgstr "También disponible: <0>un blog</0> para tu sitio."
 msgid "Also the image of a post or category without one; 1200 × 630 px"
 msgstr "También la imagen de artículos y categorías sin una propia; 1200 × 630 px"
 
-#: src/components/blog/PostDrawer.tsx:964
+#: src/components/blog/PostDrawer.tsx:965
 msgid "Also the share image when none is set"
 msgstr "También es la imagen para compartir si no hay otra"
 
@@ -3857,7 +3857,7 @@ msgstr "El nombre del autor es requerido"
 msgid "Authorization Secret"
 msgstr "Secreto de autorización"
 
-#: src/components/blog/PostDrawer.tsx:985
+#: src/components/blog/PostDrawer.tsx:986
 msgid "Authors"
 msgstr "Autores"
 
@@ -4433,7 +4433,7 @@ msgid "Blocks"
 msgstr "Bloques"
 
 #: src/components/blog/CategoryDrawer.tsx:218
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:836
 #: src/components/logs/labels.ts:20
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
@@ -4770,7 +4770,7 @@ msgid "Bridge Port"
 msgstr "Puerto del puente"
 
 #: src/components/blog/CategoryDrawer.tsx:290
-#: src/components/blog/PostDrawer.tsx:1002
+#: src/components/blog/PostDrawer.tsx:1003
 #: src/components/settings/BlogSettings.tsx:460
 msgid "Brief description for search results"
 msgstr "Breve descripción para resultados de búsqueda"
@@ -4779,7 +4779,7 @@ msgstr "Breve descripción para resultados de búsqueda"
 msgid "Brief description of this category"
 msgstr "Breve descripción de esta categoría"
 
-#: src/components/blog/PostDrawer.tsx:957
+#: src/components/blog/PostDrawer.tsx:958
 msgid "Brief summary of the post"
 msgstr "Breve resumen de la publicación"
 
@@ -5340,12 +5340,12 @@ msgstr "Mayúsculas/minúsculas"
 msgid "Categories"
 msgstr "Categorías"
 
-#: src/components/blog/PostDrawer.tsx:733
+#: src/components/blog/PostDrawer.tsx:734
 msgid "category"
 msgstr "categoria"
 
 #: src/components/blog/CategoryDrawer.tsx:229
-#: src/components/blog/PostDrawer.tsx:897
+#: src/components/blog/PostDrawer.tsx:898
 #: src/components/blog/PostsTable.tsx:325
 #: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/TemplateSelectorModal.tsx:444
@@ -5486,10 +5486,14 @@ msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "Cambió la configuración del blog de <0>{target}</0>"
 
 #: src/components/logs/auditPhrases.ts:100
+msgid "Changed the MCP access of <0>{target}</0>"
+msgstr "Cambió el acceso MCP de <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:101
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "Cambió los permisos de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:102
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "Cambió la configuración de analítica web de <0>{target}</0>"
 
@@ -7375,7 +7379,7 @@ msgstr "Crear notificación"
 msgid "Create Notification"
 msgstr "Crear notificación"
 
-#: src/components/blog/PostDrawer.tsx:822
+#: src/components/blog/PostDrawer.tsx:823
 msgid "Create post"
 msgstr "Crear artículo"
 
@@ -8101,12 +8105,12 @@ msgid "Default transactional"
 msgstr "Transaccional predeterminado"
 
 #: src/components/blog/CategoryDrawer.tsx:295
-#: src/components/blog/PostDrawer.tsx:1007
+#: src/components/blog/PostDrawer.tsx:1008
 msgid "Defaults to {fallbackShareTitle}"
 msgstr "Por defecto: {fallbackShareTitle}"
 
 #: src/components/blog/CategoryDrawer.tsx:289
-#: src/components/blog/PostDrawer.tsx:1001
+#: src/components/blog/PostDrawer.tsx:1002
 msgid "Defaults to {fallbackTitle}"
 msgstr "Por defecto: {fallbackTitle}"
 
@@ -8132,11 +8136,11 @@ msgstr "Por defecto: la descripción del blog"
 msgid "Defaults to the blog's share image"
 msgstr "Por defecto: la imagen para compartir del blog"
 
-#: src/components/blog/PostDrawer.tsx:717
+#: src/components/blog/PostDrawer.tsx:718
 msgid "Defaults to the category's or the blog's description"
 msgstr "Por defecto: la descripción de la categoría o del blog"
 
-#: src/components/blog/PostDrawer.tsx:722
+#: src/components/blog/PostDrawer.tsx:723
 msgid "Defaults to the category's or the blog's share image"
 msgstr "Por defecto: la imagen para compartir de la categoría o del blog"
 
@@ -8144,11 +8148,11 @@ msgstr "Por defecto: la imagen para compartir de la categoría o del blog"
 msgid "Defaults to the description"
 msgstr "Por defecto: la descripción"
 
-#: src/components/blog/PostDrawer.tsx:715
+#: src/components/blog/PostDrawer.tsx:716
 msgid "Defaults to the excerpt"
 msgstr "Por defecto: el extracto"
 
-#: src/components/blog/PostDrawer.tsx:720
+#: src/components/blog/PostDrawer.tsx:721
 msgid "Defaults to the featured image"
 msgstr "Por defecto: la imagen destacada"
 
@@ -8759,7 +8763,7 @@ msgstr "Vista de escritorio (100%)"
 msgid "Detail"
 msgstr "Detalle"
 
-#: src/components/blog/PostDrawer.tsx:849
+#: src/components/blog/PostDrawer.tsx:850
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "Detalles"
@@ -9149,7 +9153,7 @@ msgstr "Descargar las filas con error"
 #~ msgstr "{0} archivo(s) descargado(s)"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
-#: src/components/blog/PostDrawer.tsx:758
+#: src/components/blog/PostDrawer.tsx:759
 #: src/components/blog/PostsTable.tsx:348
 #: src/components/blog/ThemeEditorDrawer.tsx:483
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:199
@@ -9551,7 +9555,7 @@ msgstr "Editar permisos"
 msgid "Edit Permissions for {0}"
 msgstr "Editar permisos para {0}"
 
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:842
 msgid "Edit post"
 msgstr "Editar artículo"
 
@@ -9615,7 +9619,7 @@ msgstr "Edita el asunto en la plantilla"
 msgid "Edit the template"
 msgstr "Editar la plantilla"
 
-#: src/components/blog/PostDrawer.tsx:1070
+#: src/components/blog/PostDrawer.tsx:1071
 msgid "Edit the title in Details"
 msgstr "Editar el título en Detalles"
 
@@ -9659,7 +9663,7 @@ msgstr "Editar conexión de Zapier"
 #~ msgstr "Marcado editable"
 
 #. placeholder {0}: relative(post.updated_at)
-#: src/components/blog/PostDrawer.tsx:763
+#: src/components/blog/PostDrawer.tsx:764
 #: src/components/blog/PostsTable.tsx:272
 msgid "Edited {0}"
 msgstr "Editado {0}"
@@ -10746,7 +10750,7 @@ msgstr "Valor exacto"
 msgid "exactly"
 msgstr "exactamente"
 
-#: src/components/blog/PostDrawer.tsx:954
+#: src/components/blog/PostDrawer.tsx:955
 msgid "Excerpt"
 msgstr "Extracto"
 
@@ -11509,7 +11513,7 @@ msgid "Failed to update permissions"
 msgstr "Error al actualizar permisos"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:536
+#: src/components/blog/PostDrawer.tsx:537
 msgid "Failed to update post: {0}"
 msgstr "Error al actualizar publicación: {0}"
 
@@ -11572,8 +11576,8 @@ msgstr "Favicon"
 #~ msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 #~ msgstr "Favicon para tu blog. Recomendado: 32x32px o 192x192px PNG"
 
-#: src/components/blog/PostDrawer.tsx:963
-#: src/components/blog/PostDrawer.tsx:973
+#: src/components/blog/PostDrawer.tsx:964
+#: src/components/blog/PostDrawer.tsx:974
 msgid "Featured image"
 msgstr "Imagen destacada"
 
@@ -11879,7 +11883,7 @@ msgstr "Fijo una vez creado: las llamadas a la API lo envían"
 msgid "Fixed once created: its posts' links depend on it"
 msgstr "Fijo una vez creado: los enlaces de sus artículos dependen de él"
 
-#: src/components/blog/PostDrawer.tsx:938
+#: src/components/blog/PostDrawer.tsx:939
 msgid "Fixed once created: links to the post may already be shared"
 msgstr "Fijo una vez creado: puede que ya se hayan compartido enlaces al artículo"
 
@@ -11948,7 +11952,7 @@ msgstr "Sigue al nombre hasta que lo edites"
 msgid "Follows the name until you edit it. Lowercase letters, numbers and underscores"
 msgstr "Sigue al nombre hasta que lo edites. Letras minúsculas, números y guiones bajos"
 
-#: src/components/blog/PostDrawer.tsx:941
+#: src/components/blog/PostDrawer.tsx:942
 msgid "Follows the title until you edit it"
 msgstr "Sigue al título hasta que lo edites"
 
@@ -12823,7 +12827,7 @@ msgstr "Cuánto piensa un modelo de razonamiento. Predeterminado para otros mode
 msgid "How the category page appears in search results"
 msgstr "Cómo aparece la página de la categoría en los resultados de búsqueda"
 
-#: src/components/blog/PostDrawer.tsx:1000
+#: src/components/blog/PostDrawer.tsx:1001
 msgid "How the post appears in search results"
 msgstr "Cómo aparece el artículo en los resultados de búsqueda"
 
@@ -14970,7 +14974,7 @@ msgstr "Cargando configuración..."
 #~ msgid "Loading stats..."
 #~ msgstr "Cargando estadísticas..."
 
-#: src/components/blog/PostDrawer.tsx:1087
+#: src/components/blog/PostDrawer.tsx:1088
 msgid "Loading template..."
 msgstr "Cargando plantilla..."
 
@@ -15075,7 +15079,7 @@ msgid "Lowercase"
 msgstr "Minúsculas"
 
 #: src/components/blog/CategoryDrawer.tsx:268
-#: src/components/blog/PostDrawer.tsx:940
+#: src/components/blog/PostDrawer.tsx:941
 msgid "Lowercase letters, numbers and hyphens"
 msgstr "Minúsculas, números y guiones"
 
@@ -15541,7 +15545,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "Medio"
 
-#: src/components/blog/PostDrawer.tsx:913
+#: src/components/blog/PostDrawer.tsx:914
 msgid "min"
 msgstr "min"
 
@@ -16025,8 +16029,8 @@ msgstr "Nuevo código mágico enviado a tu correo"
 msgid "New notification"
 msgstr "Nueva notificación"
 
-#: src/components/blog/PostDrawer.tsx:749
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:750
+#: src/components/blog/PostDrawer.tsx:842
 #: src/components/blog/PostsTable.tsx:547
 msgid "New post"
 msgstr "Nuevo artículo"
@@ -16143,7 +16147,7 @@ msgstr "Siguiente paso"
 
 #: src/components/automations/edges/edgeLabel.ts:34
 #: src/components/blog/PostDrawer.tsx:307
-#: src/components/blog/PostDrawer.tsx:587
+#: src/components/blog/PostDrawer.tsx:588
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/useBroadcastActions.tsx:174
 #: src/components/broadcasts/useBroadcastActions.tsx:180
@@ -16437,7 +16441,7 @@ msgstr "Sin errores"
 msgid "No failure"
 msgstr "Sin fallos"
 
-#: src/components/blog/PostDrawer.tsx:978
+#: src/components/blog/PostDrawer.tsx:979
 msgid "No featured image"
 msgstr "Sin imagen destacada"
 
@@ -17032,7 +17036,7 @@ msgid "Not counted beyond {countMax}"
 msgstr "No se cuentan más allá de {countMax}"
 
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:752
+#: src/components/blog/PostDrawer.tsx:753
 #: src/components/blog/ThemeEditorDrawer.tsx:479
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
@@ -17502,7 +17506,7 @@ msgstr "En la tarjeta y en cada selector de remitente"
 msgid "On the card, and on the notifications it creates"
 msgstr "En la tarjeta y en las notificaciones que crea"
 
-#: src/components/blog/PostDrawer.tsx:1041
+#: src/components/blog/PostDrawer.tsx:1042
 msgid "On this page"
 msgstr "En esta página"
 
@@ -18630,7 +18634,7 @@ msgstr "Opciones de reproducción"
 msgid "Playback Options"
 msgstr "Opciones de reproducción"
 
-#: src/components/blog/PostDrawer.tsx:990
+#: src/components/blog/PostDrawer.tsx:991
 msgid "Please add at least one author"
 msgstr "Por favor, añade al menos un autor"
 
@@ -18642,7 +18646,7 @@ msgstr "Por favor, añade al menos un remitente antes de guardar"
 #~ msgid "Please check the form for errors"
 #~ msgstr "Por favor, verifica el formulario en busca de errores"
 
-#: src/components/blog/PostDrawer.tsx:863
+#: src/components/blog/PostDrawer.tsx:864
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:378
 msgid "Please check the form for errors."
 msgstr "Por favor, verifica el formulario en busca de errores."
@@ -18699,7 +18703,7 @@ msgstr "Por favor, introduce un nombre"
 msgid "Please enter a notification name"
 msgstr "Por favor, introduce un nombre de notificación"
 
-#: src/components/blog/PostDrawer.tsx:888
+#: src/components/blog/PostDrawer.tsx:889
 msgid "Please enter a post title"
 msgstr "Por favor, introduce un título de publicación"
 
@@ -18716,7 +18720,7 @@ msgstr "Por favor, introduce un límite de envío"
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:260
-#: src/components/blog/PostDrawer.tsx:929
+#: src/components/blog/PostDrawer.tsx:930
 msgid "Please enter a slug"
 msgstr "Por favor, introduce un slug"
 
@@ -18786,7 +18790,7 @@ msgstr "Por favor, introduce una dirección de correo"
 msgid "Please enter integration name"
 msgstr "Por favor, introduce el nombre de integración"
 
-#: src/components/blog/PostDrawer.tsx:911
+#: src/components/blog/PostDrawer.tsx:912
 msgid "Please enter reading time"
 msgstr "Por favor, introduce el tiempo de lectura"
 
@@ -18811,7 +18815,7 @@ msgstr "¡Por favor introduce el código mágico!"
 msgid "Please input your email!"
 msgstr "¡Por favor introduce tu correo!"
 
-#: src/components/blog/PostDrawer.tsx:898
+#: src/components/blog/PostDrawer.tsx:899
 msgid "Please select a category"
 msgstr "Por favor, selecciona una categoría"
 
@@ -18952,7 +18956,7 @@ msgstr "Posición X"
 msgid "Position Y"
 msgstr "Posición Y"
 
-#: src/components/blog/PostDrawer.tsx:883
+#: src/components/blog/PostDrawer.tsx:884
 #: src/components/blog/PostsTable.tsx:290
 #: src/components/blog/ThemeEditorDrawer.tsx:430
 msgid "Post"
@@ -18970,7 +18974,7 @@ msgstr "Publicación eliminada exitosamente"
 msgid "Post published successfully"
 msgstr "Publicación publicada exitosamente"
 
-#: src/components/blog/PostDrawer.tsx:892
+#: src/components/blog/PostDrawer.tsx:893
 msgid "Post title"
 msgstr "Título de publicación"
 
@@ -19413,7 +19417,7 @@ msgstr "Publicar el tema v{themeVersion}"
 msgid "Publish this theme"
 msgstr "Publicar este tema"
 
-#: src/components/blog/PostDrawer.tsx:754
+#: src/components/blog/PostDrawer.tsx:755
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
 #: src/components/blog/PostsTable.tsx:433
@@ -19738,7 +19742,7 @@ msgstr "Lee la guía de configuración de Zapier"
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:910
+#: src/components/blog/PostDrawer.tsx:911
 msgid "Reading time"
 msgstr "Tiempo de lectura"
 
@@ -19931,8 +19935,8 @@ msgstr "URI de redirección copiada"
 
 #: src/components/automations/AutomationEditor.tsx:482
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:793
-#: src/components/blog/PostDrawer.tsx:796
+#: src/components/blog/PostDrawer.tsx:794
+#: src/components/blog/PostDrawer.tsx:797
 #: src/components/email_builder/EmailBuilder.tsx:1126
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
@@ -21116,7 +21120,7 @@ msgstr "Guardar como nueva versión"
 #~ msgstr "Guardar bloque"
 
 #: src/components/blog/CategoryDrawer.tsx:205
-#: src/components/blog/PostDrawer.tsx:822
+#: src/components/blog/PostDrawer.tsx:823
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
@@ -21270,7 +21274,7 @@ msgstr "Programar o enviar inmediatamente un envío masivo a toda su audiencia"
 msgid "Schedule timezone"
 msgstr "Zona horaria de la programación"
 
-#: src/components/blog/PostDrawer.tsx:756
+#: src/components/blog/PostDrawer.tsx:757
 #: src/components/blog/PostsTable.tsx:346
 #: src/components/blog/PostsTable.tsx:434
 #: src/components/broadcasts/compose/SendingCard.tsx:39
@@ -21355,7 +21359,7 @@ msgstr "Buscar un modelo"
 
 #: src/components/blog/category/CategoryChecks.tsx:33
 #: src/components/blog/post/PostChecks.tsx:13
-#: src/components/blog/PostDrawer.tsx:1112
+#: src/components/blog/PostDrawer.tsx:1113
 msgid "Search and share"
 msgstr "Búsqueda y compartir"
 
@@ -21679,7 +21683,7 @@ msgstr "Selecciona un bloque para editar sus atributos"
 msgid "Select a broadcast"
 msgstr "Selecciona un envío masivo"
 
-#: src/components/blog/PostDrawer.tsx:901
+#: src/components/blog/PostDrawer.tsx:902
 msgid "Select a category"
 msgstr "Selecciona una categoría"
 
@@ -22957,7 +22961,7 @@ msgstr "Se muestra arriba en la página de la categoría"
 msgid "Shown if"
 msgstr "Visible si"
 
-#: src/components/blog/PostDrawer.tsx:955
+#: src/components/blog/PostDrawer.tsx:956
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "Se muestra en las listas de artículos, y como descripción si no hay meta descripción"
 
@@ -23177,18 +23181,18 @@ msgstr "Espacios"
 
 #: src/components/blog/CategoryDrawer.tsx:252
 #: src/components/blog/CategoryDrawer.tsx:256
-#: src/components/blog/PostDrawer.tsx:921
-#: src/components/blog/PostDrawer.tsx:925
+#: src/components/blog/PostDrawer.tsx:922
+#: src/components/blog/PostDrawer.tsx:926
 msgid "Slug"
 msgstr "Slug"
 
 #: src/components/blog/CategoryDrawer.tsx:262
-#: src/components/blog/PostDrawer.tsx:934
+#: src/components/blog/PostDrawer.tsx:935
 msgid "Slug must be less than 100 characters"
 msgstr "El slug debe tener menos de 100 caracteres"
 
 #: src/components/blog/CategoryDrawer.tsx:261
-#: src/components/blog/PostDrawer.tsx:932
+#: src/components/blog/PostDrawer.tsx:933
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "El slug solo debe contener letras minúsculas, números y guiones"
 
@@ -23572,7 +23576,7 @@ msgstr "Empieza a escribir..."
 #~ msgid "Start Upload"
 #~ msgstr "Iniciar subida"
 
-#: src/components/blog/PostDrawer.tsx:1094
+#: src/components/blog/PostDrawer.tsx:1095
 msgid "Start writing your blog post..."
 msgstr "Empieza a escribir tu publicación de blog..."
 
@@ -23681,7 +23685,7 @@ msgid "Step status"
 msgstr "Estado del paso"
 
 #: src/components/automations/list/AutomationsTable.tsx:151
-#: src/components/blog/PostDrawer.tsx:847
+#: src/components/blog/PostDrawer.tsx:848
 #: src/components/templates/TemplateDrawerBar.tsx:89
 msgid "Steps"
 msgstr "Pasos"
@@ -24091,7 +24095,7 @@ msgstr "Configuración del sistema"
 msgid "System SMTP"
 msgstr "SMTP del sistema"
 
-#: src/components/blog/PostDrawer.tsx:1037
+#: src/components/blog/PostDrawer.tsx:1038
 msgid "Table of Contents"
 msgstr "Tabla de contenidos"
 
@@ -25825,8 +25829,8 @@ msgstr "Este permiso no controla ningún endpoint hoy en día."
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "Este permiso todavía no se aplica, así que siempre está concedido. No se puede desactivar."
 
-#: src/components/blog/PostDrawer.tsx:1104
-#: src/components/blog/PostDrawer.tsx:1106
+#: src/components/blog/PostDrawer.tsx:1105
+#: src/components/blog/PostDrawer.tsx:1107
 msgid "This post"
 msgstr "Este artículo"
 
@@ -26158,7 +26162,7 @@ msgstr "Zona horaria:"
 #~ msgid "Tips for fixing these errors:"
 #~ msgstr "Consejos para corregir estos errores:"
 
-#: src/components/blog/PostDrawer.tsx:886
+#: src/components/blog/PostDrawer.tsx:887
 #: src/components/blog/PostsTable.tsx:565
 #: src/components/settings/BlogSettings.tsx:253
 #: src/components/settings/BlogSettings.tsx:390
@@ -26174,7 +26178,7 @@ msgstr "El título es obligatorio"
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr "El título debe tener {MAX_TITLE_LENGTH} caracteres o menos"
 
-#: src/components/blog/PostDrawer.tsx:889
+#: src/components/blog/PostDrawer.tsx:890
 msgid "Title must be less than 500 characters"
 msgstr "El título debe tener menos de 500 caracteres"
 
@@ -26792,8 +26796,8 @@ msgstr "Entiende la calidad de las referencias"
 
 #: src/components/automations/AutomationEditor.tsx:479
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:784
-#: src/components/blog/PostDrawer.tsx:787
+#: src/components/blog/PostDrawer.tsx:785
+#: src/components/blog/PostDrawer.tsx:788
 #: src/components/email_builder/EmailBuilder.tsx:1052
 #: src/components/email_builder/EmailBuilder.tsx:1119
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
@@ -26921,8 +26925,8 @@ msgstr "Despublicó la entrada del blog <0>{target}</0>"
 
 #: src/components/automations/AutomationEditor.tsx:463
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:584
-#: src/components/blog/PostDrawer.tsx:761
+#: src/components/blog/PostDrawer.tsx:585
+#: src/components/blog/PostDrawer.tsx:762
 #: src/components/blog/ThemeEditorDrawer.tsx:485
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
@@ -27048,7 +27052,7 @@ msgstr "Sin título"
 msgid "Untitled automation"
 msgstr "Automatización sin título"
 
-#: src/components/blog/PostDrawer.tsx:1075
+#: src/components/blog/PostDrawer.tsx:1076
 msgid "Untitled post"
 msgstr "Artículo sin título"
 
@@ -27155,7 +27159,7 @@ msgstr "Actualizó la entrada del blog <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "Actualizó el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:104
 msgid "Updated the integration <0>{target}</0>"
 msgstr "Actualizó la integración <0>{target}</0>"
 
@@ -27203,7 +27207,7 @@ msgstr "Actualizó la notificación transaccional <0>{target}</0>"
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Actualizó el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:103
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Actualizó la configuración del espacio de trabajo <0>{target}</0>"
 
@@ -27819,7 +27823,7 @@ msgstr "Ver mensajes"
 msgid "View page"
 msgstr "Ver página"
 
-#: src/components/blog/PostDrawer.tsx:812
+#: src/components/blog/PostDrawer.tsx:813
 msgid "View post"
 msgstr "Ver artículo"
 
@@ -28286,7 +28290,7 @@ msgstr "Cuando se comparte un enlace al blog"
 msgid "When a link to the category is shared"
 msgstr "Cuando se comparte un enlace a la categoría"
 
-#: src/components/blog/PostDrawer.tsx:1006
+#: src/components/blog/PostDrawer.tsx:1007
 msgid "When a link to the post is shared"
 msgstr "Cuando se comparte un enlace al artículo"
 
@@ -28583,7 +28587,7 @@ msgstr "Sin email válido"
 msgid "Without its own text, this language receives the automatic version."
 msgstr "Sin texto propio, este idioma recibe la versión automática."
 
-#: src/components/blog/PostDrawer.tsx:1108
+#: src/components/blog/PostDrawer.tsx:1109
 msgid "Words"
 msgstr "Palabras"
 
@@ -28702,7 +28706,7 @@ msgstr ""
 #~ msgid "Wrapper Attributes"
 #~ msgstr "Atributos del contenedor"
 
-#: src/components/blog/PostDrawer.tsx:850
+#: src/components/blog/PostDrawer.tsx:851
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -28751,7 +28755,7 @@ msgstr "Anual"
 
 #: src/components/automations/edges/edgeLabel.ts:33
 #: src/components/blog/PostDrawer.tsx:306
-#: src/components/blog/PostDrawer.tsx:586
+#: src/components/blog/PostDrawer.tsx:587
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/useBroadcastActions.tsx:199
 #: src/components/contacts/ContactUpsertDrawer.tsx:559
@@ -28921,7 +28925,7 @@ msgstr "No tienes permiso de escritura para las analíticas web"
 msgid "You have unsaved changes."
 msgstr "Tienes cambios sin guardar."
 
-#: src/components/blog/PostDrawer.tsx:585
+#: src/components/blog/PostDrawer.tsx:586
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Tienes cambios sin guardar. ¿Estás seguro de que quieres cerrar este cajón?"
 
