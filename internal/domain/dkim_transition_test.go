@@ -85,10 +85,10 @@ func TestEvaluateDKIMCheck_PublishedKeyStopsAtTheThirdSpacedFailure(t *testing.T
 	assert.Equal(t, DKIMKeyStatusPublished, key.Status, "1/3, still signing")
 
 	step(DKIMCheckResultNotFound, 10*time.Minute)
-	step(DKIMCheckResultMismatch, 49*time.Minute)
-	assert.Equal(t, 1, key.ConsecutiveFailures, "failures less than an hour after the counted one are not counted")
+	step(DKIMCheckResultMismatch, 44*time.Minute)
+	assert.Equal(t, 1, key.ConsecutiveFailures, "failures well under an hour after the counted one are not counted")
 
-	step(DKIMCheckResultNotFound, time.Minute) // 1h after the first counted one
+	step(DKIMCheckResultNotFound, time.Minute) // 55 minutes after: an hourly check a little early
 	assert.Equal(t, 2, key.ConsecutiveFailures)
 	step(DKIMCheckResultDNSError, 2*time.Hour)
 	assert.Equal(t, 2, key.ConsecutiveFailures)

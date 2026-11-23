@@ -10,6 +10,9 @@ const (
 	// record removed for a few minutes, or a burst of manual checks, does not stop
 	// signing.
 	DKIMFailureSpacing = time.Hour
+	// DKIMFailureSpacingSlack lets an hourly check that comes a few seconds early, after
+	// a slower lookup the time before, still count: the periodic check runs every hour.
+	DKIMFailureSpacingSlack = 5 * time.Minute
 )
 
 // EvaluateDKIMCheck applies one lookup of a key's record to the key. The manual check
@@ -52,7 +55,7 @@ func EvaluateDKIMCheck(key DKIMKey, result DKIMCheckResult, detail string, now t
 			updated.Status = failed
 			break
 		}
-		if key.LastCountedFailureAt == nil || now.Sub(*key.LastCountedFailureAt) >= DKIMFailureSpacing {
+		if key.LastCountedFailureAt == nil || now.Sub(*key.LastCountedFailureAt) >= DKIMFailureSpacing-DKIMFailureSpacingSlack {
 			updated.ConsecutiveFailures = key.ConsecutiveFailures + 1
 			updated.LastCountedFailureAt = &now
 		}

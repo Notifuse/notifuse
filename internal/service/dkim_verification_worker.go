@@ -28,8 +28,8 @@ const (
 	// dkimSlowAfter is how long a key may go unpublished before it is checked daily.
 	dkimSlowAfter = 14 * 24 * time.Hour
 	// dkimTickSlack lets a key due at the hour be checked at an hourly tick that comes a
-	// little early.
-	dkimTickSlack = 5 * time.Minute
+	// little early. The same slack counts its failure (domain.DKIMFailureSpacingSlack).
+	dkimTickSlack = domain.DKIMFailureSpacingSlack
 	// dkimLongDNSError is how long a published key may go without a successful check
 	// before its DNS errors are logged as a warning.
 	dkimLongDNSError = 72 * time.Hour
