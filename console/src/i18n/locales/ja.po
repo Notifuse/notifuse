@@ -340,7 +340,7 @@ msgstr "{0, plural, other {テキスト #}}"
 #. placeholder {0}: e.unsubscribed
 #: src/components/automations/stats/EmailStepStats.tsx:66
 msgid "{0, plural, one {# unsubscribe} other {# unsubscribes}}"
-msgstr "{0, plural, other {#件配信停止}}"
+msgstr "{0, plural, other {#件購読解除}}"
 
 #. placeholder {0}: data.behind
 #: src/components/updates/UpdateCard.tsx:31
@@ -2217,7 +2217,7 @@ msgstr "未完了のインポートについて"
 
 #: src/components/broadcasts/compose/AudienceCard.tsx:121
 msgid "About unsubscribed recipients"
-msgstr "配信停止した受信者について"
+msgstr "購読解除した受信者について"
 
 #: src/pages/AcceptInvitationPage.tsx:170
 msgid "Accept Invitation"
@@ -2732,11 +2732,11 @@ msgstr "住所2"
 
 #: src/components/templates/SendTemplateModal.tsx:385
 msgid "Adds this list's unsubscribe links and the List-Unsubscribe header, as a broadcast to this list does. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
-msgstr "このリストへのブロードキャストと同じく、このリストの配信停止リンクとList-Unsubscribeヘッダーを追加します。このテストからの配信停止や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
+msgstr "このリストへのブロードキャストと同じく、このリストの購読解除リンクとList-Unsubscribeヘッダーを追加します。このテストからの購読解除や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
 
 #: src/components/templates/SendTemplateModal.tsx:384
 msgid "Adds this list's unsubscribe links, as the broadcast does. The broadcast also goes to the list's unsubscribed contacts, so the test carries no List-Unsubscribe header. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
-msgstr "ブロードキャストと同じく、このリストの配信停止リンクを追加します。ブロードキャストはリストの配信停止済みのコンタクトにも送られるため、テストにList-Unsubscribeヘッダーは付きません。このテストからの配信停止や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
+msgstr "ブロードキャストと同じく、このリストの購読解除リンクを追加します。ブロードキャストはリストの購読解除済みのコンタクトにも送られるため、テストにList-Unsubscribeヘッダーは付きません。このテストからの購読解除や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
 
 #: src/pages/SetupWizard.tsx:369
 #~ msgid "Admin email is required"
@@ -7280,7 +7280,7 @@ msgstr "メールテンプレートを作成"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:260
 msgid "Create an SES tenant for this integration?"
-msgstr "このインテグレーション用のSESテナントを作成しますか？"
+msgstr "この連携用のSESテナントを作成しますか？"
 
 #: src/components/blog/PostsTable.tsx:409
 #~ msgid "Create and manage your blog content"
@@ -8299,7 +8299,7 @@ msgstr "オートメーションを削除し、現在その中にいるすべて
 
 #: src/services/api/permissions.ts:1001
 msgid "Delete an integration sync task"
-msgstr "インテグレーションの同期タスクを削除する"
+msgstr "連携の同期タスクを削除する"
 
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:81
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:135
@@ -14068,7 +14068,7 @@ msgstr "確認リンクを残してください：{CONFIRM_VARIABLE}。"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:207
 msgid "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
-msgstr "配信停止リンクを残してください：{UNSUBSCRIBE_VARIABLE}。"
+msgstr "購読解除リンクを残してください：{UNSUBSCRIBE_VARIABLE}。"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:587
 #: src/components/contacts/csv-import/ImportProgress.tsx:74
@@ -14344,7 +14344,7 @@ msgstr "空欄にすると、ブロードキャストのオーディエンスか
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:483
 msgid "Leave empty to use the one Notifuse manages for this integration."
-msgstr "空欄にすると、このインテグレーション用にNotifuseが管理しているものが使用されます。"
+msgstr "空欄にすると、この連携用にNotifuseが管理しているものが使用されます。"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:269
 msgid "Leave without saving?"
@@ -15111,7 +15111,7 @@ msgstr "Mailjet › Account settings › API keys"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:774
 msgid "Mailjet rewrites unsubscribe links, so it can send transactional emails only."
-msgstr "Mailjetは配信停止リンクを書き換えるため、トランザクションメールのみ送信できます。"
+msgstr "Mailjetは購読解除リンクを書き換えるため、トランザクションメールのみ送信できます。"
 
 #: src/components/settings/BlogSettings.tsx:349
 #~ msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
@@ -15914,7 +15914,7 @@ msgstr "先に必要: ブログはそのルートで配信されます"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:467
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
-msgstr "次の追加のIAM権限が必要です: ses:CreateTenant、ses:CreateTenantResourceAssociation、ses:GetTenant、ses:PutTenantSuppressionAttributes、ses:ListEmailIdentities。下の選択リストのためにses:ListTenantsとses:ListTenantResourcesを、またテナントが永久に課金され続けるのではなくインテグレーションとともに削除されるようにses:DeleteTenantとses:DeleteTenantResourceAssociationを追加してください。"
+msgstr "次の追加のIAM権限が必要です: ses:CreateTenant、ses:CreateTenantResourceAssociation、ses:GetTenant、ses:PutTenantSuppressionAttributes、ses:ListEmailIdentities。下の選択リストのためにses:ListTenantsとses:ListTenantResourcesを、またテナントが永久に課金され続けるのではなく連携とともに削除されるようにses:DeleteTenantとses:DeleteTenantResourceAssociationを追加してください。"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:170
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:175
@@ -16940,7 +16940,7 @@ msgstr "なし"
 
 #: src/components/templates/SendTemplateModal.tsx:392
 msgid "None (no unsubscribe link)"
-msgstr "なし（配信停止リンクなし）"
+msgstr "なし（購読解除リンクなし）"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:141
 #: src/components/email_builder/ui/fields/FontFields.tsx:158
@@ -17262,7 +17262,7 @@ msgstr "Notifuseの準備ができました"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:261
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
-msgstr "NotifuseはあなたのAWSアカウントにテナントを作成し、専用の抑制リストを与え、このインテグレーションのコンフィギュレーションセットと送信者IDを関連付けます。AWSはテナントごとに月額で、送信量に応じて課金されます。"
+msgstr "NotifuseはあなたのAWSアカウントにテナントを作成し、専用の抑制リストを与え、この連携のコンフィギュレーションセットと送信者IDを関連付けます。AWSはテナントごとに月額で、送信量に応じて課金されます。"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:494
 msgid "notifuse-…"
@@ -17512,7 +17512,7 @@ msgstr "1つの列にメールアドレスが入っている必要がありま�
 
 #: src/services/api/permissions.ts:956
 msgid "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
-msgstr "エンドポイントは1つですが、それがアシスタント全体です: /api/llm.chatはワークスペース自身のプロバイダーインテグレーションを通じて、ワークスペース自身の課金でストリーミングします。Firecrawlのインテグレーションが設定されている場合は、アシスタントがサーバーからスクレイピングと検索のツールを実行することも可能になります。つまりこの付与は、あなたの認証情報を通じてオープンなWebにまで及びます。"
+msgstr "エンドポイントは1つですが、それがアシスタント全体です: /api/llm.chatはワークスペース自身のプロバイダー連携を通じて、ワークスペース自身の課金でストリーミングします。Firecrawlの連携が設定されている場合は、アシスタントがサーバーからスクレイピングと検索のツールを実行することも可能になります。つまりこの付与は、あなたの認証情報を通じてオープンなWebにまで及びます。"
 
 #: src/components/broadcasts/compose/AdvancedRow.tsx:74
 msgid "One HTTPS call per contact before sending, in the recipient_feed variable"
@@ -18762,7 +18762,7 @@ msgstr "メールアドレスを入力してください"
 #: src/components/integrations/LLMIntegration.tsx:183
 #: src/components/integrations/SupabaseIntegration.tsx:179
 msgid "Please enter integration name"
-msgstr "インテグレーション名を入力してください"
+msgstr "連携名を入力してください"
 
 #: src/components/blog/PostDrawer.tsx:911
 msgid "Please enter reading time"
@@ -19542,7 +19542,7 @@ msgstr "ブロードキャストのA/Bテスト結果を読み取る"
 
 #: src/services/api/permissions.ts:977
 msgid "Read an integration sync task's state and progress"
-msgstr "インテグレーションの同期タスクの状態と進捗を読み取る"
+msgstr "連携の同期タスクの状態と進捗を読み取る"
 
 #: src/components/settings/LicenseSettings.tsx:180
 #~ msgid "Read and write"
@@ -20420,7 +20420,7 @@ msgstr "レピュテーション"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:288
 msgid "Reputation isolation is active for this integration"
-msgstr "このインテグレーションではレピュテーション分離が有効です"
+msgstr "この連携ではレピュテーション分離が有効です"
 
 #. placeholder {0}: result.unverified_senders.join(', ')
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:285
@@ -20504,7 +20504,7 @@ msgstr "送信タスクをリセットし、ブロードキャストを最初か
 
 #: src/services/api/permissions.ts:997
 msgid "Reset an integration sync task so it re-runs from the start"
-msgstr "インテグレーションの同期タスクをリセットし、最初から再実行させる"
+msgstr "連携の同期タスクをリセットし、最初から再実行させる"
 
 #: src/components/blog_editor/menus/block-actions/TransformOptionsGroup.tsx:46
 msgid "Reset formatting"
@@ -20889,7 +20889,7 @@ msgstr "`webhook_deliveries` スキーマに対して集計クエリを実行す
 
 #: src/services/api/permissions.ts:993
 msgid "Run an integration sync task immediately"
-msgstr "インテグレーションの同期タスクを直ちに実行する"
+msgstr "連携の同期タスクを直ちに実行する"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:191
 #: src/components/web_analytics/filters/BackfillStatus.tsx:202
@@ -21499,7 +21499,7 @@ msgstr "プレビューで確認"
 
 #: src/services/api/permissions.ts:973
 msgid "See integration sync tasks; a listing that names no type is narrowed to the types you may read"
-msgstr "インテグレーションの同期タスクを参照する。タイプを指定しない一覧は、読み取りを許可されたタイプのみに絞り込まれる"
+msgstr "連携の同期タスクを参照する。タイプを指定しない一覧は、読み取りを許可されたタイプのみに絞り込まれる"
 
 #: src/services/api/permissions.ts:264
 msgid "See segment build and recompute tasks; a listing that names no type is narrowed to the types you may read"
@@ -21980,7 +21980,7 @@ msgstr "指定した1件のアドレスにブロードキャストを送信す�
 
 #: src/services/api/permissions.ts:661
 msgid "Send a real test email through a chosen integration and sender; it also needs Templates read, cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read"
-msgstr "選択したインテグレーションと送信者を使って実際のテストメールを送信する。テンプレートの読み取りも必要で、ccまたはbccを使う場合は追加でコンタクトの読み取りが、リスト向けに送信する場合はリストの読み取りが必要"
+msgstr "選択した連携と送信者を使って実際のテストメールを送信する。テンプレートの読み取りも必要で、ccまたはbccを使う場合は追加でコンタクトの読み取りが、リスト向けに送信する場合はリストの読み取りが必要"
 
 #: src/services/api/permissions.ts:665
 #~ msgid "Send a real test email through the workspace's stored provider credentials"
@@ -22001,7 +22001,7 @@ msgstr "テストメールを送信"
 
 #: src/services/api/permissions.ts:337
 msgid "Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)"
-msgstr "リスト向けのテストメールを、そのリストの有効な配信停止リンク付きで送信する (トランザクションの書き込みも必要)"
+msgstr "リスト向けのテストメールを、そのリストの有効な購読解除リンク付きで送信する (トランザクションの書き込みも必要)"
 
 #: src/components/templates/SendTemplateModal.tsx:334
 msgid "Send a test email using this template to verify how it will look."
@@ -24652,7 +24652,7 @@ msgstr "フォントのCSSファイルのアドレス、またはLiquidの出力
 
 #: src/services/api/permissions.ts:943
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
-msgstr "AIアシスタント: ワークスペースに設定されたLLMインテグレーションを介したチャットと、それが呼び出し得るサーバー側のツール。"
+msgstr "AIアシスタント: ワークスペースに設定されたLLM連携を介したチャットと、それが呼び出し得るサーバー側のツール。"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:163
 msgid "The API endpoint has changed. After restart, the console will be available at:"
@@ -24879,7 +24879,7 @@ msgstr "カスタムテキスト版（{languages}）に確認リンクがあり�
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1104
 msgid "The custom text version ({languages}) has no unsubscribe link. Add {UNSUBSCRIBE_VARIABLE} so recipients can unsubscribe."
-msgstr "カスタムテキスト版（{languages}）に配信停止リンクがありません。受信者が配信停止できるよう {UNSUBSCRIBE_VARIABLE} を追加してください。"
+msgstr "カスタムテキスト版（{languages}）に購読解除リンクがありません。受信者が購読解除できるよう {UNSUBSCRIBE_VARIABLE} を追加してください。"
 
 #: src/components/analytics/DashboardKpis.tsx:212
 msgid "The dashboard counts complete days; today's emails show tomorrow"
@@ -26953,7 +26953,7 @@ msgstr "購読解除済み"
 
 #: src/components/automations/describeTrigger.ts:75
 msgid "Unsubscribed from {list}"
-msgstr "{list} から配信停止"
+msgstr "{list} から購読解除"
 
 #: src/components/contacts/sheet/describeActivity.tsx:150
 #: src/components/contacts/sheet/describeActivity.tsx:188
@@ -26965,7 +26965,7 @@ msgstr "{name} の購読を解除"
 #: src/components/segment/segmentSummary.ts:116
 #: src/components/segment/timelineKindLabels.ts:15
 msgid "Unsubscribed from an email"
-msgstr "メールから配信停止"
+msgstr "メールから購読解除"
 
 #: src/pages/ContactsPage.tsx:588
 #~ msgid "Unsubscribed from list"
@@ -28516,7 +28516,7 @@ msgstr "対象"
 
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
-msgstr "リストを選ばない場合、テストメールには有効な配信停止リンクもList-Unsubscribeヘッダーも含まれません。"
+msgstr "リストを選ばない場合、テストメールには有効な購読解除リンクもList-Unsubscribeヘッダーも含まれません。"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:453
 msgid "Without a valid email"
@@ -28626,7 +28626,7 @@ msgstr "ワークスペース設定が正常に更新されました"
 
 #: src/services/api/permissions.ts:1005
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, creating, updating or deleting an integration, and testing an email provider, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
-msgstr "ワークスペースの書き込みは、その名前が示すよりもはるかに限定的です: これが制御する唯一のワークスペースのエンドポイントは /api/workspaces.setCustomFieldLabelsです。ワークスペースの名称変更や削除、インテグレーションの作成・更新・削除、メールプロバイダーのテストはオーナー専用であり、権限を一切参照しません — これを付与してもそれらは与えられませんし、オーナーはこれがなくても行えます。/api/workspaces.listも制御されていません: このスイッチの状態にかかわらず、自分が所属するワークスペースを返します。ワークスペース設定のように見える2つの設定エンドポイントは別の権限に従います — /api/workspaces.setBlogSettingsはブログの書き込みに、/api/workspaces.setWebAnalyticsSettingsはWebアナリティクスの書き込みに従います。"
+msgstr "ワークスペースの書き込みは、その名前が示すよりもはるかに限定的です: これが制御する唯一のワークスペースのエンドポイントは /api/workspaces.setCustomFieldLabelsです。ワークスペースの名称変更や削除、連携の作成・更新・削除、メールプロバイダーのテストはオーナー専用であり、権限を一切参照しません — これを付与してもそれらは与えられませんし、オーナーはこれがなくても行えます。/api/workspaces.listも制御されていません: このスイッチの状態にかかわらず、自分が所属するワークスペースを返します。ワークスペース設定のように見える2つの設定エンドポイントは別の権限に従います — /api/workspaces.setBlogSettingsはブログの書き込みに、/api/workspaces.setWebAnalyticsSettingsはWebアナリティクスの書き込みに従います。"
 
 #: src/pages/AcceptInvitationPage.tsx:150
 msgid "Workspace:"
