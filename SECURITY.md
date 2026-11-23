@@ -74,14 +74,16 @@ are strongly encouraged to track the latest release. See
   broadcast data feeds, outgoing webhooks (subscriptions and automation webhook
   nodes), and link/favicon previews. All of them are SSRF-protected by default:
   private, loopback, link-local and reserved targets are refused at dial time,
-  on the first hop and on every redirect. Two settings relax this, each scoped
-  to one feature and both off by default —
-  `BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS` for data feeds and
-  `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS` for outgoing webhooks. Leave them
-  disabled unless you deliberately target your own internal network.
-  Integration endpoints that only workspace owners configure — an
-  OpenAI-compatible or Firecrawl base URL, a SparkPost endpoint, S3, an SMTP
-  host — are not restricted, because they often point at internal services
-  such as a local LLM; grant the owner role accordingly.
+  on the first hop and on every redirect. So is the file storage (S3) endpoint
+  an owner configures, which the server calls when any member lists, deletes or
+  uploads files. Three settings relax this, each scoped to one feature and all
+  off by default: `BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS` for data feeds,
+  `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS` for outgoing webhooks and
+  `FILE_STORAGE_ALLOW_PRIVATE_HOSTS` for a bucket on your own network (MinIO,
+  selfhost_s3). Leave them disabled unless you deliberately target your own
+  internal network. Integration endpoints that only workspace owners configure
+  and only owners trigger (an OpenAI-compatible or Firecrawl base URL, a
+  SparkPost endpoint, an SMTP host) are not restricted, because they often point
+  at internal services such as a local LLM; grant the owner role accordingly.
 - Grant workspace members the least privilege necessary; many privileged actions
   require resource-specific write permissions.

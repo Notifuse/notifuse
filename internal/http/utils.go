@@ -290,32 +290,13 @@ func writeServiceError(w http.ResponseWriter, err error, fallback string) bool {
 	return false
 }
 
-// redactWorkspaceForCaller strips a workspace of what the caller must not see.
-// Every endpoint that serialises a Workspace goes through it, so the rule lives
-// in one place instead of being re-derived per handler.
-//
-// Two layers, because two very different callers ask for the same object.
-// Workspace.Redact drops the decrypted integration credentials for everyone — no
-// client has ever needed them. The S3 file-manager secret is the single credential
-// Redact deliberately keeps, and it keeps it for exactly one reader: the console
-// builds an S3 client in the browser from that field and talks to the bucket
-// directly, so blanking it unconditionally would break the file manager rather
-// than harden anything.
-//
-// That reader is always a console session. An API key authenticates the very same
-// endpoints — user.me and workspaces.list both answer a bearer token, and neither
-// consults a permission — so a Zap, an SDK or any integration platform received a
-// live bucket credential it has no use for, in a body those platforms routinely
-// log whole. Gating on the caller closes that without a second endpoint or a
-// console change.
-//
-// Fails closed: a request that cannot prove it is a console session is treated as
-// machine traffic.
-func redactWorkspaceForCaller(ctx context.Context, workspace *domain.Workspace) {
+// redactWorkspace strips a workspace of every credential before it is serialised.
+// Every endpoint that answers with a Workspace goes through it, so the rule lives in
+// one place instead of being re-derived per handler. No caller, console session or
+// API key, receives a credential: the file storage secret included, since the
+// backend does the listing, the deletes and the upload signing (files.* endpoints).
+func redactWorkspace(workspace *domain.Workspace) {
 	workspace.Redact()
-	if !isConsoleSession(ctx) {
-		workspace.RedactFileManagerSecret()
-	}
 }
 
 // isConsoleSession reports whether the request authenticated as a user session

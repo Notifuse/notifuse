@@ -33,6 +33,7 @@ type Config struct {
 	// WebhookEndpoint below, which is the public address email providers post
 	// INBOUND events to.
 	Webhook             WebhookConfig
+	FileStorage         FileStorageConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
 	EmailQueue          EmailQueueConfig
@@ -262,6 +263,14 @@ type WebhookConfig struct {
 	// webhook_subscriptions:write and of automations:write alike with the
 	// deployment's network.
 	AllowPrivateDeliveryHosts bool
+}
+
+type FileStorageConfig struct {
+	// AllowPrivateHosts lets the server reach a workspace's file storage endpoint on a
+	// private, loopback or link-local address. The server lists, deletes and tests the
+	// bucket itself, at the endpoint an owner typed. Off by default: turn it on for a
+	// bucket on your own network, such as MinIO or selfhost_s3 next to Notifuse.
+	AllowPrivateHosts bool
 }
 
 type TaskSchedulerConfig struct {
@@ -1035,6 +1044,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		},
 		Webhook: WebhookConfig{
 			AllowPrivateDeliveryHosts: v.GetBool("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS"),
+		},
+		FileStorage: FileStorageConfig{
+			AllowPrivateHosts: v.GetBool("FILE_STORAGE_ALLOW_PRIVATE_HOSTS"),
 		},
 		Broadcast: BroadcastConfig{
 			DefaultRateLimit:          v.GetInt("BROADCAST_DEFAULT_RATE_LIMIT"),

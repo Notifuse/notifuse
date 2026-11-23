@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { _Object } from '@aws-sdk/client-s3'
-import { toStorageItems } from './storageObjects'
+import { toStorageItems, type BucketObject } from './storageObjects'
 import {
   ancestorFolders,
   childrenOf,
@@ -14,7 +13,7 @@ import {
 
 const settings = { endpoint: 'https://s3.example.com', access_key: 'k', bucket: 'media' }
 
-const object = (key: string, day: number, size = 0): _Object => ({
+const object = (key: string, day: number, size = 0): BucketObject => ({
   Key: key,
   LastModified: new Date(Date.UTC(2026, 0, day)),
   Size: size

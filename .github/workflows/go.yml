@@ -112,6 +112,24 @@ jobs:
           - 1025:1025
           - 8025:8025
 
+      # The S3-compatible server the docs offer self-hosters, for the file storage
+      # suite (tests/integration/file_storage_test.go): listings, folder markers and
+      # deletes from the server, and uploads through presigned URLs.
+      selfhost-s3:
+        image: notifuse/selfhost_s3:v1.4
+        env:
+          S3_BUCKET: test-bucket
+          S3_ACCESS_KEY: testkey
+          S3_SECRET_KEY: testsecret
+          S3_REGION: us-east-1
+        options: >-
+          --health-cmd "wget --quiet --tries=1 --spider http://localhost:9000/health || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+        ports:
+          - 9100:9000
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
