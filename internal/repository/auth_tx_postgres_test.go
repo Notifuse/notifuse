@@ -90,7 +90,7 @@ func TestAuthTxRepository_Challenge(t *testing.T) {
 		WithArgs("s1", "invitation", "chash", now, &invitation).WillReturnResult(sqlmock.NewResult(0, 1))
 	require.NoError(t, repo.SetSessionChallenge(context.Background(), db, "s1", domain.AuthMethodInvitation, "chash", now, &invitation))
 
-	mock.ExpectQuery(`SELECT user_id FROM user_sessions WHERE challenge_hash = \$1 AND challenge_expires_at > now\(\)`).WithArgs("chash").
+	mock.ExpectQuery(`SELECT user_id FROM user_sessions WHERE challenge_hash = \$1$`).WithArgs("chash").
 		WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow("u1"))
 	userID, err := repo.FindChallengeUser(context.Background(), db, "chash")
 	require.NoError(t, err)
@@ -121,10 +121,10 @@ func TestAuthTxRepository_SessionSecondFactor(t *testing.T) {
 	repo := NewAuthTxRepository()
 	now := time.Now().UTC()
 
-	// A session revoked meanwhile is reported, not silently skipped.
-	mock.ExpectExec(`UPDATE user_sessions SET second_factor = \$2, second_factor_at = \$3\s+WHERE id = \$1 AND challenge_hash IS NULL AND magic_code IS NULL`).
-		WithArgs("s1", "totp", now).WillReturnResult(sqlmock.NewResult(0, 0))
-	err := repo.SetSessionSecondFactor(context.Background(), db, "s1", domain.SecondFactorTOTP, now)
+	// A session revoked meanwhile, or another user's, is reported, not silently skipped.
+	mock.ExpectExec(`UPDATE user_sessions SET second_factor = \$3, second_factor_at = \$4\s+WHERE id = \$1 AND user_id = \$2 AND challenge_hash IS NULL AND magic_code IS NULL`).
+		WithArgs("s1", "u1", "totp", now).WillReturnResult(sqlmock.NewResult(0, 0))
+	err := repo.SetSessionSecondFactor(context.Background(), db, "u1", "s1", domain.SecondFactorTOTP, now)
 	var notFound *domain.ErrSessionNotFound
 	assert.ErrorAs(t, err, &notFound)
 

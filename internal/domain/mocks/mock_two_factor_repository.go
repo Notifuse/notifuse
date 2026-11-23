@@ -435,6 +435,21 @@ func (mr *MockAuthTxRepositoryMockRecorder) GetSessionForUpdate(arg0, arg1, arg2
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionForUpdate", reflect.TypeOf((*MockAuthTxRepository)(nil).GetSessionForUpdate), arg0, arg1, arg2, arg3)
 }
 
+// HasExpiredMagicCode mocks base method.
+func (m *MockAuthTxRepository) HasExpiredMagicCode(arg0 context.Context, arg1 domain.DBExecutor, arg2, arg3 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasExpiredMagicCode", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasExpiredMagicCode indicates an expected call of HasExpiredMagicCode.
+func (mr *MockAuthTxRepositoryMockRecorder) HasExpiredMagicCode(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasExpiredMagicCode", reflect.TypeOf((*MockAuthTxRepository)(nil).HasExpiredMagicCode), arg0, arg1, arg2, arg3)
+}
+
 // LockUser mocks base method.
 func (m *MockAuthTxRepository) LockUser(arg0 context.Context, arg1 domain.DBExecutor, arg2 string) error {
 	m.ctrl.T.Helper()
@@ -478,17 +493,17 @@ func (mr *MockAuthTxRepositoryMockRecorder) SetSessionChallenge(arg0, arg1, arg2
 }
 
 // SetSessionSecondFactor mocks base method.
-func (m *MockAuthTxRepository) SetSessionSecondFactor(arg0 context.Context, arg1 domain.DBExecutor, arg2 string, arg3 domain.SecondFactor, arg4 time.Time) error {
+func (m *MockAuthTxRepository) SetSessionSecondFactor(arg0 context.Context, arg1 domain.DBExecutor, arg2, arg3 string, arg4 domain.SecondFactor, arg5 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetSessionSecondFactor", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "SetSessionSecondFactor", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetSessionSecondFactor indicates an expected call of SetSessionSecondFactor.
-func (mr *MockAuthTxRepositoryMockRecorder) SetSessionSecondFactor(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockAuthTxRepositoryMockRecorder) SetSessionSecondFactor(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSessionSecondFactor", reflect.TypeOf((*MockAuthTxRepository)(nil).SetSessionSecondFactor), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSessionSecondFactor", reflect.TypeOf((*MockAuthTxRepository)(nil).SetSessionSecondFactor), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // MockInvitationTxRepository is a mock of InvitationTxRepository interface.

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -25,6 +26,10 @@ type SystemConfig struct {
 	SMTPEHLOHostname string
 	TelemetryEnabled bool
 	CheckForUpdates  bool
+	// RequireTwoFactor is the require_two_factor setting: every person on the instance
+	// must pass a second factor. On write, nil keeps the stored value. REQUIRE_TWO_FACTOR,
+	// when set, overrides it (config.RequireTwoFactor is the value in force).
+	RequireTwoFactor *bool
 	// AuditLogsRetentionDays is the deployment default retention for the audit
 	// log: 0 keeps forever, absent means domain.DefaultAuditLogRetentionDays.
 	AuditLogsRetentionDays  int
@@ -44,6 +49,27 @@ type SystemConfig struct {
 	OIDCButtonLabel     string
 	OIDCAutoCreateUsers bool
 	OIDCAllowedDomains  string
+}
+
+// ErrTwoFactorRequiredForRoot: the root user turns on the instance's two-factor
+// requirement only once their own account has it, so that the switch cannot lock them out.
+var ErrTwoFactorRequiredForRoot = errors.New("turn on two-factor authentication on your own account first")
+
+// CheckRequireTwoFactorChange refuses turning the instance's two-factor requirement on from
+// a root session that would not meet it: the root user must have two-factor authentication,
+// unless the session was opened by single sign-on or the root signature, which meet the
+// requirement on their own. Turning it off, or leaving it as it is, is always allowed here.
+func CheckRequireTwoFactorChange(current bool, next *bool, session domain.SessionAuth, rootHasTwoFactor bool) error {
+	if next == nil || !*next || current {
+		return nil
+	}
+	if session.AuthMethod == domain.AuthMethodSSO || session.AuthMethod == domain.AuthMethodRootSignature {
+		return nil
+	}
+	if !rootHasTwoFactor || !domain.SessionSatisfiesTwoFactor(session) {
+		return ErrTwoFactorRequiredForRoot
+	}
+	return nil
 }
 
 // SettingService provides methods for managing system settings
@@ -143,6 +169,12 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 	// Load telemetry setting
 	if setting, err := s.repo.Get(ctx, "telemetry_enabled"); err == nil {
 		config.TelemetryEnabled = setting.Value == "true"
+	}
+
+	// Load the instance's two-factor requirement (REQUIRE_TWO_FACTOR overrides it)
+	if setting, err := s.repo.Get(ctx, "require_two_factor"); err == nil {
+		required := setting.Value == "true"
+		config.RequireTwoFactor = &required
 	}
 
 	// Load check for updates setting
@@ -335,6 +367,12 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 	}
 	if err := s.repo.Set(ctx, "check_for_updates", checkUpdatesValue); err != nil {
 		return fmt.Errorf("failed to set check_for_updates: %w", err)
+	}
+
+	if config.RequireTwoFactor != nil {
+		if err := s.repo.Set(ctx, "require_two_factor", strconv.FormatBool(*config.RequireTwoFactor)); err != nil {
+			return fmt.Errorf("failed to set require_two_factor: %w", err)
+		}
 	}
 
 	// Audit log retention (deployment default)

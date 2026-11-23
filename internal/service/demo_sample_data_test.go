@@ -150,6 +150,7 @@ func TestDemoService_CreateSampleTransactionalNotifications(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		repo := mocks.NewMockTransactionalNotificationRepository(ctrl)
 		authService := mocks.NewMockAuthService(ctrl)
+		authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		templateSvc := mocks.NewMockTemplateService(ctrl)
 		templateSvc.EXPECT().GetTemplateByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&domain.Template{ID: "password-reset"}, nil).AnyTimes()

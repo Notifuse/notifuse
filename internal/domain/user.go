@@ -98,6 +98,9 @@ type AuthResponse struct {
 	// Challenge replaces the token when the account has two-factor authentication: the
 	// handler then answers the challenge alone, never Token, User nor ExpiresAt.
 	Challenge *TwoFactorChallenge `json:"-"`
+	// InvitationStatus is set when a sign-in challenge carried an invitation: accepted,
+	// team_member_limit or invitation_unavailable.
+	InvitationStatus string `json:"invitation_status,omitempty"`
 }
 
 // UserServiceInterface defines the interface for user operations

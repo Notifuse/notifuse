@@ -104,6 +104,9 @@ type AuthTxRepository interface {
 	// ConsumeMagicCode clears the unexpired magic code whose hash is codeHash on one of
 	// the user's sessions, and returns that session; ErrSessionNotFound when none matches.
 	ConsumeMagicCode(ctx context.Context, db DBExecutor, userID, codeHash string) (*Session, error)
+	// HasExpiredMagicCode reports whether one of the user's sessions holds this code past
+	// its expiry, to tell an expired code from a wrong one.
+	HasExpiredMagicCode(ctx context.Context, db DBExecutor, userID, codeHash string) (bool, error)
 	// PurgeExpiredPendingSessions deletes the user's sessions that wait for a code or a
 	// challenge that expired.
 	PurgeExpiredPendingSessions(ctx context.Context, db DBExecutor, userID string) error
@@ -111,8 +114,10 @@ type AuthTxRepository interface {
 	ActivateSession(ctx context.Context, db DBExecutor, sessionID string, method AuthMethod, now time.Time) error
 	// SetSessionChallenge makes the session wait for its second factor.
 	SetSessionChallenge(ctx context.Context, db DBExecutor, sessionID string, method AuthMethod, challengeHash string, expiresAt time.Time, pendingInvitationID *string) error
-	// FindChallengeUser returns the user whose session holds the unexpired challenge, read
-	// without a lock; ErrTwoFactorChallengeInvalid when none does.
+	// FindChallengeUser returns the user whose session holds the challenge, expired or not,
+	// read without a lock; ErrTwoFactorChallengeInvalid when none does. Expiry is judged
+	// after the locks, so that a real challenge that expired is audited under its user
+	// rather than skipped like a token nobody issued.
 	FindChallengeUser(ctx context.Context, db DBExecutor, challengeHash string) (string, error)
 	// GetChallengeSessionForUpdate locks the user's session that holds the challenge;
 	// ErrTwoFactorChallengeInvalid when it no longer does. It does not judge the challenge:
@@ -125,9 +130,9 @@ type AuthTxRepository interface {
 	CompleteChallenge(ctx context.Context, db DBExecutor, sessionID string, factor SecondFactor, now time.Time) error
 	// GetSessionForUpdate locks one of the user's usable sessions.
 	GetSessionForUpdate(ctx context.Context, db DBExecutor, userID, sessionID string) (*Session, error)
-	// SetSessionSecondFactor records the second factor a usable session passed;
-	// ErrSessionNotFound when the session is gone.
-	SetSessionSecondFactor(ctx context.Context, db DBExecutor, sessionID string, factor SecondFactor, now time.Time) error
+	// SetSessionSecondFactor records the second factor a usable session of the user passed;
+	// ErrSessionNotFound when the session is gone or not the user's.
+	SetSessionSecondFactor(ctx context.Context, db DBExecutor, userID, sessionID string, factor SecondFactor, now time.Time) error
 	// ClearSecondFactorOnSessions forgets the second factor of every session of the user.
 	ClearSecondFactorOnSessions(ctx context.Context, db DBExecutor, userID string) error
 	// DeleteSessionsExcept deletes the user's sessions but keep.

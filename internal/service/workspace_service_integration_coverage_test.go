@@ -68,6 +68,7 @@ func covWorkspaceService(ctrl *gomock.Controller, webhook *mocks.MockWebhookRegi
 		acceptingDomainVerifier{},
 		&BlogService{},
 		entitlements,
+		WorkspaceInvitationAuth{},
 	)
 	return svc, deps
 }

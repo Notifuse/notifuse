@@ -308,6 +308,9 @@ func (s *AuditLogService) authorize(ctx context.Context, scope, workspaceID stri
 		if s.isRootEmail == nil || !s.isRootEmail(user.Email) {
 			return ctx, &domain.ErrUnauthorized{Message: "root user access required"}
 		}
+		if err := s.authService.RequireCompliantRootSession(ctx); err != nil {
+			return ctx, err
+		}
 		return ctx, nil
 	}
 

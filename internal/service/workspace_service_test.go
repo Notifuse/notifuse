@@ -31,6 +31,7 @@ func TestWorkspaceService_ListWorkspaces(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -58,6 +59,7 @@ func TestWorkspaceService_ListWorkspaces(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -143,6 +145,7 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{Environment: "development"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -170,6 +173,7 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -312,6 +316,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -339,6 +344,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -597,6 +603,7 @@ func TestWorkspaceService_CreateWorkspace_MultipleRootEmails(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	// Two configured root users (comma-separated).
 	mockConfig := &config.Config{RootEmail: "root1@example.com,root2@example.com"}
@@ -625,6 +632,7 @@ func TestWorkspaceService_CreateWorkspace_MultipleRootEmails(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -698,6 +706,7 @@ func TestWorkspaceService_CreateWorkspace_CustomLanguageSettings(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -726,6 +735,7 @@ func TestWorkspaceService_CreateWorkspace_CustomLanguageSettings(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -780,6 +790,7 @@ func TestWorkspaceService_CreateWorkspace_DefaultLanguageNotInList(t *testing.T)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -808,6 +819,7 @@ func TestWorkspaceService_CreateWorkspace_DefaultLanguageNotInList(t *testing.T)
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -847,6 +859,7 @@ func TestWorkspaceService_SetCustomFieldLabels(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -874,6 +887,7 @@ func TestWorkspaceService_SetCustomFieldLabels(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1059,6 +1073,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -1086,6 +1101,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1291,6 +1307,7 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -1318,6 +1335,7 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -1806,6 +1824,7 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{Environment: "development"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -1833,6 +1852,7 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -2029,6 +2049,7 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -2056,6 +2077,7 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -2280,6 +2302,7 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -2307,6 +2330,7 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -2822,6 +2846,7 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -2849,6 +2874,7 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Set up mockLogger to allow any calls
@@ -3242,6 +3268,7 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -3269,6 +3296,7 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -3477,6 +3505,7 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -3504,6 +3533,7 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	invitationID := "invitation-123"
@@ -3544,460 +3574,6 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 	})
 }
 
-func TestWorkspaceService_AcceptInvitation(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	mockUserRepo := mocks.NewMockUserRepository(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
-	mockAuthService := mocks.NewMockAuthService(ctrl)
-	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{RootEmail: "test@example.com"}
-	mockContactService := mocks.NewMockContactService(ctrl)
-	mockListService := mocks.NewMockListService(ctrl)
-	mockContactListService := mocks.NewMockContactListService(ctrl)
-	mockTemplateService := mocks.NewMockTemplateService(ctrl)
-	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
-
-	service := NewWorkspaceService(
-		mockRepo,
-		mockUserRepo,
-		mocks.NewMockTaskRepository(ctrl),
-		mockLogger,
-		mockUserService,
-		mockAuthService,
-		mockMailer,
-		mockConfig,
-		mockContactService,
-		mockListService,
-		mockContactListService,
-		mockTemplateService,
-		mockWebhookRegService,
-		"secret_key",
-		&SupabaseService{},
-		&DNSVerificationService{},
-		&BlogService{},
-		fullyLicensedProvider(ctrl),
-	)
-
-	invitationID := "invitation-123"
-	workspaceID := "workspace-123"
-	email := "test@example.com"
-
-	t.Run("successful acceptance with new user", func(t *testing.T) {
-		// Mock invitation retrieval
-		mockRepo.EXPECT().
-			GetInvitationByID(context.Background(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{
-					domain.PermissionResourceContacts: {Read: true, Write: true},
-					domain.PermissionResourceLists:    {Read: true, Write: true},
-				},
-			}, nil)
-
-		// User doesn't exist, should create new user
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(context.Background(), email).
-			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
-
-		// Mock user creation
-		mockUserRepo.EXPECT().
-			CreateUser(context.Background(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, user *domain.User) error {
-				user.ID = "new-user-123" // Simulate ID assignment
-				return nil
-			})
-
-		// Mock adding user to workspace
-		mockRepo.EXPECT().
-			AddUserToWorkspace(context.Background(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
-				assert.Equal(t, "new-user-123", userWorkspace.UserID)
-				assert.Equal(t, workspaceID, userWorkspace.WorkspaceID)
-				assert.Equal(t, "member", userWorkspace.Role)
-				return nil
-			})
-
-		// Mock session creation
-		mockUserRepo.EXPECT().
-			CreateSession(context.Background(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, session *domain.Session) error {
-				assert.Equal(t, "new-user-123", session.UserID)
-				assert.NotEmpty(t, session.ID)
-				return nil
-			})
-
-		// Mock auth token generation
-		mockAuthService.EXPECT().
-			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return("auth-token-123")
-
-		// Mock invitation deletion
-		mockRepo.EXPECT().
-			DeleteInvitationByEmail(context.Background(), workspaceID, email).
-			Return(nil)
-
-		// Mock logger calls
-		mockLogger.EXPECT().
-			WithField("user_id", "new-user-123").
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("email", email).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Info("Created new user from invitation acceptance")
-
-		mockLogger.EXPECT().
-			WithField("user_id", "new-user-123").
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("workspace_id", workspaceID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("invitation_id", invitationID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Info("Successfully accepted invitation and created session")
-
-		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-
-		require.NoError(t, err)
-		require.NotNil(t, authResponse)
-		assert.Equal(t, "auth-token-123", authResponse.Token)
-		assert.Equal(t, "new-user-123", authResponse.User.ID)
-		assert.Equal(t, email, authResponse.User.Email)
-		assert.NotZero(t, authResponse.ExpiresAt)
-	})
-
-	t.Run("successful acceptance with existing user", func(t *testing.T) {
-		existingUser := &domain.User{
-			ID:    "existing-user-123",
-			Email: email,
-			Type:  domain.UserTypeUser,
-		}
-
-		// Mock invitation retrieval
-		mockRepo.EXPECT().
-			GetInvitationByID(context.Background(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{
-					domain.PermissionResourceContacts: {Read: true, Write: true},
-					domain.PermissionResourceLists:    {Read: true, Write: true},
-				},
-			}, nil)
-
-		// User exists
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(context.Background(), email).
-			Return(existingUser, nil)
-
-		// Check if user is already a member (not a member)
-		mockRepo.EXPECT().
-			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
-			Return(false, nil)
-
-		// Mock adding user to workspace
-		mockRepo.EXPECT().
-			AddUserToWorkspace(context.Background(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
-				assert.Equal(t, existingUser.ID, userWorkspace.UserID)
-				assert.Equal(t, workspaceID, userWorkspace.WorkspaceID)
-				assert.Equal(t, "member", userWorkspace.Role)
-				return nil
-			})
-
-		// Mock session creation
-		mockUserRepo.EXPECT().
-			CreateSession(context.Background(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, session *domain.Session) error {
-				assert.Equal(t, existingUser.ID, session.UserID)
-				assert.NotEmpty(t, session.ID)
-				return nil
-			})
-
-		// Mock auth token generation
-		mockAuthService.EXPECT().
-			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return("auth-token-456")
-
-		// Mock invitation deletion
-		mockRepo.EXPECT().
-			DeleteInvitationByEmail(context.Background(), workspaceID, email).
-			Return(nil)
-
-		// Mock logger call
-		mockLogger.EXPECT().
-			WithField("user_id", existingUser.ID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("workspace_id", workspaceID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("invitation_id", invitationID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Info("Successfully accepted invitation and created session")
-
-		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-
-		require.NoError(t, err)
-		require.NotNil(t, authResponse)
-		assert.Equal(t, "auth-token-456", authResponse.Token)
-		assert.Equal(t, existingUser.ID, authResponse.User.ID)
-		assert.Equal(t, email, authResponse.User.Email)
-		assert.NotZero(t, authResponse.ExpiresAt)
-	})
-
-	t.Run("user already member", func(t *testing.T) {
-		existingUser := &domain.User{
-			ID:    "existing-user-123",
-			Email: email,
-			Type:  domain.UserTypeUser,
-		}
-
-		// Mock invitation retrieval
-		mockRepo.EXPECT().
-			GetInvitationByID(context.Background(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{
-					domain.PermissionResourceContacts: {Read: true, Write: true},
-					domain.PermissionResourceLists:    {Read: true, Write: true},
-				},
-			}, nil)
-
-		// User exists
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(context.Background(), email).
-			Return(existingUser, nil)
-
-		// Check if user is already a member (is a member)
-		mockRepo.EXPECT().
-			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
-			Return(true, nil)
-
-		// Mock invitation deletion (cleanup)
-		mockRepo.EXPECT().
-			DeleteInvitationByEmail(context.Background(), workspaceID, email).
-			Return(nil)
-
-		// Mock logger calls
-		mockLogger.EXPECT().
-			WithField("user_id", existingUser.ID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("workspace_id", workspaceID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Info("User is already a member of the workspace")
-
-		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-
-		// Typically the same link accepted twice at once: answered like a used link.
-		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
-		assert.Nil(t, authResponse)
-	})
-
-	t.Run("failed user creation", func(t *testing.T) {
-		// Mock invitation retrieval
-		mockRepo.EXPECT().
-			GetInvitationByID(context.Background(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{
-					domain.PermissionResourceContacts: {Read: true, Write: true},
-					domain.PermissionResourceLists:    {Read: true, Write: true},
-				},
-			}, nil)
-
-		// User doesn't exist, should create new user but fails
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(context.Background(), email).
-			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
-
-		// Mock user creation failure
-		mockUserRepo.EXPECT().
-			CreateUser(context.Background(), gomock.Any()).
-			Return(errors.New("database error"))
-
-		// Mock logger calls
-		mockLogger.EXPECT().
-			WithField("email", email).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("error", "database error").
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Failed to create user for invitation acceptance")
-
-		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-
-		require.Error(t, err)
-		assert.Nil(t, authResponse)
-		assert.Contains(t, err.Error(), "failed to create user")
-	})
-
-	t.Run("failed to add user to workspace", func(t *testing.T) {
-		existingUser := &domain.User{
-			ID:    "existing-user-123",
-			Email: email,
-			Type:  domain.UserTypeUser,
-		}
-
-		// Mock invitation retrieval
-		mockRepo.EXPECT().
-			GetInvitationByID(context.Background(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{
-					domain.PermissionResourceContacts: {Read: true, Write: true},
-					domain.PermissionResourceLists:    {Read: true, Write: true},
-				},
-			}, nil)
-
-		// User exists
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(context.Background(), email).
-			Return(existingUser, nil)
-
-		// Check if user is already a member (not a member)
-		mockRepo.EXPECT().
-			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
-			Return(false, nil)
-
-		// Mock adding user to workspace failure
-		mockRepo.EXPECT().
-			AddUserToWorkspace(context.Background(), gomock.Any()).
-			Return(errors.New("database error"))
-
-		// Mock logger calls
-		mockLogger.EXPECT().
-			WithField("user_id", existingUser.ID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("workspace_id", workspaceID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("error", "database error").
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Failed to add user to workspace")
-
-		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-
-		require.Error(t, err)
-		assert.Nil(t, authResponse)
-		assert.Contains(t, err.Error(), "failed to add user to workspace")
-	})
-
-	t.Run("invitation deletion fails but main operation succeeds", func(t *testing.T) {
-		existingUser := &domain.User{
-			ID:    "existing-user-123",
-			Email: email,
-			Type:  domain.UserTypeUser,
-		}
-
-		// Mock invitation retrieval
-		mockRepo.EXPECT().
-			GetInvitationByID(context.Background(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{
-					domain.PermissionResourceContacts: {Read: true, Write: true},
-					domain.PermissionResourceLists:    {Read: true, Write: true},
-				},
-			}, nil)
-
-		// User exists
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(context.Background(), email).
-			Return(existingUser, nil)
-
-		// Check if user is already a member (not a member)
-		mockRepo.EXPECT().
-			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
-			Return(false, nil)
-
-		// Mock adding user to workspace
-		mockRepo.EXPECT().
-			AddUserToWorkspace(context.Background(), gomock.Any()).
-			Return(nil)
-
-		// Mock session creation
-		mockUserRepo.EXPECT().
-			CreateSession(context.Background(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, session *domain.Session) error {
-				assert.Equal(t, existingUser.ID, session.UserID)
-				assert.NotEmpty(t, session.ID)
-				return nil
-			})
-
-		// Mock auth token generation
-		mockAuthService.EXPECT().
-			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return("auth-token-789")
-
-		// Mock invitation deletion failure (should not fail the main operation)
-		mockRepo.EXPECT().
-			DeleteInvitationByEmail(context.Background(), workspaceID, email).
-			Return(errors.New("deletion failed"))
-
-		// Mock logger calls for deletion failure
-		mockLogger.EXPECT().
-			WithField("invitation_id", invitationID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("error", "deletion failed").
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Warn("Failed to delete invitation after successful acceptance")
-
-		// Mock logger calls for success
-		mockLogger.EXPECT().
-			WithField("user_id", existingUser.ID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("workspace_id", workspaceID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			WithField("invitation_id", invitationID).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Info("Successfully accepted invitation and created session")
-
-		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-
-		require.NoError(t, err) // Should still succeed despite deletion failure
-		require.NotNil(t, authResponse)
-		assert.Equal(t, "auth-token-789", authResponse.Token)
-		assert.Equal(t, existingUser.ID, authResponse.User.ID)
-		assert.Equal(t, email, authResponse.User.Email)
-		assert.NotZero(t, authResponse.ExpiresAt)
-	})
-}
-
 func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -4007,6 +3583,7 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserSvc := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthSvc := mocks.NewMockAuthService(ctrl)
+	mockAuthSvc.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
@@ -4034,6 +3611,7 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -4180,6 +3758,7 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -4207,6 +3786,7 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -4400,6 +3980,7 @@ func TestWorkspaceService_deleteSupabaseIntegrationResources(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -4452,6 +4033,7 @@ func TestWorkspaceService_deleteSupabaseIntegrationResources(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -4502,6 +4084,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		mockMailer := pkgmocks.NewMockMailer(ctrl)
 		mockConfig := &config.Config{RootEmail: "test@example.com", MaxUsers: maxUsers, Environment: "development"}
 		mockContactService := mocks.NewMockContactService(ctrl)
@@ -4521,6 +4104,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 			mockContactListService, mockTemplateService, mockWebhookRegService,
 			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 		return service, mockRepo, mockUserService, mockAuthService, mockUserRepo
 	}
@@ -4795,6 +4379,7 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 			mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
 			&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 		return service, mockRepo, mockUserRepo
 	}
@@ -4896,11 +4481,12 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 	// between this one's lookup and its insert.
 	t.Run("account created meanwhile by the same link", func(t *testing.T) {
 		service, mockRepo, mockUserRepo := setupService(t)
+		authTx := mocks.NewMockAuthTxRepository(gomock.NewController(t))
+		service.invitationAuth = WorkspaceInvitationAuth{Tx: &fakeTx{}, AuthTx: authTx}
 		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(stored(), nil)
 		mockUserRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), email).
 			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
-		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).
-			Return(&domain.ErrUserExists{Message: "user already exists"})
+		authTx.EXPECT().CreateUserIfAbsent(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 		record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
 
 		resp, err := service.AcceptInvitation(domain.WithAuditRecord(context.Background(), record), invitationID, workspaceID, email)
@@ -4926,167 +4512,6 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 	})
 }
 
-func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
-	invitationID := "invitation-123"
-	workspaceID := "ws-123"
-	email := "test@example.com"
-
-	setupService := func(t *testing.T, maxUsers int) (
-		*WorkspaceService,
-		*mocks.MockWorkspaceRepository,
-		*mocks.MockUserServiceInterface,
-		*mocks.MockUserRepository,
-		*mocks.MockAuthService,
-	) {
-		ctrl := gomock.NewController(t)
-		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-		mockUserRepo := mocks.NewMockUserRepository(ctrl)
-		mockLogger := pkgmocks.NewMockLogger(ctrl)
-		mockUserService := mocks.NewMockUserServiceInterface(ctrl)
-		mockAuthService := mocks.NewMockAuthService(ctrl)
-		mockMailer := pkgmocks.NewMockMailer(ctrl)
-		mockConfig := &config.Config{RootEmail: "test@example.com", MaxUsers: maxUsers}
-		mockContactService := mocks.NewMockContactService(ctrl)
-		mockListService := mocks.NewMockListService(ctrl)
-		mockContactListService := mocks.NewMockContactListService(ctrl)
-		mockTemplateService := mocks.NewMockTemplateService(ctrl)
-		mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
-
-		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
-		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
-		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
-		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
-
-		service := NewWorkspaceService(
-			mockRepo, mockUserRepo, mocks.NewMockTaskRepository(ctrl),
-			mockLogger, mockUserService, mockAuthService, mockMailer,
-			mockConfig, mockContactService, mockListService,
-			mockContactListService, mockTemplateService, mockWebhookRegService,
-			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
-			fullyLicensedProvider(ctrl),
-		)
-		return service, mockRepo, mockUserService, mockUserRepo, mockAuthService
-	}
-
-	t.Run("limit reached on accept", func(t *testing.T) {
-		// MaxUsers=3, and the other members and invitations already hold 3 seats — the count
-		// leaves out the invitation being accepted — so accepting would exceed the limit.
-		service, mockRepo, _, mockUserRepo, _ := setupService(t, 3)
-
-		mockRepo.EXPECT().
-			GetInvitationByID(gomock.Any(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{},
-			}, nil)
-
-		// Existing user
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(gomock.Any(), email).
-			Return(&domain.User{ID: "user-123", Email: email, Type: domain.UserTypeUser}, nil)
-		mockRepo.EXPECT().
-			IsUserWorkspaceMember(gomock.Any(), "user-123", workspaceID).
-			Return(false, nil)
-		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
-			Return(3, nil)
-
-		_, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-		require.Error(t, err)
-
-		var limitErr *domain.ErrTeamMemberLimitReached
-		assert.True(t, errors.As(err, &limitErr))
-		assert.Equal(t, 3, limitErr.Limit)
-		assert.Equal(t, 3, limitErr.Current)
-	})
-
-	t.Run("accepts at the limit: its own invitation is left out of the count", func(t *testing.T) {
-		// MaxUsers=3 with 2 members plus the invitation being accepted: the count, which
-		// leaves that invitation out, is 2 < 3 → allowed. Accepting converts its seat.
-		service, mockRepo, _, mockUserRepo, mockAuthService := setupService(t, 3)
-
-		mockRepo.EXPECT().
-			GetInvitationByID(gomock.Any(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{},
-			}, nil)
-
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(gomock.Any(), email).
-			Return(nil, &domain.ErrUserNotFound{Message: "not found"})
-		mockUserRepo.EXPECT().
-			CreateUser(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
-			Return(2, nil)
-		mockRepo.EXPECT().
-			AddUserToWorkspace(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockUserRepo.EXPECT().
-			CreateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockAuthService.EXPECT().
-			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return("auth-token")
-		mockRepo.EXPECT().
-			DeleteInvitationByEmail(gomock.Any(), workspaceID, email).
-			Return(nil)
-
-		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-		require.NoError(t, err)
-		assert.NotNil(t, resp)
-	})
-
-	t.Run("under limit on accept", func(t *testing.T) {
-		service, mockRepo, _, mockUserRepo, mockAuthService := setupService(t, 3)
-
-		mockRepo.EXPECT().
-			GetInvitationByID(gomock.Any(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ExpiresAt:   time.Now().Add(24 * time.Hour),
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{},
-			}, nil)
-
-		mockUserRepo.EXPECT().
-			GetUserByEmailInsensitive(gomock.Any(), email).
-			Return(nil, &domain.ErrUserNotFound{Message: "not found"})
-		mockUserRepo.EXPECT().
-			CreateUser(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
-			Return(1, nil)
-		mockRepo.EXPECT().
-			AddUserToWorkspace(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockUserRepo.EXPECT().
-			CreateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockAuthService.EXPECT().
-			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return("auth-token")
-		mockRepo.EXPECT().
-			DeleteInvitationByEmail(gomock.Any(), workspaceID, email).
-			Return(nil)
-
-		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-		require.NoError(t, err)
-		assert.NotNil(t, resp)
-		assert.Equal(t, "auth-token", resp.Token)
-	})
-}
-
 func TestWorkspaceService_CreateWorkspace_WorkspaceLimit(t *testing.T) {
 	setupService := func(t *testing.T, maxWorkspaces int) (
 		*WorkspaceService,
@@ -5100,6 +4525,7 @@ func TestWorkspaceService_CreateWorkspace_WorkspaceLimit(t *testing.T) {
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		mockMailer := pkgmocks.NewMockMailer(ctrl)
 		mockConfig := &config.Config{RootEmail: "test@example.com", MaxWorkspaces: maxWorkspaces, Environment: "development"}
 		mockContactService := mocks.NewMockContactService(ctrl)
@@ -5119,6 +4545,7 @@ func TestWorkspaceService_CreateWorkspace_WorkspaceLimit(t *testing.T) {
 			mockContactListService, mockTemplateService, mockWebhookRegService,
 			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 		return service, mockRepo, mockAuthService, mockLogger
 	}
@@ -5217,6 +4644,7 @@ func TestWorkspaceService_DeleteInvitation_PlatformAdmin(t *testing.T) {
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockAuthSvc := mocks.NewMockAuthService(ctrl)
+	mockAuthSvc.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	cfg := &config.Config{RootEmail: "root@example.com"}
 
 	service := NewWorkspaceService(
@@ -5227,6 +4655,7 @@ func TestWorkspaceService_DeleteInvitation_PlatformAdmin(t *testing.T) {
 		mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
 		&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -5270,6 +4699,7 @@ func newZapierTestService(t *testing.T, ctrl *gomock.Controller) (*WorkspaceServ
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockUserRepo := mocks.NewMockUserRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -5295,6 +4725,7 @@ func newZapierTestService(t *testing.T, ctrl *gomock.Controller) (*WorkspaceServ
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	return service, mockRepo, mockUserRepo, mockAuthService
@@ -5688,6 +5119,7 @@ func TestUpdateIntegration_OmittedProviderKeepsStoredEmailProvider(t *testing.T)
 
 		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -5712,6 +5144,7 @@ func TestUpdateIntegration_OmittedProviderKeepsStoredEmailProvider(t *testing.T)
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		ctx := context.Background()
@@ -5825,6 +5258,7 @@ func TestUpdateWorkspace_OmittedSettingsKeepStoredValues(t *testing.T) {
 
 		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -5849,6 +5283,7 @@ func TestUpdateWorkspace_OmittedSettingsKeepStoredValues(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		ctx := context.Background()
@@ -5982,6 +5417,7 @@ func TestSetBlogSettings_OmittedEnabledFlagKeepsStoredValue(t *testing.T) {
 
 		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -6006,6 +5442,7 @@ func TestSetBlogSettings_OmittedEnabledFlagKeepsStoredValue(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		ctx := context.Background()
@@ -6086,6 +5523,7 @@ func TestSetBlogSettings_UnspecifiedSettingsKeepTheStoredConfiguration(t *testin
 
 		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -6110,6 +5548,7 @@ func TestSetBlogSettings_UnspecifiedSettingsKeepTheStoredConfiguration(t *testin
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		ctx := context.Background()
@@ -6232,6 +5671,7 @@ func newLicenceGatedWorkspaceService(t *testing.T, ctrl *gomock.Controller, cfg 
 		userService: mocks.NewMockUserServiceInterface(ctrl),
 		auth:        mocks.NewMockAuthService(ctrl),
 	}
+	deps.auth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -6259,6 +5699,7 @@ func newLicenceGatedWorkspaceService(t *testing.T, ctrl *gomock.Controller, cfg 
 		&DNSVerificationService{},
 		&BlogService{},
 		provider,
+		WorkspaceInvitationAuth{},
 	)
 	return service, deps
 }
@@ -6923,18 +6364,29 @@ func TestWorkspaceService_RBACLicenceNonRegressions(t *testing.T) {
 				Permissions: invited,
 			}, nil)
 		deps.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
-		deps.userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+		authTx := mocks.NewMockAuthTxRepository(ctrl)
+		totp := mocks.NewMockTwoFactorRepository(ctrl)
+		inv := mocks.NewMockInvitationTxRepository(ctrl)
+		service.invitationAuth = WorkspaceInvitationAuth{Tx: &fakeTx{}, AuthTx: authTx, TwoFactor: totp, InvitationTx: inv}
+		authTx.EXPECT().CreateUserIfAbsent(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+		authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		totp.EXPECT().GetTOTPForUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+		totp.EXPECT().ClockTimestamp(gomock.Any(), gomock.Any()).Return(time.Now(), nil)
+		inv.EXPECT().LockInvitation(gomock.Any(), gomock.Any(), invitationID).Return(&domain.WorkspaceInvitation{
+			ExpiresAt: time.Now().Add(24 * time.Hour), ID: invitationID, WorkspaceID: workspaceID, Email: inviteEmail, Permissions: invited,
+		}, false, nil)
+		inv.EXPECT().IsUserWorkspaceMember(gomock.Any(), gomock.Any(), gomock.Any(), workspaceID).Return(false, nil)
 
 		var seated *domain.UserWorkspace
-		deps.repo.EXPECT().
-			AddUserToWorkspace(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+		inv.EXPECT().
+			AddUserToWorkspaceIfAbsent(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ domain.DBExecutor, userWorkspace *domain.UserWorkspace) (bool, error) {
 				seated = userWorkspace
-				return nil
+				return true, nil
 			})
-		deps.userRepo.EXPECT().CreateSession(gomock.Any(), gomock.Any()).Return(nil)
+		authTx.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		deps.auth.EXPECT().GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).Return("auth-token")
-		deps.repo.EXPECT().DeleteInvitationByEmail(gomock.Any(), workspaceID, inviteEmail).Return(nil)
+		inv.EXPECT().DeleteInvitationsByEmail(gomock.Any(), gomock.Any(), workspaceID, inviteEmail).Return(nil)
 
 		response, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, inviteEmail)
 		require.NoError(t, err)
@@ -7142,6 +6594,7 @@ func TestWorkspaceService_UserOwnsAWorkspace(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 	ctx := context.Background()
 

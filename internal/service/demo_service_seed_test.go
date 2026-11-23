@@ -24,6 +24,7 @@ func demoSeedService(t *testing.T) (*DemoService, *mocks.MockAuthService) {
 	ctrl := gomock.NewController(t)
 	log := logger.NewLoggerWithLevel("disabled")
 	authService := mocks.NewMockAuthService(ctrl)
+	authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 
 	contactService := NewContactService(
 		mocks.NewMockContactRepository(ctrl),

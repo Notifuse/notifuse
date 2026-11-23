@@ -108,10 +108,16 @@ type App struct {
 	isInstalled bool // Indicates if setup wizard has been completed
 
 	// Repositories
-	userRepo                      domain.UserRepository
-	fedRepo                       domain.FederatedIdentityRepository
-	workspaceRepo                 domain.WorkspaceRepository
-	authRepo                      domain.AuthRepository
+	userRepo      domain.UserRepository
+	fedRepo       domain.FederatedIdentityRepository
+	workspaceRepo domain.WorkspaceRepository
+	authRepo      domain.AuthRepository
+	// Two-factor authentication: the system transaction runner and the repositories its
+	// transactions use.
+	systemTx                      domain.SystemTxRunner
+	twoFactorRepo                 domain.TwoFactorRepository
+	authTxRepo                    domain.AuthTxRepository
+	invitationTxRepo              domain.InvitationTxRepository
 	settingRepo                   domain.SettingRepository
 	contactRepo                   domain.ContactRepository
 	listRepo                      domain.ListRepository
@@ -142,6 +148,7 @@ type App struct {
 	// Services
 	authService                      *service.AuthService
 	userService                      *service.UserService
+	twoFactorService                 *service.TwoFactorService
 	oidcService                      *service.OIDCService
 	workspaceService                 *service.WorkspaceService
 	contactService                   *service.ContactService
@@ -641,6 +648,10 @@ func (a *App) InitRepositories() error {
 	a.fedRepo = repository.NewFederatedIdentityRepository(a.db)
 	a.taskRepo = repository.NewTaskRepository(a.db)
 	a.authRepo = repository.NewSQLAuthRepository(a.db)
+	a.systemTx = repository.NewSystemTxRunner(a.db)
+	a.twoFactorRepo = repository.NewTwoFactorRepository()
+	a.authTxRepo = repository.NewAuthTxRepository()
+	a.invitationTxRepo = repository.NewInvitationTxRepository()
 	a.settingRepo = repository.NewSQLSettingRepository(a.db)
 	a.auditLogRepo = repository.NewAuditLogRepository(a.db)
 	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey, connManager)
@@ -716,8 +727,9 @@ func (a *App) InitServices() error {
 			}
 			return a.config.Security.JWTSecret, nil
 		},
-		Logger:      a.logger,
-		IsRootEmail: a.config.IsRootEmail,
+		Logger:           a.logger,
+		IsRootEmail:      a.config.IsRootEmail,
+		RequireTwoFactor: a.config.RequireTwoFactor,
 	})
 
 	// The audit recorder, built right after the licence and the auth service:
@@ -784,12 +796,31 @@ func (a *App) InitServices() error {
 		RateLimiter:   a.rateLimiter, // Pass global rate limiter
 		SecretKey:     a.config.Security.SecretKey,
 		RootEmail:     a.config.RootEmail,
+		Tx:            a.systemTx,
+		AuthTx:        a.authTxRepo,
+		TwoFactorRepo: a.twoFactorRepo,
 	}
 
 	a.userService, err = service.NewUserService(userServiceConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize user service: %w", err)
 	}
+
+	a.twoFactorService = service.NewTwoFactorService(service.TwoFactorServiceConfig{
+		Tx:               a.systemTx,
+		Repo:             a.twoFactorRepo,
+		AuthTx:           a.authTxRepo,
+		InvitationTx:     a.invitationTxRepo,
+		Users:            a.userRepo,
+		AuthService:      a.authService,
+		Mailer:           a.mailer,
+		Logger:           a.logger,
+		SecretKey:        a.config.Security.SecretKey,
+		PreviousKeys:     a.config.Security.PreviousSecretKeys,
+		RequireTwoFactor: a.config.RequireTwoFactor,
+		IsRootEmail:      a.config.IsRootEmail,
+		MaxUsers:         a.config.MaxUsers,
+	})
 
 	// Initialize setup service with environment config from config loader
 	// Config tracks which values came from actual env vars (not database, not generated)
@@ -1192,6 +1223,13 @@ func (a *App) InitServices() error {
 		a.dnsVerificationService,
 		a.blogService,
 		a.licenseService,
+		service.WorkspaceInvitationAuth{
+			Tx:            a.systemTx,
+			AuthTx:        a.authTxRepo,
+			TwoFactor:     a.twoFactorRepo,
+			InvitationTx:  a.invitationTxRepo,
+			SessionExpiry: 30 * 24 * time.Hour,
+		},
 	)
 
 	// Initialize and register segment build processor

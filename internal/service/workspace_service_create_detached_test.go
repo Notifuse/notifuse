@@ -57,6 +57,7 @@ func TestWorkspaceService_CreateWorkspace_DetachedFromTheRequest(t *testing.T) {
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockUserRepo := mocks.NewMockUserRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockContactService := mocks.NewMockContactService(ctrl)
@@ -95,6 +96,7 @@ func TestWorkspaceService_CreateWorkspace_AlreadyExistsIsTheDomainError(t *testi
 
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	service := newWorkspaceServiceForCreateTest(ctrl, mockRepo, mocks.NewMockUserRepository(ctrl), mocks.NewMockTaskRepository(ctrl), mockLogger, mocks.NewMockUserServiceInterface(ctrl), mockAuthService, mocks.NewMockContactService(ctrl), mocks.NewMockListService(ctrl))
 
@@ -130,5 +132,6 @@ func newWorkspaceServiceForCreateTest(ctrl *gomock.Controller, repo *mocks.MockW
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 }

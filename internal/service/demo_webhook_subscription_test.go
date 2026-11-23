@@ -25,6 +25,7 @@ func demoWebhookSvc(t *testing.T) (*DemoService, *mocks.MockWebhookSubscriptionR
 	ctrl := gomock.NewController(t)
 	repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
 	authService := mocks.NewMockAuthService(ctrl)
+	authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(context.Background(), &domain.User{ID: "root-1"},
 			&domain.UserWorkspace{UserID: "root-1", WorkspaceID: "demo", Role: "owner"}, nil).AnyTimes()

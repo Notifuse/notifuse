@@ -259,6 +259,7 @@ func TestDemoContactIdentities(t *testing.T) {
 	newSvc := func(t *testing.T) (*DemoService, *mocks.MockAuthService, *mocks.MockContactRepository) {
 		ctrl := gomock.NewController(t)
 		authService := mocks.NewMockAuthService(ctrl)
+		authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		contactRepo := mocks.NewMockContactRepository(ctrl)
 		contactService := NewContactService(
 			contactRepo,

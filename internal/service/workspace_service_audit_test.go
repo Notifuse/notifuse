@@ -58,6 +58,7 @@ func newWorkspaceAuditFixture(t *testing.T) *workspaceAuditFixture {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 	return f
 }

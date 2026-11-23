@@ -148,6 +148,18 @@ func (r *authTxRepository) ConsumeMagicCode(ctx context.Context, db domain.DBExe
 	return session, nil
 }
 
+func (r *authTxRepository) HasExpiredMagicCode(ctx context.Context, db domain.DBExecutor, userID, codeHash string) (bool, error) {
+	var expired bool
+	err := db.QueryRowContext(ctx, `
+		SELECT EXISTS (SELECT 1 FROM user_sessions
+			WHERE user_id = $1 AND magic_code = $2 AND magic_code_expires_at <= (now() AT TIME ZONE 'UTC'))`,
+		userID, codeHash).Scan(&expired)
+	if err != nil {
+		return false, fmt.Errorf("failed to check for an expired magic code: %w", err)
+	}
+	return expired, nil
+}
+
 func (r *authTxRepository) PurgeExpiredPendingSessions(ctx context.Context, db domain.DBExecutor, userID string) error {
 	_, err := db.ExecContext(ctx, `
 		DELETE FROM user_sessions
@@ -185,7 +197,7 @@ func (r *authTxRepository) SetSessionChallenge(ctx context.Context, db domain.DB
 
 func (r *authTxRepository) FindChallengeUser(ctx context.Context, db domain.DBExecutor, challengeHash string) (string, error) {
 	var userID string
-	err := db.QueryRowContext(ctx, `SELECT user_id FROM user_sessions WHERE challenge_hash = $1 AND challenge_expires_at > now()`,
+	err := db.QueryRowContext(ctx, `SELECT user_id FROM user_sessions WHERE challenge_hash = $1`,
 		challengeHash).Scan(&userID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", domain.ErrTwoFactorChallengeInvalid
@@ -244,10 +256,10 @@ func (r *authTxRepository) GetSessionForUpdate(ctx context.Context, db domain.DB
 	return session, nil
 }
 
-func (r *authTxRepository) SetSessionSecondFactor(ctx context.Context, db domain.DBExecutor, sessionID string, factor domain.SecondFactor, now time.Time) error {
+func (r *authTxRepository) SetSessionSecondFactor(ctx context.Context, db domain.DBExecutor, userID, sessionID string, factor domain.SecondFactor, now time.Time) error {
 	result, err := db.ExecContext(ctx, `
-		UPDATE user_sessions SET second_factor = $2, second_factor_at = $3
-		WHERE id = $1 AND challenge_hash IS NULL AND magic_code IS NULL`, sessionID, string(factor), now)
+		UPDATE user_sessions SET second_factor = $3, second_factor_at = $4
+		WHERE id = $1 AND user_id = $2 AND challenge_hash IS NULL AND magic_code IS NULL`, sessionID, userID, string(factor), now)
 	if err != nil {
 		return fmt.Errorf("failed to record the session's second factor: %w", err)
 	}

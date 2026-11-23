@@ -40,6 +40,8 @@ type AuthService struct {
 	logger        logger.Logger
 	getSecret     func() ([]byte, error) // Changed from getKeys
 	isRootEmail   func(string) bool      // reports whether an email is a configured platform admin (ROOT_EMAIL)
+	// requireTwoFactor: the instance requires every person to pass a second factor.
+	requireTwoFactor bool
 
 	// Cached secret
 	cachedSecret []byte
@@ -54,16 +56,20 @@ type AuthServiceConfig struct {
 	// IsRootEmail reports whether an email is a configured platform admin (ROOT_EMAIL).
 	// When set, root emails get synthesized owner access to every workspace. Optional in tests.
 	IsRootEmail func(string) bool
+	// RequireTwoFactor is config.RequireTwoFactor: a session that did not pass a second
+	// factor then reaches only the routes that let it turn two-factor authentication on.
+	RequireTwoFactor bool
 }
 
 func NewAuthService(cfg AuthServiceConfig) *AuthService {
 	return &AuthService{
-		repo:          cfg.Repository,
-		workspaceRepo: cfg.WorkspaceRepository,
-		logger:        cfg.Logger,
-		getSecret:     cfg.GetSecret,
-		isRootEmail:   cfg.IsRootEmail,
-		secretLoaded:  false,
+		repo:             cfg.Repository,
+		workspaceRepo:    cfg.WorkspaceRepository,
+		logger:           cfg.Logger,
+		getSecret:        cfg.GetSecret,
+		isRootEmail:      cfg.IsRootEmail,
+		requireTwoFactor: cfg.RequireTwoFactor,
+		secretLoaded:     false,
 	}
 }
 
@@ -109,11 +115,14 @@ func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.
 		return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 	}
 	if userType == string(domain.UserTypeUser) {
-		sessionID, ok := ctx.Value(domain.SessionIDKey).(string)
-		if !ok || sessionID == "" {
-			return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+		user, session, err := s.AuthenticateSession(ctx)
+		if err != nil {
+			return nil, err
 		}
-		return s.VerifyUserSession(ctx, userID, sessionID)
+		if s.requireTwoFactor && !domain.SessionSatisfiesTwoFactor(*session) {
+			return nil, domain.ErrTwoFactorRequired
+		}
+		return user, nil
 	} else if userType == string(domain.UserTypeAPIKey) {
 		user, err := s.GetUserByID(ctx, userID)
 		if err == nil && user.Type != domain.UserTypeAPIKey {
@@ -239,6 +248,74 @@ func (s *AuthService) recordActor(ctx context.Context, user *domain.User, userWo
 		record.SetActor(user, userWorkspace, s.isRootUser(user))
 		record.SetWorkspace(workspaceID)
 	}
+}
+
+// AuthenticateSession checks the session of a console token and returns its user and what
+// is known about the session, without the instance's two-factor requirement: for the few
+// routes a session that has not passed it may still use (its account, signing out, turning
+// two-factor authentication on). Every other route goes through AuthenticateUserFromContext.
+func (s *AuthService) AuthenticateSession(ctx context.Context) (*domain.User, *domain.SessionAuth, error) {
+	userID, ok := ctx.Value(domain.UserIDKey).(string)
+	if !ok || userID == "" {
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+	}
+	if userType, _ := ctx.Value(domain.UserTypeKey).(string); userType != string(domain.UserTypeUser) {
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+	}
+	sessionID, ok := ctx.Value(domain.SessionIDKey).(string)
+	if !ok || sessionID == "" {
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+	}
+	return s.verifySession(ctx, userID, sessionID)
+}
+
+// RequireCompliantSession refuses, when the instance requires two-factor authentication, a
+// console session that did not pass it. For the handlers that check the session by
+// themselves rather than through AuthenticateUserFromContext. A request that is not a
+// console session (an API key) is not concerned.
+func (s *AuthService) RequireCompliantSession(ctx context.Context) error {
+	if !s.requireTwoFactor {
+		return nil
+	}
+	if userType, _ := ctx.Value(domain.UserTypeKey).(string); userType != string(domain.UserTypeUser) {
+		return nil
+	}
+	_, session, err := s.AuthenticateSession(ctx)
+	if err != nil {
+		return err
+	}
+	if !domain.SessionSatisfiesTwoFactor(*session) {
+		return domain.ErrTwoFactorRequired
+	}
+	return nil
+}
+
+// RequireCompliantRootSession refuses, on a root route, a session that did not pass a
+// second factor when the root user has two-factor authentication, even when the instance
+// does not require it: otherwise an older session, kept when the root user turned it on,
+// would still hold the instance's settings.
+func (s *AuthService) RequireCompliantRootSession(ctx context.Context) error {
+	if userType, _ := ctx.Value(domain.UserTypeKey).(string); userType != string(domain.UserTypeUser) {
+		return nil
+	}
+	user, session, err := s.AuthenticateSession(ctx)
+	if err != nil {
+		return err
+	}
+	if domain.SessionSatisfiesTwoFactor(*session) {
+		return nil
+	}
+	if s.requireTwoFactor {
+		return domain.ErrTwoFactorRequired
+	}
+	enabled, err := s.repo.IsTwoFactorEnabled(ctx, user.ID)
+	if err != nil {
+		return err
+	}
+	if enabled {
+		return domain.ErrTwoFactorRequired
+	}
+	return nil
 }
 
 // VerifyUserSession checks if the user exists and the session is valid

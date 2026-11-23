@@ -212,6 +212,7 @@ func TestDemoService_RootContext(t *testing.T) {
 		require.NotNil(t, session)
 		assert.Equal(t, root.ID, session.UserID)
 		assert.True(t, session.ExpiresAt.After(time.Now()))
+		assert.Equal(t, domain.AuthMethodDemo, session.AuthMethod, "the seed meets the two-factor requirement")
 		assert.Equal(t, root.ID, ctx.Value(domain.UserIDKey))
 		assert.Equal(t, string(domain.UserTypeUser), ctx.Value(domain.UserTypeKey))
 		assert.Equal(t, session.ID, ctx.Value(domain.SessionIDKey))
@@ -407,6 +408,7 @@ func TestDemoService_CreateSampleLists_Error(t *testing.T) {
 	mockContactListRepo := domainmocks.NewMockContactListRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
+	mockAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockEmail := domainmocks.NewMockEmailServiceInterface(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockMessageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
@@ -443,6 +445,7 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 	mockListRepo := domainmocks.NewMockListRepository(ctrl)
 	mockContactListRepo := domainmocks.NewMockContactListRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
+	mockAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockEmail := domainmocks.NewMockEmailServiceInterface(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
@@ -504,6 +507,7 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
+	mockAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 
 	tmplSvc := NewTemplateService(mockTemplateRepo, mockWorkspaceRepo, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test", fullyLicensedProvider(ctrl))
 
@@ -683,6 +687,7 @@ func TestDemoService_CreateSampleLists_Success(t *testing.T) {
 	mockContactListRepo := domainmocks.NewMockContactListRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
+	mockAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockEmail := domainmocks.NewMockEmailServiceInterface(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockMessageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
@@ -812,6 +817,7 @@ func TestNewDemoService_AllFields(t *testing.T) {
 	config := &config.Config{}
 	ctrl := gomock.NewController(t)
 	authService := domainmocks.NewMockAuthService(ctrl)
+	authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	settingRepo := domainmocks.NewMockSettingRepository(ctrl)
 
 	svc := NewDemoService(
@@ -1289,6 +1295,7 @@ func TestCreateDemoWebhookSubscription_IsSwitchedOff(t *testing.T) {
 
 		repo := domainmocks.NewMockWebhookSubscriptionRepository(ctrl)
 		auth := domainmocks.NewMockAuthService(ctrl)
+		auth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 		auth.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, workspaceID string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
@@ -1379,6 +1386,7 @@ func TestDemoService_CreateSampleTemplates_RefusesLoudlyWhenUnlicensed(t *testin
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
+	mockAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 
 	// A Community deployment: no key, every gate closed. Inline rather than the shared
 	// helper, which lives behind the licdev build tag.

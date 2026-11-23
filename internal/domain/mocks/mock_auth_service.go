@@ -36,6 +36,22 @@ func (m *MockAuthService) EXPECT() *MockAuthServiceMockRecorder {
 	return m.recorder
 }
 
+// AuthenticateSession mocks base method.
+func (m *MockAuthService) AuthenticateSession(arg0 context.Context) (*domain.User, *domain.SessionAuth, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AuthenticateSession", arg0)
+	ret0, _ := ret[0].(*domain.User)
+	ret1, _ := ret[1].(*domain.SessionAuth)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// AuthenticateSession indicates an expected call of AuthenticateSession.
+func (mr *MockAuthServiceMockRecorder) AuthenticateSession(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthenticateSession", reflect.TypeOf((*MockAuthService)(nil).AuthenticateSession), arg0)
+}
+
 // AuthenticateUserForWorkspace mocks base method.
 func (m *MockAuthService) AuthenticateUserForWorkspace(arg0 context.Context, arg1 string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
 	m.ctrl.T.Helper()
@@ -120,6 +136,34 @@ func (m *MockAuthService) InvalidateSecretCache() {
 func (mr *MockAuthServiceMockRecorder) InvalidateSecretCache() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidateSecretCache", reflect.TypeOf((*MockAuthService)(nil).InvalidateSecretCache))
+}
+
+// RequireCompliantRootSession mocks base method.
+func (m *MockAuthService) RequireCompliantRootSession(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RequireCompliantRootSession", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RequireCompliantRootSession indicates an expected call of RequireCompliantRootSession.
+func (mr *MockAuthServiceMockRecorder) RequireCompliantRootSession(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequireCompliantRootSession", reflect.TypeOf((*MockAuthService)(nil).RequireCompliantRootSession), arg0)
+}
+
+// RequireCompliantSession mocks base method.
+func (m *MockAuthService) RequireCompliantSession(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RequireCompliantSession", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RequireCompliantSession indicates an expected call of RequireCompliantSession.
+func (mr *MockAuthServiceMockRecorder) RequireCompliantSession(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequireCompliantSession", reflect.TypeOf((*MockAuthService)(nil).RequireCompliantSession), arg0)
 }
 
 // ValidateInvitationToken mocks base method.
