@@ -36,6 +36,8 @@ interface AuthContextType {
   // requires it of this session, which then reaches only the account security page.
   twoFactor: TwoFactorState | null
   twoFactorRequired: boolean
+  // Whether this session passed a second factor, or counts as such; true when user.me did not say.
+  sessionTwoFactorPassed: boolean
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Context co-located with provider
@@ -50,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [serverVersion, setServerVersion] = useState<string | null>(null)
   const [twoFactor, setTwoFactor] = useState<TwoFactorState | null>(null)
   const [twoFactorRequired, setTwoFactorRequired] = useState(false)
+  const [sessionTwoFactorPassed, setSessionTwoFactorPassed] = useState(true)
 
   // Kept next to the setter it always accompanies, so a fourth call site of getCurrentUser()
   // cannot pick up the workspaces and forget the licence or the update-check flag — which is
@@ -60,12 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     version?: string
     two_factor?: TwoFactorState
     two_factor_required?: boolean
+    session_two_factor_passed?: boolean
   }) => {
     setLicenseEntitlements(payload.entitlements ?? null)
     setCheckForUpdates(payload.check_for_updates === true)
     setServerVersion(payload.version || null)
     setTwoFactor(payload.two_factor ?? null)
     setTwoFactorRequired(payload.two_factor_required === true)
+    setSessionTwoFactorPassed(payload.session_two_factor_passed !== false)
   }
 
   const checkAuth = useCallback(async () => {
@@ -160,7 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         checkForUpdates,
         serverVersion,
         twoFactor,
-        twoFactorRequired
+        twoFactorRequired,
+        sessionTwoFactorPassed
       }}
     >
       {children}

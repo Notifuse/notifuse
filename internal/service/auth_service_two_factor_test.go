@@ -172,3 +172,48 @@ func TestWorkspaceService_CreateWorkspace_RefusesNonCompliantRootSession(t *test
 	_, err := f.service.CreateWorkspace(context.Background(), "newws", "New", "", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
 	require.ErrorIs(t, err, domain.ErrTwoFactorRequired)
 }
+
+// A root user who turned two-factor authentication on reaches workspaces as their owner only
+// from a session that passed it: an older session kept when they turned it on does not.
+func TestAuthService_RootWorkspaceAccessNeedsTheSecondFactor(t *testing.T) {
+	newRootService := func(t *testing.T, session domain.SessionAuth, enrolled bool) (*AuthService, *mocks.MockWorkspaceRepository) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockAuthRepository(ctrl)
+		workspaces := mocks.NewMockWorkspaceRepository(ctrl)
+		svc := NewAuthService(AuthServiceConfig{
+			Repository:          repo,
+			WorkspaceRepository: workspaces,
+			GetSecret:           func() ([]byte, error) { return []byte("test-jwt-secret-key-1234567890123456"), nil },
+			Logger:              pkgmocks.NewMockLogger(ctrl),
+			IsRootEmail:         func(email string) bool { return email == "root@example.com" },
+		})
+		session.ExpiresAt = time.Now().Add(time.Hour)
+		repo.EXPECT().GetSessionByID(gomock.Any(), "session-1", "user-1").Return(&session, nil).AnyTimes()
+		repo.EXPECT().GetUserByID(gomock.Any(), "user-1").Return(&domain.User{ID: "user-1", Email: "root@example.com", Type: domain.UserTypeUser}, nil).AnyTimes()
+		repo.EXPECT().IsTwoFactorEnabled(gomock.Any(), "user-1").Return(enrolled, nil).AnyTimes()
+		return svc, workspaces
+	}
+
+	t.Run("an older session of an enrolled root is refused", func(t *testing.T) {
+		svc, _ := newRootService(t, domain.SessionAuth{AuthMethod: domain.AuthMethodMagicCode}, true)
+		_, _, _, err := svc.AuthenticateUserForWorkspace(gatedSessionCtx(domain.UserTypeUser), "ws1")
+		require.ErrorIs(t, err, domain.ErrTwoFactorRequired)
+	})
+
+	t.Run("a session that passed it gets owner access", func(t *testing.T) {
+		svc, workspaces := newRootService(t, domain.SessionAuth{AuthMethod: domain.AuthMethodMagicCode, SecondFactor: domain.SecondFactorTOTP}, true)
+		workspaces.EXPECT().GetByID(gomock.Any(), "ws1").Return(&domain.Workspace{ID: "ws1"}, nil)
+		workspaces.EXPECT().GetUserWorkspace(gomock.Any(), "user-1", "ws1").Return(nil, domain.ErrUserNotInWorkspace)
+		_, _, membership, err := svc.AuthenticateUserForWorkspace(gatedSessionCtx(domain.UserTypeUser), "ws1")
+		require.NoError(t, err)
+		assert.Equal(t, "owner", membership.Role)
+	})
+
+	t.Run("a root without two-factor authentication keeps owner access", func(t *testing.T) {
+		svc, workspaces := newRootService(t, domain.SessionAuth{AuthMethod: domain.AuthMethodMagicCode}, false)
+		workspaces.EXPECT().GetByID(gomock.Any(), "ws1").Return(&domain.Workspace{ID: "ws1"}, nil)
+		workspaces.EXPECT().GetUserWorkspace(gomock.Any(), "user-1", "ws1").Return(nil, domain.ErrUserNotInWorkspace)
+		_, _, _, err := svc.AuthenticateUserForWorkspace(gatedSessionCtx(domain.UserTypeUser), "ws1")
+		require.NoError(t, err)
+	})
+}

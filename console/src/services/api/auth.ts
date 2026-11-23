@@ -84,6 +84,8 @@ export interface GetCurrentUserResponse {
   two_factor?: TwoFactorState
   // The second factor this session passed: "totp", "recovery_code", or "" for none.
   session_second_factor?: string
+  // Whether this session counts as having passed it (single sign-on and the root signature do).
+  session_two_factor_passed?: boolean
   // The instance requires two-factor authentication and this session has not passed it: the
   // workspaces are withheld and only the account security page works.
   two_factor_required?: boolean

@@ -106,6 +106,7 @@ func TestUserHandler_Me_TwoFactor(t *testing.T) {
 		assert.Len(t, body["workspaces"], 1)
 		assert.Equal(t, false, body["two_factor_required"])
 		assert.Equal(t, "totp", body["session_second_factor"])
+		assert.Equal(t, true, body["session_two_factor_passed"])
 		state := body["two_factor"].(map[string]interface{})
 		assert.Equal(t, true, state["enabled"])
 		assert.Equal(t, float64(7), state["recovery_codes_remaining"])

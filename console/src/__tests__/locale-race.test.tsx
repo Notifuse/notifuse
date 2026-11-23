@@ -138,6 +138,7 @@ describe('LocaleProvider with a stale stored locale', () => {
           serverVersion: null,
           twoFactor: null,
           twoFactorRequired: false,
+          sessionTwoFactorPassed: true,
         }}
       >
         <LocaleProvider>

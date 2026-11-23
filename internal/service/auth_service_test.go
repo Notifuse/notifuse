@@ -1036,6 +1036,8 @@ func TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin(t *testing.T) {
 	buildService := func(t *testing.T) (*mocks.MockAuthRepository, *mocks.MockWorkspaceRepository, *AuthService) {
 		ctrl := gomock.NewController(t)
 		mockAuthRepo := mocks.NewMockAuthRepository(ctrl)
+		// A root user without two-factor authentication: the access these tests are about.
+		mockAuthRepo.EXPECT().IsTwoFactorEnabled(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		svc := NewAuthService(AuthServiceConfig{
@@ -1145,6 +1147,8 @@ func TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin(t *testing.T) {
 func newWorkspaceAuthService(t *testing.T, rootEmail string) (*mocks.MockAuthRepository, *mocks.MockWorkspaceRepository, *AuthService) {
 	ctrl := gomock.NewController(t)
 	mockAuthRepo := mocks.NewMockAuthRepository(ctrl)
+	// A root user without two-factor authentication unless a test says otherwise first.
+	mockAuthRepo.EXPECT().IsTwoFactorEnabled(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	svc := NewAuthService(AuthServiceConfig{
 		Repository:          mockAuthRepo,

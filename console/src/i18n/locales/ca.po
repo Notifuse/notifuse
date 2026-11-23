@@ -2287,7 +2287,7 @@ msgstr "Nom del compte a l'aplicació: Notifuse ({account})"
 
 #: src/components/two_factor/AccountSecurityDrawer.tsx:26
 #: src/layouts/app-shell/AccountMenu.tsx:87
-#: src/pages/AccountSecurityPage.tsx:59
+#: src/pages/AccountSecurityPage.tsx:64
 msgid "Account security"
 msgstr "Seguretat del compte"
 
@@ -4177,7 +4177,7 @@ msgstr "Regió d'AWS"
 msgid "Back"
 msgstr "Enrere"
 
-#: src/pages/AccountSecurityPage.tsx:46
+#: src/pages/AccountSecurityPage.tsx:51
 msgid "Back to {workspaceName}"
 msgstr "Torna a {workspaceName}"
 
@@ -4200,7 +4200,7 @@ msgstr "Tornar a esborrany"
 msgid "Back to draft?"
 msgstr "Tornar a esborrany?"
 
-#: src/pages/AccountSecurityPage.tsx:35
+#: src/pages/AccountSecurityPage.tsx:40
 msgid "Back to Notifuse"
 msgstr "Torna a Notifuse"
 
@@ -15395,7 +15395,7 @@ msgid "Logo URL"
 msgstr "URL del logotip"
 
 #: src/layouts/app-shell/AccountMenu.tsx:104
-#: src/pages/AccountSecurityPage.tsx:53
+#: src/pages/AccountSecurityPage.tsx:58
 msgid "Logout"
 msgstr "Tancar sessió"
 
@@ -23379,7 +23379,7 @@ msgstr "Configuració"
 msgid "Settings › Integrations"
 msgstr "Configuració › Integracions"
 
-#: src/pages/AccountSecurityPage.tsx:60
+#: src/pages/AccountSecurityPage.tsx:65
 msgid "Settings for your Notifuse account, in every workspace you belong to."
 msgstr "Configuració del teu compte de Notifuse, a tots els espais de treball als quals pertanys."
 
@@ -23601,6 +23601,10 @@ msgstr "Torna a iniciar la sessió per continuar: activar l'autenticació de dob
 #: src/components/settings/LicenseSettings.tsx:74
 msgid "Sign in again to manage the licence"
 msgstr "Torna a iniciar la sessió per gestionar la llicència"
+
+#: src/pages/AccountSecurityPage.tsx:68
+msgid "Sign in again to open your workspaces"
+msgstr "Torna a iniciar la sessió per obrir els teus espais de treball"
 
 #: src/components/logs/AuditLogTab.tsx:558
 msgid "Sign in again to read the platform audit log"
@@ -27403,7 +27407,7 @@ msgstr "Convertir en"
 msgid "Turn Into"
 msgstr "Convertir en"
 
-#: src/pages/AccountSecurityPage.tsx:67
+#: src/pages/AccountSecurityPage.tsx:75
 msgid "Turn it on to open your workspaces again. Until then, this page is the only one you can use."
 msgstr "Activa-la per tornar a obrir els teus espais de treball. Fins aleshores, aquesta és l'única pàgina que pots fer servir."
 
@@ -29926,7 +29930,7 @@ msgstr "El vostre proveïdor d'identitat no ha verificat la vostra adreça de co
 msgid "Your licence does not cover translations: see the notice above."
 msgstr "La vostra llicència no inclou traduccions: vegeu l’avís de dalt."
 
-#: src/pages/AccountSecurityPage.tsx:66
+#: src/pages/AccountSecurityPage.tsx:74
 msgid "Your Notifuse administrator requires two-factor authentication."
 msgstr "L'administrador de Notifuse exigeix l'autenticació de doble factor."
 

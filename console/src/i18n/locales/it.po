@@ -2287,7 +2287,7 @@ msgstr "Nome dell'account nell'app: Notifuse ({account})"
 
 #: src/components/two_factor/AccountSecurityDrawer.tsx:26
 #: src/layouts/app-shell/AccountMenu.tsx:87
-#: src/pages/AccountSecurityPage.tsx:59
+#: src/pages/AccountSecurityPage.tsx:64
 msgid "Account security"
 msgstr "Sicurezza dell'account"
 
@@ -4177,7 +4177,7 @@ msgstr "Regione AWS"
 msgid "Back"
 msgstr "Indietro"
 
-#: src/pages/AccountSecurityPage.tsx:46
+#: src/pages/AccountSecurityPage.tsx:51
 msgid "Back to {workspaceName}"
 msgstr "Torna a {workspaceName}"
 
@@ -4200,7 +4200,7 @@ msgstr "Torna in bozza"
 msgid "Back to draft?"
 msgstr "Tornare in bozza?"
 
-#: src/pages/AccountSecurityPage.tsx:35
+#: src/pages/AccountSecurityPage.tsx:40
 msgid "Back to Notifuse"
 msgstr "Torna a Notifuse"
 
@@ -15395,7 +15395,7 @@ msgid "Logo URL"
 msgstr "URL Logo"
 
 #: src/layouts/app-shell/AccountMenu.tsx:104
-#: src/pages/AccountSecurityPage.tsx:53
+#: src/pages/AccountSecurityPage.tsx:58
 msgid "Logout"
 msgstr "Esci"
 
@@ -23379,7 +23379,7 @@ msgstr "Impostazioni"
 msgid "Settings › Integrations"
 msgstr "Impostazioni › Integrazioni"
 
-#: src/pages/AccountSecurityPage.tsx:60
+#: src/pages/AccountSecurityPage.tsx:65
 msgid "Settings for your Notifuse account, in every workspace you belong to."
 msgstr "Impostazioni del tuo account Notifuse, in tutti gli spazi di lavoro a cui appartieni."
 
@@ -23601,6 +23601,10 @@ msgstr "Accedi di nuovo per continuare: attivare l'autenticazione a due fattori 
 #: src/components/settings/LicenseSettings.tsx:74
 msgid "Sign in again to manage the licence"
 msgstr "Accedi di nuovo per gestire la licenza"
+
+#: src/pages/AccountSecurityPage.tsx:68
+msgid "Sign in again to open your workspaces"
+msgstr "Accedi di nuovo per aprire i tuoi spazi di lavoro"
 
 #: src/components/logs/AuditLogTab.tsx:558
 msgid "Sign in again to read the platform audit log"
@@ -27403,7 +27407,7 @@ msgstr "Trasforma in"
 msgid "Turn Into"
 msgstr "Trasforma in"
 
-#: src/pages/AccountSecurityPage.tsx:67
+#: src/pages/AccountSecurityPage.tsx:75
 msgid "Turn it on to open your workspaces again. Until then, this page is the only one you can use."
 msgstr "Attivala per riaprire i tuoi spazi di lavoro. Fino ad allora, questa è l'unica pagina che puoi usare."
 
@@ -29926,7 +29930,7 @@ msgstr "Il tuo provider di identità non ha verificato il tuo indirizzo email."
 msgid "Your licence does not cover translations: see the notice above."
 msgstr "La tua licenza non include le traduzioni: vedi l’avviso qui sopra."
 
-#: src/pages/AccountSecurityPage.tsx:66
+#: src/pages/AccountSecurityPage.tsx:74
 msgid "Your Notifuse administrator requires two-factor authentication."
 msgstr "L'amministratore di Notifuse richiede l'autenticazione a due fattori."
 

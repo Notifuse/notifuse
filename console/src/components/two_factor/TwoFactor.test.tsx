@@ -38,7 +38,8 @@ function withAuth(children: ReactNode, twoFactor: TwoFactorState | null = null) 
           checkForUpdates: false,
           serverVersion: null,
           twoFactor,
-          twoFactorRequired: false
+          twoFactorRequired: false,
+          sessionTwoFactorPassed: true
         }}
       >
         {children}

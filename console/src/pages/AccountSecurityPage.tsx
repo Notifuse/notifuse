@@ -5,6 +5,8 @@ import { useLingui } from '@lingui/react/macro'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../contexts/AuthContext'
 import { AccountSecurityPanel } from '../components/two_factor/AccountSecurityPanel'
+import { RootSessionRefused } from '../components/two_factor/RootSessionRefused'
+import { isRootUser } from '../services/api/auth'
 
 /**
  * The account security page, outside any workspace: where a session lands when the instance
@@ -14,7 +16,10 @@ import { AccountSecurityPanel } from '../components/two_factor/AccountSecurityPa
 export function AccountSecurityPage() {
   const { t } = useLingui()
   const navigate = useNavigate()
-  const { user, workspaces, twoFactorRequired, refreshWorkspaces } = useAuth()
+  const { user, workspaces, twoFactorRequired, twoFactor, sessionTwoFactorPassed, refreshWorkspaces } = useAuth()
+  // A root user with two-factor authentication, on a session opened without the code: the
+  // workspaces refuse it until they sign in again.
+  const rootSessionWithoutCode = isRootUser(user?.email) && twoFactor?.enabled === true && !sessionTwoFactorPassed
 
   // Read the account again on arrival: a session sent here by a refused call (the requirement
   // switched on meanwhile) would otherwise show the state it had before.
@@ -59,6 +64,9 @@ export function AccountSecurityPage() {
           <h1 className="m-0 text-lg font-semibold text-ink">{t`Account security`}</h1>
           <p className="m-0 text-sm text-ink-2">{t`Settings for your Notifuse account, in every workspace you belong to.`}</p>
         </div>
+        {rootSessionWithoutCode && !twoFactorRequired ? (
+          <RootSessionRefused title={t`Sign in again to open your workspaces`} />
+        ) : null}
         {twoFactorRequired ? (
           <Alert
             type="warning"

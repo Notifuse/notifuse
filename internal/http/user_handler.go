@@ -425,6 +425,10 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		}
 		if session != nil {
 			response["session_second_factor"] = session.SecondFactor
+			// Whether this session counts as having passed the second factor (single sign-on
+			// and the root signature do): a root user with two-factor authentication needs it
+			// to reach workspaces.
+			response["session_two_factor_passed"] = domain.SessionSatisfiesTwoFactor(*session)
 		}
 		response["two_factor_required"] = twoFactorRequired
 	}

@@ -91,7 +91,8 @@ const renderPermissions = (
           checkForUpdates: false,
           serverVersion: null,
           twoFactor: null,
-          twoFactorRequired: false
+          twoFactorRequired: false,
+          sessionTwoFactorPassed: true
         }}
       >
         {children}

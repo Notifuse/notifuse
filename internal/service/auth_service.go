@@ -103,26 +103,33 @@ func (s *AuthService) InvalidateSecretCache() {
 	s.secretLoaded = false
 }
 func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.User, error) {
+	user, _, err := s.authenticateContext(ctx)
+	return user, err
+}
+
+// authenticateContext is AuthenticateUserFromContext, also returning what is known about the
+// session of a console token (nil for an API key).
+func (s *AuthService) authenticateContext(ctx context.Context) (*domain.User, *domain.SessionAuth, error) {
 
 	// A request without the claims of a token is not authenticated: ErrSessionAuthFailed,
 	// which answers 401, like an expired session.
 	userID, ok := ctx.Value(domain.UserIDKey).(string)
 	if !ok || userID == "" {
-		return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 	}
 	userType, ok := ctx.Value(domain.UserTypeKey).(string)
 	if !ok || userType == "" {
-		return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 	}
 	if userType == string(domain.UserTypeUser) {
 		user, session, err := s.AuthenticateSession(ctx)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if s.requireTwoFactor && !domain.SessionSatisfiesTwoFactor(*session) {
-			return nil, domain.ErrTwoFactorRequired
+			return nil, nil, domain.ErrTwoFactorRequired
 		}
-		return user, nil
+		return user, session, nil
 	} else if userType == string(domain.UserTypeAPIKey) {
 		user, err := s.GetUserByID(ctx, userID)
 		if err == nil && user.Type != domain.UserTypeAPIKey {
@@ -139,11 +146,11 @@ func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.
 			// failure. Untyped it collapsed to 500 at every handler, which tells
 			// an API client its server is broken rather than that its credential
 			// is dead.
-			return nil, fmt.Errorf("%w: %w", domain.ErrAPIKeyRevoked, err)
+			return nil, nil, fmt.Errorf("%w: %w", domain.ErrAPIKeyRevoked, err)
 		}
-		return user, err
+		return user, nil, err
 	}
-	return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
+	return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 }
 
 // AuthenticateUserForWorkspace checks if the user exists and the session is valid for a specific workspace.
@@ -166,9 +173,17 @@ func (s *AuthService) AuthenticateUserForWorkspace(ctx context.Context, workspac
 		}
 	}
 
-	user, err := s.AuthenticateUserFromContext(ctx)
+	user, session, err := s.authenticateContext(ctx)
 	if err != nil {
 		return ctx, nil, nil, err
+	}
+	// A root user who turned two-factor authentication on reaches workspaces as their owner only
+	// from a session that passed it: an older session, kept when they turned it on, would
+	// otherwise keep that access to every workspace.
+	if session != nil && s.isRootUser(user) {
+		if err := s.checkRootSession(ctx, user, session); err != nil {
+			return ctx, nil, nil, err
+		}
 	}
 
 	mcpCaller := domain.MCPCallerFromContext(ctx)
@@ -302,6 +317,12 @@ func (s *AuthService) RequireCompliantRootSession(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	return s.checkRootSession(ctx, user, session)
+}
+
+// checkRootSession refuses a root user's session that did not pass a second factor when the
+// instance requires it, or when the root user has two-factor authentication.
+func (s *AuthService) checkRootSession(ctx context.Context, user *domain.User, session *domain.SessionAuth) error {
 	if domain.SessionSatisfiesTwoFactor(*session) {
 		return nil
 	}
