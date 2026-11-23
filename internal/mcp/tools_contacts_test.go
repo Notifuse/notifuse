@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -373,4 +375,360 @@ func TestCountContacts_ErrorsAreMapped(t *testing.T) {
 	g := newFixture(t)
 	g.reachable(domain.UserPermissions{})
 	assert.Equal(t, CodePermissionDenied, g.callTool("count_contacts", map[string]any{"workspace_id": testWorkspaceID}).errorOf(t).Code)
+}
+
+func TestUpsertContact_Definition(t *testing.T) {
+	tool := catalogueTool(t, "upsert_contact")
+	assertWriteTool(t, tool, "upsert_contact", ClassWriteOpenWorld, writeHints{destructive: false, openWorld: true, idempotent: true},
+		[]Pair{{Resource: "contacts", Verb: "write"}}, "contacts.upsert", []string{"workspace_id", "email"})
+	properties := tool.InputSchema["properties"].(map[string]any)
+	clearable := properties["clear_fields"].(map[string]any)["items"].(map[string]any)["enum"]
+	assert.Equal(t, []string{
+		"external_id", "first_name", "last_name", "full_name", "language", "timezone", "phone",
+		"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
+		"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
+		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
+		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
+		"tracking_opens_consent", "tracking_clicks_consent",
+	}, clearable)
+	for _, notExposed := range []string{"tracking_consent_source", "tracking_consent_updated_at", "email_hmac", "created_at"} {
+		assert.NotContains(t, properties, notExposed)
+	}
+}
+
+// The contact is decoded from the arguments as contacts.upsert decodes its
+// body: a given field is set, a cleared one is null, an absent one is left
+// nil so the stored value stays.
+func TestUpsertContact_BuildsTheContactFromTheGivenKeysOnly(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	var sent *domain.Contact
+	f.contacts.EXPECT().UpsertContact(gomock.Any(), testWorkspaceID, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, contact *domain.Contact) domain.UpsertContactOperation {
+			sent = contact
+			return domain.UpsertContactOperation{Email: contact.Email, Action: domain.UpsertContactOperationUpdate, Contact: fullContact()}
+		})
+
+	result := f.callTool("upsert_contact", map[string]any{
+		"workspace_id":    testWorkspaceID,
+		"email":           " Jane@Example.COM ",
+		"first_name":      "Jane",
+		"custom_number_2": 4.5,
+		"custom_json_1":   "gold",
+		"clear_fields":    []any{"phone", "custom_datetime_3"},
+	})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	require.NotNil(t, sent)
+	assert.Equal(t, "jane@example.com", sent.Email)
+	assert.Equal(t, &domain.NullableString{String: "Jane"}, sent.FirstName)
+	assert.Equal(t, &domain.NullableFloat64{Float64: 4.5}, sent.CustomNumber2)
+	assert.Equal(t, &domain.NullableJSON{Data: "gold"}, sent.CustomJSON1)
+	assert.Equal(t, &domain.NullableString{IsNull: true}, sent.Phone)
+	assert.Equal(t, &domain.NullableTime{IsNull: true}, sent.CustomDatetime3)
+	// Omitted, so kept as stored.
+	assert.Nil(t, sent.LastName)
+	assert.Nil(t, sent.Timezone)
+	assert.Nil(t, sent.CustomString1)
+	assert.Nil(t, sent.TrackingOpensConsent)
+	assert.Nil(t, sent.TrackingConsentSource)
+}
+
+func TestUpsertContact_ReturnsTheStoredContact(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	f.contacts.EXPECT().UpsertContact(gomock.Any(), testWorkspaceID, gomock.Any()).
+		Return(domain.UpsertContactOperation{Email: "jane@example.com", Action: domain.UpsertContactOperationCreate, Contact: fullContact()})
+
+	result := f.callTool("upsert_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com"})
+	var out struct {
+		Workspace WorkspaceRef `json:"workspace"`
+		Action    string       `json:"action"`
+		Contact   contactFull  `json:"contact"`
+	}
+	result.decode(t, &out)
+	assert.Equal(t, WorkspaceRef{ID: testWorkspaceID, Name: "Acme"}, out.Workspace)
+	assert.Equal(t, "create", out.Action)
+	assert.Equal(t, projectContact(fullContact()), out.Contact)
+	assert.NotContains(t, result.Content[0].Text, "email_hmac")
+	assert.NotContains(t, result.Content[0].Text, "signed-secret")
+}
+
+// The read-back is best effort in the service: a committed write without it
+// still succeeds, with no contact.
+func TestUpsertContact_WithoutTheReadBack(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	f.contacts.EXPECT().UpsertContact(gomock.Any(), testWorkspaceID, gomock.Any()).
+		Return(domain.UpsertContactOperation{Email: "jane@example.com", Action: domain.UpsertContactOperationUpdate})
+
+	result := f.callTool("upsert_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com"})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"action":"update"}`, string(result.StructuredContent))
+}
+
+func TestUpsertContact_RefusesBadArgumentsBeforeTheService(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	for name, args := range map[string]map[string]any{
+		"invalid email":           {"email": "not-an-email"},
+		"given and cleared":       {"email": "jane@example.com", "first_name": "Jane", "clear_fields": []any{"first_name"}},
+		"unknown time zone":       {"email": "jane@example.com", "timezone": "Mars/Olympus"},
+		"date not in RFC 3339":    {"email": "jane@example.com", "custom_datetime_1": "01/02/2026"},
+		"consent off its enum":    {"email": "jane@example.com", "tracking_opens_consent": "maybe"},
+		"clearing the email":      {"email": "jane@example.com", "clear_fields": []any{"email"}},
+		"consent source not open": {"email": "jane@example.com", "tracking_consent_source": "import"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			args["workspace_id"] = testWorkspaceID
+			assert.Equal(t, CodeValidation, f.callTool("upsert_contact", args).errorOf(t).Code)
+		})
+	}
+}
+
+func TestUpsertContact_OperationErrorsAreMapped(t *testing.T) {
+	t.Run("a typed refusal", func(t *testing.T) {
+		f := newFixture(t)
+		f.reachable(contactsWrite())
+		f.captureAudit()
+		f.contacts.EXPECT().UpsertContact(gomock.Any(), testWorkspaceID, gomock.Any()).Return(domain.UpsertContactOperation{
+			Action: domain.UpsertContactOperationError,
+			Error:  "no",
+			Err:    domain.NewPermissionError(domain.PermissionResourceContacts, domain.PermissionTypeWrite, "no"),
+		})
+		toolErr := f.callTool("upsert_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com"}).errorOf(t)
+		assert.Equal(t, CodePermissionDenied, toolErr.Code)
+	})
+
+	// The arguments were validated first, so an error with no typed cause is
+	// the write failing: internal, never validation, and its text is not sent.
+	t.Run("a failed write", func(t *testing.T) {
+		f := newFixture(t)
+		f.reachable(contactsWrite())
+		f.captureAudit()
+		f.contacts.EXPECT().UpsertContact(gomock.Any(), testWorkspaceID, gomock.Any()).Return(domain.UpsertContactOperation{
+			Action: domain.UpsertContactOperationError,
+			Error:  "pq: deadlock detected on contacts",
+		})
+		toolErr := f.callTool("upsert_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com"}).errorOf(t)
+		assert.Equal(t, ToolError{Code: CodeInternal, Message: "internal error"}, toolErr)
+	})
+}
+
+func TestUpsertContact_AuditRow(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	audit := f.captureAudit()
+	f.contacts.EXPECT().UpsertContact(gomock.Any(), testWorkspaceID, gomock.Any()).
+		Return(domain.UpsertContactOperation{Email: "jane@example.com", Action: domain.UpsertContactOperationCreate})
+
+	require.False(t, f.callTool("upsert_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "Jane@Example.com", "first_name": "Jane"}).IsError)
+	row := audit.last(t)
+	assert.Equal(t, "contacts.upsert", row.Action)
+	assert.Equal(t, domain.AuditCategoryContacts, row.Category)
+	assert.Equal(t, domain.AuditTargetContact, row.TargetType)
+	assert.Equal(t, "jane@example.com", row.TargetID)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+	assert.Equal(t, map[string]any{"channel": "mcp", "mcp_tool": "upsert_contact", "email": "jane@example.com", "action": "create"}, row.Metadata)
+
+	assert.True(t, f.callTool("upsert_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com", "timezone": "Nowhere"}).IsError)
+	row = audit.last(t)
+	assert.Equal(t, http.StatusBadRequest, row.StatusCode)
+	assert.Equal(t, "jane@example.com", row.TargetID)
+	assert.Equal(t, "validation", row.Metadata["error_code"])
+}
+
+func TestDeleteContact_Definition(t *testing.T) {
+	tool := catalogueTool(t, "delete_contact")
+	assertWriteTool(t, tool, "delete_contact", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+		[]Pair{{Resource: "contacts", Verb: "write"}}, "contacts.delete", []string{"workspace_id", "email"})
+	// Erasing the opt-out hashes too stays a person's decision.
+	assert.Equal(t, []string{"email", "workspace_id"}, sortedKeys(tool.InputSchema["properties"].(map[string]any)))
+}
+
+func TestDeleteContact_KeepsTheOptOutHashes(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	f.contactRows.EXPECT().GetContactByEmail(gomock.Any(), testWorkspaceID, "jane@example.com").Return(sampleContact(), nil)
+	f.contacts.EXPECT().DeleteContact(gomock.Any(), testWorkspaceID, "jane@example.com", domain.DeleteContactOptions{ForgetOptOuts: false}).Return(nil)
+
+	result := f.callTool("delete_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "Jane@Example.com"})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"deleted":true,"email":"jane@example.com"}`, string(result.StructuredContent))
+
+	toolErr := f.callTool("delete_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com", "forget_opt_outs": true}).errorOf(t)
+	assert.Equal(t, CodeValidation, toolErr.Code)
+}
+
+// The service answers success for an address with no contact; the tool reads
+// first, so a repeated call answers not_found and deletes nothing.
+func TestDeleteContact_ReplayIsNotFound(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	audit := f.captureAudit()
+	f.contactRows.EXPECT().GetContactByEmail(gomock.Any(), testWorkspaceID, "jane@example.com").Return(nil, domain.ErrContactNotFound)
+
+	toolErr := f.callTool("delete_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com"}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodeNotFound, Message: "contact not found"}, toolErr)
+	row := audit.last(t)
+	assert.Equal(t, "contacts.delete", row.Action)
+	assert.Equal(t, http.StatusNotFound, row.StatusCode)
+	assert.Equal(t, domain.AuditTargetContact, row.TargetType)
+	assert.Equal(t, "jane@example.com", row.TargetID)
+}
+
+func TestDeleteContact_ErrorsAreMapped(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	audit := f.captureAudit()
+	f.contactRows.EXPECT().GetContactByEmail(gomock.Any(), testWorkspaceID, "jane@example.com").Return(sampleContact(), nil)
+	f.contacts.EXPECT().DeleteContact(gomock.Any(), testWorkspaceID, "jane@example.com", domain.DeleteContactOptions{}).
+		Return(errors.New("failed to delete queued emails: timeout"))
+
+	toolErr := f.callTool("delete_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "jane@example.com"}).errorOf(t)
+	assert.Equal(t, CodeInternal, toolErr.Code)
+	assert.Equal(t, http.StatusInternalServerError, audit.last(t).StatusCode)
+
+	assert.Equal(t, CodeValidation, f.callTool("delete_contact", map[string]any{"workspace_id": testWorkspaceID, "email": "nobody"}).errorOf(t).Code)
+}
+
+func TestTrackCustomEvent_Definition(t *testing.T) {
+	tool := catalogueTool(t, "track_custom_event")
+	assertWriteTool(t, tool, "track_custom_event", ClassWriteOpenWorld, writeHints{destructive: false, openWorld: true, idempotent: true},
+		[]Pair{{Resource: "contacts", Verb: "write"}}, "customEvents.upsert", []string{"workspace_id", "email", "event_name", "external_id", "occurred_at"})
+	// A soft delete through a write tool would dodge destructiveHint.
+	assert.Equal(t, []string{"email", "event_name", "external_id", "goal_name", "goal_type", "goal_value", "occurred_at", "properties", "workspace_id"},
+		sortedKeys(tool.InputSchema["properties"].(map[string]any)))
+}
+
+func sampleEvent() *domain.CustomEvent {
+	occurred := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	goalType, goalValue := "purchase", 59.9
+	integration := "shopify"
+	return &domain.CustomEvent{
+		ExternalID: "ord_42", Email: "jane@example.com", EventName: "order.completed",
+		Properties: map[string]interface{}{"total": 59.9}, OccurredAt: occurred, Source: "api", IntegrationID: &integration,
+		GoalType: &goalType, GoalValue: &goalValue, CreatedAt: occurred, UpdatedAt: occurred,
+	}
+}
+
+func TestTrackCustomEvent_BuildsTheRequest(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	var sent *domain.UpsertCustomEventRequest
+	f.events.EXPECT().UpsertEvent(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.UpsertCustomEventRequest) (*domain.CustomEvent, error) {
+		sent = req
+		return sampleEvent(), nil
+	})
+
+	result := f.callTool("track_custom_event", map[string]any{
+		"workspace_id": testWorkspaceID, "email": "Jane@Example.com", "event_name": "order.completed", "external_id": "ord_42",
+		"occurred_at": "2026-11-20T11:00:00+01:00", "goal_type": "purchase", "goal_value": 59.9,
+	})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	require.NotNil(t, sent)
+	occurred := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	require.NotNil(t, sent.OccurredAt)
+	assert.True(t, occurred.Equal(*sent.OccurredAt))
+	assert.Equal(t, testWorkspaceID, sent.WorkspaceID)
+	assert.Equal(t, "jane@example.com", sent.Email)
+	assert.Equal(t, "order.completed", sent.EventName)
+	assert.Equal(t, "ord_42", sent.ExternalID)
+	assert.Equal(t, strPtr("purchase"), sent.GoalType)
+	// Properties left out keep the stored ones: nil, not an empty map.
+	assert.Nil(t, sent.Properties)
+	assert.Nil(t, sent.DeletedAt)
+	assert.Nil(t, sent.IntegrationID)
+	assert.Nil(t, sent.GoalName)
+}
+
+func TestTrackCustomEvent_ReturnsTheStoredEvent(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	f.events.EXPECT().UpsertEvent(gomock.Any(), gomock.Any()).Return(sampleEvent(), nil)
+
+	result := f.callTool("track_custom_event", map[string]any{
+		"workspace_id": testWorkspaceID, "email": "jane@example.com", "event_name": "order.completed", "external_id": "ord_42",
+		"occurred_at": "2026-11-20T10:00:00Z", "properties": map[string]any{"total": 59.9},
+	})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"event":{
+		"event_name":"order.completed","external_id":"ord_42","email":"jane@example.com","occurred_at":"2026-11-20T10:00:00Z",
+		"properties":{"total":59.9},"goal_type":"purchase","goal_value":59.9,
+		"created_at":"2026-11-20T10:00:00Z","updated_at":"2026-11-20T10:00:00Z"
+	}}`, string(result.StructuredContent))
+}
+
+func TestTrackCustomEvent_RefusesBadArgumentsBeforeTheService(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	f.captureAudit()
+	valid := func() map[string]any {
+		return map[string]any{
+			"workspace_id": testWorkspaceID, "email": "jane@example.com", "event_name": "order.completed",
+			"external_id": "ord_42", "occurred_at": "2026-11-20T10:00:00Z",
+		}
+	}
+	for name, change := range map[string]func(map[string]any){
+		"no occurred_at":                  func(args map[string]any) { delete(args, "occurred_at") },
+		"occurred_at not RFC 3339":        func(args map[string]any) { args["occurred_at"] = "yesterday" },
+		"invalid email":                   func(args map[string]any) { args["email"] = "jane" },
+		"purchase without a value":        func(args map[string]any) { args["goal_type"] = "purchase" },
+		"goal type off its enum":          func(args map[string]any) { args["goal_type"] = "donation" },
+		"external_id too long":            func(args map[string]any) { args["external_id"] = strings.Repeat("x", 256) },
+		"a soft delete is not offered":    func(args map[string]any) { args["deleted_at"] = "2026-11-20T10:00:00Z" },
+		"an integration is not offered":   func(args map[string]any) { args["integration_id"] = "shopify" },
+		"properties that are not objects": func(args map[string]any) { args["properties"] = []any{1} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			args := valid()
+			change(args)
+			assert.Equal(t, CodeValidation, f.callTool("track_custom_event", args).errorOf(t).Code)
+		})
+	}
+}
+
+func TestTrackCustomEvent_ServiceValidationAndAudit(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(contactsWrite())
+	audit := f.captureAudit()
+	f.events.EXPECT().UpsertEvent(gomock.Any(), gomock.Any()).
+		Return(nil, domain.NewValidationError("invalid custom event: event_name must contain only lowercase letters"))
+
+	toolErr := f.callTool("track_custom_event", map[string]any{
+		"workspace_id": testWorkspaceID, "email": "jane@example.com", "event_name": "Order Completed",
+		"external_id": "ord_42", "occurred_at": "2026-11-20T10:00:00Z",
+	}).errorOf(t)
+	assert.Equal(t, CodeValidation, toolErr.Code)
+	row := audit.last(t)
+	assert.Equal(t, "customEvents.upsert", row.Action)
+	assert.Equal(t, domain.AuditCategoryContacts, row.Category)
+	assert.Equal(t, domain.AuditTargetContact, row.TargetType)
+	assert.Equal(t, "jane@example.com", row.TargetID)
+	assert.Equal(t, http.StatusBadRequest, row.StatusCode)
+	assert.Equal(t, "jane@example.com", row.Metadata["email"])
+	assert.Equal(t, "Order Completed", row.Metadata["event_name"])
+
+	f.events.EXPECT().UpsertEvent(gomock.Any(), gomock.Any()).Return(sampleEvent(), nil)
+	require.False(t, f.callTool("track_custom_event", map[string]any{
+		"workspace_id": testWorkspaceID, "email": "jane@example.com", "event_name": "order.completed",
+		"external_id": "ord_42", "occurred_at": "2026-11-20T10:00:00Z",
+	}).IsError)
+	assert.Equal(t, http.StatusOK, audit.last(t).StatusCode)
+}
+
+func sortedKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return keys
 }

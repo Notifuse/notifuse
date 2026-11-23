@@ -2,16 +2,17 @@ import { Trans } from '@lingui/react'
 import { useLingui } from '@lingui/react/macro'
 import type { AuditLog } from '../../services/api/audit_log'
 import { Mono } from '../layout'
-import { AUDIT_PHRASES } from './auditPhrases'
+import { AUDIT_PHRASES, SUBSCRIPTION_CHANGE_PHRASES } from './auditPhrases'
 
 export interface AuditPhraseProps {
-  entry: Pick<AuditLog, 'action' | 'target_name' | 'target_id'>
+  entry: Pick<AuditLog, 'action' | 'target_name' | 'target_id' | 'metadata'>
 }
 
 /** The sentence of an audit entry, its target in bold: "Created the template Welcome". */
 export function AuditPhrase({ entry }: AuditPhraseProps) {
   const { t } = useLingui()
-  const phrase = AUDIT_PHRASES[entry.action]
+  const resubscribed = entry.metadata?.resubscribed_list_ids !== undefined
+  const phrase = (!resubscribed && SUBSCRIPTION_CHANGE_PHRASES[entry.action]) || AUDIT_PHRASES[entry.action]
   // A server newer than the console: its route name, as before.
   if (!phrase) return <Mono>{entry.action}</Mono>
 

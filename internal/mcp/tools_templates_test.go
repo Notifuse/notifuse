@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -511,4 +512,541 @@ func TestRenderTemplate_ServiceErrorsAreMapped(t *testing.T) {
 		Return(nil, fmt.Errorf("failed to authenticate user: %w", domain.ErrUserNotInWorkspace))
 	assert.Equal(t, ToolError{Code: CodeNotFound, Message: "workspace not found"},
 		f.callTool("render_template", map[string]any{"workspace_id": testWorkspaceID, "mjml_source": welcomeMJML}).errorOf(t))
+}
+
+func templatesWrite() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceTemplates: {Write: true}}
+}
+
+func templatesReadWrite() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true, Write: true}}
+}
+
+// stampedMJML is welcomeMJML as a save rewrites it: <mj-preview> added.
+const stampedMJML = `<mjml><mj-head><mj-title>Welcome</mj-title>
+    <mj-preview>Three things to try</mj-preview></mj-head><mj-body><mj-section><mj-column><mj-text>Hi {{ contact.first_name }}</mj-text></mj-column></mj-section></mj-body></mjml>`
+
+// compiles answers every compile check with success and records the requests.
+func (f *fixture) compiles() *[]domain.CompileTemplateRequest {
+	var requests []domain.CompileTemplateRequest
+	f.templates.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			requests = append(requests, req)
+			return &domain.CompileTemplateResponse{Success: true, HTML: strPtr("<html></html>")}, nil
+		}).AnyTimes()
+	return &requests
+}
+
+func createTemplateArgs() map[string]any {
+	return map[string]any{
+		"workspace_id": testWorkspaceID, "id": "welcome", "name": "Welcome", "category": "welcome",
+		"subject": "Welcome {{ contact.first_name }}", "subject_preview": "Three things to try", "mjml_source": welcomeMJML,
+		"reply_to": "help@acme.test", "test_data": map[string]any{"contact": map[string]any{"first_name": "John"}},
+	}
+}
+
+func TestCreateTemplate_Definition(t *testing.T) {
+	tool := catalogueTool(t, "create_template")
+	assertWriteTool(t, tool, "create_template", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: false},
+		[]Pair{{Resource: "templates", Verb: "write"}}, "templates.create", []string{"workspace_id", "id", "name", "category", "subject", "mjml_source"})
+	category := tool.InputSchema["properties"].(map[string]any)["category"].(map[string]any)
+	assert.Equal(t, []string{"marketing", "transactional", "welcome", "opt_in", "unsubscribe", "bounce", "blocklist", "other"}, category["enum"])
+}
+
+// A code template (D9), checked by a compile with its test data before the
+// save, and returned with the MJML as the save rewrote it.
+func TestCreateTemplate_SavesACodeTemplate(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesWrite())
+	audit := f.captureAudit()
+	compiled := f.compiles()
+	var saved domain.Template
+	f.templates.EXPECT().CreateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+		saved = *template
+		saved.Email = new(domain.EmailTemplate)
+		*saved.Email = *template.Email
+		// As the service does: version 1, timestamps, mj-preview written.
+		template.Version, template.CreatedAt, template.UpdatedAt = 1, templatesEpoch, templatesEpoch
+		template.Email.MjmlSource = strPtr(stampedMJML)
+		return nil
+	})
+
+	result := f.callTool("create_template", createTemplateArgs())
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.Equal(t, domain.Template{
+		ID: "welcome", Name: "Welcome", Version: 1, Channel: "email", Category: "welcome",
+		Email: &domain.EmailTemplate{
+			EditorMode: "code", MjmlSource: strPtr(welcomeMJML), ReplyTo: "help@acme.test",
+			Subject: "Welcome {{ contact.first_name }}", SubjectPreview: strPtr("Three things to try"), CompiledPreview: welcomeMJML,
+		},
+		TestData: domain.MapOfAny{"contact": map[string]any{"first_name": "John"}},
+	}, saved)
+
+	require.Len(t, *compiled, 1)
+	check := (*compiled)[0]
+	assert.Equal(t, welcomeMJML, *check.MjmlSource)
+	assert.Equal(t, "Welcome {{ contact.first_name }}", *check.Subject)
+	assert.Equal(t, "Three things to try", *check.SubjectPreview)
+	assert.Equal(t, notifuse_mjml.MapOfAny{"contact": map[string]any{"first_name": "John"}}, check.TemplateData)
+	assert.False(t, check.TrackingSettings.EnableTracking)
+
+	var out struct {
+		Template struct {
+			Version    int64   `json:"version"`
+			EditorMode string  `json:"editor_mode"`
+			MJML       string  `json:"mjml"`
+			MJMLOrigin string  `json:"mjml_origin"`
+			Text       *string `json:"text"`
+		} `json:"template"`
+		TranslationsUnchanged []string `json:"translations_unchanged"`
+	}
+	result.decode(t, &out)
+	assert.Equal(t, int64(1), out.Template.Version)
+	assert.Equal(t, "code", out.Template.EditorMode)
+	assert.Equal(t, stampedMJML, out.Template.MJML, "the MJML as stored")
+	assert.Equal(t, "source", out.Template.MJMLOrigin)
+	assert.Nil(t, out.Template.Text)
+	assert.Nil(t, out.TranslationsUnchanged)
+	assert.NotContains(t, result.Content[0].Text, "compiled_preview")
+
+	row := audit.last(t)
+	assert.Equal(t, "templates.create", row.Action)
+	assert.Equal(t, domain.AuditCategoryTemplates, row.Category)
+	assert.Equal(t, domain.AuditTargetTemplate, row.TargetType)
+	assert.Equal(t, "welcome", row.TargetID)
+	assert.Equal(t, "Welcome", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+// A save never compiles code-mode MJML, so the tool does, and refuses what
+// would fail at every send.
+func TestCreateTemplate_RefusesWhatDoesNotCompile(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesWrite())
+	audit := f.captureAudit()
+	f.templates.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).Return(&domain.CompileTemplateResponse{
+		Success: false,
+		Error:   &mjml.Error{Message: "MJML compilation failed", Details: []mjml.ErrorDetail{{Line: 3, Message: "mj-button cannot hold mj-section", TagName: "mj-button"}}},
+	}, nil)
+
+	toolErr := f.callTool("create_template", createTemplateArgs()).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodeValidation,
+		Message: "the template does not compile, so nothing was saved: MJML compilation failed; line 3 <mj-button>: mj-button cannot hold mj-section"}, toolErr)
+	assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+}
+
+func TestCreateTemplate_ReplayIsAConflict(t *testing.T) {
+	for name, tc := range map[string]struct {
+		deleted bool
+		message string
+	}{
+		"a live template":    {deleted: false, message: "template welcome already exists"},
+		"a deleted template": {deleted: true, message: "template welcome already exists and was deleted: its identifier cannot be reused"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesWrite())
+			audit := f.captureAudit()
+			f.compiles()
+			f.templates.EXPECT().CreateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).
+				Return(fmt.Errorf("failed to create template: %w", &domain.ErrTemplateExists{Message: "template id already exists", Deleted: tc.deleted}))
+			assert.Equal(t, ToolError{Code: CodeConflict, Message: tc.message}, f.callTool("create_template", createTemplateArgs()).errorOf(t))
+			assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+		})
+	}
+}
+
+// templates.create validates in its handler and caps the body there: the
+// tool does both before any service.
+func TestCreateTemplate_RefusesBadArgumentsBeforeTheServices(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesWrite())
+	audit := f.captureAudit()
+	for name, change := range map[string]map[string]any{
+		"an ID with a space":         {"id": "wel come"},
+		"a subject over 255 bytes":   {"subject": strings.Repeat("é", 128)},
+		"an empty MJML":              {"mjml_source": ""},
+		"a bad reply-to":             {"reply_to": "not-an-email"},
+		"a blog category":            {"category": "blog"},
+		"a text Liquid cannot parse": {"text": "Hi {% if contact %}"},
+		"arguments over 1 MiB":       {"mjml_source": "<mjml>" + strings.Repeat("x", 1<<20) + "</mjml>"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			args := createTemplateArgs()
+			for key, value := range change {
+				args[key] = value
+			}
+			assert.Equal(t, CodeValidation, f.callTool("create_template", args).errorOf(t).Code)
+			assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestUpdateTemplate_Definition(t *testing.T) {
+	assertWriteTool(t, catalogueTool(t, "update_template"), "update_template", ClassWriteOpenWorld, writeHints{destructive: false, openWorld: true, idempotent: true},
+		[]Pair{{Resource: "templates", Verb: "write"}, {Resource: "templates", Verb: "read"}}, "templates.update", []string{"workspace_id", "id"})
+}
+
+// storedCodeTemplate is codeTemplate as the write path reads it: a template
+// not managed by an integration.
+func storedCodeTemplate() *domain.Template {
+	template := codeTemplate()
+	template.IntegrationID = nil
+	return template
+}
+
+// templates.update erases every field it is not sent: the tool reads the
+// latest version and sends each stored field it was not given.
+func TestUpdateTemplate_KeepsTheFieldsNotGiven(t *testing.T) {
+	stored := func(change func(email *domain.EmailTemplate, template *domain.Template)) domain.Template {
+		template := domain.Template{
+			ID: "welcome", Name: "Welcome", Channel: "email", Category: "welcome",
+			Email: &domain.EmailTemplate{
+				EditorMode: "code", MjmlSource: strPtr(welcomeMJML), SenderID: "snd_01", ReplyTo: "help@acme.test",
+				Subject: "Welcome {{ contact.first_name }}", SubjectPreview: strPtr("Three things to try"),
+				CompiledPreview: welcomeMJML, Text: strPtr("Hi {{ contact.first_name }}"),
+			},
+			TemplateMacroID: strPtr("macro-1"),
+			TestData:        domain.MapOfAny{"contact": map[string]any{"first_name": "John"}},
+			Settings:        domain.MapOfAny{"provider": "third-party-setting"},
+		}
+		change(template.Email, &template)
+		return template
+	}
+	newMJML := `<mjml><mj-body><mj-section><mj-column><mj-text>Hello again</mj-text></mj-column></mj-section></mj-body></mjml>`
+	for name, tc := range map[string]struct {
+		args map[string]any
+		want domain.Template
+	}{
+		"a new subject": {
+			args: map[string]any{"subject": "Hello"},
+			want: stored(func(email *domain.EmailTemplate, _ *domain.Template) { email.Subject = "Hello" }),
+		},
+		"new MJML": {
+			args: map[string]any{"mjml_source": newMJML},
+			want: stored(func(email *domain.EmailTemplate, _ *domain.Template) {
+				email.MjmlSource, email.CompiledPreview = strPtr(newMJML), newMJML
+			}),
+		},
+		"a rename and a category": {
+			args: map[string]any{"name": "Hello", "category": "transactional"},
+			want: stored(func(_ *domain.EmailTemplate, template *domain.Template) {
+				template.Name, template.Category = "Hello", "transactional"
+			}),
+		},
+		"empty texts clear the optional fields": {
+			args: map[string]any{"subject_preview": "", "text": "", "sender_id": "", "reply_to": ""},
+			want: stored(func(email *domain.EmailTemplate, _ *domain.Template) {
+				email.SubjectPreview, email.Text, email.SenderID, email.ReplyTo = nil, nil, "", ""
+			}),
+		},
+		"new test data": {
+			args: map[string]any{"test_data": map[string]any{"order": map[string]any{"id": "42"}}},
+			want: stored(func(_ *domain.EmailTemplate, template *domain.Template) {
+				template.TestData = domain.MapOfAny{"order": map[string]any{"id": "42"}}
+			}),
+		},
+		"a base version": {
+			args: map[string]any{"subject": "Hello", "base_version": 7},
+			want: stored(func(email *domain.EmailTemplate, template *domain.Template) {
+				email.Subject, template.Version = "Hello", 7
+			}),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesReadWrite())
+			f.captureAudit()
+			f.compiles()
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(storedCodeTemplate(), nil)
+			var sent domain.Template
+			f.templates.EXPECT().UpdateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+				sent = *template
+				sent.Email = new(domain.EmailTemplate)
+				*sent.Email = *template.Email
+				return nil
+			})
+
+			tc.args["workspace_id"], tc.args["id"] = testWorkspaceID, "welcome"
+			result := f.callTool("update_template", tc.args)
+			require.False(t, result.IsError, string(result.StructuredContent))
+			assert.Equal(t, tc.want, sent)
+			assert.Nil(t, sent.Translations, "translations stay out of the request, so the service keeps the stored ones")
+		})
+	}
+}
+
+// The compile check runs when anything it compiles changes, not for a rename.
+func TestUpdateTemplate_CompilesOnlyANewContent(t *testing.T) {
+	for name, tc := range map[string]struct {
+		args     map[string]any
+		compiles int
+	}{
+		"a rename":           {args: map[string]any{"name": "Hello"}, compiles: 0},
+		"a new reply-to":     {args: map[string]any{"reply_to": "team@acme.test"}, compiles: 0},
+		"a new subject":      {args: map[string]any{"subject": "Hello"}, compiles: 1},
+		"a new preview text": {args: map[string]any{"subject_preview": "Hi"}, compiles: 1},
+		"new MJML":           {args: map[string]any{"mjml_source": welcomeMJML}, compiles: 1},
+		"a new text":         {args: map[string]any{"text": "Hi {{ contact.first_name }}"}, compiles: 1},
+		"new test data":      {args: map[string]any{"test_data": map[string]any{"order": map[string]any{"id": "42"}}}, compiles: 1},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesReadWrite())
+			f.captureAudit()
+			compiled := f.compiles()
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(storedCodeTemplate(), nil)
+			f.templates.EXPECT().UpdateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).Return(nil)
+			tc.args["workspace_id"], tc.args["id"] = testWorkspaceID, "welcome"
+			require.False(t, f.callTool("update_template", tc.args).IsError)
+			assert.Len(t, *compiled, tc.compiles)
+		})
+	}
+}
+
+// A text or test data that fails to render would fail at every send, so the
+// tool compiles them with the stored content and saves nothing when that fails.
+func TestUpdateTemplate_RefusesATextOrTestDataThatDoesNotCompile(t *testing.T) {
+	for name, tc := range map[string]struct {
+		args  map[string]any
+		check func(t *testing.T, req domain.CompileTemplateRequest)
+	}{
+		"a new text": {
+			args: map[string]any{"text": "Hi {{ contact.first_name | no_such_filter }}"},
+			check: func(t *testing.T, req domain.CompileTemplateRequest) {
+				require.NotNil(t, req.Text)
+				assert.Equal(t, "Hi {{ contact.first_name | no_such_filter }}", *req.Text)
+			},
+		},
+		"new test data": {
+			args: map[string]any{"test_data": map[string]any{"order": map[string]any{"id": "42"}}},
+			check: func(t *testing.T, req domain.CompileTemplateRequest) {
+				assert.Equal(t, map[string]any{"order": map[string]any{"id": "42"}}, map[string]any(req.TemplateData))
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesReadWrite())
+			audit := f.captureAudit()
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(storedCodeTemplate(), nil)
+			f.templates.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+					tc.check(t, req)
+					return &domain.CompileTemplateResponse{Success: false, Error: &mjml.Error{Message: "Liquid error in the text"}}, nil
+				})
+			// No UpdateTemplate expectation: a save would fail the mock.
+			tc.args["workspace_id"], tc.args["id"] = testWorkspaceID, "welcome"
+			toolErr := f.callTool("update_template", tc.args).errorOf(t)
+			assert.Equal(t, ToolError{Code: CodeValidation, Message: "the template does not compile, so nothing was saved: Liquid error in the text"}, toolErr)
+			assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestUpdateTemplate_ReturnsTheStoredTemplate(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesReadWrite())
+	audit := f.captureAudit()
+	f.compiles()
+	stored := storedCodeTemplate()
+	f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(stored, nil)
+	f.templates.EXPECT().UpdateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+		// As the service does: the stored translations kept, mj-title and
+		// mj-preview written, a new version.
+		template.Translations = codeTemplate().Translations
+		template.Email.MjmlSource = strPtr(stampedMJML)
+		template.Version, template.CreatedAt, template.UpdatedAt = 8, templatesEpoch, templatesEpoch.Add(2*time.Hour)
+		return nil
+	})
+
+	result := f.callTool("update_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome", "subject": "Hello"})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	var out struct {
+		Template struct {
+			Version      int64                     `json:"version"`
+			Subject      string                    `json:"subject"`
+			MJML         string                    `json:"mjml"`
+			Translations map[string]map[string]any `json:"translations"`
+		} `json:"template"`
+		TranslationsUnchanged []string `json:"translations_unchanged"`
+	}
+	result.decode(t, &out)
+	assert.Equal(t, int64(8), out.Template.Version)
+	assert.Equal(t, "Hello", out.Template.Subject)
+	assert.Equal(t, stampedMJML, out.Template.MJML)
+	assert.Equal(t, "Bienvenue", out.Template.Translations["fr"]["subject"])
+	assert.Equal(t, []string{"fr"}, out.TranslationsUnchanged)
+
+	row := audit.last(t)
+	assert.Equal(t, "templates.update", row.Action)
+	assert.Equal(t, domain.AuditTargetTemplate, row.TargetType)
+	assert.Equal(t, "welcome", row.TargetID)
+	assert.Equal(t, "Welcome", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+// D9: MCP writes code templates only. A visual template, a legacy one saved
+// before the mode existed, and a web template are refused before any write.
+func TestUpdateTemplate_RefusesVisualAndWebTemplates(t *testing.T) {
+	legacy := visualTemplate(t)
+	legacy.ID = "legacy"
+	for name, tc := range map[string]struct {
+		stored  *domain.Template
+		message string
+	}{
+		"a visual template": {
+			stored: func() *domain.Template {
+				template := visualTemplate(t)
+				template.Email.EditorMode = "visual"
+				return template
+			}(),
+			message: "template promo is edited in visual mode: update_template changes code templates only. Edit it in the console, or make a new template with create_template",
+		},
+		"a template saved before the editor mode existed": {
+			stored:  legacy,
+			message: "template legacy is edited in visual mode: update_template changes code templates only. Edit it in the console, or make a new template with create_template",
+		},
+		"a web template": {
+			stored: &domain.Template{ID: "layout", Name: "Layout", Version: 1, Channel: "web", Category: "blog",
+				Web: &domain.WebTemplate{Content: domain.MapOfAny{"type": "doc"}}},
+			message: "template layout is a web template (a blog layout): update_template changes code email templates only",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesReadWrite())
+			audit := f.captureAudit()
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, tc.stored.ID, int64(0)).Return(tc.stored, nil)
+			toolErr := f.callTool("update_template", map[string]any{"workspace_id": testWorkspaceID, "id": tc.stored.ID, "subject": "Hello"}).errorOf(t)
+			assert.Equal(t, ToolError{Code: CodeValidation, Message: tc.message}, toolErr)
+			assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestUpdateTemplate_VersionConflict(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesReadWrite())
+	audit := f.captureAudit()
+	f.compiles()
+	f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(storedCodeTemplate(), nil)
+	f.templates.EXPECT().UpdateTemplate(gomock.Any(), testWorkspaceID, gomock.Any()).
+		Return(&domain.ErrTemplateVersionConflict{BaseVersion: 6, LatestVersion: 7})
+
+	result := f.callTool("update_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome", "subject": "Hello", "base_version": 6})
+	latest := int64(7)
+	assert.Equal(t, ToolError{Code: CodeConflict, Message: "template was modified: edit is based on version 6 but latest is 7", LatestVersion: &latest}, result.errorOf(t))
+	assert.Contains(t, string(result.StructuredContent), `"latest_version":7`)
+	assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+}
+
+func TestUpdateTemplate_DeletedOrUnknownIsNotFound(t *testing.T) {
+	deleted := storedCodeTemplate()
+	deleted.DeletedAt = &templatesEpoch
+	for name, tc := range map[string]struct {
+		template *domain.Template
+		err      error
+	}{
+		"a deleted template":  {template: deleted},
+		"an unknown template": {err: &domain.ErrTemplateNotFound{Message: "template not found"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesReadWrite())
+			audit := f.captureAudit()
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(tc.template, tc.err)
+			toolErr := f.callTool("update_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome", "subject": "Hello"}).errorOf(t)
+			assert.Equal(t, ToolError{Code: CodeNotFound, Message: "template not found"}, toolErr)
+			assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestUpdateTemplate_RefusesBadArgumentsBeforeTheWrite(t *testing.T) {
+	for name, args := range map[string]map[string]any{
+		"nothing to change":    {"base_version": 3},
+		"base version zero":    {"subject": "Hello", "base_version": 0},
+		"an empty subject":     {"subject": ""},
+		"an empty MJML":        {"mjml_source": ""},
+		"a bad reply-to":       {"reply_to": "nope"},
+		"arguments over 1 MiB": {"mjml_source": "<mjml>" + strings.Repeat("x", 1<<20) + "</mjml>"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesReadWrite())
+			f.captureAudit()
+			f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(storedCodeTemplate(), nil).MaxTimes(1)
+			args["workspace_id"], args["id"] = testWorkspaceID, "welcome"
+			assert.Equal(t, CodeValidation, f.callTool("update_template", args).errorOf(t).Code)
+		})
+	}
+}
+
+// The read goes through templates.get, which needs templates:read.
+func TestUpdateTemplate_NeedsTheReadPair(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesWrite())
+	audit := f.captureAudit()
+	toolErr := f.callTool("update_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome", "subject": "Hello"}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodePermissionDenied, Message: "this API key lacks the templates read permission", Resource: "templates", Permission: "read"}, toolErr)
+	assert.Equal(t, http.StatusForbidden, audit.last(t).StatusCode)
+}
+
+func TestDeleteTemplate_Definition(t *testing.T) {
+	assertWriteTool(t, catalogueTool(t, "delete_template"), "delete_template", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+		[]Pair{{Resource: "templates", Verb: "write"}}, "templates.delete", []string{"workspace_id", "id"})
+}
+
+func TestDeleteTemplate(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesWrite())
+	audit := f.captureAudit()
+	f.templates.EXPECT().DeleteTemplate(gomock.Any(), testWorkspaceID, "welcome").Return(nil)
+
+	result := f.callTool("delete_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome"})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"deleted":true,"id":"welcome"}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "templates.delete", row.Action)
+	assert.Equal(t, domain.AuditCategoryTemplates, row.Category)
+	assert.Equal(t, domain.AuditTargetTemplate, row.TargetType)
+	assert.Equal(t, "welcome", row.TargetID)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+func TestDeleteTemplate_RefusalsAreMapped(t *testing.T) {
+	for name, tc := range map[string]struct {
+		err    error
+		want   ToolError
+		status int
+	}{
+		// The repository deletes only a template not yet deleted.
+		"a replay": {
+			err:    &domain.ErrTemplateNotFound{Message: "template not found"},
+			want:   ToolError{Code: CodeNotFound, Message: "template not found"},
+			status: http.StatusNotFound,
+		},
+		"a template an integration manages": {
+			err:    domain.NewValidationError("cannot delete integration-managed template: template is managed by integration supabase-1"),
+			want:   ToolError{Code: CodeValidation, Message: "cannot delete integration-managed template: template is managed by integration supabase-1"},
+			status: http.StatusBadRequest,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(templatesWrite())
+			audit := f.captureAudit()
+			f.templates.EXPECT().DeleteTemplate(gomock.Any(), testWorkspaceID, "welcome").Return(tc.err)
+			assert.Equal(t, tc.want, f.callTool("delete_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome"}).errorOf(t))
+			assert.Equal(t, tc.status, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestDeleteTemplate_RefusesABadIDBeforeTheService(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesWrite())
+	f.captureAudit()
+	assert.Equal(t, CodeValidation, f.callTool("delete_template", map[string]any{"workspace_id": testWorkspaceID, "id": "wel come"}).errorOf(t).Code)
 }

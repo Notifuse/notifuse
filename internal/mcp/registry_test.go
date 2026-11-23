@@ -19,18 +19,47 @@ func TestCatalogue_ToolNames(t *testing.T) {
 		"get_contact",
 		"count_contacts",
 		"get_contact_timeline",
+		"upsert_contact",
+		"delete_contact",
+		"track_custom_event",
 		"list_lists",
+		"create_list",
+		"update_list",
+		"delete_list",
+		"subscribe_contact_to_list",
+		"set_contact_list_status",
+		"remove_contact_from_list",
 		"list_segments",
 		"get_segment",
 		"preview_segment",
+		"create_segment",
+		"update_segment",
+		"delete_segment",
 		"list_templates",
 		"get_template",
 		"render_template",
+		"create_template",
+		"update_template",
+		"delete_template",
 		"list_broadcasts",
 		"get_broadcast",
 		"get_broadcast_report",
+		"create_broadcast",
+		"update_broadcast",
+		"send_broadcast_to_contact",
+		"schedule_broadcast",
+		"select_broadcast_winner",
+		"pause_broadcast",
+		"resume_broadcast",
+		"cancel_broadcast",
+		"delete_broadcast",
 		"list_transactional_notifications",
 		"get_transactional_notification",
+		"create_transactional_notification",
+		"update_transactional_notification",
+		"delete_transactional_notification",
+		"send_transactional",
+		"send_template_test",
 		"search_messages",
 		"list_analytics_schemas",
 		"query_analytics",
@@ -38,36 +67,53 @@ func TestCatalogue_ToolNames(t *testing.T) {
 		"get_automation",
 		"get_automation_journey",
 		"get_automation_stats",
+		"activate_automation",
+		"pause_automation",
+		"delete_automation",
 		"list_blog_posts",
 		"get_blog_post",
 		"list_blog_categories",
+		"create_blog_post",
+		"update_blog_post",
+		"publish_blog_post",
+		"unpublish_blog_post",
+		"delete_blog_post",
 	}, toolNames(s.catalogue()))
 }
 
-// No description points to a write tool, since none exists yet.
-func TestCatalogue_DescriptionsNameNoWriteTool(t *testing.T) {
+// A description names only tools of the catalogue, or arguments of its own
+// tool: a write tool named before it exists sends an assistant nowhere.
+func TestCatalogue_DescriptionsNameOnlyExistingTools(t *testing.T) {
 	s := newBareServer(Deps{})
-	writeTool := regexp.MustCompile(`\b(create|update|delete|send|upsert|import|cancel|schedule|pause|resume|publish|archive|remove|add)_[a-z_]+`)
-	var texts func(name string, v any)
-	texts = func(name string, v any) {
-		switch v := v.(type) {
-		case string:
-			assert.Empty(t, writeTool.FindAllString(v, -1), "%s: %s", name, v)
-			assert.NotContains(t, v, "through MCP", name)
-			assert.NotContains(t, v, "deletion", name)
-		case map[string]any:
-			for _, item := range v {
-				texts(name, item)
-			}
-		case []any:
-			for _, item := range v {
-				texts(name, item)
+	names := map[string]bool{}
+	for _, tool := range s.catalogue() {
+		names[tool.Name] = true
+	}
+	toolName := regexp.MustCompile(`\b(create|update|delete|send|upsert|import|cancel|schedule|pause|resume|publish|unpublish|archive|remove|add|subscribe|set|track|activate|select)_[a-z_]+`)
+	for _, tool := range s.catalogue() {
+		properties, _ := tool.InputSchema["properties"].(map[string]any)
+		var texts func(v any)
+		texts = func(v any) {
+			switch v := v.(type) {
+			case string:
+				for _, match := range toolName.FindAllString(v, -1) {
+					_, argument := properties[match]
+					assert.True(t, names[match] || argument, "%s names %s, which is neither a tool nor one of its arguments", tool.Name, match)
+				}
+				assert.NotContains(t, v, "through MCP", tool.Name)
+				assert.NotContains(t, v, "deletion", tool.Name)
+			case map[string]any:
+				for _, item := range v {
+					texts(item)
+				}
+			case []any:
+				for _, item := range v {
+					texts(item)
+				}
 			}
 		}
-	}
-	for _, tool := range s.catalogue() {
-		texts(tool.Name, tool.Description)
-		texts(tool.Name, tool.InputSchema)
+		texts(tool.Description)
+		texts(tool.InputSchema)
 	}
 }
 
@@ -81,25 +127,63 @@ func TestCatalogue_ToolDefinitions(t *testing.T) {
 		withoutWorkspace bool
 	}
 	want := map[string]definition{
-		"list_workspaces":                  {class: ClassRead, pairs: nil, withoutWorkspace: true},
-		"get_workspace_overview":           {class: ClassRead, pairs: []Pair{{Resource: "workspace", Verb: "read"}, {Resource: "lists", Verb: "read"}}},
-		"search_contacts":                  {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
-		"get_contact":                      {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
-		"count_contacts":                   {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
-		"get_contact_timeline":             {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
-		"list_lists":                       {class: ClassRead, pairs: []Pair{{Resource: "lists", Verb: "read"}}},
-		"list_segments":                    {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}}},
-		"get_segment":                      {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}}},
-		"preview_segment":                  {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}, {Resource: "contacts", Verb: "read"}}},
-		"list_templates":                   {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
-		"get_template":                     {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
-		"render_template":                  {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
+		"list_workspaces":        {class: ClassRead, pairs: nil, withoutWorkspace: true},
+		"get_workspace_overview": {class: ClassRead, pairs: []Pair{{Resource: "workspace", Verb: "read"}, {Resource: "lists", Verb: "read"}}},
+		"search_contacts":        {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"get_contact":            {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"count_contacts":         {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"get_contact_timeline":   {class: ClassRead, pairs: []Pair{{Resource: "contacts", Verb: "read"}}},
+		"upsert_contact":         {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "contacts", Verb: "write"}}},
+		"delete_contact":         {class: ClassDestructive, pairs: []Pair{{Resource: "contacts", Verb: "write"}}},
+		"track_custom_event":     {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "contacts", Verb: "write"}}},
+		"list_lists":             {class: ClassRead, pairs: []Pair{{Resource: "lists", Verb: "read"}}},
+		"create_list":            {class: ClassWrite, pairs: []Pair{{Resource: "lists", Verb: "write"}}},
+		// A patch: the list is read before it is written.
+		"update_list":               {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "lists", Verb: "write"}, {Resource: "lists", Verb: "read"}}},
+		"delete_list":               {class: ClassDestructive, pairs: []Pair{{Resource: "lists", Verb: "write"}}},
+		"subscribe_contact_to_list": {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "lists", Verb: "write"}, {Resource: "contacts", Verb: "write"}}},
+		"set_contact_list_status":   {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "lists", Verb: "write"}, {Resource: "contacts", Verb: "write"}}},
+		"remove_contact_from_list":  {class: ClassDestructive, pairs: []Pair{{Resource: "lists", Verb: "write"}, {Resource: "contacts", Verb: "write"}}},
+		"list_segments":             {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}}},
+		"get_segment":               {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}}},
+		"preview_segment":           {class: ClassRead, pairs: []Pair{{Resource: "segments", Verb: "read"}, {Resource: "contacts", Verb: "read"}}},
+		"create_segment":            {class: ClassWrite, pairs: []Pair{{Resource: "segments", Verb: "write"}}},
+		// A patch: segments.update requires every field, so the segment is
+		// read before it is written.
+		"update_segment":  {class: ClassWrite, pairs: []Pair{{Resource: "segments", Verb: "write"}, {Resource: "segments", Verb: "read"}}},
+		"delete_segment":  {class: ClassDestructive, pairs: []Pair{{Resource: "segments", Verb: "write"}}},
+		"list_templates":  {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
+		"get_template":    {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
+		"render_template": {class: ClassRead, pairs: []Pair{{Resource: "templates", Verb: "read"}}},
+		"create_template": {class: ClassWrite, pairs: []Pair{{Resource: "templates", Verb: "write"}}},
+		// A patch: templates.update replaces the whole template.
+		"update_template":                  {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "templates", Verb: "write"}, {Resource: "templates", Verb: "read"}}},
+		"delete_template":                  {class: ClassDestructive, pairs: []Pair{{Resource: "templates", Verb: "write"}}},
 		"list_broadcasts":                  {class: ClassRead, pairs: []Pair{{Resource: "broadcasts", Verb: "read"}}},
 		"get_broadcast":                    {class: ClassRead, pairs: []Pair{{Resource: "broadcasts", Verb: "read"}}},
 		"get_broadcast_report":             {class: ClassRead, pairs: []Pair{{Resource: "broadcasts", Verb: "read"}, {Resource: "message_history", Verb: "read"}}},
 		"list_transactional_notifications": {class: ClassRead, pairs: []Pair{{Resource: "transactional", Verb: "read"}}},
 		"get_transactional_notification":   {class: ClassRead, pairs: []Pair{{Resource: "transactional", Verb: "read"}}},
-		"search_messages":                  {class: ClassRead, pairs: []Pair{{Resource: "message_history", Verb: "read"}}},
+		"create_broadcast":                 {class: ClassWrite, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		"update_broadcast":                 {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		// The template is read and compiled under the key's permissions.
+		"send_broadcast_to_contact": {class: ClassSend, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}, {Resource: "templates", Verb: "read"}}},
+		"schedule_broadcast":        {class: ClassSend, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		"select_broadcast_winner":   {class: ClassSend, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		"pause_broadcast":           {class: ClassWrite, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		"resume_broadcast":          {class: ClassSend, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		"cancel_broadcast":          {class: ClassDestructive, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		"delete_broadcast":          {class: ClassDestructive, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		// The template is read under the key's permissions.
+		"create_transactional_notification": {class: ClassWrite, pairs: []Pair{{Resource: "transactional", Verb: "write"}, {Resource: "templates", Verb: "read"}}},
+		// + templates:read with email_template_id.
+		"update_transactional_notification": {class: ClassWriteOpenWorld, pairs: []Pair{{Resource: "transactional", Verb: "write"}}},
+		"delete_transactional_notification": {class: ClassDestructive, pairs: []Pair{{Resource: "transactional", Verb: "write"}}},
+		// + contacts:read with cc or bcc.
+		"send_transactional": {class: ClassSend, pairs: []Pair{{Resource: "transactional", Verb: "write"}}},
+		// + lists:read with list_id, contacts:read with cc or bcc.
+		"send_template_test": {class: ClassSend, pairs: []Pair{{Resource: "transactional", Verb: "write"}, {Resource: "templates", Verb: "read"}}},
+		"search_messages":    {class: ClassRead, pairs: []Pair{{Resource: "message_history", Verb: "read"}}},
 		// Per schema: query_analytics checks the pair of its schema argument,
 		// and analytics.schemas lists only the schemas the key may read.
 		"list_analytics_schemas": {class: ClassRead, pairs: nil},
@@ -108,11 +192,24 @@ func TestCatalogue_ToolDefinitions(t *testing.T) {
 		"get_automation":         {class: ClassRead, pairs: []Pair{{Resource: "automations", Verb: "read"}}},
 		"get_automation_journey": {class: ClassRead, pairs: []Pair{{Resource: "automations", Verb: "read"}}},
 		"get_automation_stats":   {class: ClassRead, pairs: []Pair{{Resource: "automations", Verb: "read"}}},
-		"list_blog_posts":        {class: ClassRead, pairs: []Pair{{Resource: "blog", Verb: "read"}}},
+		// D10: it arms the emails of every later matching event.
+		"activate_automation": {class: ClassSend, pairs: []Pair{{Resource: "automations", Verb: "write"}}},
+		"pause_automation":    {class: ClassWrite, pairs: []Pair{{Resource: "automations", Verb: "write"}}},
+		"delete_automation":   {class: ClassDestructive, pairs: []Pair{{Resource: "automations", Verb: "write"}}},
+		"list_blog_posts":     {class: ClassRead, pairs: []Pair{{Resource: "blog", Verb: "read"}}},
 		// The body also needs templates:read, which the tool checks itself: a
 		// key without it reads the post with body null.
 		"get_blog_post":        {class: ClassRead, pairs: []Pair{{Resource: "blog", Verb: "read"}}},
 		"list_blog_categories": {class: ClassRead, pairs: []Pair{{Resource: "blog", Verb: "read"}}},
+		// The body is a web template the tool creates (D26).
+		"create_blog_post": {class: ClassWrite, pairs: []Pair{{Resource: "blog", Verb: "write"}, {Resource: "templates", Verb: "write"}}},
+		// A patch: the post is read before it is written. + templates:write
+		// and templates:read with body.
+		"update_blog_post": {class: ClassWrite, pairs: []Pair{{Resource: "blog", Verb: "write"}, {Resource: "blog", Verb: "read"}}},
+		// It sends no email (spec §6.2).
+		"publish_blog_post":   {class: ClassWrite, pairs: []Pair{{Resource: "blog", Verb: "write"}}},
+		"unpublish_blog_post": {class: ClassWrite, pairs: []Pair{{Resource: "blog", Verb: "write"}}},
+		"delete_blog_post":    {class: ClassDestructive, pairs: []Pair{{Resource: "blog", Verb: "write"}}},
 	}
 	for _, tool := range s.catalogue() {
 		expected, ok := want[tool.Name]
@@ -183,7 +280,7 @@ func TestPrepare_RefusesANonReadToolWithoutAnAuditAction(t *testing.T) {
 	assert.Panics(t, func() { fakeTool("t", ClassWrite, write, "", nil).prepare() })
 	assert.Panics(t, func() { fakeTool("t", ClassWrite, write, "no.such.route", nil).prepare() })
 	// Excluded from the API's audit and absent from MCPAuditedActions.
-	assert.Panics(t, func() { fakeTool("t", ClassWriteOpenWorld, write, "contacts.upsert", nil).prepare() })
+	assert.Panics(t, func() { fakeTool("t", ClassWriteOpenWorld, write, "llm.chat", nil).prepare() })
 	assert.NotPanics(t, func() { fakeTool("t", ClassWrite, write, "contacts.delete", nil).prepare() })
 	assert.NotPanics(t, func() { fakeTool("t", ClassRead, nil, "", nil).prepare() })
 }
@@ -199,11 +296,8 @@ func TestPrepare_RefusesAWorkspaceToolWithoutARequiredWorkspaceID(t *testing.T) 
 }
 
 func TestAuditSpec_UsesTheMCPTableForARouteTheAPIDoesNotAudit(t *testing.T) {
-	_, ok := auditSpec("contacts.upsert")
-	assert.False(t, ok)
-
-	domain.MCPAuditedActions["contacts.upsert"] = domain.AuditActionSpec{Category: domain.AuditCategoryContacts, TargetType: domain.AuditTargetContact}
-	defer delete(domain.MCPAuditedActions, "contacts.upsert")
+	_, ok := auditSpec("llm.chat")
+	assert.False(t, ok, "an excluded route outside MCPAuditedActions has no spec")
 
 	spec, ok := auditSpec("contacts.upsert")
 	require.True(t, ok)
