@@ -642,6 +642,16 @@ type GetContactByExternalIDRequest struct {
 type DeleteContactRequest struct {
 	WorkspaceID string `json:"workspace_id" valid:"required"`
 	Email       string `json:"email" valid:"required,email"`
+	// ForgetOptOuts also forgets the contact's unsubscribes, bounces and complaints,
+	// which are otherwise kept as hashes for three years and put back if the address
+	// returns. For test data, or a request that nothing at all remain.
+	ForgetOptOuts bool `json:"forget_opt_outs,omitempty"`
+}
+
+// DeleteContactOptions are the choices a deletion offers.
+type DeleteContactOptions struct {
+	// ForgetOptOuts: keep no hash of the contact's opt-outs (DeleteContactRequest).
+	ForgetOptOuts bool
 }
 
 func (r *DeleteContactRequest) Validate() error {
@@ -779,7 +789,7 @@ type ContactService interface {
 	GetContacts(ctx context.Context, req *GetContactsRequest) (*GetContactsResponse, error)
 
 	// DeleteContact deletes a contact by email
-	DeleteContact(ctx context.Context, workspaceID string, email string) error
+	DeleteContact(ctx context.Context, workspaceID string, email string, opts DeleteContactOptions) error
 
 	// BatchImportContacts imports a batch of contacts (create or update)
 	BatchImportContacts(ctx context.Context, workspaceID string, contacts []*Contact, listIDs []string) *BatchImportContactsResponse

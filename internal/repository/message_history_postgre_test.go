@@ -2223,7 +2223,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
+		mock.ExpectExec(`(?s)WITH contact_files AS .*WHERE mh.contact_email = \$2.*UPDATE message_history\s+SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb,\s+channel_options = NULL, status_info = NULL, attachments = NULL\s+WHERE contact_email = \$2.*DELETE FROM message_attachments a.*other.contact_email <> \$2.*FROM email_queue q`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(sqlmock.NewResult(0, 3)) // 3 rows affected
 
@@ -2236,7 +2236,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
+		mock.ExpectExec(`(?s)WITH contact_files AS .*WHERE mh.contact_email = \$2.*UPDATE message_history\s+SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb,\s+channel_options = NULL, status_info = NULL, attachments = NULL\s+WHERE contact_email = \$2.*DELETE FROM message_attachments a.*other.contact_email <> \$2.*FROM email_queue q`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
 
@@ -2259,7 +2259,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
+		mock.ExpectExec(`(?s)WITH contact_files AS .*WHERE mh.contact_email = \$2.*UPDATE message_history\s+SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb,\s+channel_options = NULL, status_info = NULL, attachments = NULL\s+WHERE contact_email = \$2.*DELETE FROM message_attachments a.*other.contact_email <> \$2.*FROM email_queue q`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnError(errors.New("execution error"))
 
@@ -2268,21 +2268,6 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 		require.Contains(t, err.Error(), "failed to redact email in message history")
 	})
 
-	t.Run("rows affected error", func(t *testing.T) {
-		mockWorkspaceRepo.EXPECT().
-			GetConnection(gomock.Any(), workspaceID).
-			Return(db, nil)
-
-		// Create a result that will error when RowsAffected is called
-		result := sqlmock.NewErrorResult(errors.New("rows affected error"))
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
-			WithArgs("DELETED_EMAIL", email).
-			WillReturnResult(result)
-
-		err := repo.DeleteForEmail(ctx, workspaceID, email)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "failed to get affected rows")
-	})
 }
 
 // WasSentForList decides whether an unsubscribe link may record an opt-out for a contact

@@ -82,7 +82,17 @@ describe('BulkActionsBar', () => {
     expect(confirm).toBeDisabled()
     fireEvent.change(within(dialog).getByPlaceholderText('3'), { target: { value: '3' } })
     fireEvent.click(confirm)
-    expect(onDelete).toHaveBeenCalled()
+    expect(onDelete).toHaveBeenCalledWith(false)
+  })
+
+  it('passes « also forget their unsubscribes » when ticked', async () => {
+    const { onDelete } = renderBar()
+    fireEvent.click(button('Delete'))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Also forget their unsubscribes' }))
+    fireEvent.change(within(dialog).getByPlaceholderText('3'), { target: { value: '3' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    expect(onDelete).toHaveBeenCalledWith(true)
   })
 
   it('needs lists write to add, remove or unsubscribe, and not to delete', () => {

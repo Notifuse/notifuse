@@ -12,6 +12,7 @@ package schema
 // frozen: a historical migration keeps reproducing what it shipped.
 //
 // The branches:
+//   - an opt-out restored on a returning contact (OptOutRestoreGUC on): list.opt_out_restored;
 //   - INSERT: the kind matching the initial status (list.subscribed, list.pending, …);
 //   - a write to a row that is removed before and after: nothing, as the webhook
 //     function reports nothing. A removed contact is not on the list, so neither
@@ -35,6 +36,16 @@ func TrackContactListChangesFunction() string {
 			op VARCHAR(20);
 			kind_value VARCHAR(50);
 		BEGIN
+			-- An opt-out put back on a returning contact (restore_contact_opt_outs) gets its
+			-- own kind, so nothing listening for list.unsubscribed runs again on a re-import
+			IF current_setting('` + OptOutRestoreGUC + `', true) = 'on' THEN
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+				VALUES (NEW.email, 'insert', 'contact_list', '` + OptOutRestoredKind + `', NEW.list_id,
+					jsonb_build_object('list_id', jsonb_build_object('new', NEW.list_id), 'status', jsonb_build_object('new', NEW.status)),
+					CURRENT_TIMESTAMP);
+				RETURN NEW;
+			END IF;
+
 			IF TG_OP = 'INSERT' THEN
 				op := 'insert';
 

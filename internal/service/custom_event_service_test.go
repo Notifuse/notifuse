@@ -529,3 +529,33 @@ func TestCustomEventService_UpsertEvent_AnswersWithTheStoredRow(t *testing.T) {
 		assert.Equal(t, deletedAt, *result.DeletedAt, "the deletion the caller asked for still applies")
 	})
 }
+
+// The contact a custom event creates is stored normalised, as every other path stores it,
+// so a deleted contact's opt-outs (hashed from the normalised address) are found again.
+func TestCustomEventService_UpsertEvent_NormalisesTheContactItCreates(t *testing.T) {
+	ctx := context.Background()
+	mockRepo, mockContactRepo, mockAuthService, service, ctrl := setupCustomEventServiceTest(t)
+	defer ctrl.Finish()
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws").Return(ctx, &domain.User{ID: "u"}, &domain.UserWorkspace{
+		WorkspaceID: "ws", UserID: "u",
+		Permissions: domain.UserPermissions{domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: true}},
+	}, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), "ws", "bob@example.com").Return(nil, domain.ErrContactNotFound)
+	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), "ws", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, contact *domain.Contact) (bool, error) {
+			assert.Equal(t, "bob@example.com", contact.Email)
+			return true, nil
+		})
+	mockRepo.EXPECT().Upsert(gomock.Any(), "ws", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, event *domain.CustomEvent) error {
+			assert.Equal(t, "bob@example.com", event.Email, "the event is stored under the contact's address")
+			return nil
+		})
+	mockRepo.EXPECT().GetByID(gomock.Any(), "ws", gomock.Any(), gomock.Any()).Return(&domain.CustomEvent{}, nil).AnyTimes()
+
+	_, err := service.UpsertEvent(ctx, &domain.UpsertCustomEventRequest{
+		WorkspaceID: "ws", Email: "Bob@Example.COM", EventName: "purchase", ExternalID: "o-1",
+	})
+	require.NoError(t, err)
+}

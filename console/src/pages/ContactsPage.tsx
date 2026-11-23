@@ -240,12 +240,12 @@ export function ContactsPage() {
     queryClient.invalidateQueries({ queryKey: ['list-stats', workspaceId] })
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = async (forgetOptOuts: boolean) => {
     const emails = [...selectedEmails]
     setBulkActionLabel(t`Delete contacts`)
     setShowProgressModal(true)
     await bulk.run(emails, async (email) => {
-      await contactsApi.delete({ workspace_id: workspaceId, email })
+      await contactsApi.delete({ workspace_id: workspaceId, email, forget_opt_outs: forgetOptOuts })
     })
     invalidateAfterContactChange()
   }
@@ -378,8 +378,9 @@ export function ContactsPage() {
   // rows are filtered here too, until a fetch that started after the delete answers.
   const [deletedAt, setDeletedAt] = React.useState<ReadonlyMap<string, number>>(new Map())
   const deleteMutation = useMutation({
-    mutationFn: (email: string) => contactsApi.delete({ workspace_id: workspaceId, email }),
-    onMutate: async (email) => {
+    mutationFn: ({ email, forgetOptOuts }: { email: string; forgetOptOuts: boolean }) =>
+      contactsApi.delete({ workspace_id: workspaceId, email, forget_opt_outs: forgetOptOuts }),
+    onMutate: async ({ email }) => {
       setDeletedAt((prev) => new Map(prev).set(email, Date.now()))
       // Every page size of every view, since the table may show any of them next
       const tables = { queryKey: ['contacts', workspaceId] }
@@ -390,7 +391,7 @@ export function ContactsPage() {
       )
       return { previous }
     },
-    onSuccess: (_data, email) => {
+    onSuccess: (_data, { email }) => {
       message.success(t`Contact deleted successfully`)
       // The selection must not keep a deleted contact: the count would lie and a bulk add-to-list
       // (an upsert) would bring it back.
@@ -400,7 +401,7 @@ export function ContactsPage() {
         go((prev) => ({ ...prev, contact: undefined }), true)
       }
     },
-    onError: (error: Error, email, context) => {
+    onError: (error: Error, { email }, context) => {
       setDeletedAt((prev) => {
         const next = new Map(prev)
         next.delete(email)
@@ -587,7 +588,7 @@ export function ContactsPage() {
         onOpen={openContact}
         onEdit={setContactToEdit}
         // Confirmed in the row's popconfirm.
-        onDelete={(email) => deleteMutation.mutate(email)}
+        onDelete={(email, forgetOptOuts) => deleteMutation.mutate({ email, forgetOptOuts })}
         emptyText={emptyText}
       />
     )
@@ -773,7 +774,7 @@ export function ContactsPage() {
           go((prev) => ({ ...prev, limit: (prev.limit ?? CONTACTS_PAGE_SIZE) + CONTACTS_PAGE_SIZE }), true)
         }
         // Confirmed in the sheet's bar: no second confirmation here.
-        onDelete={(email) => deleteMutation.mutate(email)}
+        onDelete={(email, forgetOptOuts) => deleteMutation.mutate({ email, forgetOptOuts })}
       />
 
       {contactToEdit ? (

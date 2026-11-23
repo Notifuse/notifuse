@@ -212,7 +212,7 @@ describe('ContactsTable', () => {
     const deleteButton = within(await screen.findByRole('tooltip')).getByRole('button', { name: 'Delete' })
     expect(deleteButton.className).toContain('ant-btn-dangerous')
     fireEvent.click(deleteButton)
-    expect(onDelete).toHaveBeenCalledWith('ann@example.com')
+    expect(onDelete).toHaveBeenCalledWith('ann@example.com', false)
     fireEvent.click(actions)
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ email: 'ann@example.com' }))

@@ -54,7 +54,31 @@ describe('ContactSheetTopActions', () => {
     const popover = (await screen.findByText(WARNING)).closest('.ant-popover') as HTMLElement
     expect(onDelete).not.toHaveBeenCalled()
     fireEvent.click(within(popover).getByRole('button', { name: 'Delete' }))
-    expect(onDelete).toHaveBeenCalledWith('ann@x.com')
+    expect(onDelete).toHaveBeenCalledWith('ann@x.com', false)
+  })
+
+  it('passes « also forget their unsubscribes » when ticked, and unticks it for the next time', async () => {
+    const { onDelete } = renderActions()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete contact' }))
+    let popover = (await screen.findByText(WARNING)).closest('.ant-popover') as HTMLElement
+    fireEvent.click(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' }))
+    fireEvent.click(within(popover).getByRole('button', { name: 'Delete' }))
+    expect(onDelete).toHaveBeenLastCalledWith('ann@x.com', true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete contact' }))
+    popover = (await screen.findByText(WARNING)).closest('.ant-popover') as HTMLElement
+    expect(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' })).not.toBeChecked()
+  })
+
+  it('unticks « also forget their unsubscribes » when the popconfirm is cancelled', async () => {
+    renderActions()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete contact' }))
+    let popover = (await screen.findByText(WARNING)).closest('.ant-popover') as HTMLElement
+    fireEvent.click(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' }))
+    fireEvent.click(within(popover).getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete contact' }))
+    popover = (await screen.findByText(WARNING)).closest('.ant-popover') as HTMLElement
+    expect(within(popover).getByRole('checkbox', { name: 'Also forget their unsubscribes' })).not.toBeChecked()
   })
 
   it('does not delete when the popconfirm is cancelled', async () => {
