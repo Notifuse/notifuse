@@ -182,6 +182,12 @@ func (dm *DatabaseManager) SeedTestData() error {
 		{"550e8400-e29b-41d4-a716-446655440018", "blog-contacts@example.com", "Blog Contacts Member"},
 		{"550e8400-e29b-41d4-a716-446655440019", "blog-stranger@example.com", "Blog Stranger"},
 		{"550e8400-e29b-41d4-a716-446655440020", "blog-soleexisting@example.com", "Blog Sole Writer Member"},
+		// Two-factor authentication: each scenario signs in as its own person, so the
+		// per-email sign-in limits and the failure counters never cross.
+		{"550e8400-e29b-41d4-a716-446655440021", "twofactor-ann@example.com", "Two-factor Ann"},
+		{"550e8400-e29b-41d4-a716-446655440022", "twofactor-bea@example.com", "Two-factor Bea"},
+		{"550e8400-e29b-41d4-a716-446655440023", "twofactor-cy@example.com", "Two-factor Cy"},
+		{"550e8400-e29b-41d4-a716-446655440024", "twofactor-dan@example.com", "Two-factor Dan"},
 	}
 
 	testUserQuery := `
