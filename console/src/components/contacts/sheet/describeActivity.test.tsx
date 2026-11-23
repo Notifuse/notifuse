@@ -187,6 +187,13 @@ describe('useActivityDescriber: lists', () => {
     )
   })
 
+  it('says an opt-out was kept from before the contact was deleted', () => {
+    const restored = describeEntry(list('list.opt_out_restored', { status: change('unsubscribed') }))
+    expect(restored.title).toBe('Opt-out on Newsletter kept from before the contact was deleted')
+    expect(restored.tone).toBe('red')
+    expect(restored.meta).toBe('Unsubscribed')
+  })
+
   it('tells a confirmed subscription from a new one, with the status change', () => {
     const confirmed = describeEntry(list('list.confirmed', { status: change('active', 'pending') }))
     expect(confirmed.title).toBe('Confirmed their subscription to Newsletter')

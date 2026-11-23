@@ -536,8 +536,11 @@ func (r *inboundWebhookEventRepository) DeleteForEmail(ctx context.Context, work
 	// '{}' rather than '': the column is TEXT, but the console renders the tab
 	// with JSON.parse(raw_payload), and an empty string throws — so a redacted
 	// row would crash the inbound events tab for everyone.
+	//
+	// bounce_diagnostic goes too: the receiving server's text often quotes the
+	// recipient ("550 5.1.1 <a@b.c>: user unknown").
 	redactedEmail := redactedContactEmail
-	query := `UPDATE inbound_webhook_events SET recipient_email = $1, raw_payload = '{}' WHERE recipient_email = $2`
+	query := `UPDATE inbound_webhook_events SET recipient_email = $1, raw_payload = '{}', bounce_diagnostic = NULL WHERE recipient_email = $2`
 
 	result, err := workspaceDB.ExecContext(ctx, query, redactedEmail, email)
 	if err != nil {

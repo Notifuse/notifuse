@@ -140,6 +140,12 @@ func WebhookContactListsTriggerFunction() string {
 			restored BOOLEAN := false;
 			prev_status TEXT;
 		BEGIN
+			-- An opt-out put back on a returning contact is not news for subscribers: it is
+			-- the status they already had before the contact was deleted
+			IF current_setting('` + OptOutRestoreGUC + `', true) = 'on' THEN
+				RETURN NEW;
+			END IF;
+
 			-- Get list name for payload enrichment
 			SELECT name INTO list_name FROM lists WHERE id = NEW.list_id;
 

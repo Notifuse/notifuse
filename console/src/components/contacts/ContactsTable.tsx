@@ -14,6 +14,7 @@ import { Pill } from '../layout'
 import { segmentDotColor } from '../segment/segmentColor'
 import { JsonViewer } from './ContactColumnsSelector'
 import { TrackingConsentSummary } from './TrackingConsent'
+import { ForgetOptOutsCheckbox } from './ForgetOptOutsCheckbox'
 import { contactDisplayName, contactInitials, LIST_STATUS_LABEL, LIST_STATUS_TONE } from './contactDisplay'
 import type { ContactsView } from './contactsView'
 import { CUSTOM_DATETIME, CUSTOM_JSON, CUSTOM_NUMBER, CUSTOM_STRING } from './contactColumns'
@@ -68,7 +69,7 @@ export interface ContactsTableProps {
   onSelectionChange: (emails: string[]) => void
   onOpen: (email: string) => void
   onEdit: (contact: Contact) => void
-  onDelete: (email: string) => void
+  onDelete: (email: string, forgetOptOuts: boolean) => void
   emptyText: React.ReactNode
 }
 
@@ -83,13 +84,22 @@ function RowActions({
 }: {
   contact: Contact
   onEdit: (contact: Contact) => void
-  onDelete: (email: string) => void
+  onDelete: (email: string, forgetOptOuts: boolean) => void
 }) {
   const { t } = useLingui()
   const [confirming, setConfirming] = useState(false)
+  const [forgetOptOuts, setForgetOptOuts] = useState(false)
   const items: MenuProps['items'] = [
     { key: 'edit', label: t`Edit`, onClick: () => onEdit(contact) },
-    { key: 'delete', label: t`Delete`, danger: true, onClick: () => setConfirming(true) }
+    {
+      key: 'delete',
+      label: t`Delete`,
+      danger: true,
+      onClick: () => {
+        setForgetOptOuts(false)
+        setConfirming(true)
+      }
+    }
   ]
   return (
     <Popconfirm
@@ -99,14 +109,19 @@ function RowActions({
         if (!open) setConfirming(false)
       }}
       title={t`Delete contact`}
-      description={t`This will permanently remove the contact and their subscriptions.`}
+      description={
+        <div className="flex flex-col gap-2">
+          <span>{t`This will permanently remove the contact and their subscriptions.`}</span>
+          <ForgetOptOutsCheckbox checked={forgetOptOuts} onChange={setForgetOptOuts} />
+        </div>
+      }
       okText={t`Delete`}
       cancelText={t`Cancel`}
       okButtonProps={{ danger: true }}
       placement="bottomRight"
       onConfirm={() => {
         setConfirming(false)
-        onDelete(contact.email)
+        onDelete(contact.email, forgetOptOuts)
       }}
     >
       <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">

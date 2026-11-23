@@ -1449,20 +1449,44 @@ func (r *MessageHistoryRepository) DeleteForEmail(ctx context.Context, workspace
 	// Emptied rather than deleted: GetBroadcastStats sums the *_at timestamp
 	// columns on these rows, so dropping them would rewrite every broadcast's
 	// history. '{}' rather than NULL because the column is NOT NULL.
-	query := `UPDATE message_history SET contact_email = $1, clicked_links = NULL, message_data = '{}'::jsonb WHERE contact_email = $2`
+	//
+	// channel_options (cc, bcc, reply-to, subject), status_info (bounce and send
+	// errors quote the recipient) and attachments go too. track_message_history_changes
+	// returns early on a DELETED_EMAIL row, so clearing status_info copies nothing into
+	// the timeline.
+	//
+	// The attachment files only this contact received are deleted in the same
+	// statement: a file is stored once by checksum and can be shared by many messages,
+	// so one still referenced by another message, or by a queued email (whose payload
+	// names it and which reads it at send time), is kept. The CTEs see the rows as they
+	// were before the update, hence the contact_email <> $2 on the other messages.
+	query := `WITH contact_files AS (
+			SELECT DISTINCT elem->>'checksum' AS checksum
+			FROM message_history mh,
+				jsonb_array_elements(CASE WHEN jsonb_typeof(mh.attachments) = 'array' THEN mh.attachments ELSE '[]'::jsonb END) elem
+			WHERE mh.contact_email = $2
+		), redacted AS (
+			UPDATE message_history
+			SET contact_email = $1, clicked_links = NULL, message_data = '{}'::jsonb,
+				channel_options = NULL, status_info = NULL, attachments = NULL
+			WHERE contact_email = $2
+		)
+		DELETE FROM message_attachments a
+		USING contact_files f
+		WHERE a.checksum = f.checksum
+		AND NOT EXISTS (
+			SELECT 1 FROM message_history other
+			WHERE other.contact_email <> $2
+			AND other.attachments @> jsonb_build_array(jsonb_build_object('checksum', a.checksum))
+		)
+		AND NOT EXISTS (
+			SELECT 1 FROM email_queue q WHERE strpos(q.payload::text, a.checksum) > 0
+		)`
 
-	result, err := workspaceDB.ExecContext(ctx, query, redactedContactEmail, email)
-	if err != nil {
+	if _, err := workspaceDB.ExecContext(ctx, query, redactedContactEmail, email); err != nil {
 		return fmt.Errorf("failed to redact email in message history: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	// Note: We don't return an error if no rows were affected since the contact might not have any message history
-	_ = rows
-
+	// No error when nothing matched: the contact may have no message history.
 	return nil
 }

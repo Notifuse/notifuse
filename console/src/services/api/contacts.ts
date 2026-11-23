@@ -189,10 +189,13 @@ export const contactsApi = {
   delete: async (params: {
     workspace_id: string
     email: string
+    /** Also forget the contact's unsubscribes, bounces and complaints (kept as hashes otherwise). */
+    forget_opt_outs?: boolean
   }): Promise<DeleteContactResponse> => {
     return api.post('/api/contacts.delete', {
       workspace_id: params.workspace_id,
-      email: params.email
+      email: params.email,
+      ...(params.forget_opt_outs ? { forget_opt_outs: true } : {})
     })
   },
 
