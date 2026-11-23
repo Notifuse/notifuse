@@ -150,6 +150,9 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 	t.Run("an invitee with two-factor authentication gets a challenge and joins nothing yet", func(t *testing.T) {
 		f := newAcceptInvitationFixture(t, 0)
 		f.expectUpToClock(existing, enabledTOTP())
+		purge := f.authTx.EXPECT().PurgeExpiredPendingSessions(gomock.Any(), gomock.Any(), existing.ID).Return(nil)
+		f.authTx.EXPECT().DeleteInvitationChallenges(gomock.Any(), gomock.Any(), existing.ID, acceptInvitationID).Return(nil).After(purge)
+		f.inv.EXPECT().LockInvitation(gomock.Any(), gomock.Any(), acceptInvitationID).Return(f.invitation(), false, nil)
 		var sessionID string
 		f.authTx.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ domain.DBExecutor, s *domain.Session) error {
@@ -197,6 +200,42 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		assert.Equal(t, "already_member", event.Metadata["reason"])
 	})
 
+	// An invitee with two-factor authentication: a link that no longer opens anything issues
+	// no challenge.
+	t.Run("no challenge for an invitation gone meanwhile", func(t *testing.T) {
+		f := newAcceptInvitationFixture(t, 0)
+		f.expectUpToClock(existing, enabledTOTP())
+		f.authTx.EXPECT().PurgeExpiredPendingSessions(gomock.Any(), gomock.Any(), existing.ID).Return(nil)
+		f.authTx.EXPECT().DeleteInvitationChallenges(gomock.Any(), gomock.Any(), existing.ID, acceptInvitationID).Return(nil)
+		f.inv.EXPECT().LockInvitation(gomock.Any(), gomock.Any(), acceptInvitationID).Return(nil, false, domain.ErrInvitationNotFound)
+
+		_, err := f.service.AcceptInvitation(context.Background(), acceptInvitationID, acceptWorkspaceID, acceptEmail)
+		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
+	})
+
+	// Single sign-on created the account in another tab between the lookup and the insert:
+	// the invitation goes on with that account.
+	t.Run("an account created meanwhile by single sign-on joins", func(t *testing.T) {
+		f := newAcceptInvitationFixture(t, 0)
+		f.repo.EXPECT().GetInvitationByID(gomock.Any(), acceptInvitationID).Return(f.invitation(), nil)
+		first := f.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), acceptEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+		f.authTx.EXPECT().CreateUserIfAbsent(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+		f.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), acceptEmail).Return(existing, nil).After(first)
+		f.authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), existing.ID).Return(nil)
+		f.totp.EXPECT().GetTOTPForUpdate(gomock.Any(), gomock.Any(), existing.ID).Return(nil, nil)
+		f.totp.EXPECT().ClockTimestamp(gomock.Any(), gomock.Any()).Return(f.now, nil)
+		f.inv.EXPECT().LockInvitation(gomock.Any(), gomock.Any(), acceptInvitationID).Return(f.invitation(), false, nil)
+		f.inv.EXPECT().IsUserWorkspaceMember(gomock.Any(), gomock.Any(), existing.ID, acceptWorkspaceID).Return(false, nil)
+		f.authTx.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		f.inv.EXPECT().DeleteInvitationsByEmail(gomock.Any(), gomock.Any(), acceptWorkspaceID, acceptEmail).Return(nil)
+		f.inv.EXPECT().AddUserToWorkspaceIfAbsent(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+		f.auth.EXPECT().GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).Return("auth-token")
+
+		resp, err := f.service.AcceptInvitation(context.Background(), acceptInvitationID, acceptWorkspaceID, acceptEmail)
+		require.NoError(t, err)
+		assert.Equal(t, existing.ID, resp.User.ID)
+	})
+
 	t.Run("an invitation gone or expired under the lock opens nothing", func(t *testing.T) {
 		for name, lockResult := range map[string]struct {
 			expired bool
@@ -227,6 +266,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		f.inv.EXPECT().LockInvitation(gomock.Any(), gomock.Any(), acceptInvitationID).Return(f.invitation(), false, nil)
 		f.inv.EXPECT().IsUserWorkspaceMember(gomock.Any(), gomock.Any(), gomock.Any(), acceptWorkspaceID).Return(false, nil)
 		f.authTx.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		f.inv.EXPECT().DeleteInvitationsByEmail(gomock.Any(), gomock.Any(), acceptWorkspaceID, acceptEmail).Return(nil)
 		sentinel := errors.New("write failed")
 		f.inv.EXPECT().AddUserToWorkspaceIfAbsent(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, sentinel)
 

@@ -22,7 +22,7 @@ const refusal = (code: string, status: number, extra: Record<string, unknown> = 
 
 const CODES = Array.from({ length: 10 }, (_, i) => `aaaaaa-bbbbbb-cccccc-00000${i}`)
 
-function withAuth(children: ReactNode, twoFactor: TwoFactorState | null = null) {
+function withAuth(children: ReactNode, twoFactor: TwoFactorState | null = null, sessionPassed = true) {
   return (
     <AntApp>
       <AuthContext.Provider
@@ -39,7 +39,8 @@ function withAuth(children: ReactNode, twoFactor: TwoFactorState | null = null) 
           serverVersion: null,
           twoFactor,
           twoFactorRequired: false,
-          sessionTwoFactorPassed: true
+          sessionTwoFactorPassed: sessionPassed,
+          rootSessionWithoutCode: false
         }}
       >
         {children}
@@ -138,7 +139,8 @@ describe('SetupWizard', () => {
     const done = screen.getByRole('button', { name: 'Done' })
     expect((done as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(screen.getByRole('checkbox', { name: 'I saved my recovery codes somewhere safe' }))
-    expect(onLockChange).toHaveBeenLastCalledWith(false)
+    // Still locked until Done.
+    expect(onLockChange).toHaveBeenLastCalledWith(true)
     fireEvent.click(done)
     expect(onFinished).toHaveBeenCalled()
   })
@@ -167,18 +169,36 @@ describe('SetupWizard', () => {
     await waitFor(() => expect(onReauthenticate).toHaveBeenCalled())
   })
 
-  // Replacing the app keeps the recovery codes: no third step.
-  it('replaces the app with the proof it was given, without new codes', async () => {
-    post.mockImplementation((url: string) =>
-      Promise.resolve(url.endsWith('setup') ? setup : { recovery_codes: [] })
-    )
+  // Replacing the app keeps the recovery codes: no third step. The proof was checked before.
+  it('replaces the app on the setup it was given, without new codes', async () => {
+    post.mockResolvedValue({ recovery_codes: [] })
     const onFinished = vi.fn()
-    render(withAuth(<SetupWizard proof={{ code: '111111' }} onFinished={onFinished} onCancel={vi.fn()} onReauthenticate={vi.fn()} />))
+    const onEnabled = vi.fn()
+    render(
+      withAuth(
+        <SetupWizard replacing initialSetup={setup} onFinished={onFinished} onEnabled={onEnabled} onCancel={vi.fn()} onReauthenticate={vi.fn()} />
+      )
+    )
     fireEvent.click(await screen.findByRole('button', { name: 'Next' }))
-    expect(post).toHaveBeenCalledWith('/api/user.twoFactor.setup', { code: '111111' })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '123456' } })
     fireEvent.click(screen.getByRole('button', { name: 'Replace app' }))
     await waitFor(() => expect(onFinished).toHaveBeenCalled())
+    expect(onEnabled).toHaveBeenCalled()
+    expect(post).toHaveBeenCalledTimes(1)
+  })
+
+  // Its proof is used up: a replacement that expired asks for a new one.
+  it('ends a replacement that expired, without sending the spent proof again', async () => {
+    post.mockRejectedValue(refusal('two_factor_setup_expired', 410))
+    const onCancel = vi.fn()
+    render(withAuth(<SetupWizard replacing initialSetup={setup} onFinished={vi.fn()} onCancel={onCancel} onReauthenticate={vi.fn()} />))
+    fireEvent.click(await screen.findByRole('button', { name: 'Next' }))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Replace app' }))
+    expect(await screen.findByText(/Start the replacement again/)).toBeTruthy()
+    expect(post).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onCancel).toHaveBeenCalled()
   })
 })
 
@@ -223,6 +243,17 @@ describe('AccountSecurityPanel', () => {
     expect(post).toHaveBeenCalledTimes(1)
   })
 
+  // Outside sign-in, a recovery code waits like an authenticator code: no hint to use one.
+  it('says how long to wait, without offering a recovery code', async () => {
+    post.mockRejectedValue(refusal('two_factor_locked', 429, { retry_after: 120 }))
+    render(withAuth(<AccountSecurityPanel />, { enabled: true, recovery_codes_remaining: 10, required_by_instance: false }))
+    fireEvent.click(screen.getByRole('button', { name: 'Turn off' }))
+    fireEvent.change(await screen.findByRole('textbox'), { target: { value: '123456' } })
+    const buttons = screen.getAllByRole('button', { name: 'Turn off' })
+    fireEvent.click(buttons[buttons.length - 1])
+    expect(await screen.findByText('Too many wrong codes. Try again in 2 minutes.')).toBeTruthy()
+  })
+
   it('turns it off with a code', async () => {
     post.mockResolvedValue({ success: true })
     render(withAuth(<AccountSecurityPanel />, { enabled: true, recovery_codes_remaining: 10, required_by_instance: false }))
@@ -235,13 +266,14 @@ describe('AccountSecurityPanel', () => {
 })
 
 describe('SystemSecuritySettings', () => {
-  const renderSection = (props: Parameters<typeof SystemSecuritySettings>[0], own: TwoFactorState | null) =>
+  const renderSection = (props: Parameters<typeof SystemSecuritySettings>[0], own: TwoFactorState | null, sessionPassed = own?.enabled === true) =>
     render(
       withAuth(
         <Form initialValues={{ require_two_factor: false }}>
           <SystemSecuritySettings {...props} />
         </Form>,
-        own
+        own,
+        sessionPassed
       )
     )
 
@@ -256,6 +288,12 @@ describe('SystemSecuritySettings', () => {
     expect(screen.getByRole('switch').hasAttribute('disabled')).toBe(true)
     expect(screen.getByText(/so you don't lock yourself out/)).toBeTruthy()
     expect(screen.getByText('lee@acme.io')).toBeTruthy()
+  })
+
+  // Single sign-on owns multi-factor authentication: the server accepts it, the switch too.
+  it('lets a root user signed in with single sign-on switch it on without an authenticator', () => {
+    renderSection({ twoFactor: { required: false, from_env: false, users_without: [] } }, { enabled: false, recovery_codes_remaining: 0, required_by_instance: false }, true)
+    expect(screen.getByRole('switch').hasAttribute('disabled')).toBe(false)
   })
 
   it('lets a root user with it switch the requirement on', () => {

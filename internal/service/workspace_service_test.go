@@ -4510,8 +4510,10 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 		authTx := mocks.NewMockAuthTxRepository(gomock.NewController(t))
 		service.invitationAuth = WorkspaceInvitationAuth{Tx: &fakeTx{}, AuthTx: authTx}
 		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(stored(), nil)
+		// Looked up before, missing; looked up again after the conflict, gone again: nothing
+		// to go on with.
 		mockUserRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), email).
-			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+			Return(nil, &domain.ErrUserNotFound{Message: "user not found"}).Times(2)
 		authTx.EXPECT().CreateUserIfAbsent(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 		record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
 

@@ -132,7 +132,7 @@ func (r *authTxRepository) ConsumeMagicCode(ctx context.Context, db domain.DBExe
 		UPDATE user_sessions SET magic_code = NULL, magic_code_expires_at = NULL
 		WHERE id = (
 			SELECT id FROM user_sessions
-			WHERE user_id = $1 AND magic_code = $2 AND magic_code_expires_at > (now() AT TIME ZONE 'UTC')
+			WHERE user_id = $1 AND magic_code = $2 AND magic_code_expires_at > (clock_timestamp() AT TIME ZONE 'UTC')
 			ORDER BY created_at DESC
 			LIMIT 1
 			FOR UPDATE
@@ -152,7 +152,7 @@ func (r *authTxRepository) HasExpiredMagicCode(ctx context.Context, db domain.DB
 	var expired bool
 	err := db.QueryRowContext(ctx, `
 		SELECT EXISTS (SELECT 1 FROM user_sessions
-			WHERE user_id = $1 AND magic_code = $2 AND magic_code_expires_at <= (now() AT TIME ZONE 'UTC'))`,
+			WHERE user_id = $1 AND magic_code = $2 AND magic_code_expires_at <= (clock_timestamp() AT TIME ZONE 'UTC'))`,
 		userID, codeHash).Scan(&expired)
 	if err != nil {
 		return false, fmt.Errorf("failed to check for an expired magic code: %w", err)
@@ -169,6 +169,15 @@ func (r *authTxRepository) PurgeExpiredPendingSessions(ctx context.Context, db d
 		)`, userID)
 	if err != nil {
 		return fmt.Errorf("failed to purge expired pending sessions: %w", err)
+	}
+	return nil
+}
+
+func (r *authTxRepository) DeleteInvitationChallenges(ctx context.Context, db domain.DBExecutor, userID, invitationID string) error {
+	if _, err := db.ExecContext(ctx, `
+		DELETE FROM user_sessions
+		WHERE user_id = $1 AND pending_invitation_id = $2 AND challenge_hash IS NOT NULL`, userID, invitationID); err != nil {
+		return fmt.Errorf("failed to delete the invitation's challenges: %w", err)
 	}
 	return nil
 }

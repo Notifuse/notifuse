@@ -173,8 +173,12 @@ func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Worksp
 		return nil, err
 	}
 
-	// Platform admins (ROOT_EMAIL) have owner access to every workspace, so they see them all.
+	// Platform admins (ROOT_EMAIL) have owner access to every workspace, so they see them all,
+	// from a session that passed the second factor when they have two-factor authentication.
 	if s.config.IsRootEmail(user.Email) {
+		if err := s.authService.RequireCompliantRootSession(ctx); err != nil {
+			return nil, err
+		}
 		return s.repo.List(ctx)
 	}
 
@@ -1893,9 +1897,15 @@ func (s *WorkspaceService) acceptInvitationTx(ctx context.Context, invitation *d
 				return fmt.Errorf("failed to create user: %w", err)
 			}
 			if !created {
-				// Created a moment ago by the same link accepted twice at once.
-				audit.Fail("already_member")
-				return domain.ErrInvitationUnavailable
+				// Created a moment ago: by the same link accepted twice at once, or by a
+				// single sign-on in another tab. Go on with that account; the membership check
+				// below tells the two apart.
+				existing, err := s.userRepo.GetUserByEmailInsensitive(ctx, user.Email)
+				if err != nil || existing.Type != domain.UserTypeUser {
+					audit.Fail("already_member")
+					return domain.ErrInvitationUnavailable
+				}
+				*user = *existing
 			}
 		}
 		if err := deps.AuthTx.LockUser(ctx, tx, user.ID); err != nil {
@@ -1917,6 +1927,23 @@ func (s *WorkspaceService) acceptInvitationTx(ctx context.Context, invitation *d
 		}
 
 		if totpRow.Enabled() {
+			// One challenge per invitation and person: a link clicked again replaces the
+			// earlier one, and expired ones go, so the link cannot fill the sessions table.
+			if err := deps.AuthTx.PurgeExpiredPendingSessions(ctx, tx, user.ID); err != nil {
+				return err
+			}
+			if err := deps.AuthTx.DeleteInvitationChallenges(ctx, tx, user.ID, invitation.ID); err != nil {
+				return err
+			}
+			// The invitation must still open something before a challenge is issued for it.
+			_, expired, err := deps.InvitationTx.LockInvitation(ctx, tx, invitation.ID)
+			if errors.Is(err, domain.ErrInvitationNotFound) || (err == nil && expired) {
+				audit.Fail("invitation_not_found")
+				return domain.ErrInvitationUnavailable
+			}
+			if err != nil {
+				return err
+			}
 			if err := deps.AuthTx.CreateSession(ctx, tx, session); err != nil {
 				return fmt.Errorf("failed to create session: %w", err)
 			}
@@ -1970,6 +1997,12 @@ func (s *WorkspaceService) acceptInvitationTx(ctx context.Context, invitation *d
 		if err := deps.AuthTx.CreateSession(ctx, tx, session); err != nil {
 			return fmt.Errorf("failed to create session: %w", err)
 		}
+		// Every spelling of the address, so a case-variant twin does not keep holding a seat.
+		// Before the membership: workspace_invitations comes before user_workspaces in the
+		// lock order.
+		if err := deps.InvitationTx.DeleteInvitationsByEmail(ctx, tx, locked.WorkspaceID, locked.Email); err != nil {
+			return err
+		}
 		if _, err := deps.InvitationTx.AddUserToWorkspaceIfAbsent(ctx, tx, &domain.UserWorkspace{
 			UserID:      user.ID,
 			WorkspaceID: locked.WorkspaceID,
@@ -1980,8 +2013,7 @@ func (s *WorkspaceService) acceptInvitationTx(ctx context.Context, invitation *d
 		}); err != nil {
 			return fmt.Errorf("failed to add user to workspace: %w", err)
 		}
-		// Every spelling of the address, so a case-variant twin does not keep holding a seat.
-		return deps.InvitationTx.DeleteInvitationsByEmail(ctx, tx, locked.WorkspaceID, locked.Email)
+		return nil
 	})
 	if err != nil {
 		s.logger.WithField("invitation_id", invitation.ID).WithField("error", err.Error()).Warn("Invitation acceptance failed")
@@ -2192,6 +2224,12 @@ func (s *WorkspaceService) DeleteInvitation(ctx context.Context, invitationID st
 		// Bypass only the genuine "not a member" case for platform admins so real DB errors
 		// still surface instead of being silently treated as authorized.
 		rootBypass := errors.Is(err, domain.ErrUserNotInWorkspace) && s.config.IsRootEmail(user.Email)
+		if rootBypass {
+			// Owner access to every workspace needs the second factor when root has it.
+			if err := s.authService.RequireCompliantRootSession(ctx); err != nil {
+				return err
+			}
+		}
 		if !rootBypass {
 			s.logger.WithField("workspace_id", invitation.WorkspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("User does not have access to this workspace")
 			return &domain.ErrUnauthorized{Message: "You do not have access to this workspace"}

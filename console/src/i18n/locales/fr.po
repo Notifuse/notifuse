@@ -735,7 +735,7 @@ msgstr "Modèle {categoryName} : envoyé même aux contacts désabonnés, rejet�
 #~ msgid "{clicks} clicks out of {tracked} tracked recipients ({recipients} sent)"
 #~ msgstr "{clicks} clics sur {tracked} destinataires trackés ({recipients} envoyés)"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:178
+#: src/components/two_factor/AccountSecurityPanel.tsx:179
 msgid "{codesLeft} of 10 left"
 msgstr "{codesLeft} sur 10 restants"
 
@@ -1818,7 +1818,7 @@ msgstr "500 - Moyen"
 msgid "587 for STARTTLS, 465 for TLS from the first byte, 25 unencrypted"
 msgstr "587 pour STARTTLS, 465 pour TLS dès le premier octet, 25 sans chiffrement"
 
-#: src/components/two_factor/SetupWizard.tsx:197
+#: src/components/two_factor/SetupWizard.tsx:213
 msgid "6-digit code"
 msgstr "Code à 6 chiffres"
 
@@ -2281,13 +2281,13 @@ msgstr "Compte"
 msgid "Account and security"
 msgstr "Compte et sécurité"
 
-#: src/components/two_factor/SetupWizard.tsx:171
+#: src/components/two_factor/SetupWizard.tsx:187
 msgid "Account name in the app: Notifuse ({account})"
 msgstr "Nom du compte dans l'application : Notifuse ({account})"
 
 #: src/components/two_factor/AccountSecurityDrawer.tsx:26
 #: src/layouts/app-shell/AccountMenu.tsx:87
-#: src/pages/AccountSecurityPage.tsx:64
+#: src/pages/AccountSecurityPage.tsx:60
 msgid "Account security"
 msgstr "Sécurité du compte"
 
@@ -2730,7 +2730,7 @@ msgstr "A ajouté un domaine DKIM à <0>{target}</0>"
 msgid "Added on {0}"
 msgstr "Ajouté le {0}"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:170
+#: src/components/two_factor/AccountSecurityPanel.tsx:171
 msgid "Added on {addedOn}"
 msgstr "Ajoutée le {addedOn}"
 
@@ -2853,11 +2853,11 @@ msgstr "Après un recalcul historique, lancé depuis les Règles d'attribution"
 msgid "after date"
 msgstr "après la date"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:147
+#: src/components/two_factor/AccountSecurityPanel.tsx:148
 msgid "After the code we email you, Notifuse asks for a second code from an authenticator app on your phone, such as Google Authenticator, 1Password or Bitwarden. Someone who gets into your mailbox still can't sign in."
 msgstr "Après le code envoyé par email, Notifuse demande un second code, donné par une application d'authentification sur votre téléphone, comme Google Authenticator, 1Password ou Bitwarden. Quelqu'un qui entre dans votre boîte mail ne peut toujours pas se connecter."
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:163
+#: src/components/two_factor/AccountSecurityPanel.tsx:164
 msgid "After the code we email you, Notifuse asks for a second code from an authenticator app on your phone."
 msgstr "Après le code envoyé par email, Notifuse demande un second code, donné par une application d'authentification sur votre téléphone."
 
@@ -3914,7 +3914,7 @@ msgstr "Authentification"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:90
 #: src/pages/AcceptInvitationPage.tsx:127
-#: src/pages/SignInPage.tsx:261
+#: src/pages/SignInPage.tsx:268
 msgid "Authentication code"
 msgstr "Code d'authentification"
 
@@ -3926,11 +3926,11 @@ msgstr "Email d'authentification envoyé via Supabase"
 #~ msgid "Authentication Type"
 #~ msgstr "Type d'authentification"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:167
+#: src/components/two_factor/AccountSecurityPanel.tsx:168
 msgid "Authenticator app"
 msgstr "Application d'authentification"
 
-#: src/components/two_factor/SetupWizard.tsx:91
+#: src/components/two_factor/SetupWizard.tsx:107
 msgid "Authenticator app replaced"
 msgstr "Application d'authentification remplacée"
 
@@ -4171,13 +4171,13 @@ msgstr "Région AWS"
 
 #: src/components/contacts/ContactsFilters.tsx:115
 #: src/components/layout/FullDrawer.tsx:93
-#: src/components/two_factor/SetupWizard.tsx:211
+#: src/components/two_factor/SetupWizard.tsx:227
 #: src/components/web_analytics/FilterBuilder.tsx:293
 #: src/components/web_analytics/FilterBuilder.tsx:364
 msgid "Back"
 msgstr "Retour"
 
-#: src/pages/AccountSecurityPage.tsx:51
+#: src/pages/AccountSecurityPage.tsx:47
 msgid "Back to {workspaceName}"
 msgstr "Retour à {workspaceName}"
 
@@ -4200,7 +4200,7 @@ msgstr "Repasser en brouillon"
 msgid "Back to draft?"
 msgstr "Repasser en brouillon ?"
 
-#: src/pages/AccountSecurityPage.tsx:40
+#: src/pages/AccountSecurityPage.tsx:36
 msgid "Back to Notifuse"
 msgstr "Retour à Notifuse"
 
@@ -5232,7 +5232,7 @@ msgstr "Ne peut plus être modifié"
 msgid "Can't change after the template is created"
 msgstr "Non modifiable une fois le modèle créé"
 
-#: src/components/two_factor/SetupWizard.tsx:162
+#: src/components/two_factor/SetupWizard.tsx:178
 msgid "Can't scan it? Enter this key"
 msgstr "Impossible de scanner ? Saisissez cette clé"
 
@@ -5341,10 +5341,10 @@ msgstr "Impossible à tester dans le navigateur"
 #: src/components/templates/TemplateSelectorModal.tsx:218
 #: src/components/templates/TemplateTranslationsTab.tsx:363
 #: src/components/transactional/notificationRules.ts:94
-#: src/components/two_factor/ProofModal.tsx:59
+#: src/components/two_factor/ProofModal.tsx:71
 #: src/components/two_factor/ResetTwoFactorButton.tsx:87
-#: src/components/two_factor/SetupWizard.tsx:140
-#: src/components/two_factor/SetupWizard.tsx:174
+#: src/components/two_factor/SetupWizard.tsx:156
+#: src/components/two_factor/SetupWizard.tsx:190
 #: src/components/updates/UpdateCard.tsx:48
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
 #: src/components/web_analytics/explore/CsvExportModal.tsx:130
@@ -5430,7 +5430,7 @@ msgstr "A annulé le rattrapage des statistiques web"
 msgid "Cannot be changed, used by the API and forms."
 msgstr "Non modifiable, utilisé par l'API et les formulaires."
 
-#: src/pages/SignInPage.tsx:267
+#: src/pages/SignInPage.tsx:274
 msgid "Cannot reach the configured API endpoint"
 msgstr "Impossible de joindre le point d'accès API configuré"
 
@@ -5632,7 +5632,7 @@ msgstr "Modifié : {section}"
 msgid "Changes"
 msgstr "Modifications"
 
-#: src/pages/SignInPage.tsx:278
+#: src/pages/SignInPage.tsx:285
 msgid "Changing your domain"
 msgstr "Changer de domaine"
 
@@ -6206,7 +6206,7 @@ msgstr "Code copié"
 msgid "Code Editor"
 msgstr "Éditeur de code"
 
-#: src/components/two_factor/ProofModal.tsx:75
+#: src/components/two_factor/ProofModal.tsx:87
 msgid "Code from your authenticator app"
 msgstr "Code de l'application d'authentification"
 
@@ -6588,7 +6588,7 @@ msgstr "Configuration de {0}"
 #: src/components/contacts/BulkActionsBar.tsx:191
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:206
 #: src/components/segment/form_leaf.tsx:207
-#: src/components/two_factor/SetupWizard.tsx:133
+#: src/components/two_factor/SetupWizard.tsx:149
 msgid "Confirm"
 msgstr "Confirmer"
 
@@ -6946,7 +6946,7 @@ msgstr "Arborescence de la structure du contenu"
 msgid "Contents"
 msgstr "Contenus"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:134
+#: src/components/two_factor/AccountSecurityPanel.tsx:135
 msgid "Continue"
 msgstr "Continuer"
 
@@ -7002,7 +7002,7 @@ msgstr "Copié"
 #: src/components/setup/SsoPanel.tsx:116
 #: src/components/transactional/ApiCallPanel.tsx:76
 #: src/components/two_factor/RecoveryCodesList.tsx:69
-#: src/components/two_factor/SetupWizard.tsx:168
+#: src/components/two_factor/SetupWizard.tsx:184
 msgid "Copy"
 msgstr "Copier"
 
@@ -7093,7 +7093,7 @@ msgstr "Impossible de copier l’ID externe"
 msgid "Could not copy the ID"
 msgstr "Impossible de copier l'ID"
 
-#: src/components/two_factor/SetupWizard.tsx:122
+#: src/components/two_factor/SetupWizard.tsx:138
 msgid "Could not copy the key. Type it by hand."
 msgstr "Impossible de copier la clé. Saisissez-la à la main."
 
@@ -7595,7 +7595,7 @@ msgstr "Créer un webhook"
 #~ msgid "Create Webhook"
 #~ msgstr "Créer un webhook"
 
-#: src/pages/CreateWorkspacePage.tsx:203
+#: src/pages/CreateWorkspacePage.tsx:219
 msgid "Create Workspace"
 msgstr "Créer un espace de travail"
 
@@ -9320,8 +9320,8 @@ msgstr "Ne pas suivre les ouvertures et les clics de cette newsletter"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:264
 #: src/components/settings/ZapierSettings.tsx:269
 #: src/components/templates/TemplateTranslationsTab.tsx:501
-#: src/components/two_factor/AccountSecurityPanel.tsx:126
-#: src/components/two_factor/SetupWizard.tsx:230
+#: src/components/two_factor/AccountSecurityPanel.tsx:127
+#: src/components/two_factor/SetupWizard.tsx:246
 msgid "Done"
 msgstr "Terminé"
 
@@ -9595,7 +9595,7 @@ msgstr "Chaque message compte une fois, dans l’heure de sa première ouverture
 msgid "Each message counts once, on the day of its first open or click; clicks count each message clicked once."
 msgstr "Chaque message compte une fois, le jour de sa première ouverture ou de son premier clic ; les clics comptent une fois chaque message cliqué."
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:176
+#: src/components/two_factor/AccountSecurityPanel.tsx:177
 msgid "Each one works once, if you lose your phone."
 msgstr "Chacun fonctionne une fois, si vous perdez votre téléphone."
 
@@ -9963,8 +9963,8 @@ msgstr "Écoulé"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:305
 #: src/pages/SignInPage.tsx:312
+#: src/pages/SignInPage.tsx:319
 msgid "Email"
 msgstr "Email"
 
@@ -10095,7 +10095,7 @@ msgstr "Les liens des emails ne peuvent pas identifier de contacts tant qu'aucun
 #~ msgid "Email Metrics"
 #~ msgstr "Métriques email"
 
-#: src/components/settings/SystemSecuritySettings.tsx:86
+#: src/components/settings/SystemSecuritySettings.tsx:88
 msgid "Email of the person"
 msgstr "Email de la personne"
 
@@ -10476,7 +10476,7 @@ msgstr "Entrez un nom pour ce bloc"
 msgid "Enter a name for this integration"
 msgstr "Entrez un nom pour cette intégration"
 
-#: src/pages/CreateWorkspacePage.tsx:140
+#: src/pages/CreateWorkspacePage.tsx:156
 msgid "Enter a name for your workspace"
 msgstr "Entrez un nom pour votre espace de travail"
 
@@ -10634,7 +10634,7 @@ msgstr "Entrez l'URL du logo ou sélectionnez une image"
 msgid "Enter number..."
 msgstr "Entrez un nombre..."
 
-#: src/components/two_factor/ProofModal.tsx:76
+#: src/components/two_factor/ProofModal.tsx:90
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:83
 msgid "Enter one of your recovery codes"
 msgstr "Saisissez un de vos codes de récupération"
@@ -10659,13 +10659,13 @@ msgstr "Saisissez le texte d'aperçu ({name})"
 msgid "Enter the {name} subject"
 msgstr "Saisissez le sujet ({name})"
 
-#: src/components/two_factor/ProofModal.tsx:76
-#: src/components/two_factor/SetupWizard.tsx:199
+#: src/components/two_factor/ProofModal.tsx:92
+#: src/components/two_factor/SetupWizard.tsx:215
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:92
 msgid "Enter the 6-digit code from your app"
 msgstr "Saisissez le code à 6 chiffres de l'application"
 
-#: src/pages/SignInPage.tsx:341
+#: src/pages/SignInPage.tsx:349
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Entrez le code à 6 chiffres envoyé à {email}"
 
@@ -10673,11 +10673,11 @@ msgstr "Entrez le code à 6 chiffres envoyé à {email}"
 msgid "Enter the code from your authenticator app to accept the invitation."
 msgstr "Saisissez le code de l'application d'authentification pour accepter l'invitation."
 
-#: src/pages/SignInPage.tsx:286
+#: src/pages/SignInPage.tsx:293
 msgid "Enter the code from your authenticator app."
 msgstr "Saisissez le code de l'application d'authentification."
 
-#: src/components/two_factor/SetupWizard.tsx:189
+#: src/components/two_factor/SetupWizard.tsx:205
 msgid "Enter the code shown in the app"
 msgstr "Saisissez le code affiché dans l'application"
 
@@ -11376,7 +11376,7 @@ msgstr "Échec de la création du modèle : {0}"
 #~ msgid "Failed to create the Zapier API key"
 #~ msgstr "Impossible de créer la clé API Zapier"
 
-#: src/pages/CreateWorkspacePage.tsx:95
+#: src/pages/CreateWorkspacePage.tsx:101
 msgid "Failed to create workspace"
 msgstr "Échec de la création de l'espace de travail"
 
@@ -11615,7 +11615,7 @@ msgstr "Échec du rendu de l'aperçu"
 msgid "Failed to resend invitation"
 msgstr "Échec du renvoi de l'invitation"
 
-#: src/pages/SignInPage.tsx:249
+#: src/pages/SignInPage.tsx:256
 msgid "Failed to resend magic code"
 msgstr "Échec du renvoi du code magique"
 
@@ -11705,7 +11705,7 @@ msgstr "Échec du choix de la gagnante"
 msgid "Failed to send broadcast"
 msgstr "Échec de l'envoi de la diffusion"
 
-#: src/pages/SignInPage.tsx:117
+#: src/pages/SignInPage.tsx:124
 msgid "Failed to send magic code"
 msgstr "Échec de l'envoi du code magique"
 
@@ -11728,7 +11728,7 @@ msgstr "Échec du retour de la diffusion en brouillon"
 msgid "Failed to set default provider"
 msgstr "Échec de la définition du fournisseur par défaut"
 
-#: src/components/two_factor/SetupWizard.tsx:66
+#: src/components/two_factor/SetupWizard.tsx:79
 msgid "Failed to start the setup"
 msgstr "Impossible de démarrer la configuration"
 
@@ -11749,7 +11749,7 @@ msgstr "Échec du test de la connexion SMTP"
 msgid "Failed to toggle webhook subscription"
 msgstr "Échec du basculement de l'abonnement webhook"
 
-#: src/components/two_factor/SetupWizard.tsx:109
+#: src/components/two_factor/SetupWizard.tsx:125
 msgid "Failed to turn on two-factor authentication"
 msgstr "Impossible d'activer la double authentification"
 
@@ -11838,7 +11838,7 @@ msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Échec de la mise à jour des paramètres de l'espace de travail : {errorMessage}"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:55
-#: src/pages/SignInPage.tsx:88
+#: src/pages/SignInPage.tsx:95
 msgid "Failed to verify code"
 msgstr "Échec de la vérification du code"
 
@@ -11916,7 +11916,7 @@ msgstr "Récupération des données..."
 msgid "Fetching: {0}"
 msgstr "Récupération : {0}"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:182
+#: src/components/two_factor/AccountSecurityPanel.tsx:183
 msgid "Few recovery codes left. Generate new ones."
 msgstr "Il reste peu de codes de récupération. Générez-en de nouveaux."
 
@@ -12323,7 +12323,7 @@ msgstr "Épaisseur de police"
 msgid "for {0}"
 msgstr "depuis {0}"
 
-#: src/components/settings/SystemSecuritySettings.tsx:78
+#: src/components/settings/SystemSecuritySettings.tsx:80
 msgid "For a person who lost both their phone and their recovery codes, including someone who belongs to no workspace."
 msgstr "Pour une personne qui a perdu à la fois son téléphone et ses codes de récupération, y compris quelqu'un qui n'appartient à aucun espace de travail."
 
@@ -12594,12 +12594,12 @@ msgstr "Général"
 #~ msgid "General settings for your workspace"
 #~ msgstr "Paramètres généraux de votre espace de travail"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:135
-#: src/components/two_factor/AccountSecurityPanel.tsx:174
+#: src/components/two_factor/AccountSecurityPanel.tsx:136
+#: src/components/two_factor/AccountSecurityPanel.tsx:175
 msgid "Generate new codes"
 msgstr "Générer de nouveaux codes"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:135
+#: src/components/two_factor/AccountSecurityPanel.tsx:136
 msgid "Generate new recovery codes"
 msgstr "Générer de nouveaux codes de récupération"
 
@@ -13322,7 +13322,7 @@ msgstr "ID"
 msgid "ID {0} · Last activity {lastActivity}"
 msgstr "ID {0} · Dernière activité {lastActivity}"
 
-#: src/pages/CreateWorkspacePage.tsx:161
+#: src/pages/CreateWorkspacePage.tsx:177
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "L'ID ne peut contenir que des lettres minuscules et des chiffres"
 
@@ -13356,7 +13356,7 @@ msgstr "L'ID ne correspond pas"
 msgid "ID for API: {0}"
 msgstr "ID pour l'API : {0}"
 
-#: src/pages/CreateWorkspacePage.tsx:174
+#: src/pages/CreateWorkspacePage.tsx:190
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "L'ID est généré automatiquement mais peut être modifié si nécessaire"
 
@@ -13459,7 +13459,7 @@ msgstr "Si Notifuse exige la double authentification, elle sera à configurer de
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Si l'email du contact n'existe pas dans votre espace de travail, il sera automatiquement créé."
 
-#: src/components/two_factor/SetupWizard.tsx:224
+#: src/components/two_factor/SetupWizard.tsx:240
 msgid "If you lose your phone, each code lets you sign in once. This is the only time Notifuse shows them."
 msgstr "Si vous perdez votre téléphone, chaque code permet une connexion. Notifuse ne les affiche qu'une seule fois, maintenant."
 
@@ -14442,7 +14442,7 @@ msgstr "Conservés dans ce navigateur pendant 7 jours. Déposez le même fichier
 #~ msgid "Key"
 #~ msgstr "Clé"
 
-#: src/components/two_factor/SetupWizard.tsx:120
+#: src/components/two_factor/SetupWizard.tsx:136
 msgid "Key copied"
 msgstr "Clé copiée"
 
@@ -15347,7 +15347,7 @@ msgstr "Chargement du modèle..."
 #: src/components/blog_editor/NotifuseEditor.tsx:490
 #: src/components/templates/CreateTemplateDrawer.tsx:1013
 #: src/components/templates/TemplateSelectorInput.tsx:162
-#: src/layouts/RootLayout.tsx:120
+#: src/layouts/RootLayout.tsx:124
 #: src/pages/ContactsPage.tsx:462
 msgid "Loading..."
 msgstr "Chargement..."
@@ -15395,7 +15395,7 @@ msgid "Logo URL"
 msgstr "URL du logo"
 
 #: src/layouts/app-shell/AccountMenu.tsx:104
-#: src/pages/AccountSecurityPage.tsx:58
+#: src/pages/AccountSecurityPage.tsx:54
 msgid "Logout"
 msgstr "Déconnexion"
 
@@ -15454,7 +15454,7 @@ msgstr "Lumen"
 msgid "Magenta"
 msgstr "Magenta"
 
-#: src/pages/SignInPage.tsx:115
+#: src/pages/SignInPage.tsx:122
 msgid "Magic code sent to your email"
 msgstr "Code magique envoyé à votre email"
 
@@ -16388,7 +16388,7 @@ msgstr "Nouvelle clé"
 msgid "New list"
 msgstr "Nouvelle liste"
 
-#: src/pages/SignInPage.tsx:247
+#: src/pages/SignInPage.tsx:254
 msgid "New magic code sent to your email"
 msgstr "Nouveau code magique envoyé à votre email"
 
@@ -16472,7 +16472,7 @@ msgstr "Les nouvelles visites ne sont plus réécrites par ce filtre. Les ancien
 #~ msgstr "Nouvelle fenêtre"
 
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:99
-#: src/pages/CreateWorkspacePage.tsx:108
+#: src/pages/CreateWorkspacePage.tsx:124
 #: src/pages/DashboardPage.tsx:60
 #: src/pages/DashboardPage.tsx:64
 msgid "New workspace"
@@ -16498,7 +16498,7 @@ msgstr "Newsletters et annonces"
 #~ msgstr "Newsletters qui peuvent encore être envoyées, notifications transactionnelles, automatisations et listes en double opt-in. Les filtres de segment sur un modèle ne sont pas comptés."
 
 #: src/components/layout/DrawerControls.tsx:61
-#: src/components/two_factor/SetupWizard.tsx:176
+#: src/components/two_factor/SetupWizard.tsx:192
 msgid "Next"
 msgstr "Suivant"
 
@@ -16985,7 +16985,7 @@ msgstr "Aucune notification ne correspond"
 #~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 #~ msgstr "Aucun compte Notifuse n'est lié à cette identité. Demandez d'abord à un administrateur de vous inviter."
 
-#: src/pages/SignInPage.tsx:141
+#: src/pages/SignInPage.tsx:148
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "Aucun compte Notifuse n'est lié à cette identité. Si vous avez été invité, ouvrez le lien de votre e-mail d'invitation ; sinon, demandez à un administrateur de vous inviter."
 
@@ -17873,7 +17873,7 @@ msgstr "désactivés"
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
 #: src/components/transactional/TransactionalDetail.tsx:416
-#: src/components/two_factor/AccountSecurityPanel.tsx:144
+#: src/components/two_factor/AccountSecurityPanel.tsx:145
 msgid "Off"
 msgstr "Désactivé"
 
@@ -17905,7 +17905,7 @@ msgstr "activés"
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/setup/setupHooks.ts:64
 #: src/components/transactional/TransactionalDetail.tsx:373
-#: src/components/two_factor/AccountSecurityPanel.tsx:160
+#: src/components/two_factor/AccountSecurityPanel.tsx:161
 msgid "On"
 msgstr "Activé"
 
@@ -18076,7 +18076,7 @@ msgctxt "action"
 msgid "Open"
 msgstr "Ouvrir"
 
-#: src/components/settings/SystemSecuritySettings.tsx:55
+#: src/components/settings/SystemSecuritySettings.tsx:57
 msgid "Open Account security from your account menu."
 msgstr "Ouvrez Sécurité du compte depuis le menu de votre compte."
 
@@ -18448,7 +18448,7 @@ msgstr "Options"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:242
-#: src/pages/SignInPage.tsx:323
+#: src/pages/SignInPage.tsx:330
 msgid "or"
 msgstr "ou"
 
@@ -18872,11 +18872,11 @@ msgstr "Invitations en attente"
 msgid "Pending on {list}"
 msgstr "En attente sur {list}"
 
-#: src/components/settings/SystemSecuritySettings.tsx:40
+#: src/components/settings/SystemSecuritySettings.tsx:42
 msgid "People who haven't turned it on can only open their account page until they do. Single sign-on users and API keys aren't affected."
 msgstr "Les personnes qui ne l'ont pas activée n'ont accès qu'à la page de leur compte jusqu'à ce qu'elles le fassent. Les connexions par authentification unique et les clés API ne sont pas concernées."
 
-#: src/components/settings/SystemSecuritySettings.tsx:61
+#: src/components/settings/SystemSecuritySettings.tsx:63
 msgid "People without two-factor authentication"
 msgstr "Personnes sans double authentification"
 
@@ -19188,9 +19188,10 @@ msgstr "Veuillez entrer un slug"
 msgid "Please enter a URL"
 msgstr "Veuillez entrer une URL"
 
-#: src/components/two_factor/SetupWizard.tsx:200
+#: src/components/two_factor/ProofModal.tsx:93
+#: src/components/two_factor/SetupWizard.tsx:216
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:93
-#: src/pages/SignInPage.tsx:349
+#: src/pages/SignInPage.tsx:357
 msgid "Please enter a valid 6-digit code!"
 msgstr "Veuillez entrer un code à 6 chiffres valide !"
 
@@ -19199,7 +19200,7 @@ msgstr "Veuillez entrer un code à 6 chiffres valide !"
 msgid "Please enter a valid email"
 msgstr "Veuillez entrer un email valide"
 
-#: src/pages/SignInPage.tsx:309
+#: src/pages/SignInPage.tsx:316
 msgid "Please enter a valid email!"
 msgstr "Veuillez entrer un email valide !"
 
@@ -19211,7 +19212,7 @@ msgstr "Veuillez entrer une URL d'image valide"
 #: src/components/settings/GeneralSettings.tsx:356
 #: src/components/settings/GeneralSettings.tsx:463
 #: src/components/settings/WebhooksSettings.tsx:542
-#: src/pages/CreateWorkspacePage.tsx:187
+#: src/pages/CreateWorkspacePage.tsx:203
 msgid "Please enter a valid URL"
 msgstr "Veuillez entrer une URL valide"
 
@@ -19223,7 +19224,7 @@ msgstr "Veuillez entrer une URL YouTube valide"
 msgid "Please enter a website URL first"
 msgstr "Veuillez d'abord entrer une URL de site web"
 
-#: src/pages/CreateWorkspacePage.tsx:131
+#: src/pages/CreateWorkspacePage.tsx:147
 msgid "Please enter a workspace name"
 msgstr "Veuillez entrer un nom d'espace de travail"
 
@@ -19269,11 +19270,11 @@ msgstr "Veuillez entrer votre clé API"
 msgid "Please fill in all required fields before testing"
 msgstr "Veuillez remplir tous les champs obligatoires avant de tester"
 
-#: src/pages/SignInPage.tsx:346
+#: src/pages/SignInPage.tsx:354
 msgid "Please input the magic code!"
 msgstr "Veuillez entrer le code magique !"
 
-#: src/pages/SignInPage.tsx:308
+#: src/pages/SignInPage.tsx:315
 msgid "Please input your email!"
 msgstr "Veuillez entrer votre email !"
 
@@ -19929,7 +19930,7 @@ msgstr "Violet"
 msgid "Push"
 msgstr "Push"
 
-#: src/components/two_factor/SetupWizard.tsx:159
+#: src/components/two_factor/SetupWizard.tsx:175
 msgid "QR code for your authenticator app"
 msgstr "QR code pour votre application d'authentification"
 
@@ -20408,13 +20409,13 @@ msgstr "Enregistrement arrêté : aucune licence valide"
 msgid "Records visits from the sites below that carry the snippet; off, incoming visits are rejected"
 msgstr "Enregistre les visites des sites ci-dessous qui portent le snippet ; désactivé, les visites reçues sont rejetées"
 
-#: src/components/two_factor/ProofModal.tsx:75
+#: src/components/two_factor/ProofModal.tsx:87
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:82
 msgid "Recovery code"
 msgstr "Code de récupération"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:173
-#: src/components/two_factor/SetupWizard.tsx:133
+#: src/components/two_factor/AccountSecurityPanel.tsx:174
+#: src/components/two_factor/SetupWizard.tsx:149
 msgid "Recovery codes"
 msgstr "Codes de récupération"
 
@@ -20908,8 +20909,8 @@ msgstr "Remplacer « {name} » par le bloc sélectionné ?"
 msgid "Replace an existing block ({count})"
 msgstr "Remplacer un bloc existant ({count})"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:168
-#: src/components/two_factor/SetupWizard.tsx:213
+#: src/components/two_factor/AccountSecurityPanel.tsx:169
+#: src/components/two_factor/SetupWizard.tsx:229
 msgid "Replace app"
 msgstr "Remplacer l'application"
 
@@ -20921,7 +20922,7 @@ msgstr "Remplacer le contenu ?"
 msgid "Replace with the selected block"
 msgstr "Remplacer par le bloc sélectionné"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:134
+#: src/components/two_factor/AccountSecurityPanel.tsx:135
 msgid "Replace your authenticator app"
 msgstr "Remplacer votre application d'authentification"
 
@@ -21009,8 +21010,8 @@ msgstr "L'isolation de réputation est activée. Ces expéditeurs n'ont pas d'id
 msgid "Request ID"
 msgstr "ID de requête"
 
-#: src/components/settings/SystemSecuritySettings.tsx:38
-#: src/components/settings/SystemSecuritySettings.tsx:44
+#: src/components/settings/SystemSecuritySettings.tsx:40
+#: src/components/settings/SystemSecuritySettings.tsx:46
 msgid "Require two-factor authentication for everyone"
 msgstr "Exiger la double authentification pour tout le monde"
 
@@ -21051,7 +21052,7 @@ msgstr "Requis lorsque le SSO est activé"
 msgid "Requires a padding"
 msgstr "Nécessite un espacement"
 
-#: src/pages/SignInPage.tsx:382
+#: src/pages/SignInPage.tsx:390
 msgid "Resend code"
 msgstr "Renvoyer le code"
 
@@ -21125,7 +21126,7 @@ msgstr "Rétablir la valeur héritée"
 msgid "Reset translation"
 msgstr "Réinitialiser la traduction"
 
-#: src/components/settings/SystemSecuritySettings.tsx:76
+#: src/components/settings/SystemSecuritySettings.tsx:78
 msgid "Reset two-factor authentication"
 msgstr "Réinitialiser la double authentification"
 
@@ -21753,11 +21754,11 @@ msgstr "Enregistrer la v{nextVersion}"
 msgid "Save your changes first"
 msgstr "Enregistrez d’abord vos modifications"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:113
+#: src/components/two_factor/AccountSecurityPanel.tsx:114
 msgid "Save your new recovery codes"
 msgstr "Enregistrez vos nouveaux codes de récupération"
 
-#: src/components/two_factor/SetupWizard.tsx:222
+#: src/components/two_factor/SetupWizard.tsx:238
 msgid "Save your recovery codes"
 msgstr "Enregistrez vos codes de récupération"
 
@@ -21816,11 +21817,11 @@ msgstr "L'enregistrement des paramètres redémarrera le serveur. Vous devrez vo
 msgid "Saving…"
 msgstr "Enregistrement…"
 
-#: src/components/two_factor/SetupWizard.tsx:133
+#: src/components/two_factor/SetupWizard.tsx:149
 msgid "Scan"
 msgstr "Scanner"
 
-#: src/components/two_factor/SetupWizard.tsx:153
+#: src/components/two_factor/SetupWizard.tsx:169
 msgid "Scan this QR code with your authenticator app"
 msgstr "Scannez ce QR code avec votre application d'authentification"
 
@@ -22092,7 +22093,7 @@ msgid "Sections"
 msgstr "Sections"
 
 #: src/components/settings/SettingsSidebar.tsx:33
-#: src/components/settings/SystemSecuritySettings.tsx:33
+#: src/components/settings/SystemSecuritySettings.tsx:35
 #: src/components/transactional/ApiCommandDrawer.tsx:145
 #: src/components/updates/UpdateDrawer.tsx:63
 msgid "Security"
@@ -22669,7 +22670,7 @@ msgstr "Envoyer l'invitation"
 #~ msgid "Send Invitation"
 #~ msgstr "Envoyer l'invitation"
 
-#: src/pages/SignInPage.tsx:317
+#: src/pages/SignInPage.tsx:324
 msgid "Send Magic Code"
 msgstr "Envoyer le code magique"
 
@@ -23203,7 +23204,7 @@ msgstr "Défini par l'intégration"
 msgid "Set by the integration. Edit the template itself to change its content."
 msgstr "Défini par l'intégration. Modifiez le modèle lui-même pour changer son contenu."
 
-#: src/components/settings/SystemSecuritySettings.tsx:49
+#: src/components/settings/SystemSecuritySettings.tsx:51
 msgid "Set by the REQUIRE_TWO_FACTOR environment variable. Change it there and restart Notifuse."
 msgstr "Défini par la variable d'environnement REQUIRE_TWO_FACTOR. Modifiez-la, puis redémarrez Notifuse."
 
@@ -23379,7 +23380,7 @@ msgstr "Paramètres"
 msgid "Settings › Integrations"
 msgstr "Paramètres › Intégrations"
 
-#: src/pages/AccountSecurityPage.tsx:65
+#: src/pages/AccountSecurityPage.tsx:61
 msgid "Settings for your Notifuse account, in every workspace you belong to."
 msgstr "Réglages de votre compte Notifuse, dans tous vos espaces de travail."
 
@@ -23582,7 +23583,7 @@ msgstr "Affiché quand le pointeur s'arrête sur l'image (attribut title)."
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Affiche les nouvelles versions de Notifuse et les correctifs de sécurité sur la liste des espaces de travail."
 
-#: src/pages/SignInPage.tsx:261
+#: src/pages/SignInPage.tsx:268
 msgid "Sign In"
 msgstr "Connexion"
 
@@ -23598,11 +23599,15 @@ msgstr "Reconnectez-vous pour modifier les paramètres système"
 msgid "Sign in again to continue: turning on two-factor authentication needs a recent sign-in."
 msgstr "Reconnectez-vous pour continuer : activer la double authentification demande une connexion récente."
 
+#: src/pages/CreateWorkspacePage.tsx:115
+msgid "Sign in again to create a workspace"
+msgstr "Reconnectez-vous pour créer un espace de travail"
+
 #: src/components/settings/LicenseSettings.tsx:74
 msgid "Sign in again to manage the licence"
 msgstr "Reconnectez-vous pour gérer la licence"
 
-#: src/pages/AccountSecurityPage.tsx:68
+#: src/pages/AccountSecurityPage.tsx:64
 msgid "Sign in again to open your workspaces"
 msgstr "Reconnectez-vous pour ouvrir vos espaces de travail"
 
@@ -23620,11 +23625,11 @@ msgstr "Connectez-vous avec {rootEmail}."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:656
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:334
+#: src/pages/SignInPage.tsx:342
 msgid "Sign in with SSO"
 msgstr "Se connecter avec le SSO"
 
-#: src/components/two_factor/SetupWizard.tsx:207
+#: src/components/two_factor/SetupWizard.tsx:223
 msgid "Sign me out of my other sessions"
 msgstr "Me déconnecter de mes autres sessions"
 
@@ -23733,12 +23738,12 @@ msgstr "Authentification unique (OpenID Connect)"
 msgid "Single sign-on (SSO)"
 msgstr "Authentification unique (SSO)"
 
-#: src/pages/SignInPage.tsx:143
+#: src/pages/SignInPage.tsx:150
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "L'authentification unique ne peut pas créer de compte pour votre domaine de messagerie. Si vous avez été invité, ouvrez le lien de votre e-mail d'invitation ; sinon, demandez à un administrateur de vous inviter."
 
-#: src/pages/SignInPage.tsx:153
-#: src/pages/SignInPage.tsx:166
+#: src/pages/SignInPage.tsx:160
+#: src/pages/SignInPage.tsx:173
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "L'authentification unique a échoué. Veuillez réessayer ou utiliser un code magique."
 
@@ -23746,7 +23751,7 @@ msgstr "L'authentification unique a échoué. Veuillez réessayer ou utiliser un
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "L'authentification unique (SSO) est activée, et la licence de ce déploiement ne la couvre pas."
 
-#: src/pages/SignInPage.tsx:149
+#: src/pages/SignInPage.tsx:156
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "L'authentification unique est temporairement indisponible. Veuillez essayer un code magique."
 
@@ -24045,7 +24050,7 @@ msgid "Someone saved version {0} while you were editing (you started from {1}). 
 msgstr "Quelqu'un a enregistré la version {0} pendant que vous l'éditiez (vous êtes parti de la version {1}). Rechargez la dernière version — vos modifications non enregistrées seront perdues — ou écrasez-la avec la vôtre."
 
 #: src/components/templates/SendTemplateModal.tsx:199
-#: src/components/two_factor/ProofModal.tsx:45
+#: src/components/two_factor/ProofModal.tsx:56
 msgid "Something went wrong"
 msgstr "Une erreur s'est produite"
 
@@ -24642,7 +24647,7 @@ msgstr "Réussi"
 #~ msgid "Successfully processed {successful} contacts"
 #~ msgstr "{successful} contacts traités avec succès"
 
-#: src/pages/SignInPage.tsx:38
+#: src/pages/SignInPage.tsx:42
 msgid "Successfully signed in"
 msgstr "Connexion réussie"
 
@@ -24767,7 +24772,7 @@ msgstr "Faire une visite guidée"
 #~ msgid "Take a Tour"
 #~ msgstr "Faire une visite guidée"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:153
+#: src/components/two_factor/AccountSecurityPanel.tsx:154
 msgid "Takes about a minute."
 msgstr "Cela prend environ une minute."
 
@@ -25342,7 +25347,7 @@ msgstr "Version texte : automatique"
 msgid "Text version: Custom"
 msgstr "Version texte : personnalisée"
 
-#: src/components/two_factor/SetupWizard.tsx:108
+#: src/components/two_factor/SetupWizard.tsx:124
 msgid "That code didn't work. Check that your phone's clock is set automatically, then enter the code the app shows now."
 msgstr "Ce code ne fonctionne pas. Vérifiez que l'heure de votre téléphone se règle automatiquement, puis saisissez le code que l'application affiche maintenant."
 
@@ -26215,7 +26220,7 @@ msgstr "Il s'est désabonné de cette liste. Ne le réabonnez que s'il vous l'a 
 msgid "They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time."
 msgstr "Le même e-mail leur sera renvoyé. Corrigez d'abord ce que le fournisseur a refusé, sinon l'envoi échouera de nouveau."
 
-#: src/components/settings/SystemSecuritySettings.tsx:63
+#: src/components/settings/SystemSecuritySettings.tsx:65
 msgid "They'll be asked to turn it on the next time they open Notifuse. Let them know before you switch this on."
 msgstr "Il leur sera demandé de l'activer à leur prochaine ouverture de Notifuse. Prévenez-les avant d'activer ce réglage."
 
@@ -26227,7 +26232,7 @@ msgstr "Toutes ses sessions sont fermées."
 msgid "Thinking"
 msgstr "Réflexion"
 
-#: src/pages/SignInPage.tsx:147
+#: src/pages/SignInPage.tsx:154
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "Ce compte est déjà lié à une autre identité d'authentification unique."
 
@@ -26408,7 +26413,7 @@ msgstr "Ce fichier a été en partie traité le {savedOn}"
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "Cet ID appartient à un modèle supprimé et ne peut pas être réutilisé"
 
-#: src/pages/CreateWorkspacePage.tsx:151
+#: src/pages/CreateWorkspacePage.tsx:167
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "Cet ID sera utilisé dans les URLs et les requêtes API. Il ne peut contenir que des lettres minuscules et des chiffres."
 
@@ -26524,7 +26529,7 @@ msgstr "Cette marque notifuse:condition d'un export Notifuse ne porte aucun bloc
 msgid "This page cannot be previewed here"
 msgstr "Cette page ne peut pas être prévisualisée ici"
 
-#: src/pages/SignInPage.tsx:271
+#: src/pages/SignInPage.tsx:278
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "Cette page est servie depuis {pageOrigin}, mais cette instance envoie ses requêtes à {unreachableEndpoint}, qui n'a pas répondu. Si Notifuse a été déplacé vers {pageOrigin}, définissez la variable d'environnement API_ENDPOINT sur cette adresse et redémarrez le serveur."
 
@@ -26606,12 +26611,12 @@ msgstr "Cet expéditeur ne fait plus partie de l'intégration email marketing. C
 msgid "This session is too long to show in full: only its first pages and goals are listed."
 msgstr "Cette session est trop longue pour être affichée en entier : seules ses premières pages et ses premiers objectifs sont listés."
 
-#: src/components/two_factor/SetupWizard.tsx:150
+#: src/components/two_factor/SetupWizard.tsx:166
 #: src/components/two_factor/useTwoFactorErrorMessage.ts:25
 msgid "This setup expired after 15 minutes. Scan the new QR code below."
 msgstr "Cette configuration a expiré après 15 minutes. Scannez le nouveau QR code ci-dessous."
 
-#: src/components/two_factor/SetupWizard.tsx:100
+#: src/components/two_factor/SetupWizard.tsx:116
 msgid "This setup expired after 15 minutes. Start the replacement again."
 msgstr "Cette configuration a expiré après 15 minutes. Recommencez le remplacement."
 
@@ -27038,13 +27043,17 @@ msgstr "Afficher/masquer la légende"
 msgid "Token"
 msgstr "Jeton"
 
-#: src/pages/SignInPage.tsx:151
+#: src/pages/SignInPage.tsx:158
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Trop de tentatives de connexion. Veuillez patienter un instant et réessayer."
 
 #: src/components/two_factor/useTwoFactorErrorMessage.ts:18
 msgid "Too many wrong codes. Try again in {minutes} minutes, or use a recovery code."
 msgstr "Trop de codes faux. Réessayez dans {minutes} minutes, ou utilisez un code de récupération."
+
+#: src/components/two_factor/ProofModal.tsx:49
+msgid "Too many wrong codes. Try again in {minutes} minutes."
+msgstr "Trop de codes faux. Réessayez dans {minutes} minutes."
 
 #: src/components/integrations/FirecrawlIntegration.tsx:125
 #: src/components/settings/Integrations.tsx:492
@@ -27390,7 +27399,7 @@ msgstr "vrai"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "Essayez d'ajuster votre recherche ou votre filtre de statut"
 
-#: src/components/two_factor/SetupWizard.tsx:141
+#: src/components/two_factor/SetupWizard.tsx:157
 msgid "Try again"
 msgstr "Réessayer"
 
@@ -27407,7 +27416,7 @@ msgstr "Transformer en"
 msgid "Turn Into"
 msgstr "Transformer en"
 
-#: src/pages/AccountSecurityPage.tsx:75
+#: src/pages/AccountSecurityPage.tsx:71
 msgid "Turn it on to open your workspaces again. Until then, this page is the only one you can use."
 msgstr "Activez-la pour retrouver vos espaces de travail. D'ici là, cette page est la seule accessible."
 
@@ -27417,8 +27426,8 @@ msgstr "Allumez-le pour publier des articles à la racine de votre domaine perso
 
 #: src/components/broadcasts/compose/ContentCard.tsx:90
 #: src/components/settings/BlogSettings.tsx:513
-#: src/components/two_factor/AccountSecurityPanel.tsx:136
-#: src/components/two_factor/AccountSecurityPanel.tsx:191
+#: src/components/two_factor/AccountSecurityPanel.tsx:137
+#: src/components/two_factor/AccountSecurityPanel.tsx:192
 msgid "Turn off"
 msgstr "Désactiver"
 
@@ -27444,12 +27453,12 @@ msgstr "Éteindre le blog"
 msgid "Turn off the blog?"
 msgstr "Éteindre le blog ?"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:136
-#: src/components/two_factor/AccountSecurityPanel.tsx:187
+#: src/components/two_factor/AccountSecurityPanel.tsx:137
+#: src/components/two_factor/AccountSecurityPanel.tsx:188
 msgid "Turn off two-factor authentication"
 msgstr "Désactiver la double authentification"
 
-#: src/components/two_factor/SetupWizard.tsx:213
+#: src/components/two_factor/SetupWizard.tsx:229
 msgid "Turn on"
 msgstr "Activer"
 
@@ -27457,11 +27466,11 @@ msgstr "Activer"
 msgid "Turn on the blog"
 msgstr "Allumer le blog"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:151
+#: src/components/two_factor/AccountSecurityPanel.tsx:152
 msgid "Turn on two-factor authentication"
 msgstr "Activer la double authentification"
 
-#: src/components/settings/SystemSecuritySettings.tsx:54
+#: src/components/settings/SystemSecuritySettings.tsx:56
 #: src/components/two_factor/useTwoFactorErrorMessage.ts:33
 msgid "Turn on two-factor authentication for your own account first, so you don't lock yourself out."
 msgstr "Activez d'abord la double authentification sur votre propre compte, pour ne pas vous bloquer l'accès."
@@ -27503,8 +27512,8 @@ msgstr "Désactiver le double opt-in ne change pas les contacts « En attente »
 #~ msgstr ""
 
 #: src/components/settings/EditPermissionsDrawer.tsx:33
-#: src/components/two_factor/AccountSecurityPanel.tsx:142
-#: src/components/two_factor/AccountSecurityPanel.tsx:158
+#: src/components/two_factor/AccountSecurityPanel.tsx:143
+#: src/components/two_factor/AccountSecurityPanel.tsx:159
 msgid "Two-factor authentication"
 msgstr "Double authentification"
 
@@ -28105,11 +28114,11 @@ msgstr "Utilisez 0 pour conserver pour toujours, ou une valeur entre {AUDIT_LOG_
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "Utilisez 0 pour conserver pour toujours, ou une valeur entre 30 et 3650"
 
-#: src/pages/SignInPage.tsx:374
+#: src/pages/SignInPage.tsx:382
 msgid "Use a different email"
 msgstr "Utiliser un autre email"
 
-#: src/components/two_factor/ProofModal.tsx:86
+#: src/components/two_factor/ProofModal.tsx:112
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:112
 msgid "Use a recovery code instead"
 msgstr "Utiliser plutôt un code de récupération"
@@ -28146,7 +28155,7 @@ msgstr "Utiliser pour le transactionnel"
 #~ msgid "Use for Transactional"
 #~ msgstr "Utiliser pour le transactionnel"
 
-#: src/components/two_factor/SetupWizard.tsx:155
+#: src/components/two_factor/SetupWizard.tsx:171
 msgid "Use Google Authenticator, 1Password, Bitwarden, Microsoft Authenticator or any app that shows 6-digit codes."
 msgstr "Utilisez Google Authenticator, 1Password, Bitwarden, Microsoft Authenticator ou toute application qui affiche des codes à 6 chiffres."
 
@@ -28213,7 +28222,7 @@ msgstr "Utiliser la valeur par défaut de l'espace de travail"
 msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "Par défaut de l’espace · {defaultIntegrationName}"
 
-#: src/components/two_factor/ProofModal.tsx:86
+#: src/components/two_factor/ProofModal.tsx:112
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:112
 msgid "Use your authenticator app instead"
 msgstr "Utiliser plutôt l'application d'authentification"
@@ -28521,7 +28530,7 @@ msgstr "A vérifié le code de connexion de <0>{target}</0>"
 msgid "Verify"
 msgstr "Vérifier"
 
-#: src/pages/SignInPage.tsx:364
+#: src/pages/SignInPage.tsx:372
 msgid "Verify Code"
 msgstr "Vérifier le code"
 
@@ -28805,7 +28814,7 @@ msgstr "Attention"
 msgid "We miss you"
 msgstr "Vous nous manquez"
 
-#: src/pages/CreateWorkspacePage.tsx:191
+#: src/pages/CreateWorkspacePage.tsx:207
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "Nous détecterons et utiliserons automatiquement le favicon de votre site web"
 
@@ -29009,7 +29018,7 @@ msgstr "Trafic du site web issu de cette variation"
 msgid "Website traffic tracking settings"
 msgstr "Paramètres de suivi du trafic du site web"
 
-#: src/pages/CreateWorkspacePage.tsx:182
+#: src/pages/CreateWorkspacePage.tsx:198
 msgid "Website URL"
 msgstr "URL du site web"
 
@@ -29416,7 +29425,7 @@ msgid "Workspace"
 msgstr "Espace de travail"
 
 #. placeholder {0}: values.name
-#: src/pages/CreateWorkspacePage.tsx:82
+#: src/pages/CreateWorkspacePage.tsx:86
 msgid "Workspace \"{0}\" created successfully!"
 msgstr "Espace de travail \"{0}\" créé avec succès !"
 
@@ -29429,7 +29438,7 @@ msgid "Workspace deleted successfully"
 msgstr "Espace de travail supprimé avec succès"
 
 #: src/components/settings/DeleteWorkspace.tsx:58
-#: src/pages/CreateWorkspacePage.tsx:150
+#: src/pages/CreateWorkspacePage.tsx:166
 msgid "Workspace ID"
 msgstr "ID de l'espace de travail"
 
@@ -29437,11 +29446,11 @@ msgstr "ID de l'espace de travail"
 msgid "Workspace ID does not match"
 msgstr "L'ID de l'espace de travail ne correspond pas"
 
-#: src/pages/CreateWorkspacePage.tsx:158
+#: src/pages/CreateWorkspacePage.tsx:174
 msgid "Workspace ID is required"
 msgstr "L'ID de l'espace de travail est requis"
 
-#: src/pages/CreateWorkspacePage.tsx:165
+#: src/pages/CreateWorkspacePage.tsx:181
 msgid "Workspace ID must be at most {WORKSPACE_ID_MAX_LENGTH} characters long"
 msgstr "L'ID de l'espace de travail doit comporter au plus {WORKSPACE_ID_MAX_LENGTH} caractères"
 
@@ -29457,7 +29466,7 @@ msgstr "Invitation à l'espace de travail"
 msgid "Workspace languages"
 msgstr "Langues de l’espace"
 
-#: src/pages/CreateWorkspacePage.tsx:93
+#: src/pages/CreateWorkspacePage.tsx:99
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
 msgstr "Limite d'espaces de travail atteinte. Veuillez passer à une offre supérieure pour créer davantage d'espaces de travail."
 
@@ -29465,16 +29474,16 @@ msgstr "Limite d'espaces de travail atteinte. Veuillez passer à une offre supé
 msgid "Workspace logo"
 msgstr "Logo de l'espace de travail"
 
-#: src/pages/CreateWorkspacePage.tsx:128
+#: src/pages/CreateWorkspacePage.tsx:144
 msgid "Workspace Name"
 msgstr "Nom de l'espace de travail"
 
-#: src/pages/CreateWorkspacePage.tsx:132
+#: src/pages/CreateWorkspacePage.tsx:148
 msgid "Workspace name must be at least 3 characters long"
 msgstr "Le nom de l'espace de travail doit comporter au moins 3 caractères"
 
 #: src/components/settings/GeneralSettings.tsx:332
-#: src/pages/CreateWorkspacePage.tsx:135
+#: src/pages/CreateWorkspacePage.tsx:151
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "Le nom de l'espace de travail doit comporter au plus {WORKSPACE_NAME_MAX_LENGTH} caractères"
 
@@ -29872,8 +29881,8 @@ msgstr "Vous avez été invité à rejoindre"
 msgid "Your account has two-factor authentication, but you opened this session without it. System settings, the licence and the platform audit log need a session where you entered your authentication code."
 msgstr "Votre compte a la double authentification, mais vous avez ouvert cette session sans elle. Les paramètres système, la licence et le journal d'audit de la plateforme demandent une session où vous avez saisi votre code d'authentification."
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:189
-#: src/components/two_factor/AccountSecurityPanel.tsx:197
+#: src/components/two_factor/AccountSecurityPanel.tsx:190
+#: src/components/two_factor/AccountSecurityPanel.tsx:198
 #: src/components/two_factor/useTwoFactorErrorMessage.ts:29
 msgid "Your administrator requires it, so you can't turn it off."
 msgstr "Votre administrateur l'exige, vous ne pouvez donc pas la désactiver."
@@ -29922,7 +29931,7 @@ msgstr "Vos emails apparaîtront ici, jour par jour, dès votre premier envoi."
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Vos fichiers peuvent être téléversés vers n'importe quel stockage compatible S3."
 
-#: src/pages/SignInPage.tsx:145
+#: src/pages/SignInPage.tsx:152
 msgid "Your identity provider has not verified your email address."
 msgstr "Votre fournisseur d'identité n'a pas vérifié votre adresse email."
 
@@ -29930,7 +29939,7 @@ msgstr "Votre fournisseur d'identité n'a pas vérifié votre adresse email."
 msgid "Your licence does not cover translations: see the notice above."
 msgstr "Votre licence ne couvre pas les traductions : voyez l’avis ci-dessus."
 
-#: src/pages/AccountSecurityPage.tsx:74
+#: src/pages/AccountSecurityPage.tsx:70
 msgid "Your Notifuse administrator requires two-factor authentication."
 msgstr "L'administrateur de Notifuse exige la double authentification."
 
@@ -29950,7 +29959,7 @@ msgstr "Votre licence Notifuse a expiré et se trouve en période de grâce."
 msgid "Your October invoice"
 msgstr "Votre facture d'octobre"
 
-#: src/components/two_factor/AccountSecurityPanel.tsx:114
+#: src/components/two_factor/AccountSecurityPanel.tsx:115
 msgid "Your previous codes no longer work. This is the only time Notifuse shows these."
 msgstr "Vos anciens codes ne fonctionnent plus. Notifuse n'affiche ceux-ci qu'une seule fois, maintenant."
 

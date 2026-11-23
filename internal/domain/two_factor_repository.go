@@ -110,6 +110,10 @@ type AuthTxRepository interface {
 	// PurgeExpiredPendingSessions deletes the user's sessions that wait for a code or a
 	// challenge that expired.
 	PurgeExpiredPendingSessions(ctx context.Context, db DBExecutor, userID string) error
+	// DeleteInvitationChallenges deletes the user's sessions still waiting for the second
+	// factor of an invitation: accepting it again replaces the earlier challenge rather than
+	// adding one.
+	DeleteInvitationChallenges(ctx context.Context, db DBExecutor, userID, invitationID string) error
 	// ActivateSession records how the session was opened and that it is usable now.
 	ActivateSession(ctx context.Context, db DBExecutor, sessionID string, method AuthMethod, now time.Time) error
 	// SetSessionChallenge makes the session wait for its second factor.

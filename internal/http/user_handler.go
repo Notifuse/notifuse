@@ -316,8 +316,8 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// A session that has not met the instance's requirement sees no workspace: a console
-	// session's workspace carries the file manager's S3 secret (Workspace.Redact).
+	// A session that has not met the instance's requirement sees no workspace: it may not open
+	// any, and user.me must not list them to it.
 	twoFactorRequired := session != nil && h.twoFactor.RequireTwoFactor() && !domain.SessionSatisfiesTwoFactor(*session)
 
 	// Get user details
@@ -336,8 +336,16 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	span.AddAttributes(trace.StringAttribute("user.email.domain", extractEmailDomain(user.Email)))
 
 	// Get user's workspaces
+	// A root user with two-factor authentication, on a session opened without the code: the
+	// workspaces refuse it (owner access needs the second factor), so it is shown none, and the
+	// console asks it to sign in again.
+	rootSessionWithoutCode := false
+	if session != nil && !twoFactorRequired && !domain.SessionSatisfiesTwoFactor(*session) && h.config.IsRootEmail(user.Email) {
+		status, err := h.twoFactor.Status(ctx, user.ID)
+		rootSessionWithoutCode = err == nil && status.Enabled
+	}
 	workspaces := []*domain.Workspace{}
-	if !twoFactorRequired {
+	if !twoFactorRequired && !rootSessionWithoutCode {
 		h.tracer.AddAttribute(ctx, "operation", "ListWorkspaces")
 		workspaces, err = h.workspaceService.ListWorkspaces(ctx)
 		if err != nil {

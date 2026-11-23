@@ -150,16 +150,19 @@ func (h *TwoFactorHandler) writeError(w http.ResponseWriter, err error) {
 // Verify completes a sign-in that waits for its second factor. Public: the challenge token
 // is the credential.
 func (h *TwoFactorHandler) Verify(w http.ResponseWriter, r *http.Request) {
+	// A public route: the limit comes first, and a request that names no challenge stays out
+	// of the audit log (the service skips an unknown token the same way).
+	if h.rateLimiter != nil && !h.rateLimiter.Allow(TwoFactorVerifyPolicy, middleware.ClientIP(r)) {
+		domain.AuditFromContext(r.Context()).Skip()
+		WriteJSONError(w, "Too many attempts, try again in a minute", http.StatusTooManyRequests)
+		return
+	}
 	var req struct {
 		ChallengeToken string `json:"challenge_token"`
 		proofRequest
 	}
 	if !decodePost(w, r, &req) {
-		return
-	}
-	if h.rateLimiter != nil && !h.rateLimiter.Allow(TwoFactorVerifyPolicy, middleware.ClientIP(r)) {
 		domain.AuditFromContext(r.Context()).Skip()
-		WriteJSONError(w, "Too many attempts, try again in a minute", http.StatusTooManyRequests)
 		return
 	}
 	resp, err := h.twoFactor.VerifyChallenge(r.Context(), req.ChallengeToken, req.proof(), requestMeta(r))

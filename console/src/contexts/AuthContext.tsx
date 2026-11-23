@@ -38,6 +38,9 @@ interface AuthContextType {
   twoFactorRequired: boolean
   // Whether this session passed a second factor, or counts as such; true when user.me did not say.
   sessionTwoFactorPassed: boolean
+  // A root user with two-factor authentication on a session opened without the code: the
+  // workspaces refuse it until it signs in again.
+  rootSessionWithoutCode: boolean
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Context co-located with provider
@@ -166,7 +169,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         serverVersion,
         twoFactor,
         twoFactorRequired,
-        sessionTwoFactorPassed
+        sessionTwoFactorPassed,
+        rootSessionWithoutCode:
+          !!user && twoFactor?.enabled === true && !sessionTwoFactorPassed && isRootUser(user.email)
       }}
     >
       {children}

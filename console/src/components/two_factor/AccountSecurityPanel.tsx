@@ -41,7 +41,7 @@ export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps
   const { t } = useLingui()
   const { message } = App.useApp()
   const { user, twoFactor, refreshWorkspaces } = useAuth()
-  const [wizard, setWizard] = useState<{ proof?: TwoFactorProof; setup?: TwoFactorSetupResponse } | null>(null)
+  const [wizard, setWizard] = useState<{ replacing: boolean; setup?: TwoFactorSetupResponse } | null>(null)
   const [proofAction, setProofAction] = useState<ProofAction | null>(null)
   const [newCodes, setNewCodes] = useState<string[] | null>(null)
   const [codesSaved, setCodesSaved] = useState(false)
@@ -72,7 +72,7 @@ export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps
     if (proofAction === 'replace') {
       const setup = await twoFactorService.setup(proof)
       setProofAction(null)
-      setWizard({ proof, setup })
+      setWizard({ replacing: true, setup })
       return
     }
     if (proofAction === 'regenerate') {
@@ -96,8 +96,9 @@ export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps
     return (
       <SetupWizard
         email={user?.email}
-        proof={wizard.proof}
+        replacing={wizard.replacing}
         initialSetup={wizard.setup}
+        onEnabled={() => void refresh()}
         onFinished={finishWizard}
         onCancel={() => setWizard(null)}
         onReauthenticate={reauthenticate}
@@ -147,7 +148,7 @@ export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps
             {t`After the code we email you, Notifuse asks for a second code from an authenticator app on your phone, such as Google Authenticator, 1Password or Bitwarden. Someone who gets into your mailbox still can't sign in.`}
           </p>
           <div className="mt-3 flex items-center gap-3">
-            <Button type="primary" onClick={() => setWizard({})}>
+            <Button type="primary" onClick={() => setWizard({ replacing: false })}>
               {t`Turn on two-factor authentication`}
             </Button>
             <span className="text-xs text-ink-3">{t`Takes about a minute.`}</span>

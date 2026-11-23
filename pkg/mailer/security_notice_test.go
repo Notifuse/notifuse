@@ -17,6 +17,7 @@ import (
 var allSecurityNotices = []SecurityNoticeKind{
 	SecurityNoticeTwoFactorEnabled,
 	SecurityNoticeTwoFactorDisabled,
+	SecurityNoticeTwoFactorReplaced,
 	SecurityNoticeRecoveryCodeUsed,
 	SecurityNoticeRecoveryCodesNew,
 	SecurityNoticeTwoFactorReset,

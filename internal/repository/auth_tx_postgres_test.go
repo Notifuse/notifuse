@@ -55,7 +55,7 @@ func TestAuthTxRepository_ConsumeMagicCode(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 
 	mock.ExpectQuery(`UPDATE user_sessions SET magic_code = NULL, magic_code_expires_at = NULL\s+WHERE id = \(\s+`+
-		`SELECT id FROM user_sessions\s+WHERE user_id = \$1 AND magic_code = \$2 AND magic_code_expires_at > \(now\(\) AT TIME ZONE 'UTC'\)\s+`+
+		`SELECT id FROM user_sessions\s+WHERE user_id = \$1 AND magic_code = \$2 AND magic_code_expires_at > \(clock_timestamp\(\) AT TIME ZONE 'UTC'\)\s+`+
 		`ORDER BY created_at DESC\s+LIMIT 1\s+FOR UPDATE\s+\)\s+RETURNING id, user_id`).
 		WithArgs("u1", "hash").
 		WillReturnRows(sqlmock.NewRows(sessionRowColumns).
@@ -176,4 +176,14 @@ func TestAuthTxRepository_GetSessionForUpdateOnlyTakesUsableSessions(t *testing.
 	_, err := NewAuthTxRepository().GetSessionForUpdate(context.Background(), db, "u1", "s1")
 	var notFound *domain.ErrSessionNotFound
 	assert.ErrorAs(t, err, &notFound)
+}
+
+// Accepting an invitation again replaces its earlier challenge.
+func TestAuthTxRepository_DeleteInvitationChallenges(t *testing.T) {
+	db, mock := newSQLMock(t)
+	repo := NewAuthTxRepository()
+	mock.ExpectExec(`DELETE FROM user_sessions\s+WHERE user_id = \$1 AND pending_invitation_id = \$2 AND challenge_hash IS NOT NULL`).
+		WithArgs("u1", "inv-1").WillReturnResult(sqlmock.NewResult(0, 1))
+	require.NoError(t, repo.DeleteInvitationChallenges(context.Background(), db, "u1", "inv-1"))
+	require.NoError(t, mock.ExpectationsWereMet())
 }

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Alert, Button, Form, Input, Modal } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import type { TwoFactorProof } from '../../services/api/twoFactor'
+import { twoFactorErrorCode, twoFactorRetryAfter, type TwoFactorProof } from '../../services/api/twoFactor'
 import { useTwoFactorErrorMessage } from './useTwoFactorErrorMessage'
 
 export interface ProofModalProps {
@@ -42,7 +42,19 @@ export function ProofModal({ open, title, description, okText, danger, onSubmit,
       form.resetFields()
       setUseRecovery(false)
     } catch (err) {
-      setError(errorMessage(err, t`Something went wrong`))
+      const code = twoFactorErrorCode(err)
+      if (code === 'two_factor_locked') {
+        // Outside sign-in, a recovery code waits like an authenticator code.
+        const minutes = Math.max(1, Math.ceil((twoFactorRetryAfter(err) ?? 60) / 60))
+        setError(t`Too many wrong codes. Try again in ${minutes} minutes.`)
+      } else {
+        if (code === 'two_factor_totp_locked' && !useRecovery) {
+          // Only a recovery code gets through now: offered straight away.
+          setUseRecovery(true)
+          form.resetFields()
+        }
+        setError(errorMessage(err, t`Something went wrong`))
+      }
     } finally {
       setLoading(false)
     }
@@ -73,7 +85,14 @@ export function ProofModal({ open, title, description, okText, danger, onSubmit,
         <Form.Item
           name="code"
           label={useRecovery ? t`Recovery code` : t`Code from your authenticator app`}
-          rules={[{ required: true, message: useRecovery ? t`Enter one of your recovery codes` : t`Enter the 6-digit code from your app` }]}
+          rules={
+            useRecovery
+              ? [{ required: true, message: t`Enter one of your recovery codes` }]
+              : [
+                  { required: true, message: t`Enter the 6-digit code from your app` },
+                  { pattern: /^\s*\d{3}\s?\d{3}\s*$/, message: t`Please enter a valid 6-digit code!` }
+                ]
+          }
         >
           {useRecovery ? (
             <Input autoFocus autoComplete="off" spellCheck={false} />
@@ -82,7 +101,14 @@ export function ProofModal({ open, title, description, okText, danger, onSubmit,
           )}
         </Form.Item>
       </Form>
-      <Button type="link" onClick={() => setUseRecovery(!useRecovery)}>
+      <Button
+        type="link"
+        onClick={() => {
+          setUseRecovery(!useRecovery)
+          setError(null)
+          form.resetFields()
+        }}
+      >
         {useRecovery ? t`Use your authenticator app instead` : t`Use a recovery code instead`}
       </Button>
     </Modal>

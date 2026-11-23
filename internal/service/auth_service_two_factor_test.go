@@ -217,3 +217,26 @@ func TestAuthService_RootWorkspaceAccessNeedsTheSecondFactor(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+// The other ways a root user reaches every workspace refuse the same older session.
+func TestWorkspaceService_RootAccessOutsideAuthenticateUserForWorkspace(t *testing.T) {
+	root := &domain.User{ID: "root", Email: "root@example.com", Type: domain.UserTypeUser}
+
+	t.Run("workspaces.list", func(t *testing.T) {
+		f := newAcceptInvitationFixture(t, 0)
+		f.auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).Return(root, nil)
+		f.auth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(domain.ErrTwoFactorRequired)
+		_, err := f.service.ListWorkspaces(context.Background())
+		require.ErrorIs(t, err, domain.ErrTwoFactorRequired)
+	})
+
+	t.Run("workspaces.deleteInvitation", func(t *testing.T) {
+		f := newAcceptInvitationFixture(t, 0)
+		f.auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).Return(root, nil)
+		f.repo.EXPECT().GetInvitationByID(gomock.Any(), "inv-1").Return(&domain.WorkspaceInvitation{ID: "inv-1", WorkspaceID: "ws1"}, nil)
+		f.repo.EXPECT().GetUserWorkspace(gomock.Any(), "root", "ws1").Return(nil, domain.ErrUserNotInWorkspace)
+		f.auth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(domain.ErrTwoFactorRequired)
+		err := f.service.DeleteInvitation(context.Background(), "inv-1")
+		require.ErrorIs(t, err, domain.ErrTwoFactorRequired)
+	})
+}

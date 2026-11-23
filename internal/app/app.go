@@ -612,6 +612,14 @@ func (a *App) InitSecretKey() error {
 		message = "Nothing left to re-encrypt: the stored data already opens with the first key of %[1]s; once " +
 			"every instance runs with this %[1]s, set the first key alone"
 	}
+	// An authenticator secret no key opens stays as it is: that person needs a reset by the root
+	// user (warnUnopenedAuthenticatorSecrets named them), and the key it may be under must not
+	// be dropped before. Settings no key opens are leftovers nothing reads (warnUnopenedSettings).
+	if len(result.UnopenedTOTPUsers) > 0 {
+		message = "Stored data brought under the first key of %[1]s, except the authenticator secrets named " +
+			"above; reset their two-factor authentication, or find the key they are under, before you set the " +
+			"first key alone"
+	}
 	a.logger.WithFields(map[string]interface{}{
 		"workspaces":            result.Workspaces,
 		"settings":              result.Settings,

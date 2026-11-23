@@ -497,6 +497,7 @@ func TestTwoFactorService_Enable(t *testing.T) {
 		codes, err := f.svc.Enable(context.Background(), tfUserID, tfSession, f.code(0), false, TwoFactorRequestMeta{})
 		require.NoError(t, err)
 		assert.Empty(t, codes)
+		assert.Equal(t, []mailer.SecurityNoticeKind{mailer.SecurityNoticeTwoFactorReplaced}, f.mail.kinds(), "a new app holds the second factor: the owner hears of it")
 	})
 
 	t.Run("a wrong code counts against the setup and commits", func(t *testing.T) {
@@ -508,6 +509,35 @@ func TestTwoFactorService_Enable(t *testing.T) {
 		require.ErrorIs(t, err, domain.ErrTwoFactorInvalidCode)
 		assert.Equal(t, 1, f.tx.commits)
 		assert.Empty(t, f.mail.sent)
+	})
+
+	// The last attempt the setup allowed drops its secret: the answer says so, and the wizard
+	// shows a new QR code rather than asking for another code from a dead secret.
+	t.Run("the attempt that drops the setup answers setup_expired", func(t *testing.T) {
+		f := newTwoFactorFixture(t)
+		f.lock(tfUserID, pending(f, t, false))
+		f.repo.EXPECT().RecordPendingFailure(gomock.Any(), gomock.Any(), tfUserID, domain.MaxPendingSetupAttempts, f.now).Return(true, nil)
+
+		ctx, record := auditCtx()
+		_, err := f.svc.Enable(ctx, tfUserID, tfSession, "000000", false, TwoFactorRequestMeta{})
+		require.ErrorIs(t, err, domain.ErrTwoFactorSetupExpired)
+		assert.Equal(t, 1, f.tx.commits)
+		event, _ := record.Finalize(410)
+		assert.Equal(t, "setup_expired", event.Metadata["reason"])
+	})
+
+	// A session signed out from another tab meanwhile: 401, as for a session already gone.
+	t.Run("a session gone meanwhile is an authentication failure", func(t *testing.T) {
+		f := newTwoFactorFixture(t)
+		f.lock(tfUserID, pending(f, t, false))
+		f.repo.EXPECT().Enable(gomock.Any(), gomock.Any(), tfUserID, gomock.Any(), gomock.Any(), f.now).Return(nil)
+		f.repo.EXPECT().ReplaceRecoveryCodes(gomock.Any(), gomock.Any(), tfUserID, gomock.Any(), f.now).Return(nil)
+		f.authTx.EXPECT().SetSessionSecondFactor(gomock.Any(), gomock.Any(), tfUserID, tfSession, domain.SecondFactorTOTP, f.now).
+			Return(&domain.ErrSessionNotFound{Message: "session not found"})
+
+		_, err := f.svc.Enable(context.Background(), tfUserID, tfSession, f.code(0), false, TwoFactorRequestMeta{})
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
+		assert.Equal(t, 1, f.tx.rollbacks)
 	})
 
 	t.Run("an expired setup is refused", func(t *testing.T) {

@@ -6,7 +6,6 @@ import { useLingui } from '@lingui/react/macro'
 import {
   twoFactorErrorCode,
   twoFactorService,
-  type TwoFactorProof,
   type TwoFactorSetupResponse
 } from '../../services/api/twoFactor'
 import { RecoveryCodesList } from './RecoveryCodesList'
@@ -16,10 +15,15 @@ import { groupKey } from './groupKey'
 export interface SetupWizardProps {
   /** The person's email, named in the recovery codes file. */
   email?: string
-  /** Replacing the app of an account that has one: the proof it was asked for. */
-  proof?: TwoFactorProof
-  /** The setup the caller already started (a replacement checks its proof first). */
+  /**
+   * Replacing the app of an account that has one. The caller checked the proof and started the
+   * setup (initialSetup); the proof itself is not kept.
+   */
+  replacing?: boolean
+  /** The setup the caller already started. */
   initialSetup?: TwoFactorSetupResponse
+  /** Two-factor authentication is on, or the app replaced: the account's state changed. */
+  onEnabled?: () => void
   /** Done: turned on (with the codes saved) or the app replaced. */
   onFinished: () => void
   onCancel: () => void
@@ -33,7 +37,16 @@ export interface SetupWizardProps {
  * Turns on two-factor authentication, or replaces the authenticator app: scan the QR code,
  * confirm a code, then (the first time) save the recovery codes.
  */
-export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, onReauthenticate, onLockChange }: SetupWizardProps) {
+export function SetupWizard({
+  email,
+  replacing = false,
+  initialSetup,
+  onFinished,
+  onCancel,
+  onReauthenticate,
+  onLockChange,
+  onEnabled
+}: SetupWizardProps) {
   const { t } = useLingui()
   const { message } = App.useApp()
   const errorMessage = useTwoFactorErrorMessage()
@@ -54,7 +67,7 @@ export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, 
       setLoadError(null)
       setSetup(null)
       try {
-        setSetup(await twoFactorService.setup(proof ?? {}))
+        setSetup(await twoFactorService.setup({}))
         setExpired(afterExpiry)
         setStep(0)
         form.resetFields()
@@ -66,7 +79,7 @@ export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, 
         setLoadError(errorMessage(err, t`Failed to start the setup`))
       }
     },
-    [proof, form, onReauthenticate, errorMessage, t]
+    [form, onReauthenticate, errorMessage, t]
   )
 
   useEffect(() => {
@@ -75,15 +88,18 @@ export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, 
     if (!initialSetup) void start(false)
   }, [start, initialSetup])
 
+  // Locked while the recovery codes are on screen, until Done: closing the drawer then would
+  // skip what Done does.
   useEffect(() => {
-    onLockChange?.(step === 2 && !saved)
-  }, [step, saved, onLockChange])
+    onLockChange?.(step === 2)
+  }, [step, onLockChange])
 
   const enable = async ({ code }: { code: string }) => {
     setEnabling(true)
     setCodeError(null)
     try {
       const response = await twoFactorService.enable(code.replace(/\s/g, ''), signOutOthers)
+      onEnabled?.()
       if (response.recovery_codes.length > 0) {
         setCodes(response.recovery_codes)
         setStep(2)
@@ -93,7 +109,7 @@ export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, 
       }
     } catch (err) {
       if (twoFactorErrorCode(err) === 'two_factor_setup_expired') {
-        if (proof) {
+        if (replacing) {
           // The proof that started this replacement is used up: a new one is needed.
           setSetup(null)
           setStep(0)
@@ -130,7 +146,7 @@ export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, 
       <Steps
         size="small"
         current={step}
-        items={[{ title: t`Scan` }, { title: t`Confirm` }, ...(proof ? [] : [{ title: t`Recovery codes` }])]}
+        items={[{ title: t`Scan` }, { title: t`Confirm` }, ...(replacing ? [] : [{ title: t`Recovery codes` }])]}
       />
 
       {loadError ? (
@@ -138,7 +154,7 @@ export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, 
           <Alert type="error" showIcon message={loadError} />
           <div className="flex justify-end gap-2">
             <Button onClick={onCancel}>{t`Cancel`}</Button>
-            {proof ? null : <Button onClick={() => void start(false)}>{t`Try again`}</Button>}
+            {replacing ? null : <Button onClick={() => void start(false)}>{t`Try again`}</Button>}
           </div>
         </div>
       ) : null}
@@ -210,7 +226,7 @@ export function SetupWizard({ email, proof, initialSetup, onFinished, onCancel, 
           <div className="flex justify-end gap-2">
             <Button onClick={() => setStep(0)}>{t`Back`}</Button>
             <Button type="primary" htmlType="submit" loading={enabling}>
-              {proof ? t`Replace app` : t`Turn on`}
+              {replacing ? t`Replace app` : t`Turn on`}
             </Button>
           </div>
         </Form>

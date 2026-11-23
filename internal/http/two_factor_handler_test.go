@@ -107,6 +107,18 @@ func TestTwoFactorHandler_Verify(t *testing.T) {
 		assert.Equal(t, 1, calls)
 	})
 
+	// A public route: a body naming no challenge writes no audit row.
+	t.Run("a malformed body is not audited", func(t *testing.T) {
+		f := newTwoFactorHandlerFixture(t, nil)
+		record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
+		req := httptest.NewRequest(http.MethodPost, "/api/user.twoFactor.verify", bytes.NewBufferString(`{`))
+		w := httptest.NewRecorder()
+		f.handler.Verify(w, req.WithContext(domain.WithAuditRecord(req.Context(), record)))
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		_, skipped := record.Finalize(w.Code)
+		assert.True(t, skipped)
+	})
+
 	t.Run("only POST", func(t *testing.T) {
 		f := newTwoFactorHandlerFixture(t, nil)
 		w := httptest.NewRecorder()

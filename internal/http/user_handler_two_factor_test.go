@@ -112,6 +112,27 @@ func TestUserHandler_Me_TwoFactor(t *testing.T) {
 		assert.Equal(t, float64(7), state["recovery_codes_remaining"])
 	})
 
+	// A root user with two-factor authentication, on a session opened without the code, is
+	// shown no workspace: every one would refuse it.
+	t.Run("an older root session sees no workspace", func(t *testing.T) {
+		handler, users, workspaces, _ := setupUserHandlerTest(t)
+		root := &domain.User{ID: "u1", Email: "root@example.com", Type: domain.UserTypeUser}
+		handler.config.RootEmail = "root@example.com"
+		handler.twoFactor = &stubTwoFactor{status: &service.TwoFactorStatus{Enabled: true}}
+		users.EXPECT().VerifyUserSession(gomock.Any(), "u1", "s1").Return(root, nil)
+		users.EXPECT().GetUserByID(gomock.Any(), "u1").Return(root, nil)
+		workspaces.EXPECT().ListWorkspaces(gomock.Any()).Times(0)
+		workspaces.EXPECT().UserOwnsAWorkspace(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
+
+		w := httptest.NewRecorder()
+		handler.GetCurrentUser(w, meRequest())
+		require.Equal(t, http.StatusOK, w.Code)
+		var body map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		assert.Equal(t, []interface{}{}, body["workspaces"])
+		assert.Equal(t, false, body["session_two_factor_passed"])
+	})
+
 	// ListWorkspaces' refusals answer their status, not 500.
 	t.Run("a refused workspace list answers its status", func(t *testing.T) {
 		handler, users, workspaces, _ := setupUserHandlerTest(t)

@@ -228,7 +228,7 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID, sessionID string, 
 		} else {
 			session, err := s.authTx.GetSessionForUpdate(ctx, tx, userID, sessionID)
 			if err != nil {
-				return err
+				return sessionGone(err)
 			}
 			if now, err = s.repo.ClockTimestamp(ctx, tx); err != nil {
 				return err
@@ -260,6 +260,16 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID, sessionID string, 
 		return nil, err
 	}
 	return setup, nil
+}
+
+// sessionGone turns a session that disappeared during the request (signed out from another
+// tab, its user reset) into an authentication failure: 401, as for a session already gone.
+func sessionGone(err error) error {
+	var notFound *domain.ErrSessionNotFound
+	if errors.As(err, &notFound) {
+		return fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, err)
+	}
+	return err
 }
 
 // sessionIsFresh reports whether a session may turn on two-factor authentication without
@@ -312,8 +322,14 @@ func (s *TwoFactorService) Enable(ctx context.Context, userID, sessionID, code s
 		}
 		step, result := totp.Match(secret, strings.ReplaceAll(code, " ", ""), now, 0)
 		if result != totp.MatchOK {
-			if _, err := s.repo.RecordPendingFailure(ctx, tx, userID, domain.MaxPendingSetupAttempts, now); err != nil {
+			dropped, err := s.repo.RecordPendingFailure(ctx, tx, userID, domain.MaxPendingSetupAttempts, now)
+			if err != nil {
 				return err
+			}
+			if dropped {
+				// The last attempt this setup allowed: its secret is gone, a new one is needed.
+				domain.AuditFromContext(ctx).Fail("setup_expired")
+				return domain.CommitAndFail(domain.ErrTwoFactorSetupExpired)
 			}
 			domain.AuditFromContext(ctx).Fail("invalid_code")
 			return domain.CommitAndFail(domain.ErrTwoFactorInvalidCode)
@@ -336,7 +352,7 @@ func (s *TwoFactorService) Enable(ctx context.Context, userID, sessionID, code s
 			}
 		}
 		if err := s.authTx.SetSessionSecondFactor(ctx, tx, userID, sessionID, domain.SecondFactorTOTP, now); err != nil {
-			return err
+			return sessionGone(err)
 		}
 		if signOutOthers {
 			return s.authTx.DeleteSessionsExcept(ctx, tx, userID, sessionID)
@@ -348,6 +364,9 @@ func (s *TwoFactorService) Enable(ctx context.Context, userID, sessionID, code s
 	}
 	if firstTime {
 		s.notify(ctx, user, mailer.SecurityNoticeTwoFactorEnabled, meta, 0)
+	} else {
+		// A new app now holds the second factor: the owner hears of it, as of any change.
+		s.notify(ctx, user, mailer.SecurityNoticeTwoFactorReplaced, meta, 0)
 	}
 	return codes, nil
 }
@@ -483,6 +502,9 @@ func (s *TwoFactorService) VerifyChallenge(ctx context.Context, challengeToken s
 		if err != nil {
 			return err
 		}
+		// The session before the recovery codes: the challenge must be checked (expiry,
+		// attempts) before a code is consumed. Every transaction about this person holds the
+		// users lock first, so this order cannot deadlock against the documented one.
 		if session, err = s.authTx.GetChallengeSessionForUpdate(ctx, tx, userID, hash); err != nil {
 			audit.Fail("challenge_invalid")
 			return err
@@ -568,6 +590,11 @@ func (s *TwoFactorService) acceptPendingInvitation(ctx context.Context, tx domai
 			return InvitationTeamMemberLimit, nil
 		}
 	}
+	// The invitations go before the membership is written: workspace_invitations comes
+	// before user_workspaces in the lock order.
+	if err := s.invitationTx.DeleteInvitationsByEmail(ctx, tx, invitation.WorkspaceID, invitation.Email); err != nil {
+		return "", err
+	}
 	now := time.Now().UTC()
 	if _, err := s.invitationTx.AddUserToWorkspaceIfAbsent(ctx, tx, &domain.UserWorkspace{
 		UserID:      userID,
@@ -577,9 +604,6 @@ func (s *TwoFactorService) acceptPendingInvitation(ctx context.Context, tx domai
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}); err != nil {
-		return "", err
-	}
-	if err := s.invitationTx.DeleteInvitationsByEmail(ctx, tx, invitation.WorkspaceID, invitation.Email); err != nil {
 		return "", err
 	}
 	return InvitationAccepted, nil
@@ -635,7 +659,7 @@ func (s *TwoFactorService) ResetForUser(ctx context.Context, rootUserID, rootSes
 		if !totps[root.ID].Enabled() {
 			var err error
 			if rootSession, err = s.authTx.GetSessionForUpdate(ctx, tx, root.ID, rootSessionID); err != nil {
-				return err
+				return sessionGone(err)
 			}
 		}
 		now, err := s.repo.ClockTimestamp(ctx, tx)

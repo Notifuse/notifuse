@@ -9,6 +9,8 @@ type TwoFactorStrings struct {
 	EnabledBody             string
 	DisabledSubject         string
 	DisabledBody            string
+	ReplacedSubject         string
+	ReplacedBody            string
 	RecoveryCodeUsedSubject string
 	RecoveryCodeUsedBody    string
 	RecoveryCodesNewSubject string
@@ -33,6 +35,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "Two-factor authentication was turned on for your account. From now on, after the code we email you, Notifuse asks for a code from your authenticator app.",
 		DisabledSubject:         "Two-factor authentication is off for your Notifuse account",
 		DisabledBody:            "Two-factor authentication was turned off for your account. Notifuse now asks only for the code we email you.",
+		ReplacedSubject:         "Your Notifuse authenticator app was replaced",
+		ReplacedBody:            "The authenticator app of your account was replaced. From now on, Notifuse accepts only codes from the new app. Your recovery codes still work.",
 		RecoveryCodeUsedSubject: "A recovery code was used to sign in to Notifuse",
 		RecoveryCodeUsedBody:    "Someone signed in to your account with one of your recovery codes. You have %[1]d left.",
 		RecoveryCodesNewSubject: "New recovery codes for your Notifuse account",
@@ -53,6 +57,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "La double authentification a été activée sur votre compte. Désormais, après le code envoyé par email, Notifuse demande un code de votre application d'authentification.",
 		DisabledSubject:         "La double authentification est désactivée sur votre compte Notifuse",
 		DisabledBody:            "La double authentification a été désactivée sur votre compte. Notifuse ne demande plus que le code envoyé par email.",
+		ReplacedSubject:         "L'application d'authentification de votre compte Notifuse a été remplacée",
+		ReplacedBody:            "L'application d'authentification de votre compte a été remplacée. Notifuse n'accepte plus que les codes de la nouvelle application. Vos codes de récupération restent valables.",
 		RecoveryCodeUsedSubject: "Un code de récupération a servi à se connecter à Notifuse",
 		RecoveryCodeUsedBody:    "Quelqu'un s'est connecté à votre compte avec l'un de vos codes de récupération. Il vous en reste %[1]d.",
 		RecoveryCodesNewSubject: "Nouveaux codes de récupération pour votre compte Notifuse",
@@ -73,6 +79,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "Se activó la autenticación en dos pasos en tu cuenta. A partir de ahora, después del código que te enviamos por email, Notifuse pide un código de tu aplicación de autenticación.",
 		DisabledSubject:         "La autenticación en dos pasos está desactivada en tu cuenta de Notifuse",
 		DisabledBody:            "Se desactivó la autenticación en dos pasos en tu cuenta. Notifuse ya solo pide el código que te enviamos por email.",
+		ReplacedSubject:         "Se ha sustituido la aplicación de autenticación de tu cuenta de Notifuse",
+		ReplacedBody:            "Se ha sustituido la aplicación de autenticación de tu cuenta. A partir de ahora, Notifuse solo acepta los códigos de la nueva aplicación. Tus códigos de recuperación siguen funcionando.",
 		RecoveryCodeUsedSubject: "Se usó un código de recuperación para iniciar sesión en Notifuse",
 		RecoveryCodeUsedBody:    "Alguien inició sesión en tu cuenta con uno de tus códigos de recuperación. Te quedan %[1]d.",
 		RecoveryCodesNewSubject: "Nuevos códigos de recuperación para tu cuenta de Notifuse",
@@ -93,6 +101,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "Für Ihr Konto wurde die Zwei-Faktor-Authentifizierung aktiviert. Ab jetzt fragt Notifuse nach dem Code aus der E-Mail zusätzlich einen Code aus Ihrer Authenticator-App ab.",
 		DisabledSubject:         "Die Zwei-Faktor-Authentifizierung ist für Ihr Notifuse-Konto deaktiviert",
 		DisabledBody:            "Für Ihr Konto wurde die Zwei-Faktor-Authentifizierung deaktiviert. Notifuse fragt nur noch den Code ab, den wir Ihnen per E-Mail senden.",
+		ReplacedSubject:         "Die Authenticator-App Ihres Notifuse-Kontos wurde ersetzt",
+		ReplacedBody:            "Die Authenticator-App Ihres Kontos wurde ersetzt. Ab jetzt akzeptiert Notifuse nur noch Codes der neuen App. Ihre Wiederherstellungscodes gelten weiter.",
 		RecoveryCodeUsedSubject: "Ein Wiederherstellungscode wurde für die Anmeldung bei Notifuse verwendet",
 		RecoveryCodeUsedBody:    "Jemand hat sich mit einem Ihrer Wiederherstellungscodes bei Ihrem Konto angemeldet. Sie haben noch %[1]d.",
 		RecoveryCodesNewSubject: "Neue Wiederherstellungscodes für Ihr Notifuse-Konto",
@@ -113,6 +123,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "S'ha activat l'autenticació en dos passos al teu compte. A partir d'ara, després del codi que t'enviem per correu, Notifuse demana un codi de la teva aplicació d'autenticació.",
 		DisabledSubject:         "L'autenticació en dos passos està desactivada al teu compte de Notifuse",
 		DisabledBody:            "S'ha desactivat l'autenticació en dos passos al teu compte. Notifuse ja només demana el codi que t'enviem per correu.",
+		ReplacedSubject:         "S'ha substituït l'aplicació d'autenticació del teu compte de Notifuse",
+		ReplacedBody:            "S'ha substituït l'aplicació d'autenticació del teu compte. A partir d'ara, Notifuse només accepta els codis de la nova aplicació. Els teus codis de recuperació continuen funcionant.",
 		RecoveryCodeUsedSubject: "S'ha fet servir un codi de recuperació per iniciar sessió a Notifuse",
 		RecoveryCodeUsedBody:    "Algú ha iniciat sessió al teu compte amb un dels teus codis de recuperació. Te'n queden %[1]d.",
 		RecoveryCodesNewSubject: "Codis de recuperació nous per al teu compte de Notifuse",
@@ -133,6 +145,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "A autenticação em dois fatores foi ativada na sua conta. A partir de agora, depois do código que enviamos por email, o Notifuse pede um código do seu aplicativo autenticador.",
 		DisabledSubject:         "A autenticação em dois fatores está desativada na sua conta do Notifuse",
 		DisabledBody:            "A autenticação em dois fatores foi desativada na sua conta. O Notifuse agora pede apenas o código que enviamos por email.",
+		ReplacedSubject:         "O app autenticador da sua conta do Notifuse foi substituído",
+		ReplacedBody:            "O app autenticador da sua conta foi substituído. A partir de agora, o Notifuse só aceita os códigos do novo app. Seus códigos de recuperação continuam valendo.",
 		RecoveryCodeUsedSubject: "Um código de recuperação foi usado para entrar no Notifuse",
 		RecoveryCodeUsedBody:    "Alguém entrou na sua conta com um dos seus códigos de recuperação. Restam %[1]d.",
 		RecoveryCodesNewSubject: "Novos códigos de recuperação para sua conta do Notifuse",
@@ -153,6 +167,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "お使いのアカウントで二要素認証が有効になりました。今後は、メールで届くコードに加えて、認証アプリのコードの入力が求められます。",
 		DisabledSubject:         "Notifuse アカウントで二要素認証が無効になりました",
 		DisabledBody:            "お使いのアカウントで二要素認証が無効になりました。今後はメールで届くコードだけでサインインできます。",
+		ReplacedSubject:         "Notifuse アカウントの認証アプリが置き換えられました",
+		ReplacedBody:            "アカウントの認証アプリが置き換えられました。今後、Notifuse は新しいアプリのコードのみを受け付けます。リカバリーコードは引き続き使えます。",
 		RecoveryCodeUsedSubject: "リカバリーコードで Notifuse にサインインしました",
 		RecoveryCodeUsedBody:    "リカバリーコードの一つを使って、お使いのアカウントにサインインがありました。残りは %[1]d 個です。",
 		RecoveryCodesNewSubject: "Notifuse アカウントの新しいリカバリーコード",
@@ -173,6 +189,8 @@ var twoFactorTranslations = map[string]TwoFactorStrings{
 		EnabledBody:             "L'autenticazione a due fattori è stata attivata sul tuo account. D'ora in poi, dopo il codice che ti inviamo via email, Notifuse chiede un codice della tua app di autenticazione.",
 		DisabledSubject:         "L'autenticazione a due fattori è disattivata sul tuo account Notifuse",
 		DisabledBody:            "L'autenticazione a due fattori è stata disattivata sul tuo account. Ora Notifuse chiede solo il codice che ti inviamo via email.",
+		ReplacedSubject:         "L'app di autenticazione del tuo account Notifuse è stata sostituita",
+		ReplacedBody:            "L'app di autenticazione del tuo account è stata sostituita. Da ora Notifuse accetta solo i codici della nuova app. I tuoi codici di recupero restano validi.",
 		RecoveryCodeUsedSubject: "Un codice di recupero è stato usato per accedere a Notifuse",
 		RecoveryCodeUsedBody:    "Qualcuno ha effettuato l'accesso al tuo account con uno dei tuoi codici di recupero. Te ne restano %[1]d.",
 		RecoveryCodesNewSubject: "Nuovi codici di recupero per il tuo account Notifuse",

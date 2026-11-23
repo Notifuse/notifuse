@@ -17,12 +17,14 @@ export interface SystemSecuritySettingsProps {
  */
 export function SystemSecuritySettings({ twoFactor }: SystemSecuritySettingsProps) {
   const { t } = useLingui()
-  const own = useOptionalAuth()?.twoFactor
+  const auth = useOptionalAuth()
   const [resetEmail, setResetEmail] = useState('')
   const fromEnv = twoFactor?.from_env === true
   // Turning it on from an account without it would lock the root user out at the next
   // sign-in: the server refuses it (two_factor_required_for_root), the switch says why first.
-  const rootWithout = own?.enabled !== true
+  // A session that passed a second factor (an authenticator code, single sign-on or the root
+  // signature) may switch it on; the server refuses any other.
+  const rootWithout = auth ? !auth.sessionTwoFactorPassed : true
   const required = Form.useWatch('require_two_factor')
   const usersWithout = twoFactor?.users_without ?? []
   const trimmedEmail = resetEmail.trim()

@@ -357,6 +357,26 @@ describe('api client two_factor_required', () => {
     expect(navigate).not.toHaveBeenCalled()
   })
 
+  // A download from a root route keeps its screen too: the endpoint reaches the check.
+  it('leaves a root download refusal to its screen', async () => {
+    goTo('/console/workspace/demo/logs')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.download('/api/auditLogs.export', {})).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  // The dashboard (pending invitations) moves too.
+  it('sends the dashboard to account security', async () => {
+    goTo('/console/')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.post('/api/workspaces.joinInvitation', {})).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).toHaveBeenCalledWith({ to: '/console/account/security' })
+  })
+
   // workspaces.create and the root screens explain the refusal themselves.
   it('leaves the workspace creation page where it is', async () => {
     goTo('/console/workspace/create')

@@ -1119,18 +1119,23 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 
 // handleAcceptInvitation processes an invitation token to create user and add to workspace
 func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http.Request) {
+	// A public route: a request that names no invitation is no action, and stays out of the
+	// audit log, so an anonymous client cannot write rows into a workspace's log.
 	if r.Method != http.MethodPost {
+		domain.AuditFromContext(r.Context()).Skip()
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var req AcceptInvitationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		domain.AuditFromContext(r.Context()).Skip()
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if req.Token == "" {
+		domain.AuditFromContext(r.Context()).Skip()
 		WriteJSONError(w, "Token is required", http.StatusBadRequest)
 		return
 	}

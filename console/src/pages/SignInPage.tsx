@@ -4,7 +4,11 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { authService, isTwoFactorChallenge } from '../services/api/auth'
 import { TwoFactorChallengeForm } from '../components/two_factor/TwoFactorChallengeForm'
-import { SIGN_IN_RETURN_PATHS } from '../components/two_factor/signInAgain'
+import {
+  SIGN_IN_RETURN_PATHS,
+  rememberReturnTo,
+  takeReturnTo
+} from '../components/two_factor/signInAgain'
 import { ApiUnreachableError } from '../services/api/errors'
 import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
@@ -30,18 +34,21 @@ export function SignInPage() {
   // The email code was right and the account has two-factor authentication: the second step.
   const [challengeToken, setChallengeToken] = useState<string | null>(null)
   // Where a sign-in goes: back to the page that sent the person here, from a fixed list.
-  const destination = search.return_to ? SIGN_IN_RETURN_PATHS[search.return_to] : '/console'
+  const returnTo = search.return_to
 
   const completeSignIn = useCallback(
     async (token: string) => {
       await signin(token)
       message.success(t`Successfully signed in`)
+      // The return point of this page, or the one single sign-on carried across.
+      const back = returnTo ?? takeReturnTo()
+      const destination = back ? SIGN_IN_RETURN_PATHS[back] : '/console'
       // Add a small delay to ensure auth state is updated before navigation
       setTimeout(() => {
         navigate({ to: destination })
       }, 100)
     },
-    [signin, message, navigate, t, destination]
+    [signin, message, navigate, t, returnTo]
   )
 
   // The console is served by the server it talks to, so when this page loaded but a request
@@ -328,6 +335,7 @@ export function SignInPage() {
                         window.API_ENDPOINT?.trim().replace(/\/+$/, '') || window.location.origin
                       // Full-page navigation: /api/user.oidc.start sets the AEAD flow
                       // cookie and 302s to the IdP, so it must be a real navigation.
+                      rememberReturnTo(returnTo)
                       window.location.assign(`${base}/api/user.oidc.start`)
                     }}
                   >

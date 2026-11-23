@@ -362,6 +362,20 @@ func (mr *MockAuthTxRepositoryMockRecorder) DeleteAllSessions(arg0, arg1, arg2 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllSessions", reflect.TypeOf((*MockAuthTxRepository)(nil).DeleteAllSessions), arg0, arg1, arg2)
 }
 
+// DeleteInvitationChallenges mocks base method.
+func (m *MockAuthTxRepository) DeleteInvitationChallenges(arg0 context.Context, arg1 domain.DBExecutor, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInvitationChallenges", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteInvitationChallenges indicates an expected call of DeleteInvitationChallenges.
+func (mr *MockAuthTxRepositoryMockRecorder) DeleteInvitationChallenges(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInvitationChallenges", reflect.TypeOf((*MockAuthTxRepository)(nil).DeleteInvitationChallenges), arg0, arg1, arg2, arg3)
+}
+
 // DeleteSessionsExcept mocks base method.
 func (m *MockAuthTxRepository) DeleteSessionsExcept(arg0 context.Context, arg1 domain.DBExecutor, arg2, arg3 string) error {
 	m.ctrl.T.Helper()

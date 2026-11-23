@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 
 export function RootLayout() {
   const { t } = useLingui()
-  const { isAuthenticated, loading, workspaces, user, twoFactorRequired } = useAuth()
+  const { isAuthenticated, loading, workspaces, user, twoFactorRequired, rootSessionWithoutCode } = useAuth()
   const navigate = useNavigate()
 
   const isSigninRoute = useMatch({ from: '/console/signin', shouldThrow: false })
@@ -40,11 +40,15 @@ export function RootLayout() {
   // The instance requires two-factor authentication and this session has not passed it: only
   // the account security page works until it does (user.me withholds the workspaces).
   const shouldRedirectToAccountSecurity =
-    isAuthenticated && twoFactorRequired && !isAccountSecurityRoute && !isPublicRoute
+    isAuthenticated &&
+    (twoFactorRequired || rootSessionWithoutCode) &&
+    !isAccountSecurityRoute &&
+    !isPublicRoute
 
   const shouldRedirectToCreateWorkspace =
     isAuthenticated &&
     !twoFactorRequired &&
+    !rootSessionWithoutCode &&
     workspaces.length === 0 &&
     isRootUser(user?.email) &&
     !isWorkspaceCreateRoute &&

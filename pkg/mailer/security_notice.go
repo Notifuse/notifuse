@@ -16,6 +16,7 @@ type SecurityNoticeKind string
 const (
 	SecurityNoticeTwoFactorEnabled      SecurityNoticeKind = "two_factor_enabled"
 	SecurityNoticeTwoFactorDisabled     SecurityNoticeKind = "two_factor_disabled"
+	SecurityNoticeTwoFactorReplaced     SecurityNoticeKind = "two_factor_app_replaced"
 	SecurityNoticeRecoveryCodeUsed      SecurityNoticeKind = "recovery_code_used"
 	SecurityNoticeRecoveryCodesNew      SecurityNoticeKind = "recovery_codes_regenerated"
 	SecurityNoticeTwoFactorReset        SecurityNoticeKind = "two_factor_reset"
@@ -44,6 +45,8 @@ func securityNoticeText(t TwoFactorStrings, n SecurityNotice) (string, string, e
 		return t.EnabledSubject, t.EnabledBody, nil
 	case SecurityNoticeTwoFactorDisabled:
 		return t.DisabledSubject, t.DisabledBody, nil
+	case SecurityNoticeTwoFactorReplaced:
+		return t.ReplacedSubject, t.ReplacedBody, nil
 	case SecurityNoticeRecoveryCodeUsed:
 		return t.RecoveryCodeUsedSubject, fmt.Sprintf(t.RecoveryCodeUsedBody, n.RecoveryCodesLeft), nil
 	case SecurityNoticeRecoveryCodesNew:

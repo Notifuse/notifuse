@@ -6,7 +6,6 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../contexts/AuthContext'
 import { AccountSecurityPanel } from '../components/two_factor/AccountSecurityPanel'
 import { RootSessionRefused } from '../components/two_factor/RootSessionRefused'
-import { isRootUser } from '../services/api/auth'
 
 /**
  * The account security page, outside any workspace: where a session lands when the instance
@@ -16,10 +15,7 @@ import { isRootUser } from '../services/api/auth'
 export function AccountSecurityPage() {
   const { t } = useLingui()
   const navigate = useNavigate()
-  const { user, workspaces, twoFactorRequired, twoFactor, sessionTwoFactorPassed, refreshWorkspaces } = useAuth()
-  // A root user with two-factor authentication, on a session opened without the code: the
-  // workspaces refuse it until they sign in again.
-  const rootSessionWithoutCode = isRootUser(user?.email) && twoFactor?.enabled === true && !sessionTwoFactorPassed
+  const { user, workspaces, twoFactorRequired, rootSessionWithoutCode, refreshWorkspaces } = useAuth()
 
   // Read the account again on arrival: a session sent here by a refused call (the requirement
   // switched on meanwhile) would otherwise show the state it had before.
@@ -27,7 +23,7 @@ export function AccountSecurityPage() {
     void refreshWorkspaces().catch(() => undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const firstWorkspace = twoFactorRequired ? undefined : workspaces[0]
+  const firstWorkspace = twoFactorRequired || rootSessionWithoutCode ? undefined : workspaces[0]
   const workspaceName = firstWorkspace?.name ?? ''
 
   return (
@@ -35,7 +31,7 @@ export function AccountSecurityPage() {
       <header className="flex h-12 items-center justify-between border-b border-line-soft bg-surface px-4">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-ink">Notifuse</span>
-          {!twoFactorRequired && !firstWorkspace ? (
+          {!twoFactorRequired && !rootSessionWithoutCode && !firstWorkspace ? (
             <Button type="text" icon={<ArrowLeft size={14} aria-hidden="true" />} onClick={() => navigate({ to: '/console' })}>
               {t`Back to Notifuse`}
             </Button>
