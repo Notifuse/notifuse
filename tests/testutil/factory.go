@@ -1887,61 +1887,46 @@ func (tdf *TestDataFactory) SetSegmentRecomputeAfter(workspaceID, segmentID stri
 
 // EnsureSegmentRecomputeTask ensures the check_segment_recompute task exists for a workspace (for testing)
 func (tdf *TestDataFactory) EnsureSegmentRecomputeTask(workspaceID string) error {
+	return tdf.EnsurePermanentTask(workspaceID, domain.TaskTypeCheckSegmentRecompute)
+}
+
+// EnsurePermanentTask creates the permanent task of one type for a workspace, unless it has
+// one. Factory workspaces bypass WorkspaceService.CreateWorkspace, which creates them, and the
+// test server skips the restore that would (config.TaskSchedulerConfig.SkipPermanentTaskRestore).
+// It creates only the type asked for, where TaskRepository.RestorePermanentTasks creates both.
+func (tdf *TestDataFactory) EnsurePermanentTask(workspaceID, taskType string) error {
+	if !domain.IsPermanentTaskType(taskType) {
+		return fmt.Errorf("%s is not a permanent task type", taskType)
+	}
 	ctx := context.Background()
 
-	// Check if task already exists
-	existing, err := tdf.db.QueryContext(ctx,
-		`SELECT id FROM tasks WHERE workspace_id = $1 AND type = 'check_segment_recompute' LIMIT 1`,
-		workspaceID)
-	if err != nil {
+	var exists bool
+	if err := tdf.db.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM tasks WHERE workspace_id = $1 AND type = $2)`,
+		workspaceID, taskType).Scan(&exists); err != nil {
 		return fmt.Errorf("failed to check for existing task: %w", err)
 	}
-	defer existing.Close()
-
-	if existing.Next() {
-		// Task already exists
+	if exists {
 		return nil
 	}
 
-	// Create the task
-	taskID := uuid.New().String()
-	state := map[string]interface{}{
-		"message": "Check segments for daily recompute",
-	}
-	stateJSON, err := json.Marshal(state)
+	stateJSON, err := json.Marshal(&domain.TaskState{Message: domain.PermanentTaskMessage(taskType)})
 	if err != nil {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
 	now := time.Now().UTC()
-	query := `
+	_, err = tdf.db.ExecContext(ctx, `
 		INSERT INTO tasks (
 			id, workspace_id, type, status, progress, state,
 			created_at, updated_at, next_run_after,
 			max_runtime, max_retries, retry_count, retry_interval
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
-		)
-	`
-	_, err = tdf.db.ExecContext(ctx, query,
-		taskID,
-		workspaceID,
-		"check_segment_recompute",
-		"pending",
-		0.0,
-		stateJSON,
-		now,
-		now,
-		now, // next_run_after - run immediately
-		50,  // max_runtime in seconds
-		3,   // max_retries
-		0,   // retry_count
-		60,  // retry_interval in seconds
-	)
+		) VALUES ($1, $2, $3, 'pending', 0, $4, $5, $5, $5, $6, $7, 0, $8)`,
+		uuid.New().String(), workspaceID, taskType, stateJSON, now,
+		domain.PermanentTaskMaxRuntime, domain.PermanentTaskMaxRetries, domain.PermanentTaskRetryInterval)
 	if err != nil {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
-
 	return nil
 }
 

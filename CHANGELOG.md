@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Two `transactional.send` calls with the same `external_id` that arrive together no longer both send. One email goes out, and both calls get its message ID. On upgrade, an `external_id` held by several messages stays with the oldest one, and an empty `external_id` counts as no key. With several Notifuse nodes, stop the others before upgrading: the upgrade briefly locks the message history and gives up after 5 seconds.
 
+- **Fix**: Segments could stop updating on their own. After four failed runs in a row, the task that recomputes a workspace's segments as contacts change, or the one that rebuilds date-based segments each morning, stopped for good, and segments then changed only on a manual rebuild. These tasks now keep retrying, and the first task run after the upgrade restarts any that stopped or were deleted.
+
 - **Fix**: SMTP senders on an internationalized domain (`news@bücher.de`) now go out in ASCII form. Notifuse sent raw UTF-8, which strict mail servers refuse.
 
 - **Fix**: Nothing re-subscribes a contact who opted out of a list any more. An automation's add-to-list step and `contactLists.updateStatus` could set an unsubscribed contact back to active, and the console could also revive a bounced or complained one. The add-to-list step now leaves them as they are and says so in its output, and a status change out of an opt-out returns 409. A form post with the address of a contact who unsubscribed no longer sets them to pending: it only sends the list's confirmation email, whose link brings them back.

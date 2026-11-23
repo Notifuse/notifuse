@@ -136,6 +136,10 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 			// tests in the order production runs (see TaskService.SetSendNowDelay
 			// for what an early pick costs).
 			SendNowDelay: time.Second,
+			// Every ExecutePendingTasks would otherwise give each test workspace a segment
+			// queue task, which holds the pass for close to a minute; the tests that need the
+			// restore call TaskRepository.RestorePermanentTasks themselves.
+			SkipPermanentTaskRestore: true,
 		},
 		// The demo seed generates 100 000 web-analytics sessions, minutes of writes
 		// that no test asserts on. The 400-day span is kept, only the density drops.
