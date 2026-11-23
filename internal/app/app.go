@@ -923,6 +923,7 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 	a.dataRetentionWorker.SetRunner(a.dataRetentionService)
+	a.dataRetentionService.SetTaskRepository(a.taskRepo)
 
 	// Initialize contact list service
 	a.contactListService = service.NewContactListService(

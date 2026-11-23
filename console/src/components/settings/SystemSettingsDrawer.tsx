@@ -25,6 +25,7 @@ import {
 import { useLingui } from '@lingui/react/macro'
 import { settingsApi } from '../../services/api/settings'
 import { SsoLicenceNotice } from '../license/SsoLicenceNotice'
+import { RetentionDefaultsSection } from './data_retention/RetentionDefaultsSection'
 import { parseRootEmails } from '../../services/api/auth'
 import {
   AUDIT_LOG_DEFAULT_RETENTION_DAYS,
@@ -748,6 +749,10 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 </Form.Item>
               </Col>
             </Row>
+
+            {/* Data retention defaults: saved on their own route, without a restart */}
+            <Divider />
+            <RetentionDefaultsSection />
           </Form>
         )}
       </Drawer>

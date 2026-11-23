@@ -162,8 +162,9 @@ func (h *SettingsHandler) handleGetRetentionDefaults(w http.ResponseWriter, r *h
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"defaults": stored.ResolvedDefaults(time.Now()),
-		"stored":   stored,
+		"defaults":   stored.ResolvedDefaults(time.Now()),
+		"stored":     stored,
+		"categories": domain.RetentionCategorySpecs,
 	})
 }
 
