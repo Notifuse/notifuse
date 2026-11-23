@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { App, Button, Dropdown, Empty, Form, Input, Modal, Result, Skeleton, Space, Table, Tooltip } from 'antd'
+import { useState, type ReactNode } from 'react'
+import { Alert, App, Button, Empty, Form, Input, Modal, Result, Skeleton, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { MoreHorizontal, Plus, RefreshCw } from 'lucide-react'
+import { ChevronRight, Plus, RefreshCw } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
-import { HelpTip, Mono, Panel, Pill, useRelativeDate } from '../layout'
+import { CodeBlock } from '../logs/CodeBlock'
+import { HelpTip, KeyValueList, Mono, Panel, Pill, SidePanel, useRelativeDate } from '../layout'
 import { dkimApi, dkimQueryKeys, DKIM_DOWNGRADE_THRESHOLD, type DKIMDomain } from '../../services/api/dkim'
 import { ApiError } from '../../services/api/errors'
 
@@ -15,13 +16,12 @@ interface DomainsSettingsProps {
   isOwner: boolean
 }
 
-/** The domain whose DNS record is shown: the chosen one, else the first that does not sign. */
-function shownDomain(domains: DKIMDomain[], chosen?: string): DKIMDomain | undefined {
-  return (
-    domains.find((d) => d.domain === chosen) ??
-    domains.find((d) => d.status !== 'published') ??
-    domains[0]
-  )
+/** What the last check run from the panel found. */
+interface CheckOutcome {
+  /** The domain checked: a result shows only in that domain's panel. */
+  domain: string
+  type: 'success' | 'info' | 'warning' | 'error'
+  text: string
 }
 
 export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) {
@@ -29,7 +29,9 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
   const relativeDate = useRelativeDate()
-  const [chosen, setChosen] = useState<string>()
+  // The domain whose panel is open, and what its last check there found.
+  const [openDomain, setOpenDomain] = useState<string>()
+  const [outcome, setOutcome] = useState<CheckOutcome>()
   const [adding, setAdding] = useState(false)
   const [creating, setCreating] = useState(false)
   // The domains whose check is running: several can run at once.
@@ -41,8 +43,13 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
     queryFn: () => dkimApi.list(workspaceId)
   })
   const domains = listQuery.data?.domains ?? []
-  const shown = shownDomain(domains, chosen)
-  const shownName = shown?.domain ?? ''
+  // Read from the list, so the panel shows the state after each check.
+  const opened = domains.find((d) => d.domain === openDomain)
+
+  const openPanel = (domain: string) => {
+    setOutcome(undefined)
+    setOpenDomain(domain)
+  }
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: dkimQueryKeys.list(workspaceId) })
   const formatDate = (value: string) =>
@@ -61,12 +68,10 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
     setCreating(true)
     try {
       const { domain: created } = await dkimApi.create(workspaceId, domain)
-      const createdDomain = created.domain
       setAdding(false)
       form.resetFields()
-      setChosen(createdDomain)
-      message.success(t`Key created for ${createdDomain}. Publish its DNS record to start signing.`)
       await refresh()
+      openPanel(created.domain)
     } catch (error) {
       message.error(errorText(error))
     } finally {
@@ -80,20 +85,24 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
       const result = await dkimApi.verify(workspaceId, record.domain)
       const domain = record.domain
       if (result.stale_conflict) {
-        message.info(t`The key of ${domain} changed during the check. The list shows its current state.`)
+        setOutcome({ domain, type: 'info', text: t`The key of ${domain} changed during the check. The list shows its current state.` })
       } else if (result.check.result === 'ok') {
-        message.success(t`DNS record found. Emails from ${domain} are now signed.`)
+        setOutcome({ domain, type: 'success', text: t`DNS record found. Emails from ${domain} are now signed.` })
       } else if (result.check.result === 'not_found') {
-        message.warning(t`No DNS record found for ${domain} yet. DNS changes can take a few hours to show.`)
+        setOutcome({
+          domain,
+          type: 'warning',
+          text: t`No DNS record found for ${domain} yet. DNS changes can take a few hours to show.`
+        })
       } else if (result.check.result === 'mismatch') {
         const detail = result.check.detail ?? ''
-        message.error(t`The DNS record of ${domain} does not match its key: ${detail}`)
+        setOutcome({ domain, type: 'error', text: t`The DNS record of ${domain} does not match its key: ${detail}` })
       } else {
-        message.warning(t`The DNS lookup failed. Try again in a few minutes.`)
+        setOutcome({ domain, type: 'warning', text: t`The DNS lookup failed. Try again in a few minutes.` })
       }
       await refresh()
     } catch (error) {
-      message.error(errorText(error))
+      setOutcome({ domain: record.domain, type: 'error', text: errorText(error) })
     } finally {
       setBusy((current) => {
         const next = new Set(current)
@@ -113,9 +122,8 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
       onOk: async () => {
         try {
           await dkimApi.regenerate(workspaceId, domain)
-          setChosen(domain)
-          message.success(t`New key created for ${domain}. Publish its DNS record.`)
           await refresh()
+          openPanel(domain)
         } catch (error) {
           message.error(errorText(error))
         }
@@ -134,7 +142,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
       onOk: async () => {
         try {
           await dkimApi.remove(workspaceId, domain)
-          if (chosen === domain) setChosen(undefined)
+          setOpenDomain(undefined)
           message.success(t`Key of ${domain} deleted`)
           await refresh()
         } catch (error) {
@@ -144,72 +152,91 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
     })
   }
 
-  const statusCell = (record: DKIMDomain) => {
-    const ago = record.last_checked_at ? relativeDate(record.last_checked_at) : ''
-    const checked = record.last_checked_at ? t`Checked ${ago}` : t`Not checked yet`
+  const statusPill = (record: DKIMDomain) => {
     if (record.status === 'published' && record.consecutive_failures > 0) {
       const failures = record.consecutive_failures
-      return (
-        <div className="flex flex-col gap-0.5">
-          <Pill tone="warning">{t`Record missing ${failures}/${DKIM_DOWNGRADE_THRESHOLD} · still signing`}</Pill>
-          <span className="text-xs text-ink-3">{record.last_check_error ?? checked}</span>
-        </div>
-      )
+      return <Pill tone="warning">{t`Record missing ${failures}/${DKIM_DOWNGRADE_THRESHOLD} · still signing`}</Pill>
     }
+    if (record.status === 'published') return <Pill tone="success">{t`Published · signing`}</Pill>
+    if (record.status === 'mismatch') return <Pill tone="danger">{t`Wrong key · not signing`}</Pill>
+    if (record.downgraded_at) return <Pill tone="danger">{t`Signing stopped`}</Pill>
+    return <Pill tone="warning">{t`DNS not found · not signing yet`}</Pill>
+  }
+
+  /** The line under the status: when signing stopped and why, the last check's reason, or when it ran. */
+  const statusDetail = (record: DKIMDomain): string => {
+    const ago = record.last_checked_at ? relativeDate(record.last_checked_at) : ''
+    const checked = record.last_checked_at ? t`Checked ${ago}` : t`Not checked yet`
     if (record.status === 'published') {
-      return (
-        <div className="flex flex-col gap-0.5">
-          <Pill tone="success">{t`Published · signing`}</Pill>
-          <span className="text-xs text-ink-3">{checked}</span>
-        </div>
-      )
+      return record.consecutive_failures > 0 ? (record.last_check_error ?? checked) : checked
     }
     // After a downgrade, the latest check says why the key still does not sign; the date
     // the key stopped stays shown.
-    const reason = record.last_check_error ?? record.downgrade_reason ?? ''
-    const date = record.downgraded_at ? formatDate(record.downgraded_at) : ''
-    const stoppedOn = record.downgraded_at ? t`Stopped on ${date}: ${reason}` : undefined
-    if (record.status === 'mismatch') {
-      return (
-        <div className="flex flex-col gap-0.5">
-          <Pill tone="danger">{t`Wrong key · not signing`}</Pill>
-          <span className="text-xs text-ink-3">{stoppedOn ?? record.last_check_error ?? checked}</span>
-        </div>
-      )
+    if (record.downgraded_at) {
+      const date = formatDate(record.downgraded_at)
+      const reason = record.last_check_error ?? record.downgrade_reason ?? ''
+      return t`Stopped on ${date}: ${reason}`
     }
-    if (stoppedOn) {
-      return (
-        <div className="flex flex-col gap-0.5">
-          <Pill tone="danger">{t`Signing stopped`}</Pill>
-          <span className="text-xs text-ink-3">{stoppedOn}</span>
-        </div>
-      )
-    }
-    return (
-      <div className="flex flex-col gap-0.5">
-        <Pill tone="warning">{t`DNS not found · not signing yet`}</Pill>
-        <span className="text-xs text-ink-3">{checked}</span>
-      </div>
+    if (record.status === 'mismatch') return record.last_check_error ?? checked
+    return checked
+  }
+
+  /** Why the key does not sign, or the failed check of a key still signing; undefined when all is well. */
+  const statusReason = (record: DKIMDomain): string | undefined => {
+    if (record.status === 'published' && record.consecutive_failures === 0) return undefined
+    if (record.status === 'pending' && !record.downgraded_at) return undefined
+    return statusDetail(record)
+  }
+
+  // The status alone; the reason behind it on hover, and in full in the panel.
+  const statusCell = (record: DKIMDomain) => {
+    const reason = statusReason(record)
+    return reason ? (
+      <Tooltip title={reason}>
+        <span className="inline-flex">{statusPill(record)}</span>
+      </Tooltip>
+    ) : (
+      statusPill(record)
     )
   }
 
+  const lastCheckCell = (record: DKIMDomain) =>
+    record.last_checked_at ? (
+      <span className="text-ink-2">{relativeDate(record.last_checked_at)}</span>
+    ) : (
+      <span className="text-ink-3">{t`Never`}</span>
+    )
+
   const ownersOnly = t`Only workspace owners can manage domains`
 
-  const addButton = (
-    <Tooltip title={isOwner ? undefined : ownersOnly}>
-      <span className="inline-block">
-        <Button
-          type="primary"
-          size="small"
-          icon={<Plus size={14} aria-hidden="true" />}
-          onClick={() => setAdding(true)}
-          disabled={!isOwner}
-        >
-          {t`Add domain`}
-        </Button>
-      </span>
-    </Tooltip>
+  /** A button only owners can use, with the reason on hover for everyone else. */
+  const ownerButton = (button: ReactNode) =>
+    isOwner ? (
+      button
+    ) : (
+      <Tooltip title={ownersOnly}>
+        <span className="inline-block">{button}</span>
+      </Tooltip>
+    )
+
+  const addButton = ownerButton(
+    <Button
+      type="primary"
+      size="small"
+      icon={<Plus size={14} aria-hidden="true" />}
+      onClick={() => setAdding(true)}
+      disabled={!isOwner}
+    >
+      {t`Add domain`}
+    </Button>
   )
+
+  const usedByText = (record: DKIMDomain) =>
+    record.used_by.length > 0 ? (
+      <span className="text-ink-2">{record.used_by.map((user) => user.integration_name).join(', ')}</span>
+    ) : (
+      <span className="text-ink-3">{t`No SMTP integration yet`}</span>
+    )
 
   const columns: ColumnsType<DKIMDomain> = [
     {
@@ -217,81 +244,15 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
       key: 'domain',
       render: (_, record) => <span className="font-medium text-ink">{record.domain}</span>
     },
-    { title: t`DKIM`, key: 'dkim', width: 230, render: (_, record) => statusCell(record) },
-    {
-      title: t`Selector`,
-      key: 'selector',
-      width: 180,
-      // 30 characters: cut, with the whole selector on hover; the DNS record below shows it in full.
-      ellipsis: { showTitle: false },
-      render: (_, record) => (
-        <Tooltip title={record.selector}>
-          <span>
-            <Mono>{record.selector}</Mono>
-          </span>
-        </Tooltip>
-      )
-    },
-    {
-      title: t`Used by`,
-      key: 'used-by',
-      width: 170,
-      render: (_, record) =>
-        record.used_by.length > 0 ? (
-          <span className="text-ink-2">
-            {record.used_by.map((user) => user.integration_name).join(', ')}
-          </span>
-        ) : (
-          <span className="text-ink-3">{t`No SMTP integration yet`}</span>
-        )
-    },
+    { title: t`DKIM`, key: 'dkim', width: 260, render: (_, record) => statusCell(record) },
+    { title: t`Last check`, key: 'last-check', width: 150, render: (_, record) => lastCheckCell(record) },
+    { title: t`Used by`, key: 'used-by', render: (_, record) => usedByText(record) },
     {
       title: '',
-      key: 'actions',
+      key: 'open',
+      width: 40,
       align: 'right',
-      render: (_, record) => {
-        if (!isOwner) return null
-        const inUse = record.used_by.length > 0
-        const domain = record.domain
-        return (
-          <Space size={4} onClick={(event) => event.stopPropagation()}>
-            <Button size="small" loading={busy.has(record.domain)} onClick={() => handleVerify(record)}>
-              {t`Verify`}
-            </Button>
-            <Dropdown
-              trigger={['click']}
-              placement="bottomRight"
-              menu={{
-                items: [
-                  ...(record.status !== 'published'
-                    ? [{ key: 'regenerate', label: t`Regenerate`, onClick: () => confirmRegenerate(record) }]
-                    : []),
-                  {
-                    key: 'delete',
-                    danger: true,
-                    disabled: inUse,
-                    label: inUse ? (
-                      <Tooltip title={t`SMTP senders use this domain. Change those senders first.`} placement="left">
-                        <span>{t`Delete`}</span>
-                      </Tooltip>
-                    ) : (
-                      t`Delete`
-                    ),
-                    onClick: () => confirmDelete(record)
-                  }
-                ]
-              }}
-            >
-              <Button
-                type="text"
-                size="small"
-                aria-label={t`More actions for ${domain}`}
-                icon={<MoreHorizontal size={16} aria-hidden="true" />}
-              />
-            </Dropdown>
-          </Space>
-        )
-      }
+      render: () => <ChevronRight size={15} aria-hidden="true" className="text-ink-4" />
     }
   ]
 
@@ -342,15 +303,86 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
         columns={columns}
         dataSource={domains}
         pagination={false}
-        rowClassName={(record) => (`cursor-pointer ${record.domain === shown?.domain ? 'is-hover' : ''}`)}
+        rowClassName={(record) => `cursor-pointer ${record.domain === openDomain ? 'is-hover' : ''}`}
         onRow={(record) => ({
-          onClick: () => setChosen(record.domain),
+          onClick: () => openPanel(record.domain),
           onKeyDown: (event) => {
-            if (event.key === 'Enter') setChosen(record.domain)
+            if (event.key === 'Enter') openPanel(record.domain)
           },
           tabIndex: 0
         })}
       />
+    )
+  }
+
+  const renderPanelBody = (record: DKIMDomain) => (
+    <div className="flex flex-col gap-4">
+      {outcome && outcome.domain === record.domain ? <Alert type={outcome.type} showIcon title={outcome.text} /> : null}
+
+      <section className="flex flex-col gap-2">
+        <h3 data-unreset className="m-0 text-base font-semibold text-ink">
+          {t`DNS record`}
+        </h3>
+        <p className="m-0 text-sm text-ink-2">
+          {t`At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email.`}
+        </p>
+        <div data-testid="dkim-dns-record" className="flex flex-col gap-3">
+          <KeyValueList labelWidth={80} items={[{ label: t`Type`, value: <Mono>{record.dns_record.type}</Mono> }]} />
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-ink-3">{t`Name`}</span>
+            <CodeBlock value={record.dns_record.name} label={t`record name`} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-ink-3">{t`Value`}</span>
+            <CodeBlock value={record.dns_record.value} label={t`record value`} />
+          </div>
+        </div>
+      </section>
+
+      <KeyValueList
+        labelWidth={120}
+        items={[
+          { label: t`Used by`, value: usedByText(record) },
+          { label: t`Created`, value: relativeDate(record.created_at) }
+        ]}
+      />
+    </div>
+  )
+
+  const panelFooter = (record: DKIMDomain) => {
+    const inUse = record.used_by.length > 0
+    const deleteButton = (
+      <Button danger disabled={!isOwner || inUse} onClick={() => confirmDelete(record)}>
+        {t`Delete`}
+      </Button>
+    )
+    return (
+      <>
+        {record.status !== 'published'
+          ? ownerButton(
+              <Button disabled={!isOwner} onClick={() => confirmRegenerate(record)}>
+                {t`Regenerate`}
+              </Button>
+            )
+          : null}
+        {isOwner && inUse ? (
+          <Tooltip title={t`SMTP senders use this domain. Change those senders first.`}>
+            <span className="inline-block">{deleteButton}</span>
+          </Tooltip>
+        ) : (
+          ownerButton(deleteButton)
+        )}
+        {ownerButton(
+          <Button
+            type="primary"
+            disabled={!isOwner}
+            loading={busy.has(record.domain)}
+            onClick={() => handleVerify(record)}
+          >
+            {t`Verify`}
+          </Button>
+        )}
+      </>
     )
   }
 
@@ -389,34 +421,18 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
         {renderList()}
       </Panel>
 
-      {shown && !listQuery.isError ? (
-        <Panel
-          className="mt-4"
-          title={
-            <span className="inline-flex items-center gap-1.5">
-              {t`Publish this record for ${shownName}`}
-              <HelpTip label={t`About the DNS record`} icon="info">
-                {t`At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email.`}
-              </HelpTip>
-            </span>
-          }
-        >
-          <dl data-testid="dkim-dns-record" className="grid grid-cols-[6rem_1fr] gap-x-4 gap-y-2 text-sm">
-            <dt className="text-ink-3">{t`Type`}</dt>
-            <dd className="m-0">
-              <Mono>{shown.dns_record.type}</Mono>
-            </dd>
-            <dt className="text-ink-3">{t`Name`}</dt>
-            <dd className="m-0 min-w-0 break-all">
-              <Mono copy>{shown.dns_record.name}</Mono>
-            </dd>
-            <dt className="text-ink-3">{t`Value`}</dt>
-            <dd className="m-0 min-w-0 break-all">
-              <Mono copy>{shown.dns_record.value}</Mono>
-            </dd>
-          </dl>
-        </Panel>
-      ) : null}
+      <SidePanel
+        open={Boolean(opened)}
+        onClose={() => setOpenDomain(undefined)}
+        title={opened?.domain ?? ''}
+        status={opened ? statusPill(opened) : undefined}
+        meta={opened ? [statusDetail(opened)] : undefined}
+        copyLink={false}
+        footer={opened ? panelFooter(opened) : undefined}
+        bodyKey={opened?.domain}
+      >
+        {opened ? renderPanelBody(opened) : null}
+      </SidePanel>
 
       <Modal
         title={t`Add domain`}
