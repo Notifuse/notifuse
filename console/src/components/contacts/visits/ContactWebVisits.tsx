@@ -270,7 +270,7 @@ export function ContactWebVisits({ workspace, email }: ContactWebVisitsProps) {
         )
       }
     },
-    { title: t`Source`, key: 'source', render: (_, session) => <SourceCell session={session} i18n={i18n} /> },
+    { title: t({ message: 'Source', context: 'traffic' }), key: 'source', render: (_, session) => <SourceCell session={session} i18n={i18n} /> },
     {
       title: t`Entry`,
       key: 'entry',

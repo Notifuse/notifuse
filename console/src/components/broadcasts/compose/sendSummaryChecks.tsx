@@ -175,7 +175,7 @@ export function useCheckText({ values, listName, segmentNames, workspaceId }: Ch
       }
       case 'when': {
         if (check.missingDate) return t`Choose a date to schedule`
-        if (!check.at) return t`Now`
+        if (!check.at) return t({ message: 'Now', context: 'send' })
         const weekday = dates.weekday(check.at.iso, check.at.timezone)
         const time = dates.time(check.at.iso, check.at.timezone)
         const zone = dates.zone(check.at.iso, check.at.timezone)

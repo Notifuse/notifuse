@@ -1294,7 +1294,7 @@ msgstr "{perMinuteText} correos/min"
 msgid "{pickedListName} uses double opt-in, but no confirmation email is sent: these contacts are added as active, your choice to add them standing as their consent."
 msgstr "{pickedListName} usa doble confirmación, pero no se envía ningún correo de confirmación: estos contactos se añaden como activos y tu decisión de añadirlos cuenta como su consentimiento."
 
-#: src/components/web_analytics/AutomatedTrafficWidget.tsx:241
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:243
 msgid "{pointsText} pts"
 msgstr "{pointsText} pp"
 
@@ -3912,6 +3912,7 @@ msgstr "Automático, cubrir, contener o un tamaño personalizado: de 1 a 2000 px
 
 #: src/components/web_analytics/AutomatedTrafficWidget.tsx:41
 #: src/components/web_analytics/AutomatedTrafficWidget.tsx:139
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:145
 msgid "Automated"
 msgstr "Automatizado"
 
@@ -12890,6 +12891,7 @@ msgid "https://fonts.googleapis.com/css?family=… or {LIQUID_FONT_URL}"
 msgstr "https://fonts.googleapis.com/css?family=… o {LIQUID_FONT_URL}"
 
 #: src/components/web_analytics/AutomatedTrafficWidget.tsx:140
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:146
 msgid "Human"
 msgstr "Humano"
 
@@ -16332,7 +16334,7 @@ msgstr "Sin datos"
 msgid "No data available"
 msgstr "No hay datos disponibles"
 
-#: src/components/web_analytics/AutomatedTrafficWidget.tsx:266
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:268
 #: src/components/web_analytics/MetricChart.tsx:323
 msgid "No data for this period"
 msgstr "Sin datos para este periodo"
@@ -17267,12 +17269,16 @@ msgid "notifuse-…"
 msgstr "notifuse-…"
 
 #: src/components/broadcasts/compose/PreviewPanel.tsx:102
-#: src/components/broadcasts/compose/SendingCard.tsx:88
-#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
 #: src/components/broadcasts/detail/EngagementChart.tsx:74
 #: src/components/templates/TemplateSettingsAside.tsx:105
 #: src/components/templates/TemplateSettingsAside.tsx:130
 #: src/components/templates/TemplateTranslationsTab.tsx:417
+msgid "Now"
+msgstr "Ahora"
+
+#: src/components/broadcasts/compose/SendingCard.tsx:88
+#: src/components/broadcasts/compose/sendSummaryChecks.tsx:178
+msgctxt "send"
 msgid "Now"
 msgstr "Ahora"
 
@@ -19990,7 +19996,11 @@ msgstr "Regeneró el secreto del webhook <0>{target}</0>"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:756
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:759
 #: src/components/settings/integrations/providerDetails.ts:145
+msgid "Region"
+msgstr "Región"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:358
+msgctxt "geo"
 msgid "Region"
 msgstr "Región"
 
@@ -22789,7 +22799,7 @@ msgid "Share of human sessions under the bounce threshold. Automated traffic is 
 msgstr "Porcentaje de sesiones humanas por debajo del umbral de rebote. El tráfico automatizado queda excluido."
 
 #: src/components/web_analytics/AutomatedTrafficWidget.tsx:42
-#: src/components/web_analytics/AutomatedTrafficWidget.tsx:233
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:235
 msgid "Share of sessions"
 msgstr "Porcentaje de sesiones"
 
@@ -23352,10 +23362,14 @@ msgstr "Alguien ha guardado la versión {0} mientras editabas (tú partiste de l
 msgid "Something went wrong"
 msgstr "Algo salió mal"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:273
 #: src/components/logs/InboundWebhooksTab.tsx:176
 #: src/components/logs/InboundWebhooksTab.tsx:254
 #: src/components/logs/InboundWebhooksTab.tsx:386
+msgid "Source"
+msgstr "Origen"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:273
+msgctxt "traffic"
 msgid "Source"
 msgstr "Origen"
 
@@ -27882,7 +27896,7 @@ msgstr "Volcán"
 msgid "vs {comparedTo}"
 msgstr "vs. {comparedTo}"
 
-#: src/components/web_analytics/AutomatedTrafficWidget.tsx:243
+#: src/components/web_analytics/AutomatedTrafficWidget.tsx:245
 msgid "vs {previousLabel}"
 msgstr "vs. {previousLabel}"
 
