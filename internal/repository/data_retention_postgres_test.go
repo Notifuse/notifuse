@@ -245,3 +245,19 @@ func TestDataRetentionRepository_CustomEventNames(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"login", "purchase"}, names)
 }
+
+func TestDataRetentionRepository_WriteContactPolicyMirror(t *testing.T) {
+	repo, mock := setupDataRetentionTest(t)
+	at := time.Date(2026, 11, 30, 0, 0, 0, 0, time.UTC)
+	mock.ExpectBegin()
+	mock.ExpectExec(`(?s)INSERT INTO data_retention_state \(id, contacts_days, exempt_list_ids,.*pending_engagement_event_names\).*ON CONFLICT \(id\) DO UPDATE`).
+		WithArgs(1095, `{"vip"}`, "{}", `{"purchase"}`, 365, &at, "{}", "{}", `{"purchase"}`).WillReturnResult(sqlmock.NewResult(0, 1))
+	// The segments that use the condition are rebuilt: their members change with the policy.
+	mock.ExpectExec(`UPDATE segments SET recompute_after = NOW\(\)\s+WHERE status <> 'deleted' AND jsonb_path_exists\(tree, '\$\.\*\* \? \(@\.source == "retention"\)'\)`).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectCommit()
+	require.NoError(t, repo.WriteContactPolicyMirror(context.Background(), "ws", domain.ContactPolicyMirror{
+		Days: 1095, ExemptListIDs: []string{"vip"}, EngagementEventNames: []string{"purchase"},
+		PendingDays: 365, PendingAt: &at, PendingEngagementEventNames: []string{"purchase"},
+	}))
+}

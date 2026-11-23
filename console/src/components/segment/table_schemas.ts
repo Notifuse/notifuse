@@ -7,7 +7,7 @@ import {
   TRACKING_CONSENT_SOURCE_FIELD_OPTIONS
 } from '../../lib/emailTracking'
 import { faUser, faFolderOpen } from '@fortawesome/free-regular-svg-icons'
-import { faMousePointer, faBullseye } from '@fortawesome/free-solid-svg-icons'
+import { faMousePointer, faBullseye, faHourglass } from '@fortawesome/free-solid-svg-icons'
 
 /**
  * Database table schemas for segmentation engine
@@ -712,10 +712,29 @@ export const timelineChangesSchema = (kind?: string): TableSchema | undefined =>
   return undefined
 }
 
+/** The data retention condition: no field, a number of days. */
+export const RetentionTableSchema: TableSchema = {
+  name: 'retention',
+  title: 'Data retention',
+  description: 'Contacts the inactive-contact retention deletes soon',
+  icon: faHourglass,
+  fields: {}
+}
+
 export const TableSchemas: { [key: string]: TableSchema } = {
 
   contacts: ContactsTableSchema,
   contact_lists: ContactListsTableSchema,
   contact_timeline: ContactTimelineTableSchema,
-  custom_events_goals: CustomEventsGoalsTableSchema
+  custom_events_goals: CustomEventsGoalsTableSchema,
+  retention: RetentionTableSchema
 }
+
+/**
+ * The sources an automation trigger accepts: all but the data retention condition. A trigger's
+ * conditions run on a timeline write, and an expiry is the passage of time, which writes nothing;
+ * the server refuses it too. Trigger on segment.joined for a segment that uses it instead.
+ */
+export const TriggerTableSchemas: { [key: string]: TableSchema } = Object.fromEntries(
+  Object.entries(TableSchemas).filter(([source]) => source !== 'retention')
+)

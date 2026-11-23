@@ -155,6 +155,13 @@ export const isLeafComplete = (leaf: TreeNodeLeaf | undefined): boolean => {
       return isContactTimelineComplete(leaf.contact_timeline)
     case 'custom_events_goals':
       return isCustomEventsGoalComplete(leaf.custom_events_goal)
+    case 'retention':
+      return (
+        leaf.retention?.operator === 'expires_within_days' &&
+        Number.isInteger(leaf.retention.days) &&
+        leaf.retention.days >= 1 &&
+        leaf.retention.days <= 365
+      )
     default:
       return false
   }

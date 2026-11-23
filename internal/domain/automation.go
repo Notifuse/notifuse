@@ -258,6 +258,11 @@ func (c *TimelineTriggerConfig) Validate() error {
 		if err := c.Conditions.Validate(); err != nil {
 			return fmt.Errorf("invalid trigger conditions: %w", err)
 		}
+		// Trigger conditions are compiled into a function that runs on a timeline write; an
+		// expiry is the passage of time, which writes nothing.
+		if c.Conditions.HasRetentionLeaf() {
+			return fmt.Errorf("invalid trigger conditions: the data retention condition cannot start an automation; trigger on segment.joined for a segment that uses it instead")
+		}
 	}
 
 	return nil

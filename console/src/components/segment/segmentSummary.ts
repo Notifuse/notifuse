@@ -1,5 +1,5 @@
 import type { I18n, MessageDescriptor } from '@lingui/core'
-import { msg } from '@lingui/core/macro'
+import { msg, plural } from '@lingui/core/macro'
 import type {
   ContactTimelineCondition,
   CustomEventsGoalCondition,
@@ -225,6 +225,11 @@ function describeNode(node: TreeNode, i18n: I18n, options: SegmentSummaryOptions
     described = describeTimeline(leaf.contact_timeline, i18n)
   } else if (leaf?.source === 'custom_events_goals' && leaf.custom_events_goal) {
     described = describeGoal(leaf.custom_events_goal, i18n)
+  } else if (leaf?.source === 'retention' && leaf.retention) {
+    described = plural(leaf.retention.days, {
+      one: 'Deleted as inactive within # day',
+      other: 'Deleted as inactive within # days'
+    })
   }
   return described ?? i18n._(msg`1 condition`)
 }

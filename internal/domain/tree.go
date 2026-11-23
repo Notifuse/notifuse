@@ -21,11 +21,40 @@ type TreeNodeBranch struct {
 
 // TreeNodeLeaf represents an actual condition on a data source
 type TreeNodeLeaf struct {
-	Source           string                     `json:"source"` // "contacts", "contact_lists", "contact_timeline", "custom_events_goals"
+	Source           string                     `json:"source"` // "contacts", "contact_lists", "contact_timeline", "custom_events_goals", "retention"
 	Contact          *ContactCondition          `json:"contact,omitempty"`
 	ContactList      *ContactListCondition      `json:"contact_list,omitempty"`
 	ContactTimeline  *ContactTimelineCondition  `json:"contact_timeline,omitempty"`
 	CustomEventsGoal *CustomEventsGoalCondition `json:"custom_events_goal,omitempty"`
+	// Retention matches the contacts the inactive-contact retention category will delete soon
+	// (source "retention", data retention D13).
+	Retention *RetentionCondition `json:"retention,omitempty"`
+}
+
+// RetentionLeafSource is the leaf source of the data retention condition.
+const RetentionLeafSource = "retention"
+
+// RetentionConditionExpiresWithinDays is the condition's one operator.
+const RetentionConditionExpiresWithinDays = "expires_within_days"
+
+// RetentionCondition matches a contact the inactive-contact category will delete within Days.
+// It compiles to a call of the workspace function contact_retention_expires_at, which reads
+// the policy when it runs: a segment's SQL is compiled once, and a period written into it
+// would be wrong after the first policy change.
+type RetentionCondition struct {
+	Operator string `json:"operator"`
+	Days     int    `json:"days"`
+}
+
+// Validate checks the operator and the number of days (1 to 365).
+func (c *RetentionCondition) Validate() error {
+	if c.Operator != RetentionConditionExpiresWithinDays {
+		return fmt.Errorf("retention condition: unknown operator %q (must be %q)", c.Operator, RetentionConditionExpiresWithinDays)
+	}
+	if c.Days < 1 || c.Days > 365 {
+		return fmt.Errorf("retention condition: days must be between 1 and 365")
+	}
+	return nil
 }
 
 // ContactCondition represents filters on the contacts table
@@ -162,8 +191,13 @@ func (l *TreeNodeLeaf) Validate() error {
 			return fmt.Errorf("leaf with source 'custom_events_goals' must have 'custom_events_goal' field")
 		}
 		return l.CustomEventsGoal.Validate()
+	case RetentionLeafSource:
+		if l.Retention == nil {
+			return fmt.Errorf("leaf with source 'retention' must have 'retention' field")
+		}
+		return l.Retention.Validate()
 	default:
-		return fmt.Errorf("invalid source: %s (must be 'contacts', 'contact_lists', 'contact_timeline', or 'custom_events_goals')", l.Source)
+		return fmt.Errorf("invalid source: %s (must be 'contacts', 'contact_lists', 'contact_timeline', 'custom_events_goals' or 'retention')", l.Source)
 	}
 }
 
@@ -494,6 +528,10 @@ func (t *TreeNode) HasRelativeDates() bool {
 		if t.Leaf == nil {
 			return false
 		}
+		// An expiry moves with time: the segment is rebuilt every day.
+		if t.Leaf.Source == RetentionLeafSource {
+			return true
+		}
 		// Check contact timeline conditions for relative date operators
 		if t.Leaf.ContactTimeline != nil {
 			if t.Leaf.ContactTimeline.TimeframeOperator != nil &&
@@ -535,6 +573,28 @@ func filtersHaveRelativeDates(filters []*DimensionFilter) bool {
 		if filter.Operator == "in_the_last_days" || filter.Operator == "not_in_the_last_days" {
 			return true
 		}
+	}
+	return false
+}
+
+// HasRetentionLeaf reports whether the tree holds a data retention condition anywhere.
+func (t *TreeNode) HasRetentionLeaf() bool {
+	if t == nil {
+		return false
+	}
+	switch t.Kind {
+	case "branch":
+		if t.Branch == nil {
+			return false
+		}
+		for _, child := range t.Branch.Leaves {
+			if child.HasRetentionLeaf() {
+				return true
+			}
+		}
+		return false
+	case "leaf":
+		return t.Leaf != nil && t.Leaf.Source == RetentionLeafSource
 	}
 	return false
 }

@@ -849,7 +849,7 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		// The engagement clock of the data retention plan, and its readiness marker, set
 		// at once: a new workspace has no history to read back.
 		{failure: "failed to create contact engagement", statements: append(schema.ContactEngagementStatements(), schema.NewWorkspaceDataRetentionMarker)},
-		{failure: "failed to create data retention tables", statements: schema.DataRetentionStatements()},
+		{failure: "failed to create data retention tables", statements: append(append(schema.DataRetentionStatements(), schema.DataRetentionMirrorStatements()...), schema.ContactRetentionExpiresAtFunction())},
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
@@ -282,8 +283,14 @@ func (qb *QueryBuilder) parseLeaf(leaf *domain.TreeNodeLeaf, argIndex int, mode 
 		}
 		return qb.parseCustomEventsGoalCondition(leaf.CustomEventsGoal, argIndex)
 
+	case domain.RetentionLeafSource:
+		if leaf.Retention == nil {
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'retention' must have 'retention' field")
+		}
+		return qb.parseRetentionCondition(leaf.Retention, argIndex)
+
 	default:
-		return "", nil, argIndex, fmt.Errorf("unsupported source: %s (supported: 'contacts', 'contact_lists', 'contact_timeline', 'custom_events_goals')", leaf.Source)
+		return "", nil, argIndex, fmt.Errorf("unsupported source: %s (supported: 'contacts', 'contact_lists', 'contact_timeline', 'custom_events_goals', 'retention')", leaf.Source)
 	}
 }
 
@@ -448,6 +455,9 @@ func (qb *QueryBuilder) getTimeValues(filter *domain.DimensionFilter) ([]interfa
 // contactsEmailRef is the email reference used when conditions are compiled against the contacts
 // table itself (segment queries), as opposed to a trigger context where it is e.g. "NEW.email".
 const contactsEmailRef = "contacts.email"
+
+// contactsTableRef is the contacts table as the segment queries name it.
+const contactsTableRef = "contacts"
 
 // parseContactListConditions generates SQL for contact_lists filtering
 // Uses EXISTS subquery to check if contact is in specific list(s)
@@ -1180,6 +1190,24 @@ func (qb *QueryBuilder) parseBranchWithEmailRef(branch *domain.TreeNodeBranch, a
 	// Wrap in parentheses for proper precedence
 	result := "(" + strings.Join(conditions, sqlOperator) + ")"
 	return result, args, argIndex, nil
+}
+
+// parseRetentionCondition matches the contacts the inactive-contact category deletes within
+// the given days (data retention D13). The policy is read from the workspace's mirror when the
+// query runs, never written into the SQL: a segment's SQL is compiled once, at save, and a
+// period inlined here would be wrong after the first policy change. The rule is an EXISTS over
+// the contact's own rows (schema.RetentionExpiresWithinCondition), so one plan serves a whole
+// build and the per-contact checks of the segment queue. It matches nobody when the category
+// is off, the contact exempt or the backfill not done.
+//
+// Trigger conditions never compile it (parseLeafWithEmailRef refuses the source, and
+// TimelineTriggerConfig.Validate says why): an expiry writes nothing to the timeline.
+func (qb *QueryBuilder) parseRetentionCondition(condition *domain.RetentionCondition, argIndex int) (string, []interface{}, int, error) {
+	if err := condition.Validate(); err != nil {
+		return "", nil, argIndex, err
+	}
+	sql := "(" + schema.RetentionExpiresWithinCondition(contactsTableRef, fmt.Sprintf("$%d", argIndex)) + ")"
+	return sql, []interface{}{condition.Days}, argIndex + 1, nil
 }
 
 // parseLeafWithEmailRef parses a leaf node with custom email reference

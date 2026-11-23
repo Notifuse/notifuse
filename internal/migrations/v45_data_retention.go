@@ -31,6 +31,10 @@ func dataRetentionWorkspaceV45Statements() []string {
 	// the three functions that honour notifuse.retention_purge (no segment.left for an
 	// erased contact, contact.deleted with the address only).
 	statements = append(statements, schema.DataRetentionStatements()...)
+	// Lot 1, D13: the mirror of the contact policy and the function the expiring-soon segment
+	// condition calls.
+	statements = append(statements, schema.DataRetentionMirrorStatements()...)
+	statements = append(statements, schema.ContactRetentionExpiresAtFunction())
 	return append(statements,
 		schema.TrackContactSegmentChangesFunction(),
 		schema.WebhookContactSegmentsTriggerFunction(),

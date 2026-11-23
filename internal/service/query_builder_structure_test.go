@@ -52,7 +52,7 @@ func TestBuildSQL_TreeStructureErrors(t *testing.T) {
 	t.Run("unsupported source lists the supported ones", func(t *testing.T) {
 		_, _, _, err := qb.parseLeaf(&domain.TreeNodeLeaf{Source: "orders"}, 1, castDirectly)
 		require.EqualError(t, err,
-			"unsupported source: orders (supported: 'contacts', 'contact_lists', 'contact_timeline', 'custom_events_goals')")
+			"unsupported source: orders (supported: 'contacts', 'contact_lists', 'contact_timeline', 'custom_events_goals', 'retention')")
 	})
 
 	t.Run("nil leaf and nil branch are errors, not panics", func(t *testing.T) {

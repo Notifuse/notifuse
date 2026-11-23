@@ -21,7 +21,13 @@ type workspaceLister interface {
 // retentionRunner runs every workspace's retention policy once (DataRetentionService).
 type retentionRunner interface {
 	RunAll(ctx context.Context)
+	// LastRunAt is when the last run over every workspace ended; false when none has.
+	LastRunAt(ctx context.Context) (time.Time, bool)
 }
+
+// dataRetentionCatchUp is how long after the last run a starting server runs at once (5
+// minutes after boot) rather than waiting for 05:00 UTC: a day and a little margin.
+const dataRetentionCatchUp = 25 * time.Hour
 
 // DataRetentionWorker runs the daily data retention housekeeping: it deletes the opt-out
 // hashes of deleted contacts once they are three years old (domain.OptOutHashExpiry), and
@@ -38,17 +44,44 @@ type DataRetentionWorker struct {
 	nowFn        func() time.Time
 }
 
-// NewDataRetentionWorker builds the worker with a 24-hour interval and a five-minute
-// initial delay, so a boot is not slowed by it.
+// dataRetentionRunHour is the hour, UTC, of the daily run: the time the settings page states.
+const dataRetentionRunHour = 5
+
+// untilNextRun is how long until the next 05:00 UTC.
+func untilNextRun(now time.Time) time.Duration {
+	now = now.UTC()
+	next := time.Date(now.Year(), now.Month(), now.Day(), dataRetentionRunHour, 0, 0, 0, time.UTC)
+	if !next.After(now) {
+		next = next.Add(24 * time.Hour)
+	}
+	return next.Sub(now)
+}
+
+// NewDataRetentionWorker builds the worker: it runs every day at 05:00 UTC.
 func NewDataRetentionWorker(workspaces workspaceLister, hashes optOutHashPurger, log logger.Logger) *DataRetentionWorker {
 	return &DataRetentionWorker{
 		workspaces:   workspaces,
 		hashes:       hashes,
 		logger:       log,
 		interval:     24 * time.Hour,
-		initialDelay: 5 * time.Minute,
+		initialDelay: untilNextRun(time.Now()),
 		nowFn:        time.Now,
 	}
+}
+
+// firstDelay is how long the worker waits before its first run: until 05:00 UTC, or 5 minutes
+// when the last run is more than a day old (the server was down or restarting at 05:00).
+func (w *DataRetentionWorker) firstDelay(ctx context.Context) time.Duration {
+	if w.runner == nil {
+		return w.initialDelay
+	}
+	last, ok := w.runner.LastRunAt(ctx)
+	if !ok || w.nowFn().Sub(last) > dataRetentionCatchUp {
+		if catchUp := 5 * time.Minute; catchUp < w.initialDelay {
+			return catchUp
+		}
+	}
+	return w.initialDelay
 }
 
 // Start blocks until ctx is done. Call it in a goroutine.
@@ -56,7 +89,7 @@ func (w *DataRetentionWorker) Start(ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		return
-	case <-time.After(w.initialDelay):
+	case <-time.After(w.firstDelay(ctx)):
 	}
 	w.RunOnce(ctx)
 

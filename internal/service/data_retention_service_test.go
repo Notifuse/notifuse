@@ -28,6 +28,8 @@ type retentionTestDeps struct {
 	eraser     *fakeEraser
 	audit      *fakeAudit
 	now        time.Time
+	// mirrors are the contact policies written for the segment condition (D13).
+	mirrors []domain.ContactPolicyMirror
 }
 
 type fakeEraser struct {
@@ -63,6 +65,13 @@ func newRetentionTest(t *testing.T) *retentionTestDeps {
 	log.EXPECT().Warn(gomock.Any()).AnyTimes()
 	d.svc = NewDataRetentionService(d.workspaces, d.settings, d.repo, d.eraser, d.auth, d.mailer, d.audit, log)
 	d.svc.SetClock(func() time.Time { return d.now })
+	d.repo.EXPECT().SegmentsUsingRetentionCondition(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	d.settings.EXPECT().Set(gomock.Any(), DataRetentionLastRunSettingKey, gomock.Any()).Return(nil).AnyTimes()
+	d.repo.EXPECT().WriteContactPolicyMirror(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, mirror domain.ContactPolicyMirror) error {
+			d.mirrors = append(d.mirrors, mirror)
+			return nil
+		}).AnyTimes()
 	return d
 }
 
@@ -126,6 +135,8 @@ func TestDataRetentionService_SetPolicy(t *testing.T) {
 		require.NotNil(t, got.Pending)
 		assert.Equal(t, d.now.Add(domain.RetentionPendingDelay), got.Pending.EffectiveAt)
 		assert.Equal(t, "owner@example.com", got.Pending.RequestedBy)
+		require.Len(t, d.mirrors, 1, "the segment condition reads the new policy")
+		assert.Equal(t, domain.ContactPolicyMirror{Days: 0, PendingDays: 365, PendingAt: &got.Pending.EffectiveAt}, d.mirrors[0])
 	})
 
 	t.Run("saving the same waiting policy again keeps its date and tells nobody", func(t *testing.T) {
@@ -280,6 +291,9 @@ func TestDataRetentionService_RunWorkspace(t *testing.T) {
 
 		require.NoError(t, d.svc.RunWorkspace(context.Background(), workspaceWith(inForce), nil))
 		assert.True(t, released)
+		require.NotEmpty(t, d.mirrors, "every run writes the mirror again")
+		assert.Equal(t, 365, d.mirrors[0].Days)
+		assert.Equal(t, []string{"vip"}, d.mirrors[0].ExemptListIDs)
 		assert.Equal(t, []string{"a@x"}, d.eraser.erased)
 		assert.Equal(t, domain.RetentionRunCompleted, run.Status)
 		assert.EqualValues(t, 1, run.Results[domain.RetentionInactiveContacts].Affected)
