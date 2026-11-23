@@ -89,7 +89,11 @@ const renderPermissions = (
           refreshWorkspaces: vi.fn(),
           licenseEntitlements: null,
           checkForUpdates: false,
-          serverVersion: null
+          serverVersion: null,
+          twoFactor: null,
+          twoFactorRequired: false,
+          sessionTwoFactorPassed: true,
+          rootSessionWithoutCode: false
         }}
       >
         {children}

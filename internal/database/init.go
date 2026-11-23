@@ -38,6 +38,14 @@ func InitializeDatabase(db *sql.DB, rootEmails []string) error {
 		}
 	}
 
+	// Two-factor authentication: system database only, shared verbatim with the v45
+	// migration. It alters user_sessions, so it runs after TableDefinitions.
+	for _, query := range schema.TwoFactorTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create two-factor authentication tables: %w", err)
+		}
+	}
+
 	// Create each root user if it doesn't already exist
 	for _, rootEmail := range rootEmails {
 		if rootEmail == "" {

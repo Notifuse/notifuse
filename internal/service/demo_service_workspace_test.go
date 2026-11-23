@@ -31,12 +31,14 @@ func demoGraph(t *testing.T) (*DemoService, *mocks.MockUserRepository, *mocks.Mo
 
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	authService := mocks.NewMockAuthService(ctrl)
+	authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	cfg := &config.Config{RootEmail: "root@example.com"}
 	userServiceIface := mocks.NewMockUserServiceInterface(ctrl)
 	contactService := mocks.NewMockContactService(ctrl)
 	workspaceService := NewWorkspaceService(
 		workspaceRepo, nil, nil, log, userServiceIface, authService, nil, cfg,
 		contactService, nil, nil, nil, nil, "", nil, nil, nil, nil,
+		WorkspaceInvitationAuth{},
 	)
 
 	// The fixtures marker is not what these tests are about; it is covered in

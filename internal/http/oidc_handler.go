@@ -219,6 +219,8 @@ func (h *OIDCHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 		WriteJSONError(w, "Invalid or expired sign-in", http.StatusUnauthorized)
 		return
 	}
+	// It carries a session token.
+	noStore(w)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(resp)
 }

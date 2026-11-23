@@ -7,7 +7,6 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -37,10 +36,10 @@ func (m *MockAuthRepository) EXPECT() *MockAuthRepositoryMockRecorder {
 }
 
 // GetSessionByID mocks base method.
-func (m *MockAuthRepository) GetSessionByID(arg0 context.Context, arg1, arg2 string) (*time.Time, error) {
+func (m *MockAuthRepository) GetSessionByID(arg0 context.Context, arg1, arg2 string) (*domain.SessionAuth, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSessionByID", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*time.Time)
+	ret0, _ := ret[0].(*domain.SessionAuth)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -64,4 +63,19 @@ func (m *MockAuthRepository) GetUserByID(arg0 context.Context, arg1 string) (*do
 func (mr *MockAuthRepositoryMockRecorder) GetUserByID(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockAuthRepository)(nil).GetUserByID), arg0, arg1)
+}
+
+// IsTwoFactorEnabled mocks base method.
+func (m *MockAuthRepository) IsTwoFactorEnabled(arg0 context.Context, arg1 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTwoFactorEnabled", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsTwoFactorEnabled indicates an expected call of IsTwoFactorEnabled.
+func (mr *MockAuthRepositoryMockRecorder) IsTwoFactorEnabled(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTwoFactorEnabled", reflect.TypeOf((*MockAuthRepository)(nil).IsTwoFactorEnabled), arg0, arg1)
 }

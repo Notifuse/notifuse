@@ -76,6 +76,13 @@ func (m *MockMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 	return nil
 }
 
+func (m *MockMailer) SendSecurityNotice(email string, notice SecurityNotice, language string) error {
+	if m.shouldFail {
+		return errors.New("mock mailer error")
+	}
+	return nil
+}
+
 // ValidatingMailer is a mock implementation that validates inputs
 type ValidatingMailer struct {
 	config *Config

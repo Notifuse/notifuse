@@ -736,13 +736,18 @@ func (s *OIDCService) linkIdentity(ctx context.Context, userID, issuer, sub stri
 // mintSession creates a session row (no magic code) and an HS256 JWT — identical to
 // the RootSignin minting path.
 func (s *OIDCService) mintSession(ctx context.Context, user *domain.User) (*domain.AuthResponse, error) {
-	expiresAt := time.Now().Add(s.sessionExpiry)
+	now := time.Now()
+	expiresAt := now.Add(s.sessionExpiry)
 	session := &domain.Session{
 		ID:        generateID(),
 		UserID:    user.ID,
 		ExpiresAt: expiresAt,
-		CreatedAt: time.Now(),
-		// MagicCode / MagicCodeExpires left nil — identical to RootSignin.
+		CreatedAt: now,
+		// MagicCode / MagicCodeExpires left nil — identical to RootSignin. The identity
+		// provider owns multi-factor authentication: the session meets the instance's
+		// two-factor requirement without the Notifuse code.
+		AuthMethod:      domain.AuthMethodSSO,
+		AuthenticatedAt: &now,
 	}
 	if err := s.userRepo.CreateSession(ctx, session); err != nil {
 		s.tracer.MarkSpanError(ctx, err)

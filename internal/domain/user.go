@@ -57,6 +57,21 @@ type Session struct {
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 	MagicCode        *string    `json:"magic_code,omitempty" db:"magic_code"`
 	MagicCodeExpires *time.Time `json:"magic_code_expires,omitempty" db:"magic_code_expires_at"`
+
+	// How the session was opened and the second factor it passed (45.0). Empty for a
+	// session opened before.
+	AuthMethod      AuthMethod   `json:"-" db:"auth_method"`
+	SecondFactor    SecondFactor `json:"-" db:"second_factor"`
+	SecondFactorAt  *time.Time   `json:"-" db:"second_factor_at"`
+	AuthenticatedAt *time.Time   `json:"-" db:"authenticated_at"`
+
+	// A pending sign-in challenge: the session waits for its second factor and is not
+	// usable while ChallengeHash is set. PendingInvitationID is the invitation to accept
+	// when the challenge succeeds.
+	ChallengeHash       *string    `json:"-" db:"challenge_hash"`
+	ChallengeExpiresAt  *time.Time `json:"-" db:"challenge_expires_at"`
+	ChallengeAttempts   int        `json:"-" db:"challenge_attempts"`
+	PendingInvitationID *string    `json:"-" db:"pending_invitation_id"`
 }
 
 type SignInInput struct {
@@ -79,6 +94,13 @@ type AuthResponse struct {
 	Token     string    `json:"token"`
 	User      User      `json:"user"`
 	ExpiresAt time.Time `json:"expires_at"`
+
+	// Challenge replaces the token when the account has two-factor authentication: the
+	// handler then answers the challenge alone, never Token, User nor ExpiresAt.
+	Challenge *TwoFactorChallenge `json:"-"`
+	// InvitationStatus is set when a sign-in challenge carried an invitation: accepted,
+	// team_member_limit or invitation_unavailable.
+	InvitationStatus string `json:"invitation_status,omitempty"`
 }
 
 // UserServiceInterface defines the interface for user operations

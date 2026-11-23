@@ -1,5 +1,5 @@
 import { afterAll, describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -37,6 +37,16 @@ vi.mock('../services/api/workspace', () => ({
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
   useSearch: () => ({ token: 'invitation-token' })
+}))
+
+// The real ones pull the API client, and through it the router and every page.
+vi.mock('../services/api/auth', () => ({
+  isTwoFactorChallenge: (response: { two_factor_required?: boolean }) =>
+    response?.two_factor_required === true
+}))
+
+vi.mock('../components/two_factor/TwoFactorChallengeForm', () => ({
+  TwoFactorChallengeForm: () => <div data-testid="two-factor-challenge" />
 }))
 
 vi.mock('../layouts/MainLayout', () => ({
@@ -110,5 +120,21 @@ describe('AcceptInvitationPage dates', () => {
     renderPage()
 
     expect(await screen.findByText('20 nov. 2026')).toBeInTheDocument()
+  })
+})
+
+// The invitee has two-factor authentication: no session yet, the second step instead.
+describe('AcceptInvitationPage two-factor step', () => {
+  it('asks for the authentication code before accepting', async () => {
+    mockAuth.user = null
+    vi.mocked(workspaceService.verifyInvitationToken).mockResolvedValue(validFor('ann@acme.com'))
+    vi.mocked(workspaceService.acceptInvitation).mockResolvedValue({
+      two_factor_required: true,
+      challenge_token: 'challenge',
+      challenge_expires_at: '2026-11-23T12:00:00Z'
+    })
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Accept Invitation' }))
+    expect(await screen.findByTestId('two-factor-challenge')).toBeTruthy()
   })
 })

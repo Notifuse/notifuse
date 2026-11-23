@@ -65,6 +65,7 @@ func runResetFullGraph(t *testing.T) (*domain.Workspace, bool, error) {
 
 	// --- auth (shared by every real service below) ---
 	authService := mocks.NewMockAuthService(ctrl)
+	authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	authService.EXPECT().AuthenticateUserFromContext(gomock.Any()).Return(root, nil).Times(1)
 	authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(ctx, root, owner, nil).AnyTimes()
@@ -154,6 +155,7 @@ func runResetFullGraph(t *testing.T) (*domain.Workspace, bool, error) {
 		&DNSVerificationService{},
 		&BlogService{},
 		nil,
+		WorkspaceInvitationAuth{},
 	)
 
 	// --- template service (real): sample templates are created ---

@@ -25,9 +25,8 @@ func TestCleanDatabase(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
 
-		// Mock expectations for dropping tables - we'll expect a reasonable number of DROP statements
-		// Since we can't easily mock the exact number, we'll expect several
-		for i := 0; i < 10; i++ { // Expect up to 10 table drops
+		// One DROP per table of schema.TableNames.
+		for range schema.TableNames {
 			mock.ExpectExec("DROP TABLE IF EXISTS .+ CASCADE").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
@@ -328,7 +327,8 @@ func TestInitializeDatabase_Comprehensive(t *testing.T) {
 
 func TestInitializeDatabase_MultipleRootEmails(t *testing.T) {
 	// Number of table + migration statements run before any root user creation.
-	schemaStatements := len(schema.TableDefinitions) + len(schema.GetMigrationStatements()) + len(schema.AuditLogsTableDefinitions())
+	schemaStatements := len(schema.TableDefinitions) + len(schema.GetMigrationStatements()) + len(schema.AuditLogsTableDefinitions()) +
+		len(schema.TwoFactorTableDefinitions())
 
 	expectSchema := func(mock sqlmock.Sqlmock) {
 		for i := 0; i < schemaStatements; i++ {

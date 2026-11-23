@@ -110,6 +110,14 @@ var AuditedActions = map[string]AuditActionSpec{
 	"user.rootSignin":    {Category: AuditCategoryAuth, TargetType: AuditTargetUser, TargetKey: "email"},
 	"user.oidc.exchange": {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
 	"user.logout":        {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	// two-factor authentication; the reset names its target in the service, since the
+	// route takes either user_id or email
+	"user.twoFactor.setup":                   {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.enable":                  {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.disable":                 {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.regenerateRecoveryCodes": {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.verify":                  {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"users.resetTwoFactor":                   {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
 	"setup.initialize":   {Category: AuditCategorySystem, TargetType: AuditTargetSettings},
 
 	// licence and system settings — deployment-level, root only

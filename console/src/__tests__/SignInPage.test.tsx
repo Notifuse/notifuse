@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { SignInPage } from '../pages/SignInPage'
 import { AuthProvider } from '../contexts/AuthContext'
 import * as authService from '../services/api/auth'
@@ -17,12 +17,20 @@ vi.mock('../services/api/auth', () => ({
     getCurrentUser: vi.fn().mockRejectedValue(new Error('Not authenticated')),
     logout: vi.fn().mockResolvedValue(undefined)
   },
-  isRootUser: vi.fn().mockReturnValue(false)
+  isRootUser: vi.fn().mockReturnValue(false),
+  isTwoFactorChallenge: (response: { two_factor_required?: boolean }) =>
+    response?.two_factor_required === true
 }))
+
+const { verifyChallenge } = vi.hoisted(() => ({ verifyChallenge: vi.fn() }))
+vi.mock('../services/api/twoFactor', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api/twoFactor')>()
+  return { ...actual, twoFactorService: { ...actual.twoFactorService, verify: verifyChallenge } }
+})
 
 // Mock the navigate function and useSearch
 const mockNavigate = vi.fn(() => ({}))
-const mockSearch: { email?: string; oidc_error?: string } = { email: undefined }
+const mockSearch: { email?: string; oidc_error?: string; return_to?: 'security' } = { email: undefined }
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>()
@@ -63,6 +71,7 @@ describe('SignInPage', () => {
     // Reset search mock
     mockSearch.email = undefined
     mockSearch.oidc_error = undefined
+    mockSearch.return_to = undefined
     // Reset OIDC window globals + URL fragment between tests
     window.OIDC_ENABLED = false
     window.OIDC_BUTTON_LABEL = ''
@@ -161,6 +170,43 @@ describe('SignInPage', () => {
 
     // Verify code was logged
     expect(consoleSpy).toHaveBeenCalledWith('Magic code for development:', '123456')
+  })
+
+  // A right email code on an account with an authenticator: the second step, then the session.
+  it('asks for the authentication code, then signs in and goes back where it was sent from', async () => {
+    vi.mocked(authService.authService.signIn).mockReset()
+    vi.mocked(authService.authService.verifyCode).mockReset()
+    verifyChallenge.mockReset()
+    localStorage.clear()
+    mockSearch.return_to = 'security'
+    vi.mocked(authService.authService.signIn).mockResolvedValueOnce({ message: 'sent' })
+    vi.mocked(authService.authService.verifyCode).mockResolvedValueOnce({
+      two_factor_required: true,
+      challenge_token: 'challenge',
+      challenge_expires_at: '2026-11-23T12:00:00Z'
+    })
+    verifyChallenge.mockResolvedValueOnce({ token: 'jwt' })
+    vi.mocked(authService.authService.getCurrentUser).mockResolvedValueOnce({
+      user: { id: 'u1', email: 'test@example.com', timezone: 'UTC', language: 'en' },
+      workspaces: []
+    })
+
+    const { container } = renderWithProviders(<SignInPage />)
+    const page = within(container)
+    fireEvent.change(page.getByLabelText(/email/i), { target: { value: 'test@example.com' } })
+    fireEvent.click(page.getByText(/send magic code/i))
+    await waitFor(() => expect(page.getByText(/enter the 6-digit code/i)).toBeInTheDocument())
+    fireEvent.change(page.getByPlaceholderText('000000'), { target: { value: '123456' } })
+    fireEvent.click(page.getByText(/verify code/i))
+
+    // No token yet: the second step.
+    expect(await page.findByText('Authentication code', { selector: '.ant-card-head-title' })).toBeInTheDocument()
+    expect(localStorage.getItem('auth_token')).toBeNull()
+
+    fireEvent.change(page.getByPlaceholderText('000000'), { target: { value: '654321' } })
+    fireEvent.click(page.getByRole('button', { name: 'Verify' }))
+    await waitFor(() => expect(verifyChallenge).toHaveBeenCalledWith('challenge', { code: '654321' }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/account/security' }), { timeout: 2000 })
   })
 
   it('submits code and navigates on success', async () => {

@@ -7,15 +7,18 @@ import "strings"
 const DefaultEmailLanguage = "en"
 
 // Translations holds every localized string used by the system emails
-// (magic code, workspace invitation and circuit-breaker alert).
+// (magic code, workspace invitation, circuit-breaker alert and the security notices of
+// two-factor authentication).
 type Translations struct {
 	// Lang is the canonical locale code for this set (e.g. "en", "pt-BR"),
 	// used for the HTML lang attribute.
-	Lang             string
-	Common           CommonStrings
-	MagicCode        MagicCodeStrings
-	Invitation       InvitationStrings
-	CircuitBreaker   CircuitBreakerStrings
+	Lang           string
+	Common         CommonStrings
+	MagicCode      MagicCodeStrings
+	Invitation     InvitationStrings
+	CircuitBreaker CircuitBreakerStrings
+	// TwoFactor is filled from twoFactorTranslations at init.
+	TwoFactor        TwoFactorStrings
 	RetentionPending RetentionPendingStrings
 }
 

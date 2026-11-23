@@ -17,12 +17,24 @@ const WorkspaceIDKey ContextKey = "workspace_id"
 
 // AuthRepository defines the interface for auth-related database operations
 type AuthRepository interface {
-	GetSessionByID(ctx context.Context, sessionID string, userID string) (*time.Time, error)
+	// GetSessionByID returns a usable session (sql.ErrNoRows when there is none).
+	GetSessionByID(ctx context.Context, sessionID string, userID string) (*SessionAuth, error)
+	// IsTwoFactorEnabled reports whether the user turned on two-factor authentication.
+	IsTwoFactorEnabled(ctx context.Context, userID string) (bool, error)
 	GetUserByID(ctx context.Context, userID string) (*User, error)
 }
 
 type AuthService interface {
 	AuthenticateUserFromContext(ctx context.Context) (*User, error)
+	// AuthenticateSession checks a console session without the instance's two-factor
+	// requirement, for the routes that let a session turn it on.
+	AuthenticateSession(ctx context.Context) (*User, *SessionAuth, error)
+	// RequireCompliantSession refuses a console session that did not pass the instance's
+	// two-factor requirement (ErrTwoFactorRequired).
+	RequireCompliantSession(ctx context.Context) error
+	// RequireCompliantRootSession also refuses, on root routes, a session without a second
+	// factor when the root user has two-factor authentication.
+	RequireCompliantRootSession(ctx context.Context) error
 	AuthenticateUserForWorkspace(ctx context.Context, workspaceID string) (context.Context, *User, *UserWorkspace, error)
 	VerifyUserSession(ctx context.Context, userID, sessionID string) (*User, error)
 	GenerateUserAuthToken(user *User, sessionID string, expiresAt time.Time) string

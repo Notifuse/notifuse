@@ -49,6 +49,7 @@ func demoGapService(t *testing.T, contactAuth *mocks.MockAuthService) *demoGapDe
 
 	owner := &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws-gap", Role: "owner"}
 	authOK := mocks.NewMockAuthService(ctrl)
+	authOK.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	authOK.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(context.Background(), &domain.User{ID: "u1"}, owner, nil).AnyTimes()
 
@@ -125,6 +126,7 @@ func demoGapBroadcastExpectations(d *broadcastSvcDeps) {
 func TestDemoService_AddSampleData_GapListsFailureAborts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	contactAuth := mocks.NewMockAuthService(ctrl)
+	contactAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	d := demoGapService(t, contactAuth)
 	d.expectTemplatesOK()
 
@@ -145,6 +147,7 @@ func TestDemoService_AddSampleData_GapSubscribeFailureAborts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	sentinel := errors.New("no session")
 	contactAuth := mocks.NewMockAuthService(ctrl)
+	contactAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	// Every contact call fails authentication: step 3 logs and continues,
 	// step 4's GetContacts surfaces the failure and aborts the seed.
 	contactAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
@@ -171,6 +174,7 @@ func TestDemoService_AddSampleData_GapBroadcastFailureAborts(t *testing.T) {
 		},
 	}
 	contactAuth := mocks.NewMockAuthService(ctrl)
+	contactAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	contactAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(context.Background(), &domain.User{ID: "u1"}, member, nil).AnyTimes()
 
@@ -203,6 +207,7 @@ func TestDemoService_AddSampleData_GapMessageHistoryFailureAborts(t *testing.T) 
 		},
 	}
 	contactAuth := mocks.NewMockAuthService(ctrl)
+	contactAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	contactAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(context.Background(), &domain.User{ID: "u1"}, member, nil).AnyTimes()
 
@@ -225,6 +230,7 @@ func TestDemoService_AddSampleData_GapMessageHistoryFailureAborts(t *testing.T) 
 	txRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
 	txRepo.EXPECT().Create(gomock.Any(), "ws-gap", gomock.Any()).Return(nil).Times(2) // password reset and welcome
 	txAuth := mocks.NewMockAuthService(ctrl)
+	txAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	owner := &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws-gap", Role: "owner"}
 	txAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(context.Background(), &domain.User{ID: "u1"}, owner, nil).AnyTimes()
@@ -258,6 +264,7 @@ func TestDemoService_AddSampleData_GapFullSuccessNonFatalStepsDegrade(t *testing
 		},
 	}
 	contactAuth := mocks.NewMockAuthService(ctrl)
+	contactAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	contactAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(context.Background(), &domain.User{ID: "u1"}, member, nil).AnyTimes()
 
@@ -287,6 +294,7 @@ func TestDemoService_AddSampleData_GapFullSuccessNonFatalStepsDegrade(t *testing
 	txRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
 	txRepo.EXPECT().Create(gomock.Any(), "ws-gap", gomock.Any()).Return(nil).Times(2) // password reset and welcome
 	txAuth := mocks.NewMockAuthService(ctrl)
+	txAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	owner := &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws-gap", Role: "owner"}
 	txAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
 		Return(context.Background(), &domain.User{ID: "u1"}, owner, nil).AnyTimes()
@@ -337,6 +345,7 @@ func demoGapWebhookSvc(t *testing.T, wsRepo *mocks.MockWorkspaceRepository, even
 			nil, &config.Config{},
 			mocks.NewMockContactService(ctrl),
 			nil, nil, nil, nil, "", nil, nil, nil, nil,
+			WorkspaceInvitationAuth{},
 		)
 	}
 	return svc

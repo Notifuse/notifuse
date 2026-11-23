@@ -433,8 +433,9 @@ func AuditFromContext(ctx context.Context) *AuditRecord {
 // case-insensitively against the JSON key alone, so smtp_password,
 // OIDCClientSecret, access_key_id, api_key and SecretKey are all caught. "key"
 // is anchored to the end of the key on purpose: api_key_email is an address,
-// not a secret, and must stay readable.
-var auditSecretKey = regexp.MustCompile(`(?i)(secret|password|passwd|token|credential|private|signature|access_key|tls_key|tlskey|key$)`)
+// not a secret, and must stay readable. recovery_code and otpauth_uri are the
+// second factor and the authenticator secret.
+var auditSecretKey = regexp.MustCompile(`(?i)(secret|password|passwd|token|credential|private|signature|access_key|tls_key|tlskey|key$|recovery_code|otpauth)`)
 
 // auditIgnoredKeys are bookkeeping fields that change on every save and would
 // only add noise to a diff.

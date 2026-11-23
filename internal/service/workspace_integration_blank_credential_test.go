@@ -170,6 +170,7 @@ func TestUpdateIntegration_SucceedsWithBlankCredential(t *testing.T) {
 				&DNSVerificationService{},
 				&BlogService{},
 				fullyLicensedProvider(ctrl),
+				WorkspaceInvitationAuth{},
 			)
 
 			ctx := context.Background()
@@ -249,6 +250,7 @@ func TestUpdateIntegration_RotatesWhenACredentialIsSupplied(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	senders := []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Sender")}

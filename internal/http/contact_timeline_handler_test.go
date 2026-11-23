@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -182,20 +183,30 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "limit cannot exceed 100")
 	})
 
-	t.Run("Error - Authentication failed", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&email=user@example.com", nil)
-		w := httptest.NewRecorder()
+	// Only a dead session answers 401: the console signs out on any 401.
+	for name, tc := range map[string]struct {
+		err    error
+		status int
+	}{
+		"Error - Session expired":             {fmt.Errorf("%w: expired", domain.ErrSessionAuthFailed), http.StatusUnauthorized},
+		"Error - Second factor required":      {domain.ErrTwoFactorRequired, http.StatusForbidden},
+		"Error - Authentication lookup fails": {assert.AnError, http.StatusInternalServerError},
+	} {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&email=user@example.com", nil)
+			w := httptest.NewRecorder()
 
-		mockAuthService.EXPECT().
-			AuthenticateUserForWorkspace(gomock.Any(), "ws1").
-			Return(context.Background(), nil, nil, assert.AnError)
+			mockAuthService.EXPECT().
+				AuthenticateUserForWorkspace(gomock.Any(), "ws1").
+				Return(context.Background(), nil, nil, tc.err)
 
-		mockLogger.EXPECT().Error(gomock.Any())
+			mockLogger.EXPECT().Error(gomock.Any())
 
-		handler.handleList(w, req)
+			handler.handleList(w, req)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
+			assert.Equal(t, tc.status, w.Code)
+		})
+	}
 
 	t.Run("Error - Service error", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&email=user@example.com", nil)

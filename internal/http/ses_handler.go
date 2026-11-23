@@ -143,6 +143,11 @@ func (h *SESHandler) decode(w http.ResponseWriter, r *http.Request, target inter
 }
 
 func (h *SESHandler) writeError(w http.ResponseWriter, err error, context string) {
+	// A dead credential, a missing second factor or a missing grant, before the
+	// SES-specific answers: a 502 would read as an AWS fault.
+	if writePermissionError(w, err) {
+		return
+	}
 	var unauthorized *domain.ErrUnauthorized
 	switch {
 	case domain.IsSESAccessDenied(err):

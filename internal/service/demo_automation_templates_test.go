@@ -164,6 +164,7 @@ func TestDemoAutomationTemplates_CreateContinuesAfterFailure(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
+	mockAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 
 	mockAuth.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws1").
@@ -228,6 +229,7 @@ func TestDemoAutomationTemplates_CreatesEveryTemplate(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
+	mockAuth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 
 	mockAuth.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws1").

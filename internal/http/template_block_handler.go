@@ -51,6 +51,9 @@ func (h *TemplateBlockHandler) handleList(w http.ResponseWriter, r *http.Request
 
 	blocks, err := h.service.ListTemplateBlocks(r.Context(), req.WorkspaceID)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to list template blocks")
 		WriteJSONError(w, "Failed to list template blocks", http.StatusInternalServerError)
 		return
@@ -75,6 +78,9 @@ func (h *TemplateBlockHandler) handleGet(w http.ResponseWriter, r *http.Request)
 
 	block, err := h.service.GetTemplateBlock(r.Context(), req.WorkspaceID, req.ID)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrTemplateBlockNotFound); ok {
 			WriteJSONError(w, "Template block not found", http.StatusNotFound)
 			return
@@ -109,6 +115,9 @@ func (h *TemplateBlockHandler) handleCreate(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := h.service.CreateTemplateBlock(r.Context(), workspaceID, block); err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to create template block")
 
 		if strings.Contains(err.Error(), "already exists") {
@@ -145,6 +154,9 @@ func (h *TemplateBlockHandler) handleUpdate(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := h.service.UpdateTemplateBlock(r.Context(), workspaceID, block); err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrTemplateBlockNotFound); ok {
 			WriteJSONError(w, "Template block not found", http.StatusNotFound)
 			return
@@ -179,6 +191,9 @@ func (h *TemplateBlockHandler) handleDelete(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := h.service.DeleteTemplateBlock(r.Context(), workspaceID, id); err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrTemplateBlockNotFound); ok {
 			WriteJSONError(w, "Template block not found", http.StatusNotFound)
 			return
