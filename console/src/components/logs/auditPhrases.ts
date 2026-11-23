@@ -41,11 +41,14 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'broadcasts.sendToIndividual': msg({ message: 'Sent the newsletter <0>{target}</0> to one recipient' }),
   'broadcasts.unschedule': msg({ message: 'Sent the newsletter <0>{target}</0> back to draft' }),
   'broadcasts.update': msg({ message: 'Updated the newsletter <0>{target}</0>' }),
+  'contactLists.removeContact': msg({ message: 'Removed the contact <0>{target}</0> from a list' }),
   'contactLists.updateStatus': msg({ message: 'Re-subscribed the contact <0>{target}</0> after they opted out' }),
   'contacts.delete': msg({ message: 'Deleted the contact <0>{target}</0>' }),
   'contacts.export': msg({ message: 'Exported contacts' }),
   'contacts.import': msg({ message: 'Imported contacts' }),
+  'contacts.upsert': msg({ message: 'Created or updated the contact <0>{target}</0>' }),
   'customEvents.import': msg({ message: 'Imported custom events' }),
+  'customEvents.upsert': msg({ message: 'Recorded a custom event for the contact <0>{target}</0>' }),
   'dataRetention.cancelPending': msg({ message: 'Cancelled the data retention change of <0>{target}</0>' }),
   'dataRetention.purged': msg({ message: 'Applied the data retention policy of <0>{target}</0>' }),
   'dataRetention.set': msg({ message: 'Changed the data retention policy of <0>{target}</0>' }),
@@ -76,6 +79,8 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'templates.update': msg({ message: 'Updated the template <0>{target}</0>' }),
   'transactional.create': msg({ message: 'Created the transactional notification <0>{target}</0>' }),
   'transactional.delete': msg({ message: 'Deleted the transactional notification <0>{target}</0>' }),
+  'transactional.send': msg({ message: 'Sent the transactional notification <0>{target}</0>' }),
+  'transactional.testTemplate': msg({ message: 'Sent a test email of the template <0>{target}</0>' }),
   'transactional.update': msg({ message: 'Updated the transactional notification <0>{target}</0>' }),
   'user.logout': msg({ message: 'Signed out' }),
   'user.oidc.callback': msg({ message: 'Signed in with single sign-on' }),
@@ -114,4 +119,15 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'workspaces.update': msg({ message: 'Updated the workspace settings of <0>{target}</0>' }),
   'workspaces.updateIntegration': msg({ message: 'Updated the integration <0>{target}</0>' }),
   'workspaces.verifyDKIMDomain': msg({ message: 'Checked a DKIM record of <0>{target}</0>' })
+}
+
+/**
+ * The API records lists.subscribe and contactLists.updateStatus only when they re-subscribe a
+ * contact who opted out, and the service then marks the entry with resubscribed_list_ids. An MCP
+ * tool records every call, so an entry without that mark is an ordinary subscription change.
+ */
+// prettier-ignore
+export const SUBSCRIPTION_CHANGE_PHRASES: Record<string, MessageDescriptor> = {
+  'contactLists.updateStatus': msg({ message: 'Changed the list status of the contact <0>{target}</0>' }),
+  'lists.subscribe': msg({ message: 'Subscribed the contact <0>{target}</0> to a list' }),
 }

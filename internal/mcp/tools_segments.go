@@ -398,3 +398,292 @@ func decodeRequest(fields map[string]any, req any) error {
 	}
 	return json.Unmarshal(body, req)
 }
+
+// segmentColors are the colors the console offers a segment, in its order.
+var segmentColors = []string{"magenta", "red", "volcano", "orange", "gold", "lime", "green", "cyan", "blue", "geekblue", "purple", "grey"}
+
+// defaultSegmentColor is the console's default.
+const defaultSegmentColor = "blue"
+
+// segmentRecord is a segment as the segment write tools return it:
+// get_segment's shape without the count, which the build has not made yet,
+// and without the last error, which a write clears.
+type segmentRecord struct {
+	ID              string           `json:"id"`
+	Name            string           `json:"name"`
+	Color           string           `json:"color"`
+	Status          string           `json:"status"`
+	Timezone        string           `json:"timezone"`
+	Tree            *domain.TreeNode `json:"tree"`
+	RecomputesDaily bool             `json:"recomputes_daily"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
+	Truncation
+}
+
+func projectSegmentRecord(segment *domain.Segment) segmentRecord {
+	full := projectSegment(segment)
+	return segmentRecord{
+		ID:              full.ID,
+		Name:            full.Name,
+		Color:           full.Color,
+		Status:          full.Status,
+		Timezone:        full.Timezone,
+		Tree:            full.Tree,
+		RecomputesDaily: full.RecomputesDaily,
+		CreatedAt:       full.CreatedAt,
+		UpdatedAt:       full.UpdatedAt,
+		Truncation:      full.Truncation,
+	}
+}
+
+type segmentOutput struct {
+	Workspace WorkspaceRef  `json:"workspace"`
+	Segment   segmentRecord `json:"segment"`
+}
+
+// segmentWriteArgs are the arguments of create_segment and update_segment.
+type segmentWriteArgs struct {
+	ID       string          `json:"id"`
+	Name     *string         `json:"name"`
+	Color    *string         `json:"color"`
+	Timezone *string         `json:"timezone"`
+	Tree     json.RawMessage `json:"tree"`
+}
+
+// timezoneArgument checks a timezone as a workspace's is checked: the service
+// never refuses one, and uses it only for the daily rebuild.
+func timezoneArgument(timezone string) *ToolError {
+	if !domain.IsValidTimezone(timezone) {
+		return validationError("timezone %q is not an IANA timezone, such as Europe/Paris", timezone)
+	}
+	return nil
+}
+
+func (s *Server) createSegmentTool() *Tool {
+	return &Tool{
+		Name:  "create_segment",
+		Title: "Create segment",
+		Description: "Creates a segment from a conditions tree, with the ID you choose. " +
+			"Its contacts are computed in the background: the segment starts with status building, and get_segment gives the count once the status is active. " +
+			"The ID cannot be reused, even after the segment is deleted, so a repeated call answers conflict. " +
+			"Check the conditions with preview_segment first.",
+		Class:       ClassWrite,
+		Idempotent:  boolPtr(false),
+		Pairs:       []Pair{{Resource: domain.PermissionResourceSegments, Verb: domain.PermissionTypeWrite}},
+		AuditAction: "segments.create",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"id":           map[string]any{"type": "string", "description": "Lowercase letters, digits and underscores, 1 to 32 characters."},
+				"name":         map[string]any{"type": "string", "description": "1 to 255 characters."},
+				"color":        map[string]any{"type": "string", "enum": segmentColors, "description": "Badge color in the console. Default blue."},
+				"timezone":     map[string]any{"type": "string", "description": "IANA timezone for relative dates and the daily rebuild, such as Europe/Paris. Default: the workspace timezone."},
+				"tree":         map[string]any{"type": "object", "description": segmentTreeDescription},
+			},
+			"required":             []string{"workspace_id", "id", "name", "tree"},
+			"additionalProperties": false,
+		},
+		Handler: s.createSegment,
+	}
+}
+
+func (s *Server) createSegment(ctx context.Context, call *Call) (any, error) {
+	var args segmentWriteArgs
+	if err := call.DecodeArgs(&args); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	call.Audit.SetTarget(domain.AuditTargetSegment, args.ID, valueOr(args.Name, ""))
+
+	color := valueOr(args.Color, defaultSegmentColor)
+	timezone := valueOr(args.Timezone, "")
+	if timezone == "" && call.Workspace != nil {
+		timezone = call.Workspace.Settings.Timezone
+	}
+	if toolErr := timezoneArgument(timezone); toolErr != nil {
+		return nil, toolErr
+	}
+	if _, toolErr := decodeSegmentTree(args.Tree); toolErr != nil {
+		return nil, toolErr
+	}
+
+	var req domain.CreateSegmentRequest
+	if err := requestFromJSON(map[string]any{
+		"workspace_id": call.WorkspaceID,
+		"id":           args.ID,
+		"name":         valueOr(args.Name, ""),
+		"color":        color,
+		"timezone":     timezone,
+		"tree":         args.Tree,
+	}, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	if _, _, err := req.Validate(); err != nil {
+		return nil, validationError("%v", err)
+	}
+
+	segment, err := s.deps.Segments.CreateSegment(ctx, &req)
+	if err != nil {
+		return nil, err
+	}
+	if segment == nil {
+		return nil, errors.New("segment create returned no segment")
+	}
+	return segmentOutput{Workspace: call.WorkspaceRef(), Segment: projectSegmentRecord(segment)}, nil
+}
+
+// storedSegment reads a segment a write tool changes, and answers not_found
+// for a deleted one: its row stays, and the service would change it again.
+func (s *Server) storedSegment(ctx context.Context, workspaceID, id string) (*domain.Segment, error) {
+	segment, err := s.deps.SegmentRows.GetSegmentByID(ctx, workspaceID, id)
+	if err != nil {
+		return nil, err
+	}
+	if segment == nil || segment.Status == string(domain.SegmentStatusDeleted) {
+		return nil, &domain.ErrSegmentNotFound{Message: "segment not found"}
+	}
+	return segment, nil
+}
+
+func (s *Server) updateSegmentTool() *Tool {
+	return &Tool{
+		Name:  "update_segment",
+		Title: "Update segment",
+		Description: "Changes the fields you give on a segment and keeps the others. A new tree replaces the whole tree. " +
+			"Every update computes the segment's contacts again, even a rename: the status is building until it is done. " +
+			"The segment is read then written, so a change saved elsewhere in between can be lost. " +
+			"Calling it again with the same arguments writes the same values and computes the contacts once more. " +
+			"Returns not_found for a deleted segment.",
+		Class:      ClassWrite,
+		Idempotent: boolPtr(true),
+		Pairs: []Pair{
+			{Resource: domain.PermissionResourceSegments, Verb: domain.PermissionTypeWrite},
+			{Resource: domain.PermissionResourceSegments, Verb: domain.PermissionTypeRead},
+		},
+		AuditAction: "segments.update",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"id":           map[string]any{"type": "string", "description": "The segment's ID."},
+				"name":         map[string]any{"type": "string", "description": "1 to 255 characters."},
+				"color":        map[string]any{"type": "string", "enum": segmentColors, "description": "Badge color in the console."},
+				"timezone":     map[string]any{"type": "string", "description": "IANA timezone for relative dates and the daily rebuild, such as Europe/Paris."},
+				"tree":         map[string]any{"type": "object", "description": "Replaces the whole tree. " + segmentTreeDescription},
+			},
+			"required":             []string{"workspace_id", "id"},
+			"additionalProperties": false,
+		},
+		Handler: s.updateSegment,
+	}
+}
+
+func (s *Server) updateSegment(ctx context.Context, call *Call) (any, error) {
+	var args segmentWriteArgs
+	if err := call.DecodeArgs(&args); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	call.Audit.SetTarget(domain.AuditTargetSegment, args.ID, "")
+	if args.Name == nil && args.Color == nil && args.Timezone == nil && args.Tree == nil {
+		return nil, validationError("give at least one of name, color, timezone and tree")
+	}
+	if args.Timezone != nil {
+		if toolErr := timezoneArgument(*args.Timezone); toolErr != nil {
+			return nil, toolErr
+		}
+	}
+	if args.Tree != nil {
+		if _, toolErr := decodeSegmentTree(args.Tree); toolErr != nil {
+			return nil, toolErr
+		}
+	}
+
+	// segments.update requires every field, so the tool reads the segment and
+	// writes it back with the given fields changed.
+	stored, err := s.storedSegment(ctx, call.WorkspaceID, args.ID)
+	if err != nil {
+		return nil, err
+	}
+	call.Audit.SetTarget("", "", stored.Name)
+	var tree any = stored.Tree
+	if args.Tree != nil {
+		tree = args.Tree
+	}
+	var req domain.UpdateSegmentRequest
+	if err := requestFromJSON(map[string]any{
+		"workspace_id": call.WorkspaceID,
+		"id":           stored.ID,
+		"name":         valueOr(args.Name, stored.Name),
+		"color":        valueOr(args.Color, stored.Color),
+		"timezone":     valueOr(args.Timezone, stored.Timezone),
+		"tree":         tree,
+	}, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	if _, _, err := req.Validate(); err != nil {
+		return nil, validationError("%v", err)
+	}
+
+	segment, err := s.deps.Segments.UpdateSegment(ctx, &req)
+	if err != nil {
+		return nil, err
+	}
+	if segment == nil {
+		return nil, errors.New("segment update returned no segment")
+	}
+	call.Audit.SetTarget("", "", segment.Name)
+	return segmentOutput{Workspace: call.WorkspaceRef(), Segment: projectSegmentRecord(segment)}, nil
+}
+
+func (s *Server) deleteSegmentTool() *Tool {
+	return &Tool{
+		Name:  "delete_segment",
+		Title: "Delete segment",
+		Description: "Deletes a segment and its list of contacts. The contacts themselves are kept. Its ID cannot be used again. " +
+			"This cannot be undone: confirm the segment with the user first. " +
+			"Returns not_found for a segment that does not exist or is already deleted, which is also what a repeated call answers.",
+		Class:       ClassDestructive,
+		Pairs:       []Pair{{Resource: domain.PermissionResourceSegments, Verb: domain.PermissionTypeWrite}},
+		AuditAction: "segments.delete",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"id":           map[string]any{"type": "string", "description": "The segment's ID."},
+			},
+			"required":             []string{"workspace_id", "id"},
+			"additionalProperties": false,
+		},
+		Handler: s.deleteSegment,
+	}
+}
+
+type deleteSegmentOutput struct {
+	Workspace WorkspaceRef `json:"workspace"`
+	Deleted   bool         `json:"deleted"`
+	ID        string       `json:"id"`
+}
+
+func (s *Server) deleteSegment(ctx context.Context, call *Call) (any, error) {
+	id, _ := call.Args["id"].(string)
+	call.Audit.SetTarget(domain.AuditTargetSegment, id, "")
+	var req domain.DeleteSegmentRequest
+	if err := requestFromJSON(map[string]any{"workspace_id": call.WorkspaceID, "id": id}, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	if _, _, err := req.Validate(); err != nil {
+		return nil, validationError("%v", err)
+	}
+	// The service deletes a deleted segment again and answers success: read
+	// first, so a repeated call answers not_found.
+	stored, err := s.storedSegment(ctx, call.WorkspaceID, id)
+	if err != nil {
+		return nil, err
+	}
+	call.Audit.SetTarget("", "", stored.Name)
+	if err := s.deps.Segments.DeleteSegment(ctx, &req); err != nil {
+		return nil, err
+	}
+	return deleteSegmentOutput{Workspace: call.WorkspaceRef(), Deleted: true, ID: id}, nil
+}
