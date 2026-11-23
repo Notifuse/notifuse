@@ -513,6 +513,10 @@ SubscribeToListsRequest:
         - newsletter
         - product_updates
       minItems: 1
+    resubscribe:
+      type: boolean
+      default: false
+      description: Set to `true` to subscribe a contact who unsubscribed from a list again. They become `active` with no confirmation email. Without it they stay `unsubscribed`. It never changes `bounced` or `complained`, and the public `/subscribe` endpoint ignores it.
 
 SubscriptionContact:
   type: object
@@ -851,6 +855,10 @@ UpdateContactListStatusRequest:
         - complained
       description: New subscription status
       example: active
+    resubscribe:
+      type: boolean
+      default: false
+      description: With `status` set to `active`, subscribes an `unsubscribed` contact again. A user signed in to the console can also clear `bounced`; an API key can't. `complained` never changes.
 
 UpdateContactListStatusResponse:
   type: object

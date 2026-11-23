@@ -392,6 +392,8 @@ func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
 	// AddToList executor adds contact to list
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(&domain.ContactList{Status: domain.ContactListStatusActive}, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
@@ -528,6 +530,8 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(&domain.ContactList{Status: domain.ContactListStatusActive}, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
@@ -539,6 +543,8 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca2").Return([]*domain.NodeExecution{}, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(&domain.ContactList{Status: domain.ContactListStatusActive}, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
@@ -657,6 +663,8 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca2").Return([]*domain.NodeExecution{}, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(&domain.ContactList{Status: domain.ContactListStatusActive}, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
@@ -2239,6 +2247,8 @@ func TestAutomationExecutor_Execute_OptimisticLockAbortsOnConcurrentExit(t *test
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(&domain.ContactList{Status: domain.ContactListStatusActive}, nil)
 	// The journey was concurrently exited → persist matches 0 rows.
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 	// The step ran, so its execution is completed; the tick then aborts with no completion

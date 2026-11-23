@@ -126,6 +126,11 @@ func (h *ContactListHandler) handleGetListsByContact(w http.ResponseWriter, r *h
 }
 
 func (h *ContactListHandler) handleUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	// Audited only when a contact who had opted out was subscribed again, which the
+	// service marks; every other call, refusals and malformed requests included, is
+	// data plane and skipped.
+	defer skipAuditUnlessResubscribed(r)
+
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -145,9 +150,19 @@ func (h *ContactListHandler) handleUpdateStatus(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	result, err := h.service.UpdateContactListStatus(r.Context(), workspaceID, contactList.Email, contactList.ListID, contactList.Status)
+	result, err := h.service.UpdateContactListStatus(r.Context(), workspaceID, contactList.Email, contactList.ListID, contactList.Status, req.Resubscribe)
 	if err != nil {
 		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
+		// The contact opted out and the change would undo it: the caller's request, not
+		// a fault, and the message says what would be allowed.
+		var optedOut *domain.ErrContactListOptedOut
+		if errors.As(err, &optedOut) {
+			writeJSON(w, http.StatusConflict, map[string]interface{}{
+				"error":  optedOut.Error(),
+				"status": optedOut.Status,
+			})
 			return
 		}
 		if _, ok := err.(*domain.ErrContactListNotFound); ok {
@@ -202,4 +217,13 @@ func (h *ContactListHandler) handleRemoveContact(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 	})
+}
+
+// skipAuditUnlessResubscribed drops the audit record of lists.subscribe and
+// contactLists.updateStatus unless the service marked a re-subscription. Deferred at
+// the top of both handlers, so it also covers their early 400 and 405 answers.
+func skipAuditUnlessResubscribed(r *http.Request) {
+	if audit := domain.AuditFromContext(r.Context()); !audit.HasMetadata(domain.AuditResubscribedListIDs) {
+		audit.Skip()
+	}
 }

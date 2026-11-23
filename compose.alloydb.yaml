@@ -25,7 +25,7 @@
 
 services:
   api:
-    image: notifuse/notifuse:${NOTIFUSE_VERSION:-v44.1}
+    image: notifuse/notifuse:${NOTIFUSE_VERSION:-v45.0}
     build:
       context: .
       dockerfile: Dockerfile

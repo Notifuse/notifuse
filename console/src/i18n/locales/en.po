@@ -650,6 +650,11 @@ msgstr "{0} seconds"
 #~ msgid "{0} total unsubscribes (hidden from chart)"
 #~ msgstr "{0} total unsubscribes (hidden from chart)"
 
+#. placeholder {0}: contact.email
+#: src/components/contacts/sheet/ContactListsCard.tsx:69
+msgid "{0} unsubscribed from {name}"
+msgstr "{0} unsubscribed from {name}"
+
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
 #: src/pages/AutomationsPage.tsx:231
@@ -2223,7 +2228,7 @@ msgstr "About unsubscribed recipients"
 msgid "Accept Invitation"
 msgstr "Accept Invitation"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:86
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Accepted the invitation <0>{target}</0>"
 
@@ -2277,7 +2282,7 @@ msgstr "Actions"
 #. placeholder {0}: item.name
 #. placeholder {0}: listName(subscription.list_id)
 #: src/components/contacts/ContactsTable.tsx:115
-#: src/components/contacts/sheet/ContactListsCard.tsx:173
+#: src/components/contacts/sheet/ContactListsCard.tsx:215
 #: src/components/file_manager/FileGrid.tsx:114
 #: src/components/file_manager/FileTable.tsx:147
 #: src/components/file_manager/FolderTree.tsx:109
@@ -2678,7 +2683,7 @@ msgstr "Added on {0}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "Added the annotation <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:90
 msgid "Added the integration <0>{target}</0>"
 msgstr "Added the integration <0>{target}</0>"
 
@@ -3697,7 +3702,7 @@ msgstr "Ask me to help write your blog..."
 #~ msgid "Ask the person who runs this Notifuse instance to install a licence."
 #~ msgstr "Ask the person who runs this Notifuse instance to install a licence."
 
-#: src/components/logs/auditPhrases.ts:74
+#: src/components/logs/auditPhrases.ts:76
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "Asked for a sign-in code for <0>{target}</0>"
 
@@ -5160,7 +5165,8 @@ msgstr "Can't test in the browser"
 #: src/components/contacts/InlineEditableField.tsx:302
 #: src/components/contacts/InlineEditableField.tsx:318
 #: src/components/contacts/InlineEditableField.tsx:359
-#: src/components/contacts/sheet/ContactListsCard.tsx:114
+#: src/components/contacts/sheet/ContactListsCard.tsx:125
+#: src/components/contacts/sheet/ContactListsCard.tsx:156
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:151
@@ -5282,7 +5288,7 @@ msgctxt "newsletter status"
 msgid "Cancelled"
 msgstr "Cancelled"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:93
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "Cancelled the invitation <0>{target}</0>"
 
@@ -5290,7 +5296,7 @@ msgstr "Cancelled the invitation <0>{target}</0>"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "Cancelled the newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:76
+#: src/components/logs/auditPhrases.ts:78
 msgid "Cancelled the web analytics backfill"
 msgstr "Cancelled the web analytics backfill"
 
@@ -5463,27 +5469,27 @@ msgstr "Change sender"
 #~ msgstr "Change Status"
 
 #. placeholder {0}: listName(statusOf.list_id)
-#: src/components/contacts/sheet/ContactListsCard.tsx:214
+#: src/components/contacts/sheet/ContactListsCard.tsx:260
 msgid "Change Status for {0}"
 msgstr "Change Status for {0}"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:99
+#: src/components/contacts/sheet/ContactListsCard.tsx:139
 msgid "Change status…"
 msgstr "Change status…"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:97
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "Changed the audit log retention of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:98
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "Changed the blog settings of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:100
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "Changed the permissions of <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:101
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "Changed the web analytics settings of <0>{target}</0>"
 
@@ -6510,7 +6516,7 @@ msgstr "Connected apps"
 msgid "Connected to {target} · {time}"
 msgstr "Connected to {target} · {time}"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:87
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "Connected Zapier as the integration <0>{target}</0>"
 
@@ -6562,7 +6568,7 @@ msgstr "Console"
 msgid "Contact"
 msgstr "Contact"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:63
+#: src/components/contacts/sheet/ContactListsCard.tsx:85
 msgid "Contact added to list successfully"
 msgstr "Contact added to list successfully"
 
@@ -6643,11 +6649,15 @@ msgstr "Contact property"
 #~ msgid "Contact re-enters each time the event occurs"
 #~ msgstr "Contact re-enters each time the event occurs"
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:100
+msgid "Contact re-subscribed"
+msgstr "Contact re-subscribed"
+
 #: src/services/api/permissions.ts:138
 msgid "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 msgstr "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:90
+#: src/components/contacts/sheet/ContactListsCard.tsx:111
 msgid "Contact removed from the list"
 msgstr "Contact removed from the list"
 
@@ -7516,7 +7526,7 @@ msgstr "Created new version v{savedVersion}"
 msgid "Created on {createdOn}"
 msgstr "Created on {createdOn}"
 
-#: src/components/logs/auditPhrases.ts:87
+#: src/components/logs/auditPhrases.ts:89
 msgid "Created the API key <0>{target}</0>"
 msgstr "Created the API key <0>{target}</0>"
 
@@ -7536,7 +7546,7 @@ msgstr "Created the blog post <0>{target}</0>"
 msgid "Created the blog theme <0>{target}</0>"
 msgstr "Created the blog theme <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:51
+#: src/components/logs/auditPhrases.ts:52
 msgid "Created the list <0>{target}</0>"
 msgstr "Created the list <0>{target}</0>"
 
@@ -7544,23 +7554,23 @@ msgstr "Created the list <0>{target}</0>"
 msgid "Created the newsletter <0>{target}</0>"
 msgstr "Created the newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:54
+#: src/components/logs/auditPhrases.ts:56
 msgid "Created the segment <0>{target}</0>"
 msgstr "Created the segment <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:64
+#: src/components/logs/auditPhrases.ts:66
 msgid "Created the template <0>{target}</0>"
 msgstr "Created the template <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:67
+#: src/components/logs/auditPhrases.ts:69
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "Created the transactional notification <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:78
+#: src/components/logs/auditPhrases.ts:80
 msgid "Created the webhook <0>{target}</0>"
 msgstr "Created the webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:86
+#: src/components/logs/auditPhrases.ts:88
 msgid "Created the workspace <0>{target}</0>"
 msgstr "Created the workspace <0>{target}</0>"
 
@@ -8580,11 +8590,11 @@ msgstr "Deleted the blog category <0>{target}</0>"
 msgid "Deleted the blog post <0>{target}</0>"
 msgstr "Deleted the blog post <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:44
+#: src/components/logs/auditPhrases.ts:45
 msgid "Deleted the contact <0>{target}</0>"
 msgstr "Deleted the contact <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:52
+#: src/components/logs/auditPhrases.ts:53
 msgid "Deleted the list <0>{target}</0>"
 msgstr "Deleted the list <0>{target}</0>"
 
@@ -8592,27 +8602,27 @@ msgstr "Deleted the list <0>{target}</0>"
 msgid "Deleted the newsletter <0>{target}</0>"
 msgstr "Deleted the newsletter <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:62
+#: src/components/logs/auditPhrases.ts:64
 msgid "Deleted the saved block <0>{target}</0>"
 msgstr "Deleted the saved block <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:55
+#: src/components/logs/auditPhrases.ts:57
 msgid "Deleted the segment <0>{target}</0>"
 msgstr "Deleted the segment <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:65
+#: src/components/logs/auditPhrases.ts:67
 msgid "Deleted the template <0>{target}</0>"
 msgstr "Deleted the template <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:68
+#: src/components/logs/auditPhrases.ts:70
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "Deleted the transactional notification <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:79
+#: src/components/logs/auditPhrases.ts:81
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "Deleted the webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:91
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Deleted the workspace <0>{target}</0>"
 
@@ -10873,7 +10883,7 @@ msgstr "Export the audit log as CSV or NDJSON"
 msgid "Export to CSV"
 msgstr "Export to CSV"
 
-#: src/components/logs/auditPhrases.ts:45
+#: src/components/logs/auditPhrases.ts:46
 msgid "Exported contacts"
 msgstr "Exported contacts"
 
@@ -10987,7 +10997,7 @@ msgid "Failed to activate automation"
 msgstr "Failed to activate automation"
 
 #. placeholder {0}: error.message
-#: src/components/contacts/sheet/ContactListsCard.tsx:67
+#: src/components/contacts/sheet/ContactListsCard.tsx:87
 msgid "Failed to add to list: {0}"
 msgstr "Failed to add to list: {0}"
 
@@ -11508,7 +11518,7 @@ msgid "Failed to update segment"
 msgstr "Failed to update segment"
 
 #. placeholder {0}: error.message
-#: src/components/contacts/sheet/ContactListsCard.tsx:83
+#: src/components/contacts/sheet/ContactListsCard.tsx:104
 msgid "Failed to update status: {0}"
 msgstr "Failed to update status: {0}"
 
@@ -13296,11 +13306,11 @@ msgstr "Important Notes"
 #~ msgid "Imported {0} contacts ({1} failed, see details below)"
 #~ msgstr "Imported {0} contacts ({1} failed, see details below)"
 
-#: src/components/logs/auditPhrases.ts:46
+#: src/components/logs/auditPhrases.ts:47
 msgid "Imported contacts"
 msgstr "Imported contacts"
 
-#: src/components/logs/auditPhrases.ts:47
+#: src/components/logs/auditPhrases.ts:48
 msgid "Imported custom events"
 msgstr "Imported custom events"
 
@@ -13757,7 +13767,7 @@ msgstr "Invite member"
 msgid "Invite your team"
 msgstr "Invite your team"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:94
 msgid "Invited <0>{target}</0>"
 msgstr "Invited <0>{target}</0>"
 
@@ -13988,7 +13998,7 @@ msgstr "Joined segment {chip}"
 msgid "Joined segment {segment}"
 msgstr "Joined segment {segment}"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:95
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "Joined with the invitation <0>{target}</0>"
 
@@ -14074,6 +14084,10 @@ msgstr "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
 #: src/components/contacts/csv-import/ImportProgress.tsx:74
 msgid "Keep this tab open"
 msgstr "Keep this tab open"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:72
+msgid "Keep unsubscribed"
+msgstr "Keep unsubscribed"
 
 #: src/components/logs/AuditLogTab.tsx:614
 msgid "Kept for the deployment default"
@@ -14850,7 +14864,7 @@ msgstr "List updated"
 #: src/components/contacts/ContactsRail.tsx:75
 #: src/components/contacts/ContactsTable.tsx:220
 #: src/components/contacts/csv-import/ColumnsStep.tsx:221
-#: src/components/contacts/sheet/ContactListsCard.tsx:126
+#: src/components/contacts/sheet/ContactListsCard.tsx:168
 #: src/components/logs/labels.ts:17
 #: src/components/settings/permissionLabels.ts:8
 #: src/components/templates/DeleteTemplateModal.tsx:44
@@ -17132,6 +17146,14 @@ msgstr "not subscribed"
 msgid "Not subscribed to this list"
 msgstr "Not subscribed to this list"
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:80
+msgid "Not subscribed: this address bounced on {name}"
+msgstr "Not subscribed: this address bounced on {name}"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:81
+msgid "Not subscribed: this contact reported emails from {name} as spam"
+msgstr "Not subscribed: this contact reported emails from {name} as spam"
+
 #: src/components/web_analytics/filters/ConditionResultRow.tsx:43
 msgid "Not tested"
 msgstr "Not tested"
@@ -18813,7 +18835,7 @@ msgstr "Please select a goal type"
 msgid "Please select a JSON file"
 msgstr "Please select a JSON file"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:203
+#: src/components/contacts/sheet/ContactListsCard.tsx:249
 #: src/components/segment/form_leaf.tsx:416
 msgid "Please select a list"
 msgstr "Please select a list"
@@ -18831,7 +18853,7 @@ msgstr "Please select a list"
 msgid "Please select a page size"
 msgstr "Please select a page size"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:231
+#: src/components/contacts/sheet/ContactListsCard.tsx:277
 #: src/components/segment/form_leaf.tsx:440
 msgid "Please select a status"
 msgstr "Please select a status"
@@ -19501,6 +19523,29 @@ msgstr "Raw payload"
 msgid "Re-register webhooks"
 msgstr "Re-register webhooks"
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:71
+#: src/components/contacts/sheet/ContactListsCard.tsx:124
+msgid "Re-subscribe"
+msgstr "Re-subscribe"
+
+#. placeholder {0}: contact.email
+#. placeholder {1}: listName(subscription.list_id)
+#: src/components/contacts/sheet/ContactListsCard.tsx:119
+msgid "Re-subscribe {0} to {1}?"
+msgstr "Re-subscribe {0} to {1}?"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:132
+msgid "Re-subscribe…"
+msgstr "Re-subscribe…"
+
+#: src/components/logs/auditPhrases.ts:44
+msgid "Re-subscribed the contact <0>{target}</0> after they opted out"
+msgstr "Re-subscribed the contact <0>{target}</0> after they opted out"
+
+#: src/components/logs/auditPhrases.ts:54
+msgid "Re-subscribed the contact <0>{target}</0> after they unsubscribed"
+msgstr "Re-subscribed the contact <0>{target}</0> after they unsubscribed"
+
 #: src/components/analytics/GetStartedChecklist.tsx:385
 msgid "Reach your audience"
 msgstr "Reach your audience"
@@ -19742,7 +19787,7 @@ msgstr "Reasoning effort"
 msgid "Rebuild segment"
 msgstr "Rebuild segment"
 
-#: src/components/logs/auditPhrases.ts:56
+#: src/components/logs/auditPhrases.ts:58
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "Rebuilt the segment <0>{target}</0>"
 
@@ -19853,11 +19898,11 @@ msgstr "Record or overwrite a custom event on a contact"
 #~ msgid "Record web navigation on the contact timeline"
 #~ msgstr "Record web navigation on the contact timeline"
 
-#: src/components/logs/auditPhrases.ts:48
+#: src/components/logs/auditPhrases.ts:49
 msgid "Recording resumed"
 msgstr "Recording resumed"
 
-#: src/components/logs/auditPhrases.ts:49
+#: src/components/logs/auditPhrases.ts:50
 msgid "Recording stopped: no valid licence"
 msgstr "Recording stopped: no valid licence"
 
@@ -19987,7 +20032,7 @@ msgstr "Regenerate"
 msgid "Regenerate secret?"
 msgstr "Regenerate secret?"
 
-#: src/components/logs/auditPhrases.ts:80
+#: src/components/logs/auditPhrases.ts:82
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Regenerated the secret of the webhook <0>{target}</0>"
 
@@ -20037,7 +20082,7 @@ msgstr "Register webhooks to set up reply forwarding, then point your domain's M
 msgid "Register webhooks?"
 msgstr "Register webhooks?"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:85
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Registered the provider webhooks of <0>{target}</0>"
 
@@ -20089,7 +20134,7 @@ msgstr "Reload the page to update your saved blocks."
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
-#: src/components/contacts/sheet/ContactListsCard.tsx:113
+#: src/components/contacts/sheet/ContactListsCard.tsx:155
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:77
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/LogoInput.tsx:111
@@ -20104,7 +20149,7 @@ msgstr "Remove"
 
 #. placeholder {0}: contact.email
 #. placeholder {1}: listName(subscription.list_id)
-#: src/components/contacts/sheet/ContactListsCard.tsx:112
+#: src/components/contacts/sheet/ContactListsCard.tsx:154
 msgid "Remove {0} from {1}?"
 msgstr "Remove {0} from {1}?"
 
@@ -20162,8 +20207,8 @@ msgstr "Remove filter Segments"
 #: src/components/automations/nodeTypes.ts:31
 #: src/components/contacts/BulkActionsBar.tsx:86
 #: src/components/contacts/BulkActionsBar.tsx:149
-#: src/components/contacts/sheet/ContactListsCard.tsx:107
-#: src/components/contacts/sheet/ContactListsCard.tsx:111
+#: src/components/contacts/sheet/ContactListsCard.tsx:149
+#: src/components/contacts/sheet/ContactListsCard.tsx:153
 #: src/pages/ContactsPage.tsx:284
 msgid "Remove from list"
 msgstr "Remove from list"
@@ -20249,11 +20294,11 @@ msgstr "Removed from {list}"
 msgid "Removed from {name}"
 msgstr "Removed from {name}"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:92
 msgid "Removed the integration <0>{target}</0>"
 msgstr "Removed the integration <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:96
 msgid "Removed the member <0>{target}</0>"
 msgstr "Removed the member <0>{target}</0>"
 
@@ -20278,7 +20323,7 @@ msgstr "Rename or re-slug a category"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Rename the workspace's custom contact field labels"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:99
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "Renamed the custom fields of <0>{target}</0>"
 
@@ -21196,7 +21241,7 @@ msgstr "Saved blocks ({savedCount})"
 msgid "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 msgstr "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 
-#: src/components/logs/auditPhrases.ts:61
+#: src/components/logs/auditPhrases.ts:63
 msgid "Saved the block <0>{target}</0>"
 msgstr "Saved the block <0>{target}</0>"
 
@@ -21591,7 +21636,7 @@ msgstr "Segment tree reset"
 #: src/components/contacts/contactColumns.ts:61
 #: src/components/contacts/ContactsRail.tsx:117
 #: src/components/contacts/ContactsTable.tsx:259
-#: src/components/contacts/sheet/ContactListsCard.tsx:258
+#: src/components/contacts/sheet/ContactListsCard.tsx:309
 #: src/components/logs/labels.ts:18
 #: src/components/settings/permissionLabels.ts:18
 #: src/services/api/errors.ts:93
@@ -21658,7 +21703,7 @@ msgstr "Select a file"
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:197
 #: src/components/contacts/BulkUpdateDrawer.tsx:323
-#: src/components/contacts/sheet/ContactListsCard.tsx:207
+#: src/components/contacts/sheet/ContactListsCard.tsx:253
 #: src/components/segment/form_leaf.tsx:422
 msgid "Select a list"
 msgstr "Select a list"
@@ -21847,7 +21892,7 @@ msgstr "Select language..."
 msgid "Select list"
 msgstr "Select list"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:202
+#: src/components/contacts/sheet/ContactListsCard.tsx:248
 msgid "Select List"
 msgstr "Select List"
 
@@ -22656,7 +22701,7 @@ msgstr "Set only when currently empty"
 msgid "Set Publication Date"
 msgstr "Set Publication Date"
 
-#: src/components/logs/auditPhrases.ts:50
+#: src/components/logs/auditPhrases.ts:51
 msgid "Set the licence <0>{target}</0>"
 msgstr "Set the licence <0>{target}</0>"
 
@@ -22680,7 +22725,7 @@ msgstr "Set up an email provider"
 msgid "Set up sending"
 msgstr "Set up sending"
 
-#: src/components/logs/auditPhrases.ts:60
+#: src/components/logs/auditPhrases.ts:62
 msgid "Set up this Notifuse installation"
 msgstr "Set up this Notifuse installation"
 
@@ -22978,7 +23023,7 @@ msgstr "Sign-up"
 #~ msgid "Signed in as <0>{target}</0>"
 #~ msgstr "Signed in as <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:75
 msgid "Signed in as root <0>{target}</0>"
 msgstr "Signed in as root <0>{target}</0>"
 
@@ -22986,8 +23031,8 @@ msgstr "Signed in as root <0>{target}</0>"
 #~ msgid "Signed in with"
 #~ msgstr "Signed in with"
 
-#: src/components/logs/auditPhrases.ts:71
-#: src/components/logs/auditPhrases.ts:72
+#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:74
 msgid "Signed in with single sign-on"
 msgstr "Signed in with single sign-on"
 
@@ -22995,7 +23040,7 @@ msgstr "Signed in with single sign-on"
 #~ msgid "Signed in with single sign-on as <0>{target}</0>"
 #~ msgstr "Signed in with single sign-on as <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:70
+#: src/components/logs/auditPhrases.ts:72
 msgid "Signed out"
 msgstr "Signed out"
 
@@ -23029,12 +23074,12 @@ msgstr "Simple"
 #~ msgstr "Since"
 
 #. placeholder {0}: matched.format('ll')
-#: src/components/contacts/sheet/ContactListsCard.tsx:287
+#: src/components/contacts/sheet/ContactListsCard.tsx:338
 msgid "since {0}"
 msgstr "since {0}"
 
 #. placeholder {0}: dayjs(subscription.created_at).tz(timezone).format('ll')
-#: src/components/contacts/sheet/ContactListsCard.tsx:182
+#: src/components/contacts/sheet/ContactListsCard.tsx:224
 msgid "Since {0}"
 msgstr "Since {0}"
 
@@ -23549,7 +23594,7 @@ msgstr "Started"
 msgid "Started from “{0}”"
 msgstr "Started from “{0}”"
 
-#: src/components/logs/auditPhrases.ts:77
+#: src/components/logs/auditPhrases.ts:79
 msgid "Started the web analytics backfill"
 msgstr "Started the web analytics backfill"
 
@@ -23797,7 +23842,7 @@ msgstr "Subject, preview text and reply-to come from each template."
 msgid "Submitting batch request to the server..."
 msgstr "Submitting batch request to the server..."
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/contacts/sheet/ContactListsCard.tsx:238
 #: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "Subscribe"
@@ -23810,12 +23855,12 @@ msgstr "Subscribe an address to any list, public or not — and create or overwr
 msgid "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
 msgstr "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:132
-#: src/components/contacts/sheet/ContactListsCard.tsx:136
+#: src/components/contacts/sheet/ContactListsCard.tsx:174
+#: src/components/contacts/sheet/ContactListsCard.tsx:178
 msgid "Subscribe to list"
 msgstr "Subscribe to list"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:192
+#: src/components/contacts/sheet/ContactListsCard.tsx:234
 msgid "Subscribe to List"
 msgstr "Subscribe to List"
 
@@ -23900,11 +23945,11 @@ msgstr "Subscription ID"
 #~ msgstr "Subscription list"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:49
-#: src/components/contacts/sheet/ContactListsCard.tsx:230
+#: src/components/contacts/sheet/ContactListsCard.tsx:276
 msgid "Subscription Status"
 msgstr "Subscription Status"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:79
+#: src/components/contacts/sheet/ContactListsCard.tsx:100
 msgid "Subscription status updated successfully"
 msgstr "Subscription status updated successfully"
 
@@ -25379,6 +25424,10 @@ msgstr "The workspace settings have been updated!"
 msgid "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
 msgstr "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:122
+msgid "Their address bounced on this list. Only re-subscribe them if it works again. They get no confirmation email."
+msgstr "Their address bounced on this list. Only re-subscribe them if it works again. They get no confirmation email."
+
 #: src/components/blog/PostsTable.tsx:536
 msgid "Theme"
 msgstr "Theme"
@@ -25450,6 +25499,14 @@ msgstr "These contacts will be subscribed to the selected list (status: active).
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:48
 msgid "These styles were edited by hand. Edit them in the mj-style block."
 msgstr "These styles were edited by hand. Edit them in the mj-style block."
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:70
+msgid "They stay unsubscribed. Only re-subscribe them if they asked you to. They get no confirmation email."
+msgstr "They stay unsubscribed. Only re-subscribe them if they asked you to. They get no confirmation email."
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:123
+msgid "They unsubscribed from this list. Only re-subscribe them if they asked you to. They get no confirmation email."
+msgstr "They unsubscribed from this list. Only re-subscribe them if they asked you to. They get no confirmation email."
 
 #: src/components/broadcasts/useBroadcastActions.tsx:184
 msgid "They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time."
@@ -25572,11 +25629,11 @@ msgstr "This category is not created yet."
 #~ msgid "This console is read-only: single sign-on is enabled and this deployment's licence does not include it."
 #~ msgstr "This console is read-only: single sign-on is enabled and this deployment's licence does not include it."
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:264
+#: src/components/contacts/sheet/ContactListsCard.tsx:315
 msgid "This contact is in no segment"
 msgstr "This contact is in no segment"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:149
+#: src/components/contacts/sheet/ContactListsCard.tsx:191
 msgid "This contact is not subscribed to any lists"
 msgstr "This contact is not subscribed to any lists"
 
@@ -26660,11 +26717,11 @@ msgstr "Turn the blog on or off and change its title, SEO, pagination and feed s
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 
-#: src/components/logs/auditPhrases.ts:58
+#: src/components/logs/auditPhrases.ts:60
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:83
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Turned the webhook <0>{target}</0> on or off"
 
@@ -27033,7 +27090,7 @@ msgstr "Update Link"
 #~ msgid "Update segment"
 #~ msgstr "Update segment"
 
-#: src/components/contacts/sheet/ContactListsCard.tsx:218
+#: src/components/contacts/sheet/ContactListsCard.tsx:264
 msgid "Update Status"
 msgstr "Update Status"
 
@@ -27098,11 +27155,11 @@ msgstr "Updated the blog post <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "Updated the blog theme <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:103
 msgid "Updated the integration <0>{target}</0>"
 msgstr "Updated the integration <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:53
+#: src/components/logs/auditPhrases.ts:55
 msgid "Updated the list <0>{target}</0>"
 msgstr "Updated the list <0>{target}</0>"
 
@@ -27114,11 +27171,11 @@ msgstr "Updated the newsletter <0>{target}</0>"
 msgid "Updated the preview text"
 msgstr "Updated the preview text"
 
-#: src/components/logs/auditPhrases.ts:63
+#: src/components/logs/auditPhrases.ts:65
 msgid "Updated the saved block <0>{target}</0>"
 msgstr "Updated the saved block <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:57
+#: src/components/logs/auditPhrases.ts:59
 msgid "Updated the segment <0>{target}</0>"
 msgstr "Updated the segment <0>{target}</0>"
 
@@ -27130,23 +27187,23 @@ msgstr "Updated the subject"
 msgid "Updated the subject and the preview text"
 msgstr "Updated the subject and the preview text"
 
-#: src/components/logs/auditPhrases.ts:59
+#: src/components/logs/auditPhrases.ts:61
 msgid "Updated the system settings"
 msgstr "Updated the system settings"
 
-#: src/components/logs/auditPhrases.ts:66
+#: src/components/logs/auditPhrases.ts:68
 msgid "Updated the template <0>{target}</0>"
 msgstr "Updated the template <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:69
+#: src/components/logs/auditPhrases.ts:71
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "Updated the transactional notification <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:84
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Updated the webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:102
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Updated the workspace settings of <0>{target}</0>"
 
@@ -27644,7 +27701,7 @@ msgstr "Variants"
 msgid "Verification code"
 msgstr "Verification code"
 
-#: src/components/logs/auditPhrases.ts:75
+#: src/components/logs/auditPhrases.ts:77
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Verified the sign-in code of <0>{target}</0>"
 

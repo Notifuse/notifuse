@@ -4,6 +4,10 @@
     description: |
       Updates the subscription status of a contact in a specific list. Can set status to active, pending, unsubscribed, bounced, or complained.
 
+      A contact who opted out keeps their opt-out. From `unsubscribed`, the status can only move to `bounced` or `complained`; from `bounced`, only to `complained`; `complained` is final. Other changes return `409` with the stored status.
+
+      To subscribe an `unsubscribed` contact again, send `status: active` with `resubscribe: true`. The audit log records it. An API key can't clear `bounced`; a user signed in to the console can, once the address works again.
+
       **Note:** This endpoint only modifies **existing** list memberships. It does not add a contact to a list. To add a contact to a list, use the `/subscribe` endpoint (for public lists) or the `/api/contacts.import` endpoint (for any list, requires authentication).
     operationId: updateContactListStatus
     security:
@@ -54,6 +58,26 @@
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
             example:
               error: contact list not found
+      '409':
+        description: The contact opted out of the list and the change would undo it
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  description: What was refused and what would be allowed
+                status:
+                  type: string
+                  enum:
+                    - unsubscribed
+                    - bounced
+                    - complained
+                  description: The status the contact keeps
+            example:
+              error: 'the contact unsubscribed from this list: set resubscribe to true to subscribe them again'
+              status: unsubscribed
       '500':
         description: Internal server error
         content:

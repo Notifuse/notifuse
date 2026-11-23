@@ -342,6 +342,10 @@ type SubscribeToListsRequest struct {
 	WorkspaceID string   `json:"workspace_id"`
 	Contact     Contact  `json:"contact"`
 	ListIDs     []string `json:"list_ids"`
+	// Resubscribe sets a contact who unsubscribed from a list back to active, with no
+	// double opt-in. Without it they stay unsubscribed. It clears an unsubscribe only,
+	// never a bounce or a complaint, and the public subscribe route ignores it.
+	Resubscribe bool `json:"resubscribe,omitempty"`
 }
 
 func (r *SubscribeToListsRequest) Validate() (err error) {

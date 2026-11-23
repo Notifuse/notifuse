@@ -294,10 +294,13 @@ func TestManager_EmptyWorkspaceMigration(t *testing.T) {
 	})
 }
 
-// Against the real registry, one version behind: v42's workspace step fails on an empty
-// database, so migrating the empty workspace would fail this test.
+// Against the real registry, one version behind the latest workspace migration: v42's
+// workspace step fails on an empty database, so migrating the empty workspace would fail this
+// test.
 func TestManager_RunMigrations_SkipsAnEmptyWorkspaceAndStampsTheVersion(t *testing.T) {
-	manager, mock, db, codeVersion := managerOneVersionBehind(t)
+	manager, mock, db, migrationVersion := managerOneVersionBehind(t)
+	codeVersion, err := GetCurrentCodeVersion()
+	require.NoError(t, err)
 	lock := newFakeNameLock(t)
 	conn := newScriptedConnector(t)
 	manager.connector = conn
@@ -317,6 +320,7 @@ func TestManager_RunMigrations_SkipsAnEmptyWorkspaceAndStampsTheVersion(t *testi
 	expectRegisteredInTx(mock, "empty", true)
 	lock.expectDatabaseExists("notifuse_ws_empty", true)
 	mock.ExpectCommit()
+	expectLaterEmptyMigrations(t, mock, migrationVersion)
 	mock.ExpectExec("INSERT INTO settings").WithArgs(fmt.Sprintf("%.0f", codeVersion)).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit() // the migration lock
 
