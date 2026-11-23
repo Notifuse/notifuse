@@ -388,6 +388,20 @@ func (mr *MockWorkspaceRepositoryMockRecorder) RemoveUserFromWorkspace(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserFromWorkspace", reflect.TypeOf((*MockWorkspaceRepository)(nil).RemoveUserFromWorkspace), arg0, arg1, arg2)
 }
 
+// SetMCPSettings mocks base method.
+func (m *MockWorkspaceRepository) SetMCPSettings(arg0 context.Context, arg1 string, arg2 *domain.MCPSettings) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMCPSettings", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetMCPSettings indicates an expected call of SetMCPSettings.
+func (mr *MockWorkspaceRepositoryMockRecorder) SetMCPSettings(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMCPSettings", reflect.TypeOf((*MockWorkspaceRepository)(nil).SetMCPSettings), arg0, arg1, arg2)
+}
+
 // Update mocks base method.
 func (m *MockWorkspaceRepository) Update(arg0 context.Context, arg1 *domain.Workspace) error {
 	m.ctrl.T.Helper()

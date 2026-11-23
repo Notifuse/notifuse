@@ -675,7 +675,7 @@ Content-Type: text/plain
 				assert.Equal(t, domain.UserTypeAPIKey, seededUser.Type)
 			}
 
-			seededWorkspace, ok := ctx.Value(domain.UserWorkspaceKey).(*domain.UserWorkspace)
+			seededWorkspace, ok := ctx.Value(domain.WorkspaceMembershipKey(workspaceID)).(*domain.UserWorkspace)
 			if assert.True(t, ok, "context must carry the membership row the gate reads") {
 				assert.Same(t, userWorkspace, seededWorkspace)
 			}

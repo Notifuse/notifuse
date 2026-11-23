@@ -97,6 +97,7 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'workspaces.setAuditLogSettings': msg({ message: 'Changed the audit log retention of <0>{target}</0>' }),
   'workspaces.setBlogSettings': msg({ message: 'Changed the blog settings of <0>{target}</0>' }),
   'workspaces.setCustomFieldLabels': msg({ message: 'Renamed the custom fields of <0>{target}</0>' }),
+  'workspaces.setMCPSettings': msg({ message: 'Changed the MCP access of <0>{target}</0>' }),
   'workspaces.setUserPermissions': msg({ message: 'Changed the permissions of <0>{target}</0>' }),
   'workspaces.setWebAnalyticsSettings': msg({ message: 'Changed the web analytics settings of <0>{target}</0>' }),
   'workspaces.update': msg({ message: 'Updated the workspace settings of <0>{target}</0>' }),

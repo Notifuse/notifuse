@@ -6286,3 +6286,47 @@ func TestUserWorkspaceWithEmail_NameJSON(t *testing.T) {
 		assert.NotContains(t, decoded, "name")
 	})
 }
+
+func TestWorkspaceSettings_MCP_JSONRoundTrip(t *testing.T) {
+	t.Run("a stored switch survives Value and Scan", func(t *testing.T) {
+		settings := WorkspaceSettings{Timezone: "UTC", MCP: &MCPSettings{Disabled: true}}
+		value, err := settings.Value()
+		require.NoError(t, err)
+
+		var raw map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(value.([]byte), &raw))
+		assert.JSONEq(t, `{"disabled":true}`, string(raw["mcp"]))
+
+		var scanned WorkspaceSettings
+		require.NoError(t, scanned.Scan(value))
+		require.NotNil(t, scanned.MCP)
+		assert.True(t, scanned.MCP.Disabled)
+		assert.False(t, (&Workspace{Settings: scanned}).MCPEnabled())
+	})
+
+	t.Run("an explicit enabled switch is written and read back", func(t *testing.T) {
+		settings := WorkspaceSettings{Timezone: "UTC", MCP: &MCPSettings{Disabled: false}}
+		data, err := json.Marshal(settings)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), `"mcp":{"disabled":false}`)
+
+		var decoded WorkspaceSettings
+		require.NoError(t, json.Unmarshal(data, &decoded))
+		require.NotNil(t, decoded.MCP)
+		assert.False(t, decoded.MCP.Disabled)
+		assert.True(t, (&Workspace{Settings: decoded}).MCPEnabled())
+	})
+
+	t.Run("no switch writes no key", func(t *testing.T) {
+		data, err := json.Marshal(WorkspaceSettings{Timezone: "UTC"})
+		require.NoError(t, err)
+		assert.NotContains(t, string(data), `"mcp"`)
+	})
+
+	t.Run("a row saved before the field existed reads as enabled", func(t *testing.T) {
+		var scanned WorkspaceSettings
+		require.NoError(t, scanned.Scan([]byte(`{"timezone":"UTC","email_tracking_enabled":true,"default_language":"en","languages":["en"]}`)))
+		assert.Nil(t, scanned.MCP)
+		assert.True(t, (&Workspace{Settings: scanned}).MCPEnabled())
+	})
+}

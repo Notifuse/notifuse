@@ -367,6 +367,31 @@ func (r *workspaceRepository) PatchIntegrationSESSettings(ctx context.Context, w
 	return nil
 }
 
+// SetMCPSettings writes the workspace's MCP switch alone, with one statement, so it
+// neither reads nor rewrites any other setting.
+func (r *workspaceRepository) SetMCPSettings(ctx context.Context, workspaceID string, settings *domain.MCPSettings) error {
+	doc, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+	result, err := r.systemDB.ExecContext(ctx, `
+		UPDATE workspaces
+		SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb), '{mcp}', $2::jsonb), updated_at = $3
+		WHERE id = $1
+	`, workspaceID, doc, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID}
+	}
+	return nil
+}
+
 func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {
 	workspace.UpdatedAt = time.Now().UTC()
 
@@ -379,9 +404,13 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
+	// The MCP switch is kept as stored: only SetMCPSettings writes it, so a save made
+	// from a copy read before the owner switched MCP off cannot switch it back on.
 	query := `
 		UPDATE workspaces
-		SET name = $1, settings = $2, integrations = $3, updated_at = $4
+		SET name = $1,
+			settings = CASE WHEN settings ? 'mcp' THEN jsonb_set($2::jsonb, '{mcp}', settings->'mcp') ELSE $2::jsonb - 'mcp' END,
+			integrations = $3, updated_at = $4
 		WHERE id = $5
 	`
 	result, err := r.systemDB.ExecContext(ctx, query,
