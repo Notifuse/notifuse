@@ -222,6 +222,22 @@ func TestWrapper_NonReadToolsWriteAnAuditRow(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rows[2].StatusCode)
 }
 
+// A call made with an OAuth access token is recorded as such, with the
+// client's name, and stays the key's call.
+func TestWrapper_OAuthCallerIsAuditedAsOAuth(t *testing.T) {
+	f := newFixture(t, fakeTool("fake_delete", ClassDestructive, []Pair{contactsWritePair}, "contacts.delete", nil))
+	f.caller = &domain.MCPCaller{Kind: domain.MCPCredentialOAuth, APIKeyUserID: testKeyID, GrantID: "grant-1", ClientName: "Claude"}
+	f.reachable(domain.UserPermissions{domain.PermissionResourceContacts: {Read: true, Write: true}})
+	var row domain.AuditLog
+	f.recorder.EXPECT().Record(gomock.Any(), gomock.Any()).Do(func(_ context.Context, recorded *domain.AuditLog) { row = *recorded })
+
+	assert.False(t, f.callTool("fake_delete", map[string]any{"workspace_id": testWorkspaceID}).IsError)
+	assert.Equal(t, domain.AuditActorAPIKey, row.ActorType)
+	assert.Equal(t, testKeyID, row.ActorID)
+	assert.Equal(t, "oauth", row.AuthMethod)
+	assert.Equal(t, "Claude", row.Metadata["oauth_client"])
+}
+
 func TestWrapper_PermissionRefusalIsAuditedWithTheGrant(t *testing.T) {
 	f := newFixture(t, fakeTool("fake_delete", ClassDestructive, []Pair{contactsWritePair}, "contacts.delete", nil))
 	f.reachable(contactsRead())

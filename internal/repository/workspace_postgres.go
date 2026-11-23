@@ -687,13 +687,20 @@ func (r *workspaceRepository) dropDatabaseWithoutForce(ctx context.Context, dbNa
 }
 
 func (r *workspaceRepository) AddUserToWorkspace(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
+	return upsertUserWorkspaceRow(ctx, r.systemDB, userWorkspace)
+}
+
+// upsertUserWorkspaceRow writes a membership. Shared by AddUserToWorkspace and
+// by the OAuth repository, which creates an API key in the transaction of its
+// grant.
+func upsertUserWorkspaceRow(ctx context.Context, exec sqlExecer, userWorkspace *domain.UserWorkspace) error {
 	query := `
 		INSERT INTO user_workspaces (user_id, workspace_id, role, permissions, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (user_id, workspace_id) DO UPDATE
 		SET role = $3, permissions = $4, updated_at = $6
 	`
-	_, err := r.systemDB.ExecContext(ctx, query,
+	_, err := exec.ExecContext(ctx, query,
 		userWorkspace.UserID,
 		userWorkspace.WorkspaceID,
 		userWorkspace.Role,

@@ -3,13 +3,8 @@ package http
 import (
 	"context"
 	"errors"
-	"fmt"
-	"net"
 	"net/http"
-	"net/url"
 	"strings"
-
-	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
@@ -21,9 +16,16 @@ import (
 // credential fails, and with them the database lookups an attacker can cause.
 const MCPAuthFailRateLimitNamespace = "mcp_auth_fail"
 
-// MCPAuthenticator loads the account an API key token names.
+// MCPAuthenticator resolves an API key token: a JWT of type api_key, signed
+// by this installation, whose account still exists and is an API key.
 type MCPAuthenticator interface {
-	AuthenticateUserFromContext(ctx context.Context) (*domain.User, error)
+	AuthenticateAPIKeyToken(ctx context.Context, token string) (*domain.User, error)
+}
+
+// MCPTokenResolver resolves an OAuth access token to its grant and key.
+type MCPTokenResolver interface {
+	Unavailable() string
+	ResolveAccessToken(ctx context.Context, token string) (*domain.OAuthAccess, error)
 }
 
 // MCPRateLimiter is the process's rate limiter, as /mcp uses it.
@@ -41,9 +43,10 @@ type MCPHandlerConfig struct {
 	APIEndpoint func() string
 	// AllowedOrigins is MCP_ALLOWED_ORIGINS.
 	AllowedOrigins []string
-	GetJWTSecret   func() ([]byte, error)
 	Auth           MCPAuthenticator
-	RateLimiter    MCPRateLimiter
+	// OAuth resolves OAuth access tokens; nil refuses them.
+	OAuth       MCPTokenResolver
+	RateLimiter MCPRateLimiter
 	// Server is the MCP server's Streamable HTTP handler.
 	Server http.Handler
 }
@@ -69,83 +72,25 @@ func (h *MCPHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle(middleware.MCPPath+"/", h)
 }
 
-// canonicalEndpoint is API_ENDPOINT reduced to what clients compare: a
-// lowercase scheme and host, the port only when it is not the scheme's
-// default, and no trailing slash.
-type canonicalEndpoint struct {
-	// url is the canonical URL, path included.
-	url string
-	// origin is scheme://host[:port].
-	origin string
-	// host is host[:port], as a Host header carries it.
-	host string
-	// hasPort reports whether host carries a port.
-	hasPort bool
-}
-
-// canonicalAPIEndpoint derives the canonical endpoint from API_ENDPOINT.
-func canonicalAPIEndpoint(apiEndpoint string) (canonicalEndpoint, error) {
-	parsed, err := url.Parse(strings.TrimSpace(apiEndpoint))
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return canonicalEndpoint{}, fmt.Errorf("API_ENDPOINT is not an http(s) URL")
-	}
-	scheme := strings.ToLower(parsed.Scheme)
-	hostname := strings.ToLower(parsed.Hostname())
-	port := parsed.Port()
-	if (scheme == "http" && port == "80") || (scheme == "https" && port == "443") {
-		port = ""
-	}
-	host := hostname
-	if strings.Contains(hostname, ":") {
-		host = "[" + hostname + "]"
-	}
-	if port != "" {
-		host = net.JoinHostPort(hostname, port)
-	}
-	origin := scheme + "://" + host
-	return canonicalEndpoint{
-		url:     origin + strings.TrimRight(parsed.EscapedPath(), "/"),
-		origin:  origin,
-		host:    host,
-		hasPort: port != "",
-	}, nil
-}
-
-// matchesHost compares a request's Host header with the canonical host. The
-// port is compared when the canonical URL has one.
-func (c canonicalEndpoint) matchesHost(requestHost string) bool {
-	requestHost = strings.ToLower(requestHost)
-	if c.hasPort {
-		return requestHost == c.host
-	}
-	if hostname, _, err := net.SplitHostPort(requestHost); err == nil {
-		if strings.Contains(hostname, ":") {
-			hostname = "[" + hostname + "]"
-		}
-		requestHost = hostname
-	}
-	return requestHost == c.host
-}
-
 func (h *MCPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !h.cfg.Enabled || h.cfg.IsDemo {
 		WriteJSONError(w, "MCP is not enabled on this server", http.StatusNotFound)
 		return
 	}
 
-	endpoint, err := canonicalAPIEndpoint(h.apiEndpoint())
+	endpoint, err := domain.CanonicalAPIEndpoint(h.apiEndpoint())
 	if err != nil {
 		WriteJSONError(w, "MCP needs API_ENDPOINT to be set to this server's public URL", http.StatusNotFound)
 		return
 	}
-	if !endpoint.matchesHost(r.Host) {
+	if !endpoint.MatchesHost(r.Host) {
 		writeJSON(w, http.StatusNotFound, map[string]string{
-			"error":         "MCP is served on " + endpoint.host + " only",
-			"expected_host": endpoint.host,
+			"error":         "MCP is served on " + endpoint.Host + " only",
+			"expected_host": endpoint.Host,
 		})
 		return
 	}
-	mcpURL := endpoint.url + middleware.MCPPath
+	mcpURL := endpoint.MCPURL()
 	if r.URL.Path != middleware.MCPPath {
 		writeJSON(w, http.StatusNotFound, map[string]string{
 			"error":   "not found: the MCP endpoint is " + mcpURL,
@@ -171,15 +116,15 @@ func (h *MCPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// each request gets a new bucket each time, so the bucket bounds guessing
 	// only behind a proxy that overwrites that header.
 	clientIP := middleware.ClientIP(r)
-	ctx, user, outcome := h.authenticate(r)
+	caller, outcome := h.authenticate(r)
 	switch outcome {
 	case mcpCredentialRefused:
-		w.Header().Set("WWW-Authenticate", "Bearer")
+		w.Header().Set("WWW-Authenticate", h.challenge(endpoint, r))
 		if !h.cfg.RateLimiter.Allow(MCPAuthFailRateLimitNamespace, clientIP) {
 			WriteJSONError(w, "Too many failed authentication attempts", http.StatusTooManyRequests)
 			return
 		}
-		WriteJSONError(w, "A valid API key is required", http.StatusUnauthorized)
+		WriteJSONError(w, "A valid API key or OAuth access token is required", http.StatusUnauthorized)
 		return
 	case mcpCredentialUnchecked:
 		// Our failure, not the caller's: a 401 would make a client drop a good key.
@@ -187,7 +132,11 @@ func (h *MCPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx = domain.WithMCPCaller(ctx, &domain.MCPCaller{Kind: domain.MCPCredentialHeader, APIKeyUserID: user.ID})
+	// The key's claims, as RequireAuth sets them for an API key: never a
+	// session ID or a system-call marker.
+	ctx := context.WithValue(r.Context(), domain.UserIDKey, caller.APIKeyUserID)
+	ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
+	ctx = domain.WithMCPCaller(ctx, caller)
 	ctx = mcp.WithRequestMeta(ctx, mcp.RequestMeta{
 		IP:        clientIP,
 		UserAgent: r.UserAgent(),
@@ -205,9 +154,9 @@ func (h *MCPHandler) apiEndpoint() string {
 
 // originAllowed accepts the canonical origin and MCP_ALLOWED_ORIGINS, compared
 // as a browser serializes an origin.
-func (h *MCPHandler) originAllowed(endpoint canonicalEndpoint, origin string) bool {
+func (h *MCPHandler) originAllowed(endpoint domain.CanonicalEndpoint, origin string) bool {
 	origin = strings.ToLower(origin)
-	if origin == endpoint.origin {
+	if origin == endpoint.Origin {
 		return true
 	}
 	for _, allowed := range h.cfg.AllowedOrigins {
@@ -218,52 +167,80 @@ func (h *MCPHandler) originAllowed(endpoint canonicalEndpoint, origin string) bo
 	return false
 }
 
-// authenticate resolves the bearer credential: a JWT of type api_key, signed
-// by this installation, whose account still exists and is an API key. A
-// console session, an invitation, a revoked key and anything else fail. It
-// sets the user ID and type as RequireAuth does, never a session ID or a
-// system-call marker.
+// challenge is the WWW-Authenticate of a refusal: Bearer, with the protected
+// resource metadata that starts OAuth discovery when the authorization server
+// is available (RFC 9728 §5.1), and invalid_token when a credential was sent.
+func (h *MCPHandler) challenge(endpoint domain.CanonicalEndpoint, r *http.Request) string {
+	params := []string{}
+	if h.cfg.OAuth != nil && h.cfg.OAuth.Unavailable() == "" {
+		params = append(params, `resource_metadata="`+ProtectedResourceMetadataURL(endpoint)+`"`, `scope="`+domain.OAuthScope+`"`)
+	}
+	if strings.TrimSpace(r.Header.Get("Authorization")) != "" {
+		params = append(params, `error="invalid_token"`)
+	}
+	if len(params) == 0 {
+		return "Bearer"
+	}
+	return "Bearer " + strings.Join(params, ", ")
+}
+
 type mcpCredentialOutcome int
 
 const (
 	mcpCredentialAccepted mcpCredentialOutcome = iota
-	// mcpCredentialRefused: no bearer, not a JWT of this installation, not an
-	// API key token, or a key whose account is gone.
+	// mcpCredentialRefused: no bearer, an API key token that is not one of
+	// this installation or whose account is gone, an OAuth access token that
+	// does not resolve, a refresh token, or anything else.
 	mcpCredentialRefused
 	// mcpCredentialUnchecked: the server could not check it (secret or database).
 	mcpCredentialUnchecked
 )
 
-func (h *MCPHandler) authenticate(r *http.Request) (context.Context, *domain.User, mcpCredentialOutcome) {
+// authenticate resolves the bearer credential into the MCP caller: an OAuth
+// access token (nfmcp_at_) through its grant to an API key, or an API key
+// token. A refresh token, a console session, an invitation, a revoked key and
+// anything else fail. Only a token signed by this installation, or one with
+// the access token prefix, reaches the database.
+func (h *MCPHandler) authenticate(r *http.Request) (*domain.MCPCaller, mcpCredentialOutcome) {
 	scheme, token, found := strings.Cut(r.Header.Get("Authorization"), " ")
-	if !found || !strings.EqualFold(scheme, "Bearer") || strings.TrimSpace(token) == "" {
-		return nil, nil, mcpCredentialRefused
-	}
-	secret, err := h.cfg.GetJWTSecret()
-	if err != nil {
-		return nil, nil, mcpCredentialUnchecked
-	}
-	claims := &service.UserClaims{}
-	parsed, err := jwt.ParseWithClaims(strings.TrimSpace(token), claims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return secret, nil
-	})
-	if err != nil || !parsed.Valid || claims.UserID == "" || claims.Type != string(domain.UserTypeAPIKey) {
-		return nil, nil, mcpCredentialRefused
+	token = strings.TrimSpace(token)
+	if !found || !strings.EqualFold(scheme, "Bearer") || token == "" {
+		return nil, mcpCredentialRefused
 	}
 
-	ctx := context.WithValue(r.Context(), domain.UserIDKey, claims.UserID)
-	ctx = context.WithValue(ctx, domain.UserTypeKey, claims.Type)
-	user, err := h.cfg.Auth.AuthenticateUserFromContext(ctx)
 	switch {
-	case errors.Is(err, service.ErrUserNotFound), errors.Is(err, domain.ErrAPIKeyRevoked):
-		return nil, nil, mcpCredentialRefused
-	case err != nil:
-		return nil, nil, mcpCredentialUnchecked
-	case user == nil || user.Type != domain.UserTypeAPIKey:
-		return nil, nil, mcpCredentialRefused
+	case strings.HasPrefix(token, domain.OAuthAccessTokenPrefix):
+		if h.cfg.OAuth == nil {
+			return nil, mcpCredentialRefused
+		}
+		access, err := h.cfg.OAuth.ResolveAccessToken(r.Context(), token)
+		switch {
+		case errors.Is(err, domain.ErrOAuthInvalidToken):
+			return nil, mcpCredentialRefused
+		case err != nil:
+			return nil, mcpCredentialUnchecked
+		case access == nil || access.Grant == nil || access.Key == nil || access.Key.Type != domain.UserTypeAPIKey:
+			return nil, mcpCredentialRefused
+		}
+		return &domain.MCPCaller{
+			Kind:         domain.MCPCredentialOAuth,
+			APIKeyUserID: access.Key.ID,
+			GrantID:      access.Grant.ID,
+			ClientName:   access.Grant.ClientName,
+		}, mcpCredentialAccepted
+	case strings.HasPrefix(token, domain.OAuthRefreshTokenPrefix):
+		// A refresh token is for the token endpoint only.
+		return nil, mcpCredentialRefused
 	}
-	return ctx, user, mcpCredentialAccepted
+
+	user, err := h.cfg.Auth.AuthenticateAPIKeyToken(r.Context(), token)
+	switch {
+	case errors.Is(err, domain.ErrNotAnAPIKey), errors.Is(err, service.ErrUserNotFound), errors.Is(err, domain.ErrAPIKeyRevoked):
+		return nil, mcpCredentialRefused
+	case err != nil:
+		return nil, mcpCredentialUnchecked
+	case user == nil || user.Type != domain.UserTypeAPIKey:
+		return nil, mcpCredentialRefused
+	}
+	return &domain.MCPCaller{Kind: domain.MCPCredentialHeader, APIKeyUserID: user.ID}, mcpCredentialAccepted
 }

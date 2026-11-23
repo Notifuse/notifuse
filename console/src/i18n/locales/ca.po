@@ -2252,7 +2252,7 @@ msgstr "Sobre els destinataris donats de baixa"
 msgid "Accept Invitation"
 msgstr "Acceptar invitació"
 
-#: src/components/logs/auditPhrases.ts:105
+#: src/components/logs/auditPhrases.ts:109
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Ha acceptat la invitació <0>{target}</0>"
 
@@ -2721,7 +2721,7 @@ msgstr "Afegit"
 msgid "Added {blockType}"
 msgstr "{blockType} afegit"
 
-#: src/components/logs/auditPhrases.ts:109
+#: src/components/logs/auditPhrases.ts:113
 msgid "Added a DKIM domain to <0>{target}</0>"
 msgstr "Ha afegit un domini DKIM a <0>{target}</0>"
 
@@ -2738,7 +2738,7 @@ msgstr "Afegida el {addedOn}"
 msgid "Added the annotation <0>{target}</0>"
 msgstr "Ha afegit l'anotació <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:110
+#: src/components/logs/auditPhrases.ts:114
 msgid "Added the integration <0>{target}</0>"
 msgstr "Ha afegit la integració <0>{target}</0>"
 
@@ -3777,7 +3777,7 @@ msgstr "Demaneu-me que us ajudi a escriure el vostre blog..."
 #~ msgid "Ask the person who runs this Notifuse instance to install a licence."
 #~ msgstr ""
 
-#: src/components/logs/auditPhrases.ts:89
+#: src/components/logs/auditPhrases.ts:93
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "Ha demanat un codi d'inici de sessió per a <0>{target}</0>"
 
@@ -5422,7 +5422,7 @@ msgstr "Cancel·lat"
 msgid "Cancelled the data retention change of <0>{target}</0>"
 msgstr "Ha cancel·lat el canvi de conservació de dades de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:114
+#: src/components/logs/auditPhrases.ts:118
 msgid "Cancelled the invitation <0>{target}</0>"
 msgstr "Ha cancel·lat la invitació <0>{target}</0>"
 
@@ -5430,7 +5430,7 @@ msgstr "Ha cancel·lat la invitació <0>{target}</0>"
 msgid "Cancelled the newsletter <0>{target}</0>"
 msgstr "Ha cancel·lat el butlletí <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:97
+#: src/components/logs/auditPhrases.ts:101
 msgid "Cancelled the web analytics backfill"
 msgstr "Ha cancel·lat l'emplenament de l'analítica web"
 
@@ -5611,11 +5611,11 @@ msgstr "Canviar estat per a {0}"
 msgid "Change status…"
 msgstr "Canviar l'estat…"
 
-#: src/components/logs/auditPhrases.ts:119
+#: src/components/logs/auditPhrases.ts:123
 msgid "Changed the audit log retention of <0>{target}</0>"
 msgstr "Ha canviat la conservació del registre d'auditoria de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:120
+#: src/components/logs/auditPhrases.ts:124
 msgid "Changed the blog settings of <0>{target}</0>"
 msgstr "Ha canviat la configuració del blog de <0>{target}</0>"
 
@@ -5627,19 +5627,19 @@ msgstr "Ha canviat la política de conservació de dades de <0>{target}</0>"
 msgid "Changed the default data retention periods"
 msgstr "Ha canviat els períodes de conservació de dades per defecte"
 
-#: src/components/logs/auditPhrases.ts:137
+#: src/components/logs/auditPhrases.ts:141
 msgid "Changed the list status of the contact <0>{target}</0>"
 msgstr "Ha canviat l'estat a la llista del contacte <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:122
+#: src/components/logs/auditPhrases.ts:126
 msgid "Changed the MCP access of <0>{target}</0>"
 msgstr "Ha canviat l'accés MCP de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:123
+#: src/components/logs/auditPhrases.ts:127
 msgid "Changed the permissions of <0>{target}</0>"
 msgstr "Ha canviat els permisos de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:124
+#: src/components/logs/auditPhrases.ts:128
 msgid "Changed the web analytics settings of <0>{target}</0>"
 msgstr "Ha canviat la configuració de l'analítica web de <0>{target}</0>"
 
@@ -5712,7 +5712,7 @@ msgstr "Reviseu els registres del servidor i després torneu a carregar aquesta 
 msgid "Checked {ago}"
 msgstr "Comprovat {ago}"
 
-#: src/components/logs/auditPhrases.ts:127
+#: src/components/logs/auditPhrases.ts:131
 msgid "Checked a DKIM record of <0>{target}</0>"
 msgstr "Ha comprovat un registre DKIM de <0>{target}</0>"
 
@@ -6675,11 +6675,15 @@ msgstr "Connectat el"
 msgid "Connected apps"
 msgstr "Aplicacions connectades"
 
+#: src/components/logs/auditPhrases.ts:67
+msgid "Connected the application <0>{target}</0> with an API key"
+msgstr "Ha connectat l'aplicació <0>{target}</0> amb una clau API"
+
 #: src/components/setup/SmtpPanel.tsx:111
 msgid "Connected to {target} · {time}"
 msgstr "Connectat a {target} · {time}"
 
-#: src/components/logs/auditPhrases.ts:106
+#: src/components/logs/auditPhrases.ts:110
 msgid "Connected Zapier as the integration <0>{target}</0>"
 msgstr "Ha connectat Zapier com a integració <0>{target}</0>"
 
@@ -7691,6 +7695,10 @@ msgstr "Creats"
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "Creada {0} · Actualitzada {1} a {2}"
 
+#: src/components/logs/auditPhrases.ts:68
+msgid "Created an API key for the application <0>{target}</0> and connected it"
+msgstr "Ha creat una clau API per a l'aplicació <0>{target}</0> i l'ha connectada"
+
 #: src/components/contacts/contactColumns.ts:71
 #: src/components/contacts/ContactsTable.tsx:349
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:293
@@ -7725,7 +7733,7 @@ msgstr "Creada el {createdOn}"
 msgid "Created or updated the contact <0>{target}</0>"
 msgstr "Ha creat o actualitzat el contacte <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:108
+#: src/components/logs/auditPhrases.ts:112
 msgid "Created the API key <0>{target}</0>"
 msgstr "Ha creat la clau API <0>{target}</0>"
 
@@ -7757,23 +7765,23 @@ msgstr "Ha creat la llista <0>{target}</0>"
 msgid "Created the newsletter <0>{target}</0>"
 msgstr "Ha creat el butlletí <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:67
+#: src/components/logs/auditPhrases.ts:71
 msgid "Created the segment <0>{target}</0>"
 msgstr "Ha creat el segment <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:77
+#: src/components/logs/auditPhrases.ts:81
 msgid "Created the template <0>{target}</0>"
 msgstr "Ha creat la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:80
+#: src/components/logs/auditPhrases.ts:84
 msgid "Created the transactional notification <0>{target}</0>"
 msgstr "Ha creat la notificació transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:99
+#: src/components/logs/auditPhrases.ts:103
 msgid "Created the webhook <0>{target}</0>"
 msgstr "Ha creat el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:107
+#: src/components/logs/auditPhrases.ts:111
 msgid "Created the workspace <0>{target}</0>"
 msgstr "Ha creat l'espai de treball <0>{target}</0>"
 
@@ -8829,27 +8837,27 @@ msgstr "Ha eliminat la llista <0>{target}</0>"
 msgid "Deleted the newsletter <0>{target}</0>"
 msgstr "Ha eliminat el butlletí <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:75
+#: src/components/logs/auditPhrases.ts:79
 msgid "Deleted the saved block <0>{target}</0>"
 msgstr "Ha eliminat el bloc desat <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:68
+#: src/components/logs/auditPhrases.ts:72
 msgid "Deleted the segment <0>{target}</0>"
 msgstr "Ha eliminat el segment <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:78
+#: src/components/logs/auditPhrases.ts:82
 msgid "Deleted the template <0>{target}</0>"
 msgstr "Ha eliminat la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:81
+#: src/components/logs/auditPhrases.ts:85
 msgid "Deleted the transactional notification <0>{target}</0>"
 msgstr "Ha eliminat la notificació transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:100
+#: src/components/logs/auditPhrases.ts:104
 msgid "Deleted the webhook <0>{target}</0>"
 msgstr "Ha eliminat el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:111
+#: src/components/logs/auditPhrases.ts:115
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Ha eliminat l'espai de treball <0>{target}</0>"
 
@@ -9139,6 +9147,10 @@ msgstr "Voleu descartar els canvis?"
 #: src/components/settings/Integrations.tsx:524
 msgid "Disconnect"
 msgstr "Desconnecta"
+
+#: src/components/logs/auditPhrases.ts:70
+msgid "Disconnected the application <0>{target}</0>"
+msgstr "Ha desconnectat l'aplicació <0>{target}</0>"
 
 #: src/components/contacts/visits/webVisitSource.ts:37
 msgid "Display"
@@ -10741,7 +10753,7 @@ msgstr "Introduïu el nom de l'espai de treball"
 msgid "Entered"
 msgstr "Entrats"
 
-#: src/components/logs/auditPhrases.ts:94
+#: src/components/logs/auditPhrases.ts:98
 msgid "Entered a two-factor code to sign in"
 msgstr "Ha introduït un codi de doble factor per iniciar la sessió"
 
@@ -12648,7 +12660,7 @@ msgstr "Es genera a partir del nom fins que l'editeu"
 msgid "Generated HTML"
 msgstr "HTML generat"
 
-#: src/components/logs/auditPhrases.ts:92
+#: src/components/logs/auditPhrases.ts:96
 msgid "Generated new recovery codes"
 msgstr "Ha generat nous codis de recuperació"
 
@@ -14124,7 +14136,7 @@ msgstr "Convidar membre"
 msgid "Invite your team"
 msgstr "Convida el teu equip"
 
-#: src/components/logs/auditPhrases.ts:115
+#: src/components/logs/auditPhrases.ts:119
 msgid "Invited <0>{target}</0>"
 msgstr "Ha convidat <0>{target}</0>"
 
@@ -14355,7 +14367,7 @@ msgstr "Ha entrat al segment {chip}"
 msgid "Joined segment {segment}"
 msgstr "S'ha unit al segment {segment}"
 
-#: src/components/logs/auditPhrases.ts:116
+#: src/components/logs/auditPhrases.ts:120
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "S'ha unit amb la invitació <0>{target}</0>"
 
@@ -20294,7 +20306,7 @@ msgstr "Esforç de raonament"
 msgid "Rebuild segment"
 msgstr "Reconstruir segment"
 
-#: src/components/logs/auditPhrases.ts:69
+#: src/components/logs/auditPhrases.ts:73
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "Ha recalculat el segment <0>{target}</0>"
 
@@ -20577,11 +20589,11 @@ msgstr "Regenerar secret?"
 msgid "Regenerate the key of {domain}?"
 msgstr "Regenerar la clau de {domain}?"
 
-#: src/components/logs/auditPhrases.ts:118
+#: src/components/logs/auditPhrases.ts:122
 msgid "Regenerated a DKIM key of <0>{target}</0>"
 msgstr "Ha regenerat una clau DKIM de <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:101
+#: src/components/logs/auditPhrases.ts:105
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Ha regenerat el secret del webhook <0>{target}</0>"
 
@@ -20631,7 +20643,7 @@ msgstr "Registreu els webhooks per configurar el reenviament de respostes i desp
 msgid "Register webhooks?"
 msgstr "Registrar webhooks?"
 
-#: src/components/logs/auditPhrases.ts:104
+#: src/components/logs/auditPhrases.ts:108
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Ha registrat els webhooks del proveïdor de <0>{target}</0>"
 
@@ -20835,7 +20847,7 @@ msgstr "Suprimeix la variant {letter}"
 msgid "Removed"
 msgstr "Eliminat"
 
-#: src/components/logs/auditPhrases.ts:112
+#: src/components/logs/auditPhrases.ts:116
 msgid "Removed a DKIM domain from <0>{target}</0>"
 msgstr "Ha retirat un domini DKIM de <0>{target}</0>"
 
@@ -20851,11 +20863,11 @@ msgstr "Eliminat de {name}"
 msgid "Removed the contact <0>{target}</0> from a list"
 msgstr "Ha tret el contacte <0>{target}</0> d'una llista"
 
-#: src/components/logs/auditPhrases.ts:113
+#: src/components/logs/auditPhrases.ts:117
 msgid "Removed the integration <0>{target}</0>"
 msgstr "Ha retirat la integració <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:117
+#: src/components/logs/auditPhrases.ts:121
 msgid "Removed the member <0>{target}</0>"
 msgstr "Ha retirat el membre <0>{target}</0>"
 
@@ -20880,7 +20892,7 @@ msgstr "Canviar el nom o el slug d'una categoria"
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Canviar el nom de les etiquetes de camps de contacte personalitzats de l'espai de treball"
 
-#: src/components/logs/auditPhrases.ts:121
+#: src/components/logs/auditPhrases.ts:125
 msgid "Renamed the custom fields of <0>{target}</0>"
 msgstr "Ha canviat el nom dels camps personalitzats de <0>{target}</0>"
 
@@ -21142,7 +21154,7 @@ msgstr "Restableix substitueix tot el contingut pel de l’idioma per defecte."
 msgid "reset the filter"
 msgstr "restablir el filtre"
 
-#: src/components/logs/auditPhrases.ts:96
+#: src/components/logs/auditPhrases.ts:100
 msgid "Reset the two-factor authentication of <0>{target}</0>"
 msgstr "Ha restablert l'autenticació de doble factor de <0>{target}</0>"
 
@@ -21363,6 +21375,10 @@ msgstr "En reintent"
 #: src/components/settings/PermissionScopePresets.tsx:54
 msgid "Revoke all"
 msgstr "Revocar-ho tot"
+
+#: src/components/logs/auditPhrases.ts:69
+msgid "Revoked a token issued to the application <0>{target}</0>"
+msgstr "Ha revocat un token emès per a l'aplicació <0>{target}</0>"
 
 #: src/components/email_builder/ui/fields/BorderField.tsx:96
 msgid "Ridge"
@@ -21837,7 +21853,7 @@ msgstr "Blocs desats ({savedCount})"
 msgid "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 msgstr "Els blocs desats es poden fer servir en totes les plantilles de l’espai de treball. Les plantilles que ja contenen aquest bloc no canvien."
 
-#: src/components/logs/auditPhrases.ts:74
+#: src/components/logs/auditPhrases.ts:78
 msgid "Saved the block <0>{target}</0>"
 msgstr "Ha desat el bloc <0>{target}</0>"
 
@@ -22955,7 +22971,7 @@ msgctxt "newsletter status"
 msgid "Sent"
 msgstr "Enviat"
 
-#: src/components/logs/auditPhrases.ts:83
+#: src/components/logs/auditPhrases.ts:87
 msgid "Sent a test email of the template <0>{target}</0>"
 msgstr "Ha enviat un correu de prova de la plantilla <0>{target}</0>"
 
@@ -23004,7 +23020,7 @@ msgstr "Ha tornat el butlletí <0>{target}</0> a esborrany"
 msgid "Sent the newsletter <0>{target}</0> to one recipient"
 msgstr "Ha enviat el butlletí <0>{target}</0> a un destinatari"
 
-#: src/components/logs/auditPhrases.ts:82
+#: src/components/logs/auditPhrases.ts:86
 msgid "Sent the transactional notification <0>{target}</0>"
 msgstr "Ha enviat la notificació transaccional <0>{target}</0>"
 
@@ -23347,7 +23363,7 @@ msgstr "Configura un proveïdor de correu"
 msgid "Set up sending"
 msgstr "Configura l'enviament"
 
-#: src/components/logs/auditPhrases.ts:73
+#: src/components/logs/auditPhrases.ts:77
 msgid "Set up this Notifuse installation"
 msgstr "Ha configurat aquesta instal·lació de Notifuse"
 
@@ -23697,7 +23713,7 @@ msgstr "Ha signat una URL de pujada per a <0>{target}</0>"
 #~ msgid "Signed in as <0>{target}</0>"
 #~ msgstr "Ha iniciat la sessió com a <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:88
+#: src/components/logs/auditPhrases.ts:92
 msgid "Signed in as root <0>{target}</0>"
 msgstr "Ha iniciat la sessió com a root <0>{target}</0>"
 
@@ -23705,8 +23721,8 @@ msgstr "Ha iniciat la sessió com a root <0>{target}</0>"
 #~ msgid "Signed in with"
 #~ msgstr "Sessió iniciada amb"
 
-#: src/components/logs/auditPhrases.ts:86
-#: src/components/logs/auditPhrases.ts:87
+#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:91
 msgid "Signed in with single sign-on"
 msgstr "Ha iniciat la sessió amb inici de sessió únic"
 
@@ -23714,7 +23730,7 @@ msgstr "Ha iniciat la sessió amb inici de sessió únic"
 #~ msgid "Signed in with single sign-on as <0>{target}</0>"
 #~ msgstr "Ha iniciat la sessió amb inici de sessió únic com a <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:85
+#: src/components/logs/auditPhrases.ts:89
 msgid "Signed out"
 msgstr "Ha tancat la sessió"
 
@@ -24281,11 +24297,11 @@ msgstr "Iniciat"
 msgid "Started from “{0}”"
 msgstr "Basada en «{0}»"
 
-#: src/components/logs/auditPhrases.ts:93
+#: src/components/logs/auditPhrases.ts:97
 msgid "Started setting up an authenticator app"
 msgstr "Ha començat a configurar una aplicació d'autenticació"
 
-#: src/components/logs/auditPhrases.ts:98
+#: src/components/logs/auditPhrases.ts:102
 msgid "Started the web analytics backfill"
 msgstr "Ha iniciat l'emplenament de l'analítica web"
 
@@ -24604,7 +24620,7 @@ msgstr "Subscrit de nou a {name}"
 msgid "Subscribed on: {0}"
 msgstr "Subscrit el: {0}"
 
-#: src/components/logs/auditPhrases.ts:138
+#: src/components/logs/auditPhrases.ts:142
 msgid "Subscribed the contact <0>{target}</0> to a list"
 msgstr "Ha subscrit el contacte <0>{target}</0> a una llista"
 
@@ -27531,19 +27547,19 @@ msgstr "Activar o desactivar el blog i canviar-ne el títol, l'SEO, la paginaci�
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Activar o desactivar l'analítica web i canviar-ne els dominis permesos, els filtres, les etiquetes de dimensions personalitzades i la identificació per enllaç de correu"
 
-#: src/components/logs/auditPhrases.ts:90
+#: src/components/logs/auditPhrases.ts:94
 msgid "Turned off two-factor authentication"
 msgstr "Ha desactivat l'autenticació de doble factor"
 
-#: src/components/logs/auditPhrases.ts:71
+#: src/components/logs/auditPhrases.ts:75
 msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 msgstr "Ha activat l'aïllament de tenants d'Amazon SES per a <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:91
+#: src/components/logs/auditPhrases.ts:95
 msgid "Turned on two-factor authentication"
 msgstr "Ha activat l'autenticació de doble factor"
 
-#: src/components/logs/auditPhrases.ts:102
+#: src/components/logs/auditPhrases.ts:106
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Ha activat o desactivat el webhook <0>{target}</0>"
 
@@ -27992,7 +28008,7 @@ msgstr "Ha actualitzat l'entrada del blog <0>{target}</0>"
 msgid "Updated the blog theme <0>{target}</0>"
 msgstr "Ha actualitzat el tema del blog <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:126
+#: src/components/logs/auditPhrases.ts:130
 msgid "Updated the integration <0>{target}</0>"
 msgstr "Ha actualitzat la integració <0>{target}</0>"
 
@@ -28008,11 +28024,11 @@ msgstr "Ha actualitzat el butlletí <0>{target}</0>"
 msgid "Updated the preview text"
 msgstr "Text de previsualització actualitzat"
 
-#: src/components/logs/auditPhrases.ts:76
+#: src/components/logs/auditPhrases.ts:80
 msgid "Updated the saved block <0>{target}</0>"
 msgstr "Ha actualitzat el bloc desat <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:70
+#: src/components/logs/auditPhrases.ts:74
 msgid "Updated the segment <0>{target}</0>"
 msgstr "Ha actualitzat el segment <0>{target}</0>"
 
@@ -28024,23 +28040,23 @@ msgstr "Assumpte actualitzat"
 msgid "Updated the subject and the preview text"
 msgstr "Assumpte i text de previsualització actualitzats"
 
-#: src/components/logs/auditPhrases.ts:72
+#: src/components/logs/auditPhrases.ts:76
 msgid "Updated the system settings"
 msgstr "Ha actualitzat la configuració del sistema"
 
-#: src/components/logs/auditPhrases.ts:79
+#: src/components/logs/auditPhrases.ts:83
 msgid "Updated the template <0>{target}</0>"
 msgstr "Ha actualitzat la plantilla <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:84
+#: src/components/logs/auditPhrases.ts:88
 msgid "Updated the transactional notification <0>{target}</0>"
 msgstr "Ha actualitzat la notificació transaccional <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:103
+#: src/components/logs/auditPhrases.ts:107
 msgid "Updated the webhook <0>{target}</0>"
 msgstr "Ha actualitzat el webhook <0>{target}</0>"
 
-#: src/components/logs/auditPhrases.ts:125
+#: src/components/logs/auditPhrases.ts:129
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Ha actualitzat la configuració de l'espai de treball <0>{target}</0>"
 
@@ -28564,7 +28580,7 @@ msgstr "Variants"
 msgid "Verification code"
 msgstr "Codi de verificació"
 
-#: src/components/logs/auditPhrases.ts:95
+#: src/components/logs/auditPhrases.ts:99
 msgid "Verified the sign-in code of <0>{target}</0>"
 msgstr "Ha verificat el codi d'inici de sessió de <0>{target}</0>"
 

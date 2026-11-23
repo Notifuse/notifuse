@@ -207,7 +207,8 @@ func TestCORSMiddleware_OriginList(t *testing.T) {
 	})
 }
 
-// The global CORS policy leaves the MCP endpoint alone, whatever
+// The global CORS policy leaves the MCP endpoint and the OAuth authorization
+// server alone, whatever
 // CORS_ALLOW_ORIGIN says: no header written and a preflight passed through to
 // the MCP handler, which answers it. Every other path keeps the global policy.
 func TestCORSMiddleware_LeavesTheMCPEndpointToItsOwnPolicy(t *testing.T) {
@@ -219,7 +220,11 @@ func TestCORSMiddleware_LeavesTheMCPEndpointToItsOwnPolicy(t *testing.T) {
 		w.WriteHeader(http.StatusTeapot)
 	}))
 
-	for _, path := range []string{"/mcp", "/mcp/", "/mcp/anything"} {
+	for _, path := range []string{"/mcp", "/mcp/", "/mcp/anything",
+		"/oauth", "/oauth/authorize", "/oauth/token", "/oauth/revoke", "/oauth/register",
+		"/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp",
+		"/.well-known/oauth-authorization-server", "/.well-known/oauth-authorization-server/mcp",
+		"/.well-known/openid-configuration", "/.well-known/openid-configuration/mcp"} {
 		for _, method := range []string{http.MethodPost, http.MethodOptions} {
 			reached = 0
 			req := httptest.NewRequest(method, path, nil)
@@ -235,7 +240,7 @@ func TestCORSMiddleware_LeavesTheMCPEndpointToItsOwnPolicy(t *testing.T) {
 		}
 	}
 
-	for _, path := range []string{"/api/contacts.list", "/mcpx", "/console/mcp"} {
+	for _, path := range []string{"/api/contacts.list", "/mcpx", "/console/mcp", "/api/oauth.approveWithKey", "/oauthx", "/.well-known/security.txt", "/console/oauth/authorize"} {
 		reached = 0
 		req := httptest.NewRequest(http.MethodOptions, path, nil)
 		req.Header.Set("Origin", "https://console.example.com")
@@ -282,5 +287,27 @@ func TestApplyMCPCORS(t *testing.T) {
 		assert.False(t, ApplyMCPCORS(w, req))
 		assert.Empty(t, w.Header().Get("Access-Control-Allow-Origin"))
 		assert.Empty(t, w.Header().Get("Access-Control-Allow-Headers"))
+	})
+}
+
+func TestApplyOAuthCORS(t *testing.T) {
+	t.Run("any origin, never credentials", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/oauth/token", nil)
+		req.Header.Set("Origin", "https://claude.ai")
+		w := httptest.NewRecorder()
+
+		assert.False(t, ApplyOAuthCORS(w, req))
+		assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
+		assert.Empty(t, w.Header().Get("Access-Control-Allow-Credentials"))
+		assert.Equal(t, "GET, POST, OPTIONS", w.Header().Get("Access-Control-Allow-Methods"))
+		assert.Equal(t, "WWW-Authenticate", w.Header().Get("Access-Control-Expose-Headers"))
+	})
+
+	t.Run("a preflight is answered", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodOptions, "/oauth/token", nil)
+		w := httptest.NewRecorder()
+
+		assert.True(t, ApplyOAuthCORS(w, req))
+		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 }

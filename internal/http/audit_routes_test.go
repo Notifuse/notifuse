@@ -1,6 +1,8 @@
 package http
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -45,7 +47,8 @@ func registeredAPIRoutes(t *testing.T) []string {
 	return routes
 }
 
-// Every /api/ route is either audited, a logged read, or explicitly excluded.
+// Every /api/ route is either audited, a logged read, explicitly excluded, or
+// recorded by its own service.
 // A route that is none of the three cannot be registered: the audit catalogue
 // is the compensating control for a middleware that would otherwise silently
 // ignore whatever nobody classified.
@@ -57,16 +60,17 @@ func TestEveryAPIRouteIsClassifiedForAudit(t *testing.T) {
 		_, audited := domain.AuditedActions[route]
 		_, read := domain.AuditLoggedReads[route]
 		_, excluded := domain.AuditExcludedRoutes[route]
+		_, selfRecorded := domain.AuditSelfRecordedRoutes[route]
 
 		classified := 0
-		for _, ok := range []bool{audited, read, excluded} {
+		for _, ok := range []bool{audited, read, excluded, selfRecorded} {
 			if ok {
 				classified++
 			}
 		}
 		assert.Equal(t, 1, classified,
-			"/api/%s must be named in exactly one of domain.AuditedActions, AuditLoggedReads or AuditExcludedRoutes "+
-				"(audited=%v read=%v excluded=%v)", route, audited, read, excluded)
+			"/api/%s must be named in exactly one of domain.AuditedActions, AuditLoggedReads, AuditExcludedRoutes or AuditSelfRecordedRoutes "+
+				"(audited=%v read=%v excluded=%v self-recorded=%v)", route, audited, read, excluded, selfRecorded)
 	}
 }
 
@@ -90,5 +94,19 @@ func TestEveryClassifiedAuditRouteIsRegistered(t *testing.T) {
 	}
 	for route := range domain.AuditExcludedRoutes {
 		check(route)
+	}
+	// The self-recorded routes are /api/ routes, but for the one the OAuth
+	// token family serves outside it.
+	outsideAPI := map[string]string{"oauth.revoke": "/oauth/revoke"}
+	mux := http.NewServeMux()
+	NewOAuthHandler(OAuthHandlerConfig{}).RegisterRoutes(mux)
+	for route := range domain.AuditSelfRecordedRoutes {
+		path, outside := outsideAPI[route]
+		if !outside {
+			check(route)
+			continue
+		}
+		_, pattern := mux.Handler(httptest.NewRequest(http.MethodPost, path, nil))
+		assert.Equal(t, path, pattern, "%s is self-recorded but no handler registers %s", route, path)
 	}
 }
