@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 )
@@ -20,19 +19,39 @@ func NewSQLAuthRepository(db *sql.DB) *SQLAuthRepository {
 	}
 }
 
-// GetSessionByID retrieves a session by ID and user ID
-func (r *SQLAuthRepository) GetSessionByID(ctx context.Context, sessionID string, userID string) (*time.Time, error) {
-	var expiresAt time.Time
-	err := r.systemDB.QueryRowContext(ctx,
-		"SELECT expires_at FROM user_sessions WHERE id = $1 AND user_id = $2",
+// GetSessionByID returns what a request needs to know about a usable session of the user:
+// its expiry, how it was opened, the second factor it passed and when it became usable. A
+// session that waits for its magic code or its second factor is not usable and comes back
+// as sql.ErrNoRows, like a missing one.
+func (r *SQLAuthRepository) GetSessionByID(ctx context.Context, sessionID string, userID string) (*domain.SessionAuth, error) {
+	var auth domain.SessionAuth
+	var authMethod, secondFactor sql.NullString
+	var authenticatedAt sql.NullTime
+	err := r.systemDB.QueryRowContext(ctx, `
+		SELECT expires_at, auth_method, second_factor, authenticated_at
+		FROM user_sessions
+		WHERE id = $1 AND user_id = $2 AND challenge_hash IS NULL AND magic_code IS NULL`,
 		sessionID, userID,
-	).Scan(&expiresAt)
-
+	).Scan(&auth.ExpiresAt, &authMethod, &secondFactor, &authenticatedAt)
 	if err != nil {
 		return nil, err
 	}
+	auth.AuthMethod = domain.AuthMethod(authMethod.String)
+	auth.SecondFactor = domain.SecondFactor(secondFactor.String)
+	auth.AuthenticatedAt = nullTime(authenticatedAt)
+	return &auth, nil
+}
 
-	return &expiresAt, nil
+// IsTwoFactorEnabled reports whether the user turned on two-factor authentication.
+func (r *SQLAuthRepository) IsTwoFactorEnabled(ctx context.Context, userID string) (bool, error) {
+	var enabled bool
+	err := r.systemDB.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM user_totp WHERE user_id = $1 AND enabled_at IS NOT NULL AND secret_encrypted IS NOT NULL)`, userID,
+	).Scan(&enabled)
+	if err != nil {
+		return false, err
+	}
+	return enabled, nil
 }
 
 // GetUserByID retrieves a user by ID

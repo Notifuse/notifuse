@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
@@ -52,11 +54,48 @@ func TestV45Migration_MatchesTheCodeVersion(t *testing.T) {
 		"config.VERSION (%v) and the highest registered migration (%v) must agree", code, highest)
 }
 
-// The system part is the data retention part. The workspace part is the data retention part,
-// then the unique external_id part, each run in full (v45_data_retention_test.go and
-// v45_external_id_test.go pin their statements): sqlmock fails on any statement it was not
-// told to expect. Each
-// project adds its own expectations here.
+// The "two places" rule: what an upgrade runs must be byte-identical to what a fresh
+// install runs. QueryMatcherEqual makes sqlmock compare the whole statement.
+func TestV45Migration_UpdateSystem_RunsTheTwoFactorDDLVerbatimAndInOrder(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	for _, stmt := range schema.TwoFactorTableDefinitions() {
+		mock.ExpectExec(stmt).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	// Then the data retention part, which follows them.
+	for _, stmt := range dataRetentionSystemV45Statements() {
+		mock.ExpectExec(stmt).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+
+	m := &V45Migration{}
+	require.True(t, m.HasSystemUpdate())
+	require.NoError(t, m.UpdateSystem(context.Background(), &config.Config{}, db))
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestV45Migration_UpdateSystem_StopsAtTheFirstFailureWithAPrefix(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	defs := schema.TwoFactorTableDefinitions()
+	mock.ExpectExec(defs[0]).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(defs[1]).WillReturnError(errors.New("boom"))
+
+	err = (&V45Migration{}).UpdateSystem(context.Background(), &config.Config{}, db)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "v45: failed to create the two-factor authentication tables")
+	assert.Contains(t, err.Error(), "boom")
+	assert.NoError(t, mock.ExpectationsWereMet(), "the third statement must never run after the second failed")
+}
+
+// Each project's part, in full: sqlmock fails on any statement it was not told to expect.
+// The system part is two-factor authentication then data retention, in UpdateSystem's order.
+// The workspace part is data retention, then the unique external_id part
+// (v45_data_retention_test.go and v45_external_id_test.go pin their statements). Each project
+// adds its expectations here.
 func TestV45Migration_Parts(t *testing.T) {
 	m := &V45Migration{}
 	assert.True(t, m.HasSystemUpdate())
@@ -65,6 +104,9 @@ func TestV45Migration_Parts(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
+	for _, statement := range schema.TwoFactorTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
 	for _, statement := range dataRetentionSystemV45Statements() {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}

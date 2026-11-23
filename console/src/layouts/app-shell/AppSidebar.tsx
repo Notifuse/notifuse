@@ -38,6 +38,8 @@ export interface AppSidebarProps {
   user: { email: string; name?: string } | null
   role?: AccountRole
   onSignout: () => void
+  /** Opens account security from the account menu. */
+  onOpenAccountSecurity?: () => void
   /** Where the logo leads, and its name; the workspace dashboard without one. */
   home?: { target: MenuTarget; label: string }
 }
@@ -67,6 +69,7 @@ export function AppSidebar({
   user,
   role,
   onSignout,
+  onOpenAccountSecurity,
   home
 }: AppSidebarProps) {
   const { t } = useLingui()
@@ -317,6 +320,7 @@ export function AppSidebar({
           role={role}
           collapsed={!expanded}
           onSignout={onSignout}
+          onOpenSecurity={onOpenAccountSecurity}
           onMenuOpenChange={menuOpenChange('account')}
           getPopupContainer={getPopupContainer}
         />

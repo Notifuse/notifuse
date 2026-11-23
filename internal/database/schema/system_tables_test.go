@@ -123,6 +123,8 @@ func TestTableNames(t *testing.T) {
 			"broadcasts",
 			"tasks",
 			"settings",
+			"user_totp",
+			"user_recovery_codes",
 		}
 
 		for _, expectedTable := range expectedTables {

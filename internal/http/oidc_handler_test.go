@@ -263,6 +263,7 @@ func TestOIDCHandler_Exchange_Success(t *testing.T) {
 	body := rec.Body.String()
 	assert.Contains(t, body, `"token":"minted-jwt"`)
 	assert.Contains(t, body, `"expires_at"`)
+	assert.Equal(t, "no-store", res.Header.Get("Cache-Control"), "the response carries a session token")
 }
 
 func TestOIDCHandler_Exchange_MissingCode(t *testing.T) {

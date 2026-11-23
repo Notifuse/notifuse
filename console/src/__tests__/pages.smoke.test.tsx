@@ -75,6 +75,7 @@ vi.mock('../contexts/AuthContext', () => ({
     loading: false,
     refreshWorkspaces: vi.fn()
   }),
+  useOptionalAuth: () => undefined,
   useWorkspacePermissions: () => ({
     permissions: createFullPermissions(),
     loading: false

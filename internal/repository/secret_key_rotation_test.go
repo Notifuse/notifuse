@@ -26,9 +26,15 @@ const (
 	rotationLockQuery      = `SELECT pg_advisory_xact_lock\(\$1\)`
 	rotationWorkspaceQuery = `SELECT id, settings, integrations FROM workspaces ORDER BY id FOR UPDATE`
 	rotationSettingsQuery  = `SELECT key, value FROM settings WHERE key LIKE 'encrypted\\_%' AND value <> '' ORDER BY key FOR UPDATE`
+	rotationTOTPQuery      = `SELECT user_id, secret_encrypted, pending_secret_encrypted FROM user_totp\s+WHERE secret_encrypted IS NOT NULL OR pending_secret_encrypted IS NOT NULL\s+ORDER BY user_id FOR UPDATE`
 	rotationWorkspaceWrite = `UPDATE workspaces SET settings = \$1, integrations = \$2 WHERE id = \$3`
 	rotationSettingWrite   = `UPDATE settings SET value = \$1 WHERE key = \$2`
 )
+
+// expectNoUserTOTPs expects the rotation's read of the authenticator secrets, here none.
+func expectNoUserTOTPs(mock sqlmock.Sqlmock) {
+	mock.ExpectQuery(rotationTOTPQuery).WillReturnRows(sqlmock.NewRows([]string{"user_id", "secret_encrypted", "pending_secret_encrypted"}))
+}
 
 func encryptFor(t *testing.T, plaintext, key string) string {
 	t.Helper()
@@ -135,6 +141,7 @@ func TestRotateSecretKey(t *testing.T) {
 		mock.ExpectExec(rotationSettingWrite).
 			WithArgs(opensWithOnly{want: "smtp-pass"}, "encrypted_smtp_password").
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		expectNoUserTOTPs(mock)
 		mock.ExpectCommit()
 
 		result, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
@@ -162,6 +169,7 @@ func TestRotateSecretKey(t *testing.T) {
 			}), nil, "aaa").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+		expectNoUserTOTPs(mock)
 		mock.ExpectCommit()
 
 		_, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
@@ -192,6 +200,7 @@ func TestRotateSecretKey(t *testing.T) {
 			}), nil, "aaa").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+		expectNoUserTOTPs(mock)
 		mock.ExpectCommit()
 
 		_, err = RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
@@ -227,6 +236,7 @@ func TestRotateSecretKey(t *testing.T) {
 		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(
 			sqlmock.NewRows([]string{"key", "value"}).
 				AddRow("encrypted_smtp_password", encryptFor(t, "smtp-pass", rotationCurrentKey)))
+		expectNoUserTOTPs(mock)
 		mock.ExpectCommit()
 
 		result, err := RotateSecretKey(ctx, db, rotationCurrentKey, nil)
@@ -300,6 +310,7 @@ func TestRotateSecretKey(t *testing.T) {
 		mock.ExpectExec(rotationSettingWrite).
 			WithArgs(opensWithOnly{want: "smtp-pass"}, "encrypted_smtp_password").
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		expectNoUserTOTPs(mock)
 		mock.ExpectCommit()
 
 		result, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
@@ -323,6 +334,7 @@ func TestRotateSecretKey(t *testing.T) {
 			sqlmock.NewRows([]string{"key", "value"}).
 				AddRow("encrypted_smtp_password", encryptFor(t, "smtp-pass", rotationCurrentKey+","+rotationPreviousKey)).
 				AddRow("encrypted_smtp_username", encryptFor(t, "smtp-user", rotationCurrentKey+","+rotationPreviousKey)))
+		expectNoUserTOTPs(mock)
 		mock.ExpectRollback()
 
 		_, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
@@ -345,6 +357,7 @@ func TestRotateSecretKey(t *testing.T) {
 			sqlmock.NewRows([]string{"key", "value"}).
 				AddRow("encrypted_smtp_password", encryptFor(t, "smtp-pass", rotationCurrentKey)).
 				AddRow("encrypted_smtp_relay_password", encryptFor(t, "relay", "a-key-nobody-listed-giving-32-bytes")))
+		expectNoUserTOTPs(mock)
 		mock.ExpectCommit()
 
 		result, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})

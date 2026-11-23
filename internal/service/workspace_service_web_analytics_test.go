@@ -24,6 +24,7 @@ func newWorkspaceServiceForWebAnalyticsTest(t *testing.T) (*WorkspaceService, *m
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 
@@ -46,6 +47,7 @@ func newWorkspaceServiceForWebAnalyticsTest(t *testing.T) (*WorkspaceService, *m
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()

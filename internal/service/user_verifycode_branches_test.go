@@ -15,28 +15,15 @@ import (
 )
 
 // VerifyCode is the brute-force surface for magic-code sign-in: the rate
-// limiter must trip before the repository is touched, a code must be
-// consumed (cleared) exactly when it matches, and lookup failures must not
+// limiter must trip before the repository is touched, a code is consumed in the
+// same transaction that makes the session usable, and lookup failures must not
 // be mistaken for bad codes.
-
-const verifyTestSecret = "test-secret-key-for-hmac-verification"
-
-func sessionWithCode(t *testing.T, code string, expires time.Time) *domain.Session {
-	t.Helper()
-	hashed := crypto.HashMagicCode(code, verifyTestSecret)
-	return &domain.Session{
-		ID:               "sess-1",
-		UserID:           "user-1",
-		MagicCode:        &hashed,
-		MagicCodeExpires: &expires,
-		ExpiresAt:        time.Now().Add(24 * time.Hour),
-	}
-}
 
 func TestUserService_VerifyCode_Branches(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	user := &domain.User{ID: "user-1", Email: email}
+	notFound := &domain.ErrSessionNotFound{Message: "no session holds this code"}
 
 	t.Run("unknown email surfaces the repository error, not 'invalid code'", func(t *testing.T) {
 		mockRepo, _, service, _ := setupUserTest(t)
@@ -45,65 +32,35 @@ func TestUserService_VerifyCode_Branches(t *testing.T) {
 
 		_, err := service.VerifyCode(ctx, domain.VerifyCodeInput{Email: email, Code: "123456"})
 		require.Error(t, err)
-		var notFound *domain.ErrUserNotFound
-		assert.ErrorAs(t, err, &notFound)
+		var nf *domain.ErrUserNotFound
+		assert.ErrorAs(t, err, &nf)
 		assert.NotEqual(t, "invalid magic code", err.Error())
 	})
 
-	t.Run("session lookup failure is passed through", func(t *testing.T) {
+	t.Run("a lookup failure is passed through and rolls back", func(t *testing.T) {
 		mockRepo, _, service, _ := setupUserTest(t)
+		m := txMocksOf(service)
 		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil).Times(1)
 		sentinel := errors.New("sessions table gone")
-		mockRepo.EXPECT().GetSessionsByUserID(gomock.Any(), "user-1").Return(nil, sentinel).Times(1)
+		expectMagicCode(m, "user-1", "123456", nil, nil, sentinel)
 
 		_, err := service.VerifyCode(ctx, domain.VerifyCodeInput{Email: email, Code: "123456"})
 		assert.ErrorIs(t, err, sentinel)
+		assert.Equal(t, 1, m.tx.rollbacks)
 	})
 
-	t.Run("sessions without a magic code cannot match", func(t *testing.T) {
+	t.Run("a write failure after the code matched rolls the consumption back", func(t *testing.T) {
 		mockRepo, _, service, _ := setupUserTest(t)
+		m := txMocksOf(service)
 		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil).Times(1)
-		empty := ""
-		mockRepo.EXPECT().GetSessionsByUserID(gomock.Any(), "user-1").
-			Return([]*domain.Session{
-				{ID: "s1", UserID: "user-1"},
-				{ID: "s2", UserID: "user-1", MagicCode: &empty},
-			}, nil).Times(1)
-
-		_, err := service.VerifyCode(ctx, domain.VerifyCodeInput{Email: email, Code: "123456"})
-		require.EqualError(t, err, "invalid magic code")
-	})
-
-	t.Run("a matching code is cleared before the session is stored", func(t *testing.T) {
-		mockRepo, mockAuth, service, _ := setupUserTest(t)
-		session := sessionWithCode(t, "123456", time.Now().Add(15*time.Minute))
-		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil).Times(1)
-		mockRepo.EXPECT().GetSessionsByUserID(gomock.Any(), "user-1").
-			Return([]*domain.Session{session}, nil).Times(1)
-		mockRepo.EXPECT().UpdateSession(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, s *domain.Session) error {
-				assert.Nil(t, s.MagicCode, "the code is consumed on use: it must never verify twice")
-				assert.Nil(t, s.MagicCodeExpires)
-				return nil
-			}).Times(1)
-		mockAuth.EXPECT().GenerateUserAuthToken(user, "sess-1", gomock.Any()).Return("tok").Times(1)
-
-		resp, err := service.VerifyCode(ctx, domain.VerifyCodeInput{Email: email, Code: "123456"})
-		require.NoError(t, err)
-		assert.Equal(t, "tok", resp.Token)
-	})
-
-	t.Run("a store failure after a match still consumes nothing twice", func(t *testing.T) {
-		mockRepo, _, service, _ := setupUserTest(t)
-		session := sessionWithCode(t, "123456", time.Now().Add(15*time.Minute))
-		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil).Times(1)
-		mockRepo.EXPECT().GetSessionsByUserID(gomock.Any(), "user-1").
-			Return([]*domain.Session{session}, nil).Times(1)
+		expectMagicCode(m, "user-1", "123456", nil, &domain.Session{ID: "sess-1", UserID: "user-1"}, nil)
 		sentinel := errors.New("write failed")
-		mockRepo.EXPECT().UpdateSession(gomock.Any(), gomock.Any()).Return(sentinel).Times(1)
+		m.authTx.EXPECT().PurgeExpiredPendingSessions(gomock.Any(), gomock.Any(), "user-1").Return(sentinel)
 
 		_, err := service.VerifyCode(ctx, domain.VerifyCodeInput{Email: email, Code: "123456"})
 		assert.ErrorIs(t, err, sentinel)
+		assert.Equal(t, 1, m.tx.rollbacks)
+		assert.Zero(t, m.tx.commits)
 	})
 
 	t.Run("the rate limiter trips before the repository is touched", func(t *testing.T) {
@@ -123,13 +80,19 @@ func TestUserService_VerifyCode_Branches(t *testing.T) {
 
 	t.Run("a successful verification resets the rate-limit budget", func(t *testing.T) {
 		mockRepo, mockAuth, service, _ := setupUserTest(t)
-		session := sessionWithCode(t, "123456", time.Now().Add(15*time.Minute))
+		m := txMocksOf(service)
+		session := &domain.Session{ID: "sess-1", UserID: "user-1", ExpiresAt: time.Now().Add(24 * time.Hour)}
 
-		// Four failures, then success on the fifth (last allowed) attempt.
 		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil).Times(6)
-		mockRepo.EXPECT().GetSessionsByUserID(gomock.Any(), "user-1").
-			Return([]*domain.Session{session}, nil).Times(6)
-		mockRepo.EXPECT().UpdateSession(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		m.authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), "user-1").Return(nil).Times(6)
+		m.twoFactor.EXPECT().GetTOTPForUpdate(gomock.Any(), gomock.Any(), "user-1").Return(nil, nil).Times(6)
+		good := crypto.HashMagicCode("123456", verifyTestSecret)
+		m.authTx.EXPECT().ConsumeMagicCode(gomock.Any(), gomock.Any(), "user-1", good).Return(session, nil).Times(1)
+		m.authTx.EXPECT().ConsumeMagicCode(gomock.Any(), gomock.Any(), "user-1", gomock.Not(good)).Return(nil, notFound).Times(5)
+		m.authTx.EXPECT().HasExpiredMagicCode(gomock.Any(), gomock.Any(), "user-1", gomock.Any()).Return(false, nil).Times(5)
+		m.authTx.EXPECT().PurgeExpiredPendingSessions(gomock.Any(), gomock.Any(), "user-1").Return(nil)
+		m.twoFactor.EXPECT().ClockTimestamp(gomock.Any(), gomock.Any()).Return(time.Now(), nil)
+		m.authTx.EXPECT().ActivateSession(gomock.Any(), gomock.Any(), "sess-1", domain.AuthMethodMagicCode, gomock.Any()).Return(nil)
 		mockAuth.EXPECT().GenerateUserAuthToken(user, "sess-1", gomock.Any()).Return("tok").Times(1)
 
 		for i := 0; i < 4; i++ {
@@ -145,3 +108,5 @@ func TestUserService_VerifyCode_Branches(t *testing.T) {
 		require.EqualError(t, err, "invalid magic code")
 	})
 }
+
+const verifyTestSecret = "test-secret-key-for-hmac-verification"

@@ -207,12 +207,17 @@ func (r *userRepository) CreateSession(ctx context.Context, session *domain.Sess
 		magicCodeExpires = expiresUTC
 	}
 
+	var authMethod interface{}
+	if session.AuthMethod != "" {
+		authMethod = string(session.AuthMethod)
+	}
+
 	query := `
 		INSERT INTO user_sessions (
 			id, user_id, expires_at, created_at, 
-			magic_code, magic_code_expires_at
+			magic_code, magic_code_expires_at, auth_method, authenticated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	_, err := r.systemDB.ExecContext(ctx, query,
 		session.ID,
@@ -221,6 +226,8 @@ func (r *userRepository) CreateSession(ctx context.Context, session *domain.Sess
 		session.CreatedAt,
 		session.MagicCode,
 		magicCodeExpires,
+		authMethod,
+		session.AuthenticatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create session: %w", err)
@@ -228,41 +235,22 @@ func (r *userRepository) CreateSession(ctx context.Context, session *domain.Sess
 	return nil
 }
 
+// GetSessionByID returns a usable session: one that waits neither for its magic code nor
+// for its second factor. No JWT ever names a pending session; refusing them here is a
+// second line of defence.
 func (r *userRepository) GetSessionByID(ctx context.Context, id string) (*domain.Session, error) {
-	var session domain.Session
-	var magicCode sql.NullString
-	var magicCodeExpires sql.NullTime
-
-	query := `
-		SELECT id, user_id, expires_at, created_at, 
-			magic_code, magic_code_expires_at
+	session, err := scanSession(r.systemDB.QueryRowContext(ctx, `
+		SELECT `+sessionColumns+`
 		FROM user_sessions
-		WHERE id = $1
-	`
-	err := r.systemDB.QueryRowContext(ctx, query, id).Scan(
-		&session.ID,
-		&session.UserID,
-		&session.ExpiresAt,
-		&session.CreatedAt,
-		&magicCode,
-		&magicCodeExpires,
-	)
+		WHERE id = $1 AND challenge_hash IS NULL AND magic_code IS NULL
+	`, id))
 	if err == sql.ErrNoRows {
 		return nil, &domain.ErrSessionNotFound{Message: "session not found"}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
-
-	// Convert nullable types to pointers
-	if magicCode.Valid {
-		session.MagicCode = &magicCode.String
-	}
-	if magicCodeExpires.Valid {
-		session.MagicCodeExpires = &magicCodeExpires.Time
-	}
-
-	return &session, nil
+	return session, nil
 }
 
 func (r *userRepository) DeleteSession(ctx context.Context, id string) error {

@@ -216,3 +216,51 @@ describe('RootLayout', () => {
     expect(screen.getByTestId('outlet')).toBeInTheDocument()
   })
 })
+
+// The instance requires two-factor authentication and the session has not passed it: only the
+// account security page works.
+describe('RootLayout two-factor requirement', () => {
+  const navigate = vi.fn()
+  const originalIsInstalled = (window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED
+  const onRoute = (route: string) => {
+    // @ts-expect-error - we're mocking the return value
+    useMatch.mockImplementation(({ from }: { from: string }) => from === route)
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // @ts-expect-error - we're mocking the return value
+    useNavigate.mockReturnValue(navigate)
+    ;(window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED = true
+  })
+  afterEach(() => {
+    ;(window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED = originalIsInstalled
+  })
+
+  it('sends a session that has not passed it to the account security page', () => {
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({ isAuthenticated: true, loading: false, workspaces: [], user: { email: 'ann@example.com' }, twoFactorRequired: true })
+    onRoute('/console/workspace/$workspaceId')
+    render(<RootLayout />)
+    expect(navigate).toHaveBeenCalledWith({ to: '/console/account/security', replace: true })
+  })
+
+  // A root user with no workspace is normally sent to create one: not while the requirement
+  // holds, and never away from the security page.
+  it('leaves a root user without a workspace on the security page', () => {
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({ isAuthenticated: true, loading: false, workspaces: [], user: { email: 'root@example.com' }, twoFactorRequired: false })
+    onRoute('/console/account/security')
+    render(<RootLayout />)
+    expect(navigate).not.toHaveBeenCalled()
+    expect(screen.getByTestId('outlet')).toBeInTheDocument()
+  })
+
+  it('lets the session sign out', () => {
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({ isAuthenticated: true, loading: false, workspaces: [], user: { email: 'ann@example.com' }, twoFactorRequired: true })
+    onRoute('/console/logout')
+    render(<RootLayout />)
+    expect(navigate).not.toHaveBeenCalled()
+  })
+})

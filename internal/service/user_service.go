@@ -29,6 +29,10 @@ type UserService struct {
 	rateLimiter   *ratelimiter.RateLimiter // Global rate limiter with namespace support
 	secretKey     string
 	rootEmail     string
+	// Two-factor authentication: the sign-in transaction and its repositories.
+	tx            domain.SystemTxRunner
+	authTx        domain.AuthTxRepository
+	twoFactorRepo domain.TwoFactorRepository
 }
 
 type EmailSender interface {
@@ -46,6 +50,9 @@ type UserServiceConfig struct {
 	RateLimiter   *ratelimiter.RateLimiter // Global rate limiter
 	SecretKey     string
 	RootEmail     string
+	Tx            domain.SystemTxRunner
+	AuthTx        domain.AuthTxRepository
+	TwoFactorRepo domain.TwoFactorRepository
 }
 
 func NewUserService(cfg UserServiceConfig) (*UserService, error) {
@@ -66,6 +73,9 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 		rateLimiter:   cfg.RateLimiter, // Global rate limiter
 		secretKey:     cfg.SecretKey,
 		rootEmail:     cfg.RootEmail,
+		tx:            cfg.Tx,
+		authTx:        cfg.AuthTx,
+		twoFactorRepo: cfg.TwoFactorRepo,
 	}, nil
 }
 
@@ -150,7 +160,18 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 	s.tracer.AddAttribute(ctx, "session.id", session.ID)
 	s.tracer.AddAttribute(ctx, "session.expires_at", expiresAt.String())
 
-	if err := s.repo.CreateSession(ctx, session); err != nil {
+	// Under the user's lock, the sessions still waiting for a code or a second factor past
+	// their deadline go: otherwise each sign-in left one behind.
+	err = s.tx.WithSystemTx(ctx, func(tx domain.DBExecutor) error {
+		if err := s.authTx.LockUser(ctx, tx, user.ID); err != nil {
+			return err
+		}
+		if err := s.authTx.PurgeExpiredPendingSessions(ctx, tx, user.ID); err != nil {
+			return err
+		}
+		return s.authTx.CreateSession(ctx, tx, session)
+	})
+	if err != nil {
 		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to create session")
 		s.tracer.MarkSpanError(ctx, err)
 		return "", err
@@ -199,68 +220,85 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 
 	s.tracer.AddAttribute(ctx, "user.id", user.ID)
 
-	// Find all sessions for this user
-	sessions, err := s.repo.GetSessionsByUserID(ctx, user.ID)
-	if err != nil {
-		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get sessions for user")
-		s.tracer.MarkSpanError(ctx, err)
-		return nil, err
-	}
-
-	s.tracer.AddAttribute(ctx, "sessions.count", len(sessions))
-
-	// Find the session with the matching code (using HMAC verification)
+	// One transaction, under the user's lock: the code is consumed once even when two
+	// requests send it at the same time, and the session either becomes usable or waits for
+	// the second factor, never both.
+	codeHash := crypto.HashMagicCode(input.Code, s.secretKey)
 	var matchingSession *domain.Session
-	for _, session := range sessions {
-		// Skip sessions with no magic code set
-		if session.MagicCode == nil || *session.MagicCode == "" {
-			continue
+	var challenge *domain.TwoFactorChallenge
+	err = s.tx.WithSystemTx(ctx, func(tx domain.DBExecutor) error {
+		if err := s.authTx.LockUser(ctx, tx, user.ID); err != nil {
+			return err
 		}
-		// Use constant-time HMAC comparison to prevent timing attacks
-		if crypto.VerifyMagicCode(input.Code, *session.MagicCode, s.secretKey) {
-			matchingSession = session
-			break
+		totpRow, err := s.twoFactorRepo.GetTOTPForUpdate(ctx, tx, user.ID)
+		if err != nil {
+			return err
 		}
-	}
-
-	if matchingSession == nil {
-		s.logger.WithField("user_id", user.ID).WithField("email", input.Email).Error("Invalid magic code")
-		err := fmt.Errorf("invalid magic code")
+		matchingSession, err = s.authTx.ConsumeMagicCode(ctx, tx, user.ID, codeHash)
+		var notFound *domain.ErrSessionNotFound
+		if errors.As(err, &notFound) {
+			expired, checkErr := s.authTx.HasExpiredMagicCode(ctx, tx, user.ID, codeHash)
+			if checkErr != nil {
+				return checkErr
+			}
+			if expired {
+				domain.AuditFromContext(ctx).Fail("expired_code")
+				return errMagicCodeExpired
+			}
+			domain.AuditFromContext(ctx).Fail("invalid_code")
+			return errInvalidMagicCode
+		}
+		if err != nil {
+			return err
+		}
+		if err := s.authTx.PurgeExpiredPendingSessions(ctx, tx, user.ID); err != nil {
+			return err
+		}
+		now, err := s.twoFactorRepo.ClockTimestamp(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if !totpRow.Enabled() {
+			return s.authTx.ActivateSession(ctx, tx, matchingSession.ID, domain.AuthMethodMagicCode, now)
+		}
+		token, hash, err := NewChallenge()
+		if err != nil {
+			return err
+		}
+		expiresAt := now.Add(domain.ChallengeTTL)
+		if err := s.authTx.SetSessionChallenge(ctx, tx, matchingSession.ID, domain.AuthMethodMagicCode, hash, expiresAt, nil); err != nil {
+			return err
+		}
+		challenge = &domain.TwoFactorChallenge{Token: token, ExpiresAt: expiresAt}
+		return nil
+	})
+	if err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("email", input.Email).WithField("error", err.Error()).Error("Magic code verification failed")
 		s.tracer.MarkSpanError(ctx, err)
-		domain.AuditFromContext(ctx).Fail("invalid_code")
 		return nil, err
 	}
 
 	s.tracer.AddAttribute(ctx, "session.id", matchingSession.ID)
 
-	// Check if magic code is expired
-	if matchingSession.MagicCodeExpires != nil && time.Now().After(*matchingSession.MagicCodeExpires) {
-		s.logger.WithField("user_id", user.ID).WithField("email", input.Email).WithField("session_id", matchingSession.ID).Error("Magic code expired")
-		err := fmt.Errorf("magic code expired")
-		s.tracer.MarkSpanError(ctx, err)
-		domain.AuditFromContext(ctx).Fail("expired_code")
-		return nil, err
+	// Reset rate limiter on successful verification
+	if s.rateLimiter != nil {
+		s.rateLimiter.Reset("verify", input.Email)
 	}
 
-	// Clear the magic code from the session
-	matchingSession.MagicCode = nil
-	matchingSession.MagicCodeExpires = nil
-
-	if err := s.repo.UpdateSession(ctx, matchingSession); err != nil {
-		s.logger.WithField("user_id", user.ID).WithField("session_id", matchingSession.ID).WithField("error", err.Error()).Error("Failed to update session")
-		s.tracer.MarkSpanError(ctx, err)
-		return nil, err
+	if challenge != nil {
+		// The email code was right; the session waits for the second factor.
+		if audit := domain.AuditFromContext(ctx); audit != nil {
+			audit.SetActor(user, nil, false)
+			audit.SetAuthMethod(domain.AuditAuthMagicCode)
+			audit.AddMetadata("stage", "second_factor_required")
+		}
+		return &domain.AuthResponse{User: *user, Challenge: challenge}, nil
 	}
 
 	// Generate authentication token
 	token := s.authService.GenerateUserAuthToken(user, matchingSession.ID, matchingSession.ExpiresAt)
 	s.tracer.AddAttribute(ctx, "token.generated", true)
 	s.tracer.AddAttribute(ctx, "token.expires_at", matchingSession.ExpiresAt.String())
-
-	// Reset rate limiter on successful verification
-	if s.rateLimiter != nil {
-		s.rateLimiter.Reset("verify", input.Email)
-	}
 
 	if audit := domain.AuditFromContext(ctx); audit != nil {
 		audit.SetActor(user, nil, false)
@@ -331,7 +369,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	s.tracer.AddAttribute(ctx, "user.id", user.ID)
 
 	// Create session (no magic code needed for root signin)
-	session, err := s.startSession(ctx, user.ID, s.sessionExpiry)
+	session, err := s.startSession(ctx, user.ID, s.sessionExpiry, domain.AuthMethodRootSignature)
 	if err != nil {
 		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to create session for root signin")
 		s.tracer.MarkSpanError(ctx, err)
@@ -366,6 +404,13 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	}, nil
 }
 
+// The answers of a magic code that does not open a session. Their text is what the
+// console and API clients have always read.
+var (
+	errInvalidMagicCode = errors.New("invalid magic code")
+	errMagicCodeExpired = errors.New("magic code expired")
+)
+
 func (s *UserService) generateMagicCode() string {
 	// Generate a 6-digit code
 	code := make([]byte, 3)
@@ -387,14 +432,18 @@ func generateID() string {
 	return uuid.New().String()
 }
 
-// startSession opens a session for userID that lasts expiry, as a sign-in does, without
-// issuing a token for it: for server-side work that acts as that user.
-func (s *UserService) startSession(ctx context.Context, userID string, expiry time.Duration) (*domain.Session, error) {
+// startSession opens a usable session for userID that lasts expiry, opened by method,
+// without issuing a token for it: the root signature mints its token from it, and the demo
+// seed uses it for server-side work that acts as the root user.
+func (s *UserService) startSession(ctx context.Context, userID string, expiry time.Duration, method domain.AuthMethod) (*domain.Session, error) {
+	now := time.Now()
 	session := &domain.Session{
-		ID:        generateID(),
-		UserID:    userID,
-		ExpiresAt: time.Now().Add(expiry),
-		CreatedAt: time.Now(),
+		ID:              generateID(),
+		UserID:          userID,
+		ExpiresAt:       now.Add(expiry),
+		CreatedAt:       now,
+		AuthMethod:      method,
+		AuthenticatedAt: &now,
 	}
 	if err := s.repo.CreateSession(ctx, session); err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
@@ -536,8 +585,21 @@ func (s *UserService) Logout(ctx context.Context, userID string) error {
 
 	s.tracer.AddAttribute(ctx, "user.id", userID)
 
-	// Delete all sessions for the user
-	err := s.repo.DeleteAllSessionsByUserID(ctx, userID)
+	// Under the user's lock, so that a code or a second factor completing at the same
+	// time either ends before and is signed out too, or starts after. Sessions opened by
+	// single sign-on or the root signature are inserted without that lock.
+	err := s.tx.WithSystemTx(ctx, func(tx domain.DBExecutor) error {
+		err := s.authTx.LockUser(ctx, tx, userID)
+		var gone *domain.ErrUserNotFound
+		if errors.As(err, &gone) {
+			// Deleted meanwhile: their sessions went with the account.
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return s.authTx.DeleteAllSessions(ctx, tx, userID)
+	})
 	if err != nil {
 		s.logger.WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to delete user sessions")
 		s.tracer.MarkSpanError(ctx, err)

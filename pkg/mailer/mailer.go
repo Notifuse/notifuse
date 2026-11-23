@@ -21,6 +21,9 @@ type Mailer interface {
 	SendMagicCode(email, code, language string) error
 	// SendCircuitBreakerAlert sends a notification when a broadcast is paused due to circuit breaker
 	SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason, language string) error
+	// SendSecurityNotice tells a person that something changed about the security of their
+	// account (see SecurityNoticeKind)
+	SendSecurityNotice(email string, notice SecurityNotice, language string) error
 	// SendDataRetentionPending tells a workspace owner that a data retention change that
 	// deletes more is scheduled, when it applies, and where to cancel it.
 	SendDataRetentionPending(email, workspaceID, workspaceName string, effectiveAt time.Time, language string) error

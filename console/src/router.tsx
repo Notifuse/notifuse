@@ -12,6 +12,7 @@ import { WorkspaceLayout } from "./layouts/WorkspaceLayout";
 import { SignInPage } from "./pages/SignInPage";
 import { LogoutPage } from "./pages/LogoutPage";
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage";
+import { AccountSecurityPage } from "./pages/AccountSecurityPage";
 import { CreateWorkspacePage } from "./pages/CreateWorkspacePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { WorkspaceSettingsPage } from "./pages/WorkspaceSettingsPage";
@@ -103,6 +104,8 @@ function trackingConsentFilter(value: unknown): TrackingConsentFilter | undefine
 
 export interface SignInSearch {
   email?: string;
+  // Where to go once signed in: one of a fixed list (signInAgain.ts), never a path.
+  return_to?: "security";
   // OIDC failure flag (non-secret enum). The success one-time code arrives in the
   // URL fragment (#oidc_code=…), which is NOT a search param, so it is not listed here.
   oidc_error?: string;
@@ -195,7 +198,16 @@ const signinRoute = createRoute({
     email: search.email as string | undefined,
     oidc_error:
       typeof search.oidc_error === "string" ? search.oidc_error : undefined,
+    return_to: search.return_to === "security" ? "security" : undefined,
   }),
+});
+
+// Account security, outside any workspace: the page a session lands on when the instance
+// requires two-factor authentication and it has not passed it.
+const accountSecurityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/console/account/security",
+  component: AccountSecurityPage,
 });
 
 // Create the logout route
@@ -491,6 +503,7 @@ const workspaceBlogRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signinRoute,
+  accountSecurityRoute,
   logoutRoute,
   setupRoute,
   acceptInvitationRoute,

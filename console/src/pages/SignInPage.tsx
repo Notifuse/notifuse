@@ -2,7 +2,13 @@ import { Form, Input, Button, Card, App, Space, Divider, Alert } from 'antd'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { authService } from '../services/api/auth'
+import { authService, isTwoFactorChallenge } from '../services/api/auth'
+import { TwoFactorChallengeForm } from '../components/two_factor/TwoFactorChallengeForm'
+import {
+  SIGN_IN_RETURN_PATHS,
+  rememberReturnTo,
+  takeReturnTo
+} from '../components/two_factor/signInAgain'
 import { ApiUnreachableError } from '../services/api/errors'
 import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
@@ -24,6 +30,25 @@ export function SignInPage() {
   const hasExchangedOidc = useRef(false)
   const [unreachable, setUnreachable] = useState<{ endpoint: string; origin: string } | null>(
     null
+  )
+  // The email code was right and the account has two-factor authentication: the second step.
+  const [challengeToken, setChallengeToken] = useState<string | null>(null)
+  // Where a sign-in goes: back to the page that sent the person here, from a fixed list.
+  const returnTo = search.return_to
+
+  const completeSignIn = useCallback(
+    async (token: string) => {
+      await signin(token)
+      message.success(t`Successfully signed in`)
+      // The return point of this page, or the one single sign-on carried across.
+      const back = returnTo ?? takeReturnTo()
+      const destination = back ? SIGN_IN_RETURN_PATHS[back] : '/console'
+      // Add a small delay to ensure auth state is updated before navigation
+      setTimeout(() => {
+        navigate({ to: destination })
+      }, 100)
+    },
+    [signin, message, navigate, t, returnTo]
   )
 
   // The console is served by the server it talks to, so when this page loaded but a request
@@ -61,23 +86,18 @@ export function SignInPage() {
         }
 
         const response = await authService.verifyCode(data)
-        const { token } = response
-        // Use the existing signin function for now
-        // This might need to be updated in AuthContext
-        await signin(token)
-        message.success(t`Successfully signed in`)
-
-        // Add a small delay to ensure auth state is updated before navigation
-        setTimeout(() => {
-          navigate({ to: '/console' })
-        }, 100)
+        if (isTwoFactorChallenge(response)) {
+          setChallengeToken(response.challenge_token)
+          return
+        }
+        await completeSignIn(response.token)
       } catch (error) {
         showRequestError(error, t`Failed to verify code`)
       } finally {
         setLoading(false)
       }
     },
-    [email, signin, message, navigate, t, showRequestError]
+    [email, t, showRequestError, completeSignIn]
   )
 
   const handleEmailSubmit = useCallback(
@@ -148,18 +168,14 @@ export function SignInPage() {
       try {
         setLoading(true)
         const { token } = await authService.oidcExchange(code) // code from URL fragment
-        await signin(token) // UNCHANGED AuthContext path -> localStorage('auth_token')
-        message.success(t`Successfully signed in`)
-        setTimeout(() => {
-          navigate({ to: '/console' })
-        }, 100)
+        await completeSignIn(token) // UNCHANGED AuthContext path -> localStorage('auth_token')
       } catch {
         message.error(t`Single sign-on failed. Please try again or use a magic code.`)
       } finally {
         setLoading(false)
       }
     },
-    [signin, message, navigate, t]
+    [message, t, completeSignIn]
   )
 
   // OIDC callback handoff: backend /callback 302s to
@@ -249,7 +265,7 @@ export function SignInPage() {
   return (
     <MainLayout>
       <div className="flex items-center justify-center h-[calc(100vh-48px)]">
-        <Card title={t`Sign In`} style={{ width: 400 }}>
+        <Card title={challengeToken ? t`Authentication code` : t`Sign In`} style={{ width: 400 }}>
           {unreachable && (
             <Alert
               type="error"
@@ -272,7 +288,19 @@ export function SignInPage() {
               }
             />
           )}
-          {!showCodeInput ? (
+          {challengeToken ? (
+            <>
+              <p className="mb-6">{t`Enter the code from your authenticator app.`}</p>
+              <TwoFactorChallengeForm
+                challengeToken={challengeToken}
+                onSignedIn={(response) => completeSignIn(response.token)}
+                onRestart={() => {
+                  setChallengeToken(null)
+                  setShowCodeInput(false)
+                }}
+              />
+            </>
+          ) : !showCodeInput ? (
             <Form
               form={form}
               name="email"
@@ -307,6 +335,7 @@ export function SignInPage() {
                         window.API_ENDPOINT?.trim().replace(/\/+$/, '') || window.location.origin
                       // Full-page navigation: /api/user.oidc.start sets the AEAD flow
                       // cookie and 302s to the IdP, so it must be a real navigation.
+                      rememberReturnTo(returnTo)
                       window.location.assign(`${base}/api/user.oidc.start`)
                     }}
                   >

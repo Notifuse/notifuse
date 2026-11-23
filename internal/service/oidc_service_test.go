@@ -234,6 +234,9 @@ func TestOIDCService_MintSession(t *testing.T) {
 			assert.Equal(t, "u1", sess.UserID)
 			assert.Nil(t, sess.MagicCode, "OIDC session must have no magic code")
 			assert.Nil(t, sess.MagicCodeExpires)
+			// The identity provider owns multi-factor authentication.
+			assert.Equal(t, domain.AuthMethodSSO, sess.AuthMethod)
+			assert.NotNil(t, sess.AuthenticatedAt)
 			return nil
 		})
 	m.authSvc.EXPECT().GenerateUserAuthToken(user, gomock.Any(), gomock.Any()).Return("signed-jwt")

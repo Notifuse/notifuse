@@ -28,9 +28,21 @@ export interface SystemSettingsData {
   oidc_button_label: string
   oidc_auto_create_users: boolean
   oidc_allowed_domains: string
+  // Every person must pass a second factor. The value in force: REQUIRE_TWO_FACTOR, when set,
+  // decides it (env_overrides.require_two_factor). Optional for older servers.
+  require_two_factor?: boolean
+}
+
+export interface SystemTwoFactorSettings {
+  required: boolean
+  /** REQUIRE_TWO_FACTOR sets it: the switch is read-only. */
+  from_env: boolean
+  /** The people (not API keys) who have not turned it on. */
+  users_without: string[]
 }
 
 export interface SystemSettingsResponse {
   settings: SystemSettingsData
   env_overrides: Record<string, boolean>
+  two_factor?: SystemTwoFactorSettings
 }

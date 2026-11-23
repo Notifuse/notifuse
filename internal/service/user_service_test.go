@@ -36,6 +36,18 @@ func setupUserTest(t *testing.T) (
 	return setupUserTestWithRootEmail(t, "root@example.com")
 }
 
+// userTxMocks are the sign-in transaction's dependencies of a UserService built by
+// setupUserTestWithRootEmail.
+type userTxMocks struct {
+	tx        *fakeTx
+	authTx    *mocks.MockAuthTxRepository
+	twoFactor *mocks.MockTwoFactorRepository
+}
+
+var userServiceTxMocks = map[*UserService]*userTxMocks{}
+
+func txMocksOf(s *UserService) *userTxMocks { return userServiceTxMocks[s] }
+
 func setupUserTestWithRootEmail(t *testing.T, rootEmail string) (
 	*mocks.MockUserRepository,
 	*mocks.MockAuthService,
@@ -48,6 +60,11 @@ func setupUserTestWithRootEmail(t *testing.T, rootEmail string) (
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockTracer := pkgmocks.NewMockTracer(ctrl)
 	mockSender := &mockEmailSender{}
+	txMocks := &userTxMocks{
+		tx:        &fakeTx{},
+		authTx:    mocks.NewMockAuthTxRepository(ctrl),
+		twoFactor: mocks.NewMockTwoFactorRepository(ctrl),
+	}
 
 	// Create mock logger with AnyTimes to ignore logging
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -103,8 +120,13 @@ func setupUserTestWithRootEmail(t *testing.T, rootEmail string) (
 		RateLimiter:   rl,
 		SecretKey:     "test-secret-key-for-hmac-verification",
 		RootEmail:     rootEmail,
+		Tx:            txMocks.tx,
+		AuthTx:        txMocks.authTx,
+		TwoFactorRepo: txMocks.twoFactor,
 	})
 	require.NoError(t, err)
+	userServiceTxMocks[service] = txMocks
+	t.Cleanup(func() { delete(userServiceTxMocks, service) })
 
 	return mockRepo, mockAuthService, service, mockSender
 }
@@ -142,6 +164,20 @@ func TestUserService_UpdateUserLanguage(t *testing.T) {
 	})
 }
 
+// expectSignInSession: a sign-in purges the user's stale pending sessions and creates the
+// one waiting for the code, under the user's lock.
+func expectSignInSession(m *userTxMocks, userID string) {
+	lock := m.authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), userID).Return(nil)
+	purge := m.authTx.EXPECT().PurgeExpiredPendingSessions(gomock.Any(), gomock.Any(), userID).Return(nil).After(lock)
+	m.authTx.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.DBExecutor, s *domain.Session) error {
+			if s.MagicCode == nil || s.AuthMethod != "" {
+				return errors.New("a sign-in session holds a code and no method yet")
+			}
+			return nil
+		}).After(purge)
+}
+
 func TestUserService_SignIn(t *testing.T) {
 	mockRepo, _, service, mockSender := setupUserTest(t)
 
@@ -158,9 +194,7 @@ func TestUserService_SignIn(t *testing.T) {
 			GetUserByEmail(gomock.Any(), email).
 			Return(user, nil)
 
-		mockRepo.EXPECT().
-			CreateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
+		expectSignInSession(txMocksOf(service), "user123")
 
 		code, err := service.SignIn(context.Background(), domain.SignInInput{Email: email})
 		require.Error(t, err)
@@ -195,9 +229,7 @@ func TestUserService_SignIn(t *testing.T) {
 			GetUserByEmail(gomock.Any(), email).
 			Return(user, nil)
 
-		mockRepo.EXPECT().
-			CreateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
+		expectSignInSession(txMocksOf(service), "user123")
 
 		code, err := service.SignIn(context.Background(), domain.SignInInput{Email: email})
 		require.NoError(t, err)
@@ -248,125 +280,95 @@ func TestUserService_SignIn_RefusesAPIKeyIdentity(t *testing.T) {
 	require.Equal(t, unknownErr.Error(), err.Error())
 }
 
-func TestUserService_VerifyCode(t *testing.T) {
-	mockRepo, mockAuthService, service, _ := setupUserTest(t)
+// expectMagicCode sets the sign-in transaction up to the code's lookup: the user's lock, an
+// authenticator row (nil: none), and what ConsumeMagicCode answers.
+func expectMagicCode(m *userTxMocks, userID, code string, totpRow *domain.UserTOTP, session *domain.Session, consumeErr error) {
+	m.authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), userID).Return(nil)
+	m.twoFactor.EXPECT().GetTOTPForUpdate(gomock.Any(), gomock.Any(), userID).Return(totpRow, nil)
+	m.authTx.EXPECT().ConsumeMagicCode(gomock.Any(), gomock.Any(), userID, crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")).
+		Return(session, consumeErr)
+}
 
+func TestUserService_VerifyCode(t *testing.T) {
 	email := "test@example.com"
 	code := "123456"
 	userID := "user123"
+	user := &domain.User{ID: userID, Email: email}
+	notFound := &domain.ErrSessionNotFound{Message: "no session holds this code"}
 
-	t.Run("successful verification", func(t *testing.T) {
-		user := &domain.User{
-			ID:    userID,
-			Email: email,
-		}
+	t.Run("successful verification activates the session", func(t *testing.T) {
+		mockRepo, mockAuthService, service, _ := setupUserTest(t)
+		m := txMocksOf(service)
+		session := &domain.Session{ID: "session123", UserID: userID, ExpiresAt: time.Now().Add(24 * time.Hour)}
+		now := time.Now()
 
-		// Use the secret key from the service to hash the magic code
-		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
-		magicCodeExpires := time.Now().Add(15 * time.Minute)
+		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil)
+		expectMagicCode(m, userID, code, nil, session, nil)
+		m.authTx.EXPECT().PurgeExpiredPendingSessions(gomock.Any(), gomock.Any(), userID).Return(nil)
+		m.twoFactor.EXPECT().ClockTimestamp(gomock.Any(), gomock.Any()).Return(now, nil)
+		m.authTx.EXPECT().ActivateSession(gomock.Any(), gomock.Any(), "session123", domain.AuthMethodMagicCode, now).Return(nil)
+		mockAuthService.EXPECT().GenerateUserAuthToken(user, session.ID, session.ExpiresAt).Return("token123")
 
-		session := &domain.Session{
-			ID:               "session123",
-			UserID:           userID,
-			MagicCode:        &hashedCode,
-			MagicCodeExpires: &magicCodeExpires,
-			ExpiresAt:        time.Now().Add(24 * time.Hour),
-		}
-
-		mockRepo.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
-			Return(user, nil)
-
-		mockRepo.EXPECT().
-			GetSessionsByUserID(gomock.Any(), userID).
-			Return([]*domain.Session{session}, nil)
-
-		mockRepo.EXPECT().
-			UpdateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
-
-		mockAuthService.EXPECT().
-			GenerateUserAuthToken(user, session.ID, session.ExpiresAt).
-			Return("token123")
-
-		result, err := service.VerifyCode(context.Background(), domain.VerifyCodeInput{
-			Email: email,
-			Code:  code,
-		})
-
+		result, err := service.VerifyCode(context.Background(), domain.VerifyCodeInput{Email: email, Code: code})
 		require.NoError(t, err)
-		require.NotNil(t, result)
 		require.Equal(t, "token123", result.Token)
 		require.Equal(t, *user, result.User)
 		require.Equal(t, session.ExpiresAt, result.ExpiresAt)
+		require.Nil(t, result.Challenge)
+		require.Equal(t, 1, m.tx.commits)
+	})
+
+	// The email code is right, but the account has an authenticator: no token, a challenge.
+	t.Run("with two-factor authentication on, the session waits for the second factor", func(t *testing.T) {
+		mockRepo, _, service, _ := setupUserTest(t)
+		m := txMocksOf(service)
+		session := &domain.Session{ID: "session123", UserID: userID, ExpiresAt: time.Now().Add(24 * time.Hour)}
+		now := time.Now()
+		enabledAt := now.Add(-time.Hour)
+		secret := "sealed"
+
+		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil)
+		expectMagicCode(m, userID, code, &domain.UserTOTP{UserID: userID, EnabledAt: &enabledAt, SecretEncrypted: &secret}, session, nil)
+		m.authTx.EXPECT().PurgeExpiredPendingSessions(gomock.Any(), gomock.Any(), userID).Return(nil)
+		m.twoFactor.EXPECT().ClockTimestamp(gomock.Any(), gomock.Any()).Return(now, nil)
+		var storedHash string
+		m.authTx.EXPECT().SetSessionChallenge(gomock.Any(), gomock.Any(), "session123", domain.AuthMethodMagicCode, gomock.Any(), now.Add(domain.ChallengeTTL), nil).
+			DoAndReturn(func(_ context.Context, _ domain.DBExecutor, _ string, _ domain.AuthMethod, hash string, _ time.Time, _ *string) error {
+				storedHash = hash
+				return nil
+			})
+
+		result, err := service.VerifyCode(context.Background(), domain.VerifyCodeInput{Email: email, Code: code})
+		require.NoError(t, err)
+		require.Empty(t, result.Token, "no token before the second factor")
+		require.NotNil(t, result.Challenge)
+		require.Equal(t, HashChallenge(result.Challenge.Token), storedHash, "only the hash of the challenge is stored")
+		require.Equal(t, now.Add(domain.ChallengeTTL), result.Challenge.ExpiresAt)
 	})
 
 	t.Run("invalid code", func(t *testing.T) {
-		user := &domain.User{
-			ID:    userID,
-			Email: email,
-		}
+		mockRepo, _, service, _ := setupUserTest(t)
+		m := txMocksOf(service)
+		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil)
+		expectMagicCode(m, userID, code, nil, nil, notFound)
+		m.authTx.EXPECT().HasExpiredMagicCode(gomock.Any(), gomock.Any(), userID, gomock.Any()).Return(false, nil)
 
-		magicCode2 := "654321"
-		magicCodeExpires2 := time.Now().Add(15 * time.Minute)
-		session := &domain.Session{
-			ID:               "session123",
-			UserID:           userID,
-			MagicCode:        &magicCode2,
-			MagicCodeExpires: &magicCodeExpires2,
-		}
-
-		mockRepo.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
-			Return(user, nil)
-
-		mockRepo.EXPECT().
-			GetSessionsByUserID(gomock.Any(), userID).
-			Return([]*domain.Session{session}, nil)
-
-		result, err := service.VerifyCode(context.Background(), domain.VerifyCodeInput{
-			Email: email,
-			Code:  code,
-		})
-
-		require.Error(t, err)
+		result, err := service.VerifyCode(context.Background(), domain.VerifyCodeInput{Email: email, Code: code})
 		require.Nil(t, result)
-		require.Equal(t, "invalid magic code", err.Error())
+		require.EqualError(t, err, "invalid magic code")
+		require.Equal(t, 1, m.tx.rollbacks)
 	})
 
 	t.Run("expired code", func(t *testing.T) {
-		user := &domain.User{
-			ID:    userID,
-			Email: email,
-		}
+		mockRepo, _, service, _ := setupUserTest(t)
+		m := txMocksOf(service)
+		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), email).Return(user, nil)
+		expectMagicCode(m, userID, code, nil, nil, notFound)
+		m.authTx.EXPECT().HasExpiredMagicCode(gomock.Any(), gomock.Any(), userID, gomock.Any()).Return(true, nil)
 
-		// Use the secret key from the service to hash the magic code
-		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
-		expiredTime := time.Now().Add(-1 * time.Minute)
-
-		session := &domain.Session{
-			ID:               "session123",
-			UserID:           userID,
-			MagicCode:        &hashedCode,
-			MagicCodeExpires: &expiredTime,
-		}
-
-		mockRepo.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
-			Return(user, nil)
-
-		mockRepo.EXPECT().
-			GetSessionsByUserID(gomock.Any(), userID).
-			Return([]*domain.Session{session}, nil)
-
-		result, err := service.VerifyCode(context.Background(), domain.VerifyCodeInput{
-			Email: email,
-			Code:  code,
-		})
-
-		require.Error(t, err)
+		result, err := service.VerifyCode(context.Background(), domain.VerifyCodeInput{Email: email, Code: code})
 		require.Nil(t, result)
-		require.Equal(t, "magic code expired", err.Error())
+		require.EqualError(t, err, "magic code expired")
 	})
 }
 
@@ -626,9 +628,15 @@ func TestUserService_RootSignin(t *testing.T) {
 			GetUserByEmail(gomock.Any(), rootEmail).
 			Return(user, nil)
 
+		// The root signature proves possession of SECRET_KEY: the session meets the
+		// two-factor requirement and counts as fresh.
 		mockRepo.EXPECT().
 			CreateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
+			DoAndReturn(func(_ context.Context, session *domain.Session) error {
+				require.Equal(t, domain.AuthMethodRootSignature, session.AuthMethod)
+				require.NotNil(t, session.AuthenticatedAt)
+				return nil
+			})
 
 		mockAuthService.EXPECT().
 			GenerateUserAuthToken(user, gomock.Any(), gomock.Any()).
@@ -824,25 +832,29 @@ func TestUserService_RootSignin_MultipleRootEmails(t *testing.T) {
 }
 
 func TestUserService_Logout(t *testing.T) {
-	// Test UserService.Logout - this was at 0% coverage
-	mockRepo, _, service, _ := setupUserTest(t)
+	_, _, service, _ := setupUserTest(t)
 
 	ctx := context.Background()
 	userID := "user123"
 
+	m := txMocksOf(service)
+
 	t.Run("Success - Logs out user", func(t *testing.T) {
-		mockRepo.EXPECT().
-			DeleteAllSessionsByUserID(ctx, userID).
-			Return(nil)
+		lock := m.authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), userID).Return(nil)
+		m.authTx.EXPECT().DeleteAllSessions(gomock.Any(), gomock.Any(), userID).Return(nil).After(lock)
 
 		err := service.Logout(ctx, userID)
 		require.NoError(t, err)
 	})
 
+	t.Run("a user deleted meanwhile is signed out already", func(t *testing.T) {
+		m.authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), "gone").Return(&domain.ErrUserNotFound{Message: "user not found"})
+		require.NoError(t, service.Logout(ctx, "gone"))
+	})
+
 	t.Run("Error - Repository error", func(t *testing.T) {
-		mockRepo.EXPECT().
-			DeleteAllSessionsByUserID(ctx, userID).
-			Return(errors.New("database error"))
+		m.authTx.EXPECT().LockUser(gomock.Any(), gomock.Any(), userID).Return(nil)
+		m.authTx.EXPECT().DeleteAllSessions(gomock.Any(), gomock.Any(), userID).Return(errors.New("database error"))
 
 		err := service.Logout(ctx, userID)
 		require.Error(t, err)

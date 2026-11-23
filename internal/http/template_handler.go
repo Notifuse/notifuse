@@ -55,6 +55,9 @@ func (h *TemplateHandler) handleList(w http.ResponseWriter, r *http.Request) {
 
 	templates, err := h.service.GetTemplates(r.Context(), req.WorkspaceID, req.Category, req.Channel)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get templates")
 		WriteJSONError(w, "Failed to get templates", http.StatusInternalServerError)
 		return
@@ -106,6 +109,9 @@ func (h *TemplateHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 
 	template, err := h.service.GetTemplateByID(r.Context(), req.WorkspaceID, req.ID, req.Version)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrTemplateNotFound); ok {
 			WriteJSONError(w, "Template not found", http.StatusNotFound)
 			return
@@ -308,6 +314,9 @@ func (h *TemplateHandler) handleCompile(w http.ResponseWriter, r *http.Request) 
 
 	resp, err := h.service.CompileTemplate(r.Context(), req)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Warn("Template compilation failed")
 		WriteJSONError(w, fmt.Sprintf("Compilation failed: %s", err.Error()), http.StatusBadRequest)
 		return

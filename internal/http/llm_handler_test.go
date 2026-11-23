@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -265,4 +266,30 @@ func TestNewLLMHandler(t *testing.T) {
 	assert.Equal(t, mockService, handler.service)
 	assert.Equal(t, mockLogger, handler.logger)
 	assert.NotNil(t, handler.getJWTSecret)
+}
+
+// StreamChat authenticates before it streams: a refusal answers with its status and a JSON
+// body, not a 200 stream carrying an error event. A 401 is kept for a dead session.
+func TestLLMHandler_HandleChat_RefusedBeforeStreaming(t *testing.T) {
+	for name, tc := range map[string]struct {
+		err    error
+		status int
+	}{
+		"second factor required": {domain.ErrTwoFactorRequired, http.StatusForbidden},
+		"session gone":           {fmt.Errorf("%w: expired", domain.ErrSessionAuthFailed), http.StatusUnauthorized},
+		"missing grant":          {domain.NewPermissionError(domain.PermissionResourceTemplates, domain.PermissionTypeWrite, "no"), http.StatusForbidden},
+	} {
+		t.Run(name, func(t *testing.T) {
+			handler, mockService := setupLLMHandlerTest(t)
+			mockService.EXPECT().StreamChat(gomock.Any(), gomock.Any(), gomock.Any()).Return(tc.err)
+
+			body := `{"workspace_id":"workspace123","integration_id":"integration456","messages":[{"role":"user","content":"Hello"}]}`
+			w := httptest.NewRecorder()
+			handler.handleChat(w, httptest.NewRequest(http.MethodPost, "/api/llm.chat", bytes.NewBufferString(body)))
+
+			assert.Equal(t, tc.status, w.Code)
+			assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+			assert.NotContains(t, w.Body.String(), "data:")
+		})
+	}
 }

@@ -111,10 +111,16 @@ type App struct {
 	isInstalled bool // Indicates if setup wizard has been completed
 
 	// Repositories
-	userRepo                      domain.UserRepository
-	fedRepo                       domain.FederatedIdentityRepository
-	workspaceRepo                 domain.WorkspaceRepository
-	authRepo                      domain.AuthRepository
+	userRepo      domain.UserRepository
+	fedRepo       domain.FederatedIdentityRepository
+	workspaceRepo domain.WorkspaceRepository
+	authRepo      domain.AuthRepository
+	// Two-factor authentication: the system transaction runner and the repositories its
+	// transactions use.
+	systemTx                      domain.SystemTxRunner
+	twoFactorRepo                 domain.TwoFactorRepository
+	authTxRepo                    domain.AuthTxRepository
+	invitationTxRepo              domain.InvitationTxRepository
 	settingRepo                   domain.SettingRepository
 	contactRepo                   domain.ContactRepository
 	listRepo                      domain.ListRepository
@@ -148,6 +154,7 @@ type App struct {
 	// Services
 	authService                      *service.AuthService
 	userService                      *service.UserService
+	twoFactorService                 *service.TwoFactorService
 	oidcService                      *service.OIDCService
 	workspaceService                 *service.WorkspaceService
 	contactService                   *service.ContactService
@@ -453,7 +460,8 @@ func (a *App) InitDB() error {
 }
 
 // storedDataOpens reports whether key opens the data stored under the instance key: the
-// key of at least one workspace or, when none is stored, at least one encrypted setting.
+// key of at least one workspace or, when none is stored, at least one encrypted setting or,
+// when none is stored either, at least one active authenticator secret.
 // Nothing stored opens with any key. refusal says what the key does not open, for an
 // error that starts with the variable.
 func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, refusal string, err error) {
@@ -465,13 +473,25 @@ func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, refu
 		return opens, "does not open the workspace stored in the database", nil
 	}
 	opens, tried, err := repository.SecretKeyOpensASetting(ctx, a.db, key)
-	return opens, fmt.Sprintf("opens none of the system settings stored in the database (%s), and no "+
-		"workspace is stored", strings.Join(tried, ", ")), err
+	if err != nil || len(tried) > 0 {
+		return opens, fmt.Sprintf("opens none of the system settings stored in the database (%s), and no "+
+			"workspace is stored", strings.Join(tried, ", ")), err
+	}
+	// No workspace and no encrypted setting: the authenticator secrets of two-factor
+	// authentication are then the data under the key.
+	opens, examined, err = repository.SecretKeyOpensAUserTOTP(ctx, a.db, key)
+	if examined == 1 {
+		return opens, "does not open the authenticator secret stored in the database, and no workspace or " +
+			"encrypted system setting is stored", err
+	}
+	return opens, fmt.Sprintf("opens none of the %d authenticator secrets stored in the database, and no "+
+		"workspace or encrypted system setting is stored", examined), err
 }
 
 // checkSingleSecretKey refuses a single key that opens none of the stored workspace
 // keys, as every workspace load would fail on it, or, with no workspace, none of the
-// encrypted settings, which would be dropped. A single key is used as written, so this
+// encrypted settings, which would be dropped, or, with neither, none of the authenticator
+// secrets, which would lock out every enrolled person. A single key is used as written, so this
 // is also where quotes or a newline kept around the key show.
 func (a *App) checkSingleSecretKey(key, variable string) error {
 	ctx := context.Background()
@@ -522,6 +542,20 @@ func (a *App) warnUnopenedSettings(settings []string, variable string) {
 		"encrypted with, or list that key after the first one", variable, variable))
 }
 
+// warnUnopenedAuthenticatorSecrets names the people whose authenticator secret no key of
+// variable opens, and counts the setups dropped for the same reason.
+func (a *App) warnUnopenedAuthenticatorSecrets(result repository.SecretKeyRotationResult, variable string) {
+	if len(result.UnopenedTOTPUsers) > 0 {
+		a.logger.WithField("user_ids", result.UnopenedTOTPUsers).Warn(fmt.Sprintf("No key in %s opens the "+
+			"authenticator secret of these users, so they cannot pass their second factor: list the key it is "+
+			"encrypted with after the first one, or have the root user reset their two-factor authentication", variable))
+	}
+	if result.DroppedTOTPSetups > 0 {
+		a.logger.WithField("setups", result.DroppedTOTPSetups).Warn(fmt.Sprintf("Two-factor setups in progress "+
+			"were dropped: no key in %s opens their secret. Those people start the setup again", variable))
+	}
+}
+
 // InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a
 // list: what the other keys open is re-encrypted with it. A single key is only checked
 // against the stored data. It runs after the migrations, before the services start, so
@@ -543,7 +577,7 @@ func (a *App) InitSecretKey() error {
 	// One instance re-encrypts at a time, and rows other sessions hold are waited for:
 	// said first, so a start that waits shows what for.
 	a.logger.Info(fmt.Sprintf("Bringing the stored data under the first key of %s; this waits for any other "+
-		"instance doing the same and for open transactions on workspaces and settings", variable))
+		"instance doing the same and for open transactions on workspaces, settings and authenticator secrets", variable))
 	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)
 	if err != nil && !errors.Is(err, pkgCrypto.ErrUndecryptable) {
 		return fmt.Errorf("failed to bring the stored data under the first key of %s: %w", variable, err)
@@ -567,6 +601,7 @@ func (a *App) InitSecretKey() error {
 	}
 
 	a.warnUnopenedSettings(result.UnopenedSettings, variable)
+	a.warnUnopenedAuthenticatorSecrets(result, variable)
 	if len(security.PreviousSecretKeys) == 0 {
 		a.logger.Info("The stored data opens with " + variable)
 		return nil
@@ -575,13 +610,22 @@ func (a *App) InitSecretKey() error {
 	// re-encrypted, finds nothing left to do.
 	message := "Stored data re-encrypted with the first key of %[1]s; once every instance runs with this %[1]s, " +
 		"set the first key alone"
-	if result.Workspaces == 0 && result.Settings == 0 {
+	if result.Workspaces == 0 && result.Settings == 0 && result.UserTOTPs == 0 {
 		message = "Nothing left to re-encrypt: the stored data already opens with the first key of %[1]s; once " +
 			"every instance runs with this %[1]s, set the first key alone"
 	}
+	// An authenticator secret no key opens stays as it is: that person needs a reset by the root
+	// user (warnUnopenedAuthenticatorSecrets named them), and the key it may be under must not
+	// be dropped before. Settings no key opens are leftovers nothing reads (warnUnopenedSettings).
+	if len(result.UnopenedTOTPUsers) > 0 {
+		message = "Stored data brought under the first key of %[1]s, except the authenticator secrets named " +
+			"above; reset their two-factor authentication, or find the key they are under, before you set the " +
+			"first key alone"
+	}
 	a.logger.WithFields(map[string]interface{}{
-		"workspaces": result.Workspaces,
-		"settings":   result.Settings,
+		"workspaces":            result.Workspaces,
+		"settings":              result.Settings,
+		"authenticator_secrets": result.UserTOTPs,
 	}).Info(fmt.Sprintf(message, variable))
 	return nil
 }
@@ -633,6 +677,10 @@ func (a *App) InitRepositories() error {
 	a.fedRepo = repository.NewFederatedIdentityRepository(a.db)
 	a.taskRepo = repository.NewTaskRepository(a.db)
 	a.authRepo = repository.NewSQLAuthRepository(a.db)
+	a.systemTx = repository.NewSystemTxRunner(a.db)
+	a.twoFactorRepo = repository.NewTwoFactorRepository()
+	a.authTxRepo = repository.NewAuthTxRepository()
+	a.invitationTxRepo = repository.NewInvitationTxRepository()
 	a.settingRepo = repository.NewSQLSettingRepository(a.db)
 	a.auditLogRepo = repository.NewAuditLogRepository(a.db)
 	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey, connManager)
@@ -711,8 +759,9 @@ func (a *App) InitServices() error {
 			}
 			return a.config.Security.JWTSecret, nil
 		},
-		Logger:      a.logger,
-		IsRootEmail: a.config.IsRootEmail,
+		Logger:           a.logger,
+		IsRootEmail:      a.config.IsRootEmail,
+		RequireTwoFactor: a.config.RequireTwoFactor,
 	})
 
 	// The audit recorder, built right after the licence and the auth service:
@@ -767,6 +816,9 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("oidc:start", 10, 1*time.Minute)    // start an SSO redirect, by IP
 	a.rateLimiter.SetPolicy("oidc:callback", 10, 1*time.Minute) // IdP callbacks, by IP
 	a.rateLimiter.SetPolicy("oidc:exchange", 10, 1*time.Minute) // one-time-code exchange, by IP
+	// Second-factor codes, by IP. Only damps noise: the address can be forged, and the
+	// failure counters stored on the account are the protection.
+	a.rateLimiter.SetPolicy(httpHandler.TwoFactorVerifyPolicy, 20, 1*time.Minute)
 	// MCP, registered whether MCP_ENABLED is on or not, for the same reason. The
 	// first two are per API key: every call (tools/list included), then the calls
 	// that send or change what sends emit. The third is per IP, for requests whose
@@ -787,12 +839,31 @@ func (a *App) InitServices() error {
 		RateLimiter:   a.rateLimiter, // Pass global rate limiter
 		SecretKey:     a.config.Security.SecretKey,
 		RootEmail:     a.config.RootEmail,
+		Tx:            a.systemTx,
+		AuthTx:        a.authTxRepo,
+		TwoFactorRepo: a.twoFactorRepo,
 	}
 
 	a.userService, err = service.NewUserService(userServiceConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize user service: %w", err)
 	}
+
+	a.twoFactorService = service.NewTwoFactorService(service.TwoFactorServiceConfig{
+		Tx:               a.systemTx,
+		Repo:             a.twoFactorRepo,
+		AuthTx:           a.authTxRepo,
+		InvitationTx:     a.invitationTxRepo,
+		Users:            a.userRepo,
+		AuthService:      a.authService,
+		Mailer:           a.mailer,
+		Logger:           a.logger,
+		SecretKey:        a.config.Security.SecretKey,
+		PreviousKeys:     a.config.Security.PreviousSecretKeys,
+		RequireTwoFactor: a.config.RequireTwoFactor,
+		IsRootEmail:      a.config.IsRootEmail,
+		MaxUsers:         a.config.MaxUsers,
+	})
 
 	// Initialize setup service with environment config from config loader
 	// Config tracks which values came from actual env vars (not database, not generated)
@@ -1221,6 +1292,13 @@ func (a *App) InitServices() error {
 		a.dnsVerificationService,
 		a.blogService,
 		a.licenseService,
+		service.WorkspaceInvitationAuth{
+			Tx:            a.systemTx,
+			AuthTx:        a.authTxRepo,
+			TwoFactor:     a.twoFactorRepo,
+			InvitationTx:  a.invitationTxRepo,
+			SessionExpiry: 30 * 24 * time.Hour,
+		},
 	)
 	a.workspaceService.SetDKIMKeyStore(a.dkimKeyStore)
 
@@ -1684,8 +1762,17 @@ func (a *App) InitHandlers() error {
 		a.userService,
 		a.workspaceService,
 		a.licenseService,
+		a.authService,
+		a.twoFactorService,
 		a.config,
 		getJWTSecret,
+		a.logger)
+	twoFactorHandler := httpHandler.NewTwoFactorHandler(
+		a.twoFactorService,
+		a.authService,
+		a.rateLimiter,
+		getJWTSecret,
+		a.config.IsDemo(),
 		a.logger)
 	oidcHandler := httpHandler.NewOIDCHandler(
 		a.oidcService,
@@ -1731,6 +1818,9 @@ func (a *App) InitHandlers() error {
 		a.config.RootEmail,
 		a, // AppShutdowner
 		a.licenseService,
+		a.authService,
+		a.twoFactorService,
+		a.config.EnvValues.RequireTwoFactor,
 	)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
@@ -1862,6 +1952,7 @@ func (a *App) InitHandlers() error {
 	a.settingsHandler.RegisterRoutes(a.mux)
 	httpHandler.NewDataRetentionHandler(a.dataRetentionService, getJWTSecret, a.config.IsDemo(), a.logger).RegisterRoutes(a.mux)
 	userHandler.RegisterRoutes(a.mux)
+	twoFactorHandler.RegisterRoutes(a.mux)
 	oidcHandler.RegisterRoutes(a.mux)
 	workspaceHandler.RegisterRoutes(a.mux)
 	rootHandler.RegisterRoutes(a.mux)
