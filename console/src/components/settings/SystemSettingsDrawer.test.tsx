@@ -6,6 +6,7 @@ import { App, Modal } from 'antd'
 import { SystemSettingsDrawer } from './SystemSettingsDrawer'
 import { settingsApi } from '../../services/api/settings'
 import type { SystemSettingsData, SystemSettingsResponse } from '../../types/settings'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // antd's TextArea always mounts a ResizeObserver; jsdom doesn't provide one.
 class ResizeObserverStub {
@@ -16,6 +17,14 @@ class ResizeObserverStub {
 vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 
 // Lingui macro falls back to the source string when no catalog is loaded.
+vi.mock('../../services/api/dataRetention', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/api/dataRetention')>()
+  return {
+    ...actual,
+    dataRetentionApi: { ...actual.dataRetentionApi, getDefaults: vi.fn().mockResolvedValue({ defaults: {}, stored: null, categories: [] }) }
+  }
+})
+
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
 vi.mock('../../services/api/settings', () => ({
@@ -63,9 +72,11 @@ function mockGet(env_overrides: Record<string, boolean> = {}, oidc: Partial<Syst
 const renderDrawer = () =>
   render(
     <I18nProvider i18n={i18n}>
-      <App>
-        <SystemSettingsDrawer />
-      </App>
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <App>
+          <SystemSettingsDrawer />
+        </App>
+      </QueryClientProvider>
     </I18nProvider>
   )
 

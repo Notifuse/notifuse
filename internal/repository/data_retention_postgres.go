@@ -587,6 +587,36 @@ func (r *dataRetentionRepository) DropWebAnalyticsMonth(ctx context.Context, wor
 	return tx.Commit()
 }
 
+func (r *dataRetentionRepository) CustomEventNames(ctx context.Context, workspaceID string, limit int) ([]string, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	// A skip scan along the primary key (event_name, external_id): one index probe per
+	// distinct name, rather than reading every event. Soft-deleted events are not filtered out:
+	// a name they carry is still a name the workspace sends.
+	rows, err := db.QueryContext(ctx, `WITH RECURSIVE names AS (
+			(SELECT event_name FROM custom_events ORDER BY event_name LIMIT 1)
+			UNION ALL
+			SELECT (SELECT c.event_name FROM custom_events c WHERE c.event_name > n.event_name ORDER BY c.event_name LIMIT 1)
+			FROM names n WHERE n.event_name IS NOT NULL
+		)
+		SELECT event_name FROM names WHERE event_name IS NOT NULL LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list custom event names: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	names := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
+}
+
 func (r *dataRetentionRepository) BackfillCompleted(ctx context.Context, workspaceID string) (bool, error) {
 	db, err := r.db(ctx, workspaceID)
 	if err != nil {

@@ -15,6 +15,7 @@ import { DomainsSettings } from '../components/settings/DomainsSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { isRootUser } from '../services/api/auth'
 import { AuditLogsSettings } from '../components/settings/audit_logs/AuditLogsSettings'
+import { DataRetentionSettings } from '../components/settings/data_retention/DataRetentionSettings'
 import { LicenseSettings } from '../components/settings/LicenseSettings'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 import { Skeleton } from 'antd'
@@ -51,6 +52,7 @@ const DEPENDS_ON_ROLE: ReadonlySet<SettingsSection> = new Set<SettingsSection>([
   'blog',
   'web-analytics',
   'audit-logs',
+  'data-retention',
   'danger-zone'
 ])
 
@@ -255,6 +257,9 @@ export function WorkspaceSettingsPage() {
         return workspace && isOwner ? (
           <AuditLogsSettings workspace={workspace} isOwner={isOwner} onWorkspaceUpdate={handleWorkspaceUpdate} />
         ) : null
+      case 'data-retention':
+        // An owner's decision, like the audit log retention: the section is theirs.
+        return workspace && isOwner ? <DataRetentionSettings workspaceId={workspace.id} isOwner={isOwner} /> : null
       case 'licence':
         // LicenseSettings renders its own non-root notice rather than nothing: a member who
         // followed the banner here needs to be told who can act, not shown a blank panel.

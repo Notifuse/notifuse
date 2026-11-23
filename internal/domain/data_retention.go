@@ -64,7 +64,7 @@ var RetentionCategorySpecs = []RetentionCategorySpec{
 	{RetentionContactTimeline, 90, 1095, 0},
 	{RetentionCustomEvents, 30, 1095, 0},
 	{RetentionAutomationHistory, 90, 1095, 0},
-	{RetentionWebAnalytics, 31, 761, 0},
+	{RetentionWebAnalytics, 30, 761, 0},
 	{RetentionInboundWebhookEvents, 30, 365, 0},
 	// The two technical logs are purged after 7 days today; that stays the default.
 	{RetentionWebhookDeliveries, 7, 7, 7},
@@ -496,6 +496,10 @@ type DataRetentionRepository interface {
 	// DropWebAnalyticsMonth drops the session, page and goal partitions of one month. It
 	// refuses the current and the next month.
 	DropWebAnalyticsMonth(ctx context.Context, workspaceID string, month time.Time, now time.Time) error
+
+	// CustomEventNames returns the distinct custom event names the workspace has received,
+	// sorted, at most limit: what the policy can designate as engagement.
+	CustomEventNames(ctx context.Context, workspaceID string, limit int) ([]string, error)
 
 	// BackfillCompleted reports whether the engagement backfill has run (the contact
 	// category waits for it).

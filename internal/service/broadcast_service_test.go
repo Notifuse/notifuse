@@ -951,23 +951,6 @@ func TestBroadcastService_CancelBroadcast_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestBroadcastService_DeleteBroadcast_Success(t *testing.T) {
-	d := setupBroadcastSvc(t)
-	defer d.ctrl.Finish()
-
-	ctx := context.Background()
-	req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
-	authOK(d.authService, ctx, req.WorkspaceID)
-
-	b := testBroadcast(req.WorkspaceID, req.ID)
-	b.Status = domain.BroadcastStatusDraft // deletable
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(b, nil)
-	d.repo.EXPECT().DeleteBroadcast(ctx, req.WorkspaceID, req.ID).Return(nil)
-
-	err := d.svc.DeleteBroadcast(ctx, req)
-	require.NoError(t, err)
-}
-
 // Error scenario tests
 
 func TestBroadcastService_CreateBroadcast_AuthFailure(t *testing.T) {
@@ -1984,54 +1967,221 @@ func TestBroadcastService_DeleteBroadcast_ValidationFailure(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestBroadcastService_DeleteBroadcast_GetBroadcastFailure(t *testing.T) {
-	d := setupBroadcastSvc(t)
-	defer d.ctrl.Finish()
-
-	ctx := context.Background()
-	req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
-	authOK(d.authService, ctx, req.WorkspaceID)
-
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(nil, errors.New("not found"))
-
-	err := d.svc.DeleteBroadcast(ctx, req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+// expectDeleteTx runs the delete's transaction on a tx the test can recognize, so an
+// expectation on it proves a call ran inside that transaction.
+func expectDeleteTx(d *broadcastSvcDeps, ctx context.Context, workspaceID string) *sql.Tx {
+	tx := &sql.Tx{}
+	d.repo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(tx) },
+	)
+	return tx
 }
 
-func TestBroadcastService_DeleteBroadcast_SendingStatus(t *testing.T) {
-	d := setupBroadcastSvc(t)
-	defer d.ctrl.Finish()
-
-	ctx := context.Background()
-	req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
-	authOK(d.authService, ctx, req.WorkspaceID)
-
-	b := testBroadcast(req.WorkspaceID, req.ID)
-	b.Status = domain.BroadcastStatusProcessing // not deletable
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(b, nil)
-
-	err := d.svc.DeleteBroadcast(ctx, req)
-	require.Error(t, err)
-	requireInvalidState(t, err, "broadcast", req.ID, "delete", string(domain.BroadcastStatusProcessing))
+// expectRetryTx runs the retry's transaction on a tx the test can recognize.
+func expectRetryTx(d *broadcastSvcDeps, workspaceID string) *sql.Tx {
+	tx := &sql.Tx{}
+	d.repo.EXPECT().WithTransaction(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(tx) },
+	)
+	return tx
 }
 
-func TestBroadcastService_DeleteBroadcast_RepositoryFailure(t *testing.T) {
+func TestBroadcastService_DeleteBroadcast_DeletesUnderTheLockWhenTheQueueIsEmpty(t *testing.T) {
+	for _, status := range []domain.BroadcastStatus{
+		domain.BroadcastStatusDraft, domain.BroadcastStatusProcessed,
+		domain.BroadcastStatusFailed, domain.BroadcastStatusCancelled,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			defer d.ctrl.Finish()
+
+			ctx := context.Background()
+			req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+			authOK(d.authService, ctx, req.WorkspaceID)
+			tx := expectDeleteTx(d, ctx, req.WorkspaceID)
+
+			b := testBroadcast(req.WorkspaceID, req.ID)
+			b.Status = status
+			// The row is read locked, on the delete's own transaction; the unlocked
+			// GetBroadcast would let a cancel or a resume slip between check and delete.
+			gomock.InOrder(
+				d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(b, nil),
+				// Rows given up on send nothing: they do not hold the delete back.
+				d.emailQueueRepo.EXPECT().GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).
+					Return(&domain.EmailQueueSourceCounts{FailedTerminal: 2}, nil),
+				// Those rows go with the broadcast, so none stays in the queue without one.
+				d.emailQueueRepo.EXPECT().DeleteTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).
+					Return(int64(2), nil),
+				d.repo.EXPECT().DeleteBroadcastTx(ctx, tx, req.WorkspaceID, req.ID).Return(nil),
+			)
+
+			require.NoError(t, d.svc.DeleteBroadcast(ctx, req))
+		})
+	}
+}
+
+func TestBroadcastService_DeleteBroadcast_RefusesAStatusThatCanStillSend(t *testing.T) {
+	for _, status := range []domain.BroadcastStatus{
+		domain.BroadcastStatusProcessing, domain.BroadcastStatusPaused, domain.BroadcastStatusTesting,
+		domain.BroadcastStatusTestCompleted, domain.BroadcastStatusWinnerSelected,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			defer d.ctrl.Finish()
+
+			ctx := context.Background()
+			req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+			authOK(d.authService, ctx, req.WorkspaceID)
+			tx := expectDeleteTx(d, ctx, req.WorkspaceID)
+
+			b := testBroadcast(req.WorkspaceID, req.ID)
+			b.Status = status
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(b, nil)
+			// No queue read and no delete: the mocks fail on any other call.
+
+			err := d.svc.DeleteBroadcast(ctx, req)
+			var stateErr *domain.InvalidStateError
+			require.ErrorAs(t, err, &stateErr)
+			assert.Equal(t, domain.InvalidStateError{
+				Entity: "broadcast", ID: "b1", Action: "delete", Status: string(status),
+				Reason: "Cancel it first: cancelling empties its email queue.",
+			}, *stateErr)
+		})
+	}
+}
+
+func TestBroadcastService_DeleteBroadcast_RefusesAScheduledBroadcast(t *testing.T) {
+	// Its send task would outlive it: unscheduling removes the task first.
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()
 
 	ctx := context.Background()
 	req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 	authOK(d.authService, ctx, req.WorkspaceID)
+	tx := expectDeleteTx(d, ctx, req.WorkspaceID)
 
 	b := testBroadcast(req.WorkspaceID, req.ID)
-	b.Status = domain.BroadcastStatusDraft
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(b, nil)
-	d.repo.EXPECT().DeleteBroadcast(ctx, req.WorkspaceID, req.ID).Return(errors.New("db error"))
+	b.Status = domain.BroadcastStatusScheduled
+	d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(b, nil)
+	// No queue read and no delete: the mocks fail on any other call.
 
 	err := d.svc.DeleteBroadcast(ctx, req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "db error")
+	var stateErr *domain.InvalidStateError
+	require.ErrorAs(t, err, &stateErr)
+	assert.Equal(t, domain.InvalidStateError{
+		Entity: "broadcast", ID: "b1", Action: "delete", Status: "scheduled",
+		Reason: "Unschedule it first: unscheduling removes its send task.",
+	}, *stateErr)
+}
+
+func TestBroadcastService_DeleteBroadcast_RefusesWhileTheQueueHoldsEmails(t *testing.T) {
+	cases := []struct {
+		name   string
+		status domain.BroadcastStatus
+		counts domain.EmailQueueSourceCounts
+		reason string
+	}{
+		{"pending", domain.BroadcastStatusProcessed, domain.EmailQueueSourceCounts{Pending: 3, FailedTerminal: 9},
+			"Its email queue still holds 3 emails to send: cancel it first, which empties the queue."},
+		{"processing", domain.BroadcastStatusCancelled, domain.EmailQueueSourceCounts{Processing: 2},
+			"Its email queue still holds 2 emails to send: wait for the queue to empty."},
+		{"paused", domain.BroadcastStatusProcessed, domain.EmailQueueSourceCounts{Paused: 4},
+			"Its email queue still holds 4 emails to send: cancel it first, which empties the queue."},
+		// Cancelling leaves the rows being sent, so it would not empty this queue.
+		{"processing only, cancellable", domain.BroadcastStatusProcessed, domain.EmailQueueSourceCounts{Processing: 2, FailedTerminal: 1},
+			"Its email queue still holds 2 emails to send: wait for the queue to empty."},
+		{"processing and pending, cancellable", domain.BroadcastStatusProcessed, domain.EmailQueueSourceCounts{Processing: 1, Pending: 1},
+			"Its email queue still holds 2 emails to send: cancel it first, which empties the queue."},
+		{"retrying", domain.BroadcastStatusFailed, domain.EmailQueueSourceCounts{FailedRetrying: 1},
+			"Its email queue still holds 1 email to send: wait for the queue to empty."},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			defer d.ctrl.Finish()
+
+			ctx := context.Background()
+			req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+			authOK(d.authService, ctx, req.WorkspaceID)
+			tx := expectDeleteTx(d, ctx, req.WorkspaceID)
+
+			b := testBroadcast(req.WorkspaceID, req.ID)
+			b.Status = c.status
+			counts := c.counts
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(b, nil)
+			d.emailQueueRepo.EXPECT().GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).Return(&counts, nil)
+			// No DeleteBroadcastTx: the mock fails on it.
+
+			err := d.svc.DeleteBroadcast(ctx, req)
+			var stateErr *domain.InvalidStateError
+			require.ErrorAs(t, err, &stateErr)
+			assert.Equal(t, domain.InvalidStateError{
+				Entity: "broadcast", ID: "b1", Action: "delete", Status: string(c.status), Reason: c.reason,
+			}, *stateErr)
+		})
+	}
+}
+
+func TestBroadcastService_DeleteBroadcast_PassesErrorsThrough(t *testing.T) {
+	t.Run("reading the broadcast", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+		tx := expectDeleteTx(d, ctx, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(nil, &domain.ErrBroadcastNotFound{ID: "b1"})
+
+		var notFound *domain.ErrBroadcastNotFound
+		require.ErrorAs(t, d.svc.DeleteBroadcast(ctx, req), &notFound)
+	})
+
+	t.Run("counting the queue", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+		tx := expectDeleteTx(d, ctx, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(testBroadcast(req.WorkspaceID, req.ID), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).Return(nil, errors.New("queue error"))
+
+		assert.ErrorContains(t, d.svc.DeleteBroadcast(ctx, req), "queue error")
+	})
+
+	t.Run("deleting", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+		tx := expectDeleteTx(d, ctx, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(testBroadcast(req.WorkspaceID, req.ID), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).Return(&domain.EmailQueueSourceCounts{}, nil)
+		d.emailQueueRepo.EXPECT().DeleteTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).Return(int64(0), nil)
+		d.repo.EXPECT().DeleteBroadcastTx(ctx, tx, req.WorkspaceID, req.ID).Return(errors.New("db error"))
+
+		assert.ErrorContains(t, d.svc.DeleteBroadcast(ctx, req), "db error")
+	})
+
+	t.Run("deleting the abandoned queue rows", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.DeleteBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+		tx := expectDeleteTx(d, ctx, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, tx, req.WorkspaceID, req.ID).Return(testBroadcast(req.WorkspaceID, req.ID), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).Return(&domain.EmailQueueSourceCounts{FailedTerminal: 1}, nil)
+		d.emailQueueRepo.EXPECT().DeleteTerminallyFailedBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, req.ID).Return(int64(0), errors.New("queue delete error"))
+		// No DeleteBroadcastTx: the mock fails on it.
+
+		assert.ErrorContains(t, d.svc.DeleteBroadcast(ctx, req), "queue delete error")
+	})
 }
 
 func TestBroadcastService_SendToIndividual_AuthFailure(t *testing.T) {
@@ -3815,16 +3965,42 @@ func TestBroadcastService_RetryFailedRecipients(t *testing.T) {
 		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 		authOK(d.authService, ctx, req.WorkspaceID)
 
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+		expectRetryTx(d, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).
 			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 23}, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), req.WorkspaceID).Return(retryWorkspace("w1"), nil)
-		d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySource(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID, "integration-1").
+		d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID, "integration-1").
 			Return(int64(23), nil)
 
 		requeued, err := d.svc.RetryFailedRecipients(ctx, req)
 		require.NoError(t, err)
 		assert.Equal(t, int64(23), requeued)
+	})
+
+	t.Run("checks and requeues under the broadcast's row lock", func(t *testing.T) {
+		// A delete takes the same lock, so it cannot commit between the checks and the
+		// reset and leave requeued emails for a broadcast that no longer exists.
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+		tx := expectRetryTx(d, req.WorkspaceID)
+
+		gomock.InOrder(
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), tx, req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil),
+			d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), tx, domain.EmailQueueSourceBroadcast, req.ID).
+				Return(&domain.EmailQueueSourceCounts{FailedTerminal: 4}, nil),
+			d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySourceTx(gomock.Any(), tx, domain.EmailQueueSourceBroadcast, req.ID, "integration-1").
+				Return(int64(4), nil),
+		)
+		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), req.WorkspaceID).Return(retryWorkspace("w1"), nil)
+
+		requeued, err := d.svc.RetryFailedRecipients(ctx, req)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), requeued)
 	})
 
 	t.Run("refuses while the queue is still working", func(t *testing.T) {
@@ -3837,8 +4013,9 @@ func TestBroadcastService_RetryFailedRecipients(t *testing.T) {
 		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 		authOK(d.authService, ctx, req.WorkspaceID)
 
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+		expectRetryTx(d, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).
 			Return(&domain.EmailQueueSourceCounts{Pending: 4, FailedTerminal: 23}, nil)
 
 		_, err := d.svc.RetryFailedRecipients(ctx, req)
@@ -3854,8 +4031,9 @@ func TestBroadcastService_RetryFailedRecipients(t *testing.T) {
 		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 		authOK(d.authService, ctx, req.WorkspaceID)
 
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+		expectRetryTx(d, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).
 			Return(&domain.EmailQueueSourceCounts{}, nil)
 
 		requeued, err := d.svc.RetryFailedRecipients(ctx, req)
@@ -3875,7 +4053,8 @@ func TestBroadcastService_RetryFailedRecipients(t *testing.T) {
 
 		paused := testBroadcast("w1", "b1")
 		paused.Status = domain.BroadcastStatusPaused
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(paused, nil)
+		expectRetryTx(d, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(paused, nil)
 
 		_, err := d.svc.RetryFailedRecipients(ctx, req)
 		require.Error(t, err)
@@ -3890,8 +4069,9 @@ func TestBroadcastService_RetryFailedRecipients(t *testing.T) {
 		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 		authOK(d.authService, ctx, req.WorkspaceID)
 
-		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
-		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+		expectRetryTx(d, req.WorkspaceID)
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCountsTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).
 			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 5}, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), req.WorkspaceID).Return(&domain.Workspace{ID: "w1"}, nil)
 

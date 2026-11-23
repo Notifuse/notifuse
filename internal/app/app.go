@@ -1006,6 +1006,7 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 	a.dataRetentionWorker.SetRunner(a.dataRetentionService)
+	a.dataRetentionService.SetTaskRepository(a.taskRepo)
 
 	// Initialize contact list service
 	a.contactListService = service.NewContactListService(
@@ -2046,7 +2047,6 @@ func (a *App) InitHandlers() error {
 		Templates:        a.templateService,
 		Broadcasts:       a.broadcastService,
 		BroadcastRows:    a.broadcastRepo,
-		Queue:            a.emailQueueRepo,
 		Transactional:    a.transactionalNotificationService,
 		NotificationRows: a.transactionalNotificationRepo,
 		Messages:         a.messageHistoryService,

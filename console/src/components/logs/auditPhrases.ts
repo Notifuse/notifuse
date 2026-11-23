@@ -51,6 +51,7 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'customEvents.upsert': msg({ message: 'Recorded a custom event for the contact <0>{target}</0>' }),
   'dataRetention.cancelPending': msg({ message: 'Cancelled the data retention change of <0>{target}</0>' }),
   'dataRetention.purged': msg({ message: 'Applied the data retention policy of <0>{target}</0>' }),
+  'dataRetention.retryBackfill': msg({ message: 'Ran the reading of past activity again in <0>{target}</0>' }),
   'dataRetention.set': msg({ message: 'Changed the data retention policy of <0>{target}</0>' }),
   'dataRetention.setDefaults': msg({ message: 'Changed the default data retention periods' }),
   'files.createFolder': msg({ message: 'Created the folder <0>{target}</0>' }),

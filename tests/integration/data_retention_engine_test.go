@@ -314,11 +314,36 @@ func TestDataRetentionEngine(t *testing.T) {
 		assert.Equal(t, before, after)
 	})
 
+	t.Run("the event names to pick from, read along the index", func(t *testing.T) {
+		status, view := call(t, client, http.MethodGet, "/api/dataRetention.get", nil)
+		require.Equal(t, http.StatusOK, status, "%v", view)
+		// crm_sync went with the contact the run deleted.
+		assert.ElementsMatch(t, []interface{}{"purchase"}, view["event_names"])
+	})
+
+	t.Run("a failed backfill runs again", func(t *testing.T) {
+		systemDB := suite.DBManager.GetDB()
+		_, err := systemDB.ExecContext(bg, `INSERT INTO tasks (id, workspace_id, type, status, next_run_after, max_runtime, max_retries, retry_interval, retry_count, progress, state, error_message, created_at, updated_at)
+			VALUES (gen_random_uuid(), $1, $2, 'failed', NULL, 300, 10, 300, 10, 0, '{}'::jsonb, 'connection reset', NOW(), NOW())`,
+			workspace.ID, domain.DataRetentionBackfillTaskType)
+		require.NoError(t, err)
+		status, body := call(t, memberClient, http.MethodPost, "/api/dataRetention.retryBackfill", map[string]interface{}{"workspace_id": workspace.ID})
+		assert.Equal(t, http.StatusForbidden, status, "%v", body)
+		status, body = call(t, client, http.MethodPost, "/api/dataRetention.retryBackfill", map[string]interface{}{"workspace_id": workspace.ID})
+		require.Equal(t, http.StatusOK, status, "%v", body)
+		var taskStatus string
+		var retries int
+		require.NoError(t, systemDB.QueryRowContext(bg, `SELECT status, retry_count FROM tasks WHERE workspace_id = $1 AND type = $2`,
+			workspace.ID, domain.DataRetentionBackfillTaskType).Scan(&taskStatus, &retries))
+		assert.Equal(t, "pending", taskStatus)
+		assert.Zero(t, retries)
+	})
+
 	t.Run("the runs and their export", func(t *testing.T) {
 		status, body := call(t, memberClient, http.MethodGet, "/api/dataRetention.runs", nil)
 		require.Equal(t, http.StatusOK, status, "%v", body)
 		assert.Len(t, body["runs"], 2)
-		resp, err := client.Get("/api/dataRetention.exportRuns", map[string]string{"workspace_id": workspace.ID})
+		resp, err := client.Post("/api/dataRetention.exportRuns", map[string]interface{}{"workspace_id": workspace.ID})
 		require.NoError(t, err)
 		raw, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
