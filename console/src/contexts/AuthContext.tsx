@@ -6,6 +6,7 @@ import { createEmptyPermissions, createFullPermissions } from '../services/api/p
 import { Workspace, UserPermissions } from '../services/api/types'
 import { isRootUser } from '../services/api/auth'
 import type { Entitlements } from '../types/license'
+import type { TwoFactorState } from '../services/api/auth'
 
 export interface User {
   id: string
@@ -31,6 +32,10 @@ interface AuthContextType {
   // server's compiled version to ask with (null when user.me did not say).
   checkForUpdates: boolean
   serverVersion: string | null
+  // The account's two-factor state (null when user.me did not say), and whether the instance
+  // requires it of this session, which then reaches only the account security page.
+  twoFactor: TwoFactorState | null
+  twoFactorRequired: boolean
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Context co-located with provider
@@ -43,6 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [licenseEntitlements, setLicenseEntitlements] = useState<Entitlements | null>(null)
   const [checkForUpdates, setCheckForUpdates] = useState(false)
   const [serverVersion, setServerVersion] = useState<string | null>(null)
+  const [twoFactor, setTwoFactor] = useState<TwoFactorState | null>(null)
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
 
   // Kept next to the setter it always accompanies, so a fourth call site of getCurrentUser()
   // cannot pick up the workspaces and forget the licence or the update-check flag — which is
@@ -51,10 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     entitlements?: Entitlements
     check_for_updates?: boolean
     version?: string
+    two_factor?: TwoFactorState
+    two_factor_required?: boolean
   }) => {
     setLicenseEntitlements(payload.entitlements ?? null)
     setCheckForUpdates(payload.check_for_updates === true)
     setServerVersion(payload.version || null)
+    setTwoFactor(payload.two_factor ?? null)
+    setTwoFactorRequired(payload.two_factor_required === true)
   }
 
   const checkAuth = useCallback(async () => {
@@ -147,7 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshWorkspaces,
         licenseEntitlements,
         checkForUpdates,
-        serverVersion
+        serverVersion,
+        twoFactor,
+        twoFactorRequired
       }}
     >
       {children}
@@ -162,6 +175,15 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
+}
+
+/**
+ * The auth context when there is one: for components that also render outside the provider,
+ * such as settings screens mounted alone in their tests. Undefined outside it.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
+export function useOptionalAuth(): AuthContextType | undefined {
+  return useContext(AuthContext)
 }
 
 // Fallback permission sets used when there is no member record to read from: a root user (who

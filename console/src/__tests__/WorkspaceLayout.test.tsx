@@ -49,6 +49,11 @@ vi.mock('../services/api/auth', () => ({
   isRootUser: vi.fn()
 }))
 
+// The real drawer pulls the API client, and through it the router and every page.
+vi.mock('../components/two_factor/AccountSecurityDrawer', () => ({
+  AccountSecurityDrawer: () => null
+}))
+
 vi.mock('../services/api/workspace', () => ({
   workspaceService: {
     getMembers: vi.fn(),

@@ -17,8 +17,41 @@ export interface VerifyCodeRequest {
   code: string
 }
 
-export interface VerifyResponse {
+/** A sign-in that opened a session. */
+export interface SignedInResponse {
   token: string
+  user?: { id: string; email: string }
+  expires_at?: string
+}
+
+/**
+ * A right email code on an account with an authenticator: no session yet, a challenge to answer
+ * with user.twoFactor.verify.
+ */
+export interface TwoFactorChallengeResponse {
+  two_factor_required: true
+  challenge_token: string
+  challenge_expires_at: string
+}
+
+export type VerifyResponse = SignedInResponse | TwoFactorChallengeResponse
+
+/** Single sign-on never answers a challenge: the identity provider owns multi-factor. */
+export type OidcExchangeResponse = SignedInResponse
+
+export function isTwoFactorChallenge(
+  response: VerifyResponse | object
+): response is TwoFactorChallengeResponse {
+  return (response as TwoFactorChallengeResponse).two_factor_required === true
+}
+
+/** The two-factor state of the account, as user.me reports it. */
+export interface TwoFactorState {
+  enabled: boolean
+  enabled_at?: string | null
+  recovery_codes_remaining: number
+  /** The instance requires it: it cannot be turned off. */
+  required_by_instance: boolean
 }
 
 export interface GetCurrentUserResponse {
@@ -46,6 +79,14 @@ export interface GetCurrentUserResponse {
   // The release this server was built as, sent with that question. Not window.VERSION, which
   // the VERSION environment variable can change.
   version?: string
+  // Console sessions only, and absent from an older server. two_factor is left out when the
+  // server could not read it.
+  two_factor?: TwoFactorState
+  // The second factor this session passed: "totp", "recovery_code", or "" for none.
+  session_second_factor?: string
+  // The instance requires two-factor authentication and this session has not passed it: the
+  // workspaces are withheld and only the account security page works.
+  two_factor_required?: boolean
 }
 
 /**
@@ -86,7 +127,7 @@ export interface UpdateLanguageResponse {
  * across split console/API origins (the shared api.post() can't carry the dedicated
  * cross-origin fetch). Returns the JWT, identical in shape to verifyCode().
  */
-async function oidcExchange(code: string): Promise<VerifyResponse> {
+async function oidcExchange(code: string): Promise<OidcExchangeResponse> {
   let defaultOrigin = window.location.origin
   if (defaultOrigin.includes('notifusedev.com')) {
     defaultOrigin = 'https://localapi.notifuse.com:4000'
@@ -105,7 +146,7 @@ async function oidcExchange(code: string): Promise<VerifyResponse> {
     const errorData = await response.json().catch(() => null)
     throw new ApiError(errorData?.error || 'OIDC exchange failed', response.status, errorData)
   }
-  return response.json() as Promise<VerifyResponse>
+  return response.json() as Promise<OidcExchangeResponse>
 }
 
 export const authService = {

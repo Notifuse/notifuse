@@ -155,7 +155,7 @@ msgid "{0, plural, one {{shown} message} other {{shown} messages}}"
 msgstr "{0, plural, one {{shown} mensagem} other {{shown} mensagens}}"
 
 #. placeholder {0}: actions.length
-#: src/components/logs/AuditLogTab.tsx:333
+#: src/components/logs/AuditLogTab.tsx:335
 msgid "{0, plural, one {# action} other {# actions}}"
 msgstr "{0, plural, one {# ação} other {# ações}}"
 
@@ -292,7 +292,7 @@ msgid "{0, plural, one {# removed} other {# removed}}"
 msgstr "{0, plural, one {# removido} other {# removidos}}"
 
 #. placeholder {0}: categories.length
-#: src/components/logs/AuditLogTab.tsx:255
+#: src/components/logs/AuditLogTab.tsx:257
 msgid "{0, plural, one {# resource} other {# resources}}"
 msgstr "{0, plural, one {# recurso} other {# recursos}}"
 
@@ -734,6 +734,10 @@ msgstr "Template {categoryName}: enviado até para contatos cancelados, rejeitad
 #: src/pages/BroadcastsPage.tsx:1004
 #~ msgid "{clicks} clicks out of {tracked} tracked recipients ({recipients} sent)"
 #~ msgstr "{clicks} cliques de {tracked} destinatários rastreados ({recipients} enviados)"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:178
+msgid "{codesLeft} of 10 left"
+msgstr "{codesLeft} de 10 restantes"
 
 #: src/components/automations/list/AutomationsTable.tsx:220
 msgid "{completed} completed · {exited} exited · {failed} failed"
@@ -1336,7 +1340,7 @@ msgstr "{regexCount, plural, one {A expressão regular é válida} other {As # e
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinatário na fila para nova tentativa} other {# destinatários na fila para nova tentativa}}"
 
-#: src/components/logs/AuditLogTab.tsx:613
+#: src/components/logs/AuditLogTab.tsx:621
 msgid "{retentionDays, plural, one {Kept # day} other {Kept # days}}"
 msgstr "{retentionDays, plural, one {Mantido por # dia} other {Mantido por # dias}}"
 
@@ -1401,7 +1405,7 @@ msgstr "{share}% rastreados"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/logs/AuditLogTab.tsx:623
+#: src/components/logs/AuditLogTab.tsx:631
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, one {{0} entrada} other {{1} entradas}}"
 
@@ -1633,7 +1637,7 @@ msgstr "// Sem dados de teste ainda..."
 #~ msgid "+ Add variation"
 #~ msgstr "+ Adicionar variacao"
 
-#: src/components/logs/AuditLogTab.tsx:409
+#: src/components/logs/AuditLogTab.tsx:411
 #: src/components/logs/MessagesTab.tsx:501
 msgid "+ Filter"
 msgstr "+ Filtro"
@@ -1813,6 +1817,10 @@ msgstr "500 - Médio"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:577
 msgid "587 for STARTTLS, 465 for TLS from the first byte, 25 unencrypted"
 msgstr "587 para STARTTLS, 465 para TLS desde o primeiro byte, 25 sem criptografia"
+
+#: src/components/two_factor/SetupWizard.tsx:197
+msgid "6-digit code"
+msgstr "Código de 6 dígitos"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:148
 msgid "600 - Semi Bold"
@@ -2240,7 +2248,7 @@ msgstr "Sobre as importações não concluídas"
 msgid "About unsubscribed recipients"
 msgstr "Sobre os destinatários descadastrados"
 
-#: src/pages/AcceptInvitationPage.tsx:170
+#: src/pages/AcceptInvitationPage.tsx:212
 msgid "Accept Invitation"
 msgstr "Aceitar Convite"
 
@@ -2273,6 +2281,16 @@ msgstr "Conta"
 msgid "Account and security"
 msgstr "Conta e segurança"
 
+#: src/components/two_factor/SetupWizard.tsx:171
+msgid "Account name in the app: Notifuse ({account})"
+msgstr "Nome da conta no app: Notifuse ({account})"
+
+#: src/components/two_factor/AccountSecurityDrawer.tsx:26
+#: src/layouts/app-shell/AccountMenu.tsx:87
+#: src/pages/AccountSecurityPage.tsx:59
+msgid "Account security"
+msgstr "Segurança da conta"
+
 #: src/components/segment/segmentLabels.ts:136
 msgid "Acquisition channel resolved from the attribution rules"
 msgstr "Canal de aquisição definido pelas regras de atribuição"
@@ -2280,8 +2298,8 @@ msgstr "Canal de aquisição definido pelas regras de atribuição"
 #: src/components/contacts/BulkUpdateDrawer.tsx:294
 #: src/components/contacts/BulkUpdateDrawer.tsx:298
 #: src/components/logs/AuditEntryDetail.tsx:146
-#: src/components/logs/AuditLogTab.tsx:260
-#: src/components/logs/AuditLogTab.tsx:493
+#: src/components/logs/AuditLogTab.tsx:262
+#: src/components/logs/AuditLogTab.tsx:495
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:94
 msgid "Action"
 msgstr "Ação"
@@ -2341,7 +2359,7 @@ msgstr "ativo"
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:38
 #: src/components/segment/SegmentDrawer.tsx:280
-#: src/components/settings/LicenseSettings.tsx:110
+#: src/components/settings/LicenseSettings.tsx:129
 #: src/components/settings/WebhookDetail.tsx:265
 msgid "Active"
 msgstr "Ativo"
@@ -2374,12 +2392,12 @@ msgid "Activity {kind}"
 msgstr "Atividade {kind}"
 
 #: src/components/logs/AuditEntryDetail.tsx:159
-#: src/components/logs/AuditLogTab.tsx:405
-#: src/components/logs/AuditLogTab.tsx:487
+#: src/components/logs/AuditLogTab.tsx:407
+#: src/components/logs/AuditLogTab.tsx:489
 msgid "Actor"
 msgstr "Ator"
 
-#: src/components/logs/AuditLogTab.tsx:262
+#: src/components/logs/AuditLogTab.tsx:264
 msgid "Actor email"
 msgstr "Email do ator"
 
@@ -2712,6 +2730,10 @@ msgstr "Adicionou um domínio DKIM a <0>{target}</0>"
 msgid "Added on {0}"
 msgstr "Adicionado em {0}"
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:170
+msgid "Added on {addedOn}"
+msgstr "Adicionado em {addedOn}"
+
 #: src/components/logs/auditPhrases.ts:12
 msgid "Added the annotation <0>{target}</0>"
 msgstr "Adicionou a anotação <0>{target}</0>"
@@ -2831,6 +2853,14 @@ msgstr "Após um reprocessamento, executado em Regras de atribuição"
 msgid "after date"
 msgstr "depois da data"
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:147
+msgid "After the code we email you, Notifuse asks for a second code from an authenticator app on your phone, such as Google Authenticator, 1Password or Bitwarden. Someone who gets into your mailbox still can't sign in."
+msgstr "Depois do código que enviamos por email, o Notifuse pede um segundo código de um app autenticador no seu celular, como Google Authenticator, 1Password ou Bitwarden. Quem entrar na sua caixa de email ainda não consegue entrar."
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:163
+msgid "After the code we email you, Notifuse asks for a second code from an authenticator app on your phone."
+msgstr "Depois do código que enviamos por email, o Notifuse pede um segundo código de um app autenticador no seu celular."
+
 #: src/components/analytics/DashboardKpis.tsx:208
 msgid "After your first send"
 msgstr "Após seu primeiro envio"
@@ -2916,9 +2946,9 @@ msgstr "todas as"
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:338
 #: src/components/email_builder/panels/LibraryPanel.tsx:266
-#: src/components/logs/AuditLogTab.tsx:192
-#: src/components/logs/AuditLogTab.tsx:214
-#: src/components/logs/AuditLogTab.tsx:252
+#: src/components/logs/AuditLogTab.tsx:194
+#: src/components/logs/AuditLogTab.tsx:216
+#: src/components/logs/AuditLogTab.tsx:254
 #: src/components/logs/InboundWebhooksTab.tsx:138
 #: src/components/logs/InboundWebhooksTab.tsx:147
 #: src/components/logs/InboundWebhooksTab.tsx:177
@@ -3053,7 +3083,7 @@ msgstr "Todos os emails transacionais (notificações, redefinição de senha, e
 msgid "Allowed domains"
 msgstr "Domínios permitidos"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:668
+#: src/components/settings/SystemSettingsDrawer.tsx:688
 #: src/components/setup/SsoPanel.tsx:165
 #: src/components/setup/SsoPanel.tsx:178
 msgid "Allowed email domains"
@@ -3205,7 +3235,7 @@ msgstr "Uma imagem invisível em cada e-mail registra quando ele é aberto"
 msgid "An invitation to join a team or a space."
 msgstr "Um convite para entrar em uma equipe ou um espaço."
 
-#: src/components/logs/AuditLogTab.tsx:391
+#: src/components/logs/AuditLogTab.tsx:393
 msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
 msgstr "Um endereço IP e um ID de destino devem corresponder exatamente; um e-mail de ator corresponde a qualquer parte dele."
 
@@ -3284,9 +3314,9 @@ msgstr "Telemetria anônima"
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Outra alteração da biblioteca está em andamento. Tente novamente em instantes."
 
-#: src/components/logs/AuditLogTab.tsx:303
-#: src/components/logs/AuditLogTab.tsx:330
-#: src/components/logs/AuditLogTab.tsx:360
+#: src/components/logs/AuditLogTab.tsx:305
+#: src/components/logs/AuditLogTab.tsx:332
+#: src/components/logs/AuditLogTab.tsx:362
 #: src/components/logs/MessagesTab.tsx:370
 #: src/components/logs/MessagesTab.tsx:394
 #: src/components/logs/MessagesTab.tsx:429
@@ -3298,7 +3328,7 @@ msgstr "Qualquer"
 #~ msgid "ANY"
 #~ msgstr "QUALQUER"
 
-#: src/components/logs/AuditLogTab.tsx:181
+#: src/components/logs/AuditLogTab.tsx:183
 msgid "Any API key"
 msgstr "Qualquer chave API"
 
@@ -3327,7 +3357,7 @@ msgstr "Qualquer nome de meta"
 msgid "Any link"
 msgstr "Qualquer link"
 
-#: src/components/logs/AuditLogTab.tsx:180
+#: src/components/logs/AuditLogTab.tsx:182
 msgid "Any member"
 msgstr "Qualquer membro"
 
@@ -3386,7 +3416,7 @@ msgstr "Documentação da API"
 msgid "API endpoint"
 msgstr "Endpoint da API"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:287
+#: src/components/settings/SystemSettingsDrawer.tsx:303
 msgid "API Endpoint"
 msgstr "Endpoint API"
 
@@ -3497,7 +3527,7 @@ msgstr "Aplica-se a cada ícone; a borda própria de um ícone tem prioridade."
 msgid "Applies to every icon; an icon's own settings win."
 msgstr "Aplica-se a cada ícone; as configurações próprias de um ícone têm prioridade."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:725
+#: src/components/settings/SystemSettingsDrawer.tsx:745
 msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
 msgstr "Aplica-se a cada workspace que não definiu a própria retenção e às entradas no nível do deployment, como logins. 0 mantém cada entrada para sempre."
 
@@ -3783,7 +3813,7 @@ msgstr "Pelo menos um domínio é obrigatório quando a criação automática es
 msgid "At least one operation is required"
 msgstr "Pelo menos uma operação é obrigatória"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:88
+#: src/components/settings/SystemSettingsDrawer.tsx:102
 #: src/components/setup/AdministratorPanel.tsx:37
 msgid "At least one root email is required"
 msgstr "Pelo menos um email raiz é obrigatório"
@@ -3837,7 +3867,7 @@ msgstr "Entrada de auditoria"
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
 #: src/components/settings/SettingsSidebar.tsx:72
-#: src/components/settings/SystemSettingsDrawer.tsx:719
+#: src/components/settings/SystemSettingsDrawer.tsx:739
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
 msgstr "Log de auditoria"
@@ -3846,7 +3876,7 @@ msgstr "Log de auditoria"
 msgid "Audit log retention saved"
 msgstr "Retenção do log de auditoria salva"
 
-#: src/components/settings/LicenseSettings.tsx:119
+#: src/components/settings/LicenseSettings.tsx:138
 #: src/services/api/licenseErrors.ts:52
 msgid "Audit logs"
 msgstr "Logs de auditoria"
@@ -3882,6 +3912,12 @@ msgstr "Hook de Email de Autenticação"
 msgid "Authentication"
 msgstr "Autenticação"
 
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:90
+#: src/pages/AcceptInvitationPage.tsx:127
+#: src/pages/SignInPage.tsx:261
+msgid "Authentication code"
+msgstr "Código de autenticação"
+
 #: src/components/contacts/sheet/describeActivity.tsx:339
 msgid "Authentication email sent via Supabase"
 msgstr "Email de autenticação enviado via Supabase"
@@ -3889,6 +3925,18 @@ msgstr "Email de autenticação enviado via Supabase"
 #: src/components/settings/Integrations.tsx:1439
 #~ msgid "Authentication Type"
 #~ msgstr "Tipo de Autenticacao"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:167
+msgid "Authenticator app"
+msgstr "App autenticador"
+
+#: src/components/two_factor/SetupWizard.tsx:91
+msgid "Authenticator app replaced"
+msgstr "App autenticador substituído"
+
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:21
+msgid "Authenticator codes are blocked on your account after too many wrong attempts. Use a recovery code, or ask your Notifuse administrator to reset two-factor authentication."
+msgstr "Os códigos do app estão bloqueados na sua conta depois de muitas tentativas erradas. Use um código de recuperação ou peça ao administrador do Notifuse para redefinir a autenticação de dois fatores."
 
 #: src/components/blog/PostsTable.tsx:356
 msgid "Author"
@@ -3927,7 +3975,7 @@ msgstr "Automático"
 msgid "Auto-create accounts on first sign-in"
 msgstr "Criar contas automaticamente no primeiro login"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:658
+#: src/components/settings/SystemSettingsDrawer.tsx:678
 msgid "Auto-create users"
 msgstr "Criar usuários automaticamente"
 
@@ -4123,10 +4171,15 @@ msgstr "Região da AWS"
 
 #: src/components/contacts/ContactsFilters.tsx:115
 #: src/components/layout/FullDrawer.tsx:93
+#: src/components/two_factor/SetupWizard.tsx:211
 #: src/components/web_analytics/FilterBuilder.tsx:293
 #: src/components/web_analytics/FilterBuilder.tsx:364
 msgid "Back"
 msgstr "Voltar"
+
+#: src/pages/AccountSecurityPage.tsx:46
+msgid "Back to {workspaceName}"
+msgstr "Voltar para {workspaceName}"
 
 #: src/components/automations/AutomationEditor.tsx:95
 msgid "Back to automations"
@@ -4146,6 +4199,14 @@ msgstr "Voltar para rascunho"
 #: src/components/broadcasts/useBroadcastActions.tsx:177
 msgid "Back to draft?"
 msgstr "Voltar para rascunho?"
+
+#: src/pages/AccountSecurityPage.tsx:35
+msgid "Back to Notifuse"
+msgstr "Voltar para o Notifuse"
+
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:66
+msgid "Back to sign in"
+msgstr "Voltar para o login"
 
 #: src/pages/WebAnalyticsLivePage.tsx:64
 #~ msgid "Back to the dashboard"
@@ -4239,7 +4300,7 @@ msgstr "URL base"
 #~ msgid "Base URL (Optional)"
 #~ msgstr "URL Base (Opcional)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:524
+#: src/components/settings/SystemSettingsDrawer.tsx:544
 msgid "Base64 encoded TLS certificate"
 msgstr "Certificado TLS codificado em Base64"
 
@@ -4247,7 +4308,7 @@ msgstr "Certificado TLS codificado em Base64"
 #~ msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 #~ msgstr "Certificado TLS codificado em Base64. Execute: cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:539
+#: src/components/settings/SystemSettingsDrawer.tsx:559
 msgid "Base64 encoded TLS private key"
 msgstr "Chave privada TLS codificada em Base64"
 
@@ -4338,6 +4399,10 @@ msgstr "Antes de criar"
 #: src/components/setup/SetupRail.tsx:22
 msgid "Before you finish"
 msgstr "Antes de concluir"
+
+#: src/components/two_factor/ResetTwoFactorButton.tsx:41
+msgid "Before you reset it, check that the request really comes from {email}, for example by a call. Attackers try this with administrators."
+msgstr "Antes de redefinir, confirme que o pedido vem mesmo de {email}, por exemplo por uma ligação. Atacantes tentam isso com administradores."
 
 #: src/components/updates/UpdateDrawer.tsx:87
 msgid "Before you upgrade:"
@@ -4807,11 +4872,11 @@ msgstr "Largura do breakpoint"
 #~ msgid "Breakpoint Width"
 #~ msgstr "Largura do Breakpoint"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:479
+#: src/components/settings/SystemSettingsDrawer.tsx:499
 msgid "Bridge Domain"
 msgstr "Domínio da Ponte"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:493
+#: src/components/settings/SystemSettingsDrawer.tsx:513
 msgid "Bridge Port"
 msgstr "Porta da Ponte"
 
@@ -5116,7 +5181,7 @@ msgstr "Altura do botão"
 msgid "Button label"
 msgstr "Rótulo do botão"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:630
+#: src/components/settings/SystemSettingsDrawer.tsx:650
 msgid "Button Label"
 msgstr "Rótulo do Botão"
 
@@ -5132,7 +5197,7 @@ msgstr "Rótulo do Botão"
 msgid "Button width"
 msgstr "Largura do botão"
 
-#: src/components/settings/LicenseSettings.tsx:202
+#: src/components/settings/LicenseSettings.tsx:221
 msgid "Buy a licence"
 msgstr ""
 
@@ -5166,6 +5231,10 @@ msgstr "Não pode mais ser alterado"
 #: src/components/templates/TemplateSettingsStep.tsx:134
 msgid "Can't change after the template is created"
 msgstr "Não pode ser alterado depois que o template é criado"
+
+#: src/components/two_factor/SetupWizard.tsx:162
+msgid "Can't scan it? Enter this key"
+msgstr "Não consegue escanear? Digite esta chave"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:244
 msgid "Can't test"
@@ -5251,13 +5320,13 @@ msgstr "Não é possível testar no navegador"
 #: src/components/settings/DomainsSettings.tsx:121
 #: src/components/settings/DomainsSettings.tsx:140
 #: src/components/settings/DomainsSettings.tsx:443
-#: src/components/settings/EditPermissionsDrawer.tsx:101
+#: src/components/settings/EditPermissionsDrawer.tsx:129
 #: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:929
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:991
 #: src/components/settings/integrations/TestEmailModal.tsx:68
-#: src/components/settings/SystemSettingsDrawer.tsx:178
+#: src/components/settings/SystemSettingsDrawer.tsx:192
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:576
 #: src/components/settings/WebhookDetail.tsx:595
@@ -5272,6 +5341,10 @@ msgstr "Não é possível testar no navegador"
 #: src/components/templates/TemplateSelectorModal.tsx:218
 #: src/components/templates/TemplateTranslationsTab.tsx:363
 #: src/components/transactional/notificationRules.ts:94
+#: src/components/two_factor/ProofModal.tsx:59
+#: src/components/two_factor/ResetTwoFactorButton.tsx:87
+#: src/components/two_factor/SetupWizard.tsx:140
+#: src/components/two_factor/SetupWizard.tsx:174
 #: src/components/updates/UpdateCard.tsx:48
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
 #: src/components/web_analytics/explore/CsvExportModal.tsx:130
@@ -5357,7 +5430,7 @@ msgstr "Cancelou o preenchimento retroativo da análise web"
 msgid "Cannot be changed, used by the API and forms."
 msgstr "Não pode ser alterado; usado pela API e pelos formulários."
 
-#: src/pages/SignInPage.tsx:258
+#: src/pages/SignInPage.tsx:267
 msgid "Cannot reach the configured API endpoint"
 msgstr "Não foi possível acessar o endpoint API configurado"
 
@@ -5377,7 +5450,7 @@ msgstr "Não é possível fazer upload em modo somente leitura"
 msgid "Canonical URL"
 msgstr "URL Canônica"
 
-#: src/components/settings/LicenseSettings.tsx:168
+#: src/components/settings/LicenseSettings.tsx:187
 msgid "Capabilities"
 msgstr ""
 
@@ -5504,7 +5577,7 @@ msgstr "Alterar o conteúdo de um template, em qualquer idioma"
 msgid "Change file"
 msgstr "Trocar arquivo"
 
-#: src/components/logs/AuditLogTab.tsx:646
+#: src/components/logs/AuditLogTab.tsx:654
 msgid "Change in Settings"
 msgstr "Alterar nas configurações"
 
@@ -5559,7 +5632,7 @@ msgstr "Alterado: {section}"
 msgid "Changes"
 msgstr "Alterações"
 
-#: src/pages/SignInPage.tsx:269
+#: src/pages/SignInPage.tsx:278
 msgid "Changing your domain"
 msgstr "Alterar seu domínio"
 
@@ -5603,7 +5676,7 @@ msgstr "Verificar"
 msgid "Check for updates"
 msgstr "Verificar atualizações"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:709
+#: src/components/settings/SystemSettingsDrawer.tsx:729
 msgid "Check for Updates"
 msgstr "Verificar Atualizações"
 
@@ -5707,7 +5780,7 @@ msgstr "Escolha um template para ver a visualização"
 msgid "Choose a value"
 msgstr "Escolher um valor"
 
-#: src/components/logs/AuditLogTab.tsx:344
+#: src/components/logs/AuditLogTab.tsx:346
 msgid "Choose actions"
 msgstr "Escolher ações"
 
@@ -5781,7 +5854,7 @@ msgstr "Limpar"
 msgid "Clear {ariaLabel}"
 msgstr "Limpar {ariaLabel}"
 
-#: src/components/logs/AuditLogTab.tsx:413
+#: src/components/logs/AuditLogTab.tsx:415
 #: src/components/logs/InboundWebhooksTab.tsx:188
 #: src/components/logs/MessagesTab.tsx:505
 #: src/components/logs/OutgoingWebhooksTab.tsx:148
@@ -5798,7 +5871,7 @@ msgstr "Limpar tudo"
 msgid "Clear field"
 msgstr "Limpar campo"
 
-#: src/components/logs/AuditLogTab.tsx:572
+#: src/components/logs/AuditLogTab.tsx:580
 #: src/components/logs/InboundWebhooksTab.tsx:291
 #: src/components/logs/MessagesTab.tsx:807
 #: src/components/logs/OutgoingWebhooksTab.tsx:240
@@ -6025,7 +6098,7 @@ msgstr "Os cliques não foram rastreados"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:648
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:664
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:666
-#: src/components/settings/SystemSettingsDrawer.tsx:583
+#: src/components/settings/SystemSettingsDrawer.tsx:603
 #: src/components/setup/SsoPanel.tsx:78
 msgid "Client ID"
 msgstr "Client ID"
@@ -6043,7 +6116,7 @@ msgid "Client secret"
 msgstr "Client secret"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:673
-#: src/components/settings/SystemSettingsDrawer.tsx:593
+#: src/components/settings/SystemSettingsDrawer.tsx:613
 msgid "Client Secret"
 msgstr "Client Secret"
 
@@ -6132,6 +6205,10 @@ msgstr "Código copiado"
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:24
 msgid "Code Editor"
 msgstr "Editor de Código"
+
+#: src/components/two_factor/ProofModal.tsx:75
+msgid "Code from your authenticator app"
+msgstr "Código do seu app autenticador"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
 msgid "Collapse"
@@ -6238,7 +6315,7 @@ msgstr "Colunas com o nome de um campo de contato são mapeadas automaticamente.
 msgid "Comma-separated values"
 msgstr "Valores separados por vírgula"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:679
+#: src/components/settings/SystemSettingsDrawer.tsx:699
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Separados por vírgula. Apenas estes domínios podem criar contas automaticamente."
 
@@ -6246,11 +6323,11 @@ msgstr "Separados por vírgula. Apenas estes domínios podem criar contas automa
 msgid "Common ports: 587 (STARTTLS), 465 (implicit TLS), 25 (unencrypted)."
 msgstr "Portas comuns: 587 (STARTTLS), 465 (TLS implícito), 25 (sem criptografia)."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:351
+#: src/components/settings/SystemSettingsDrawer.tsx:371
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Portas comuns: 587 (TLS), 465 (SSL), 25 (não criptografado)"
 
-#: src/components/settings/LicenseSettings.tsx:162
+#: src/components/settings/LicenseSettings.tsx:181
 msgid "Community"
 msgstr ""
 
@@ -6511,6 +6588,7 @@ msgstr "Configurando {0}"
 #: src/components/contacts/BulkActionsBar.tsx:191
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:206
 #: src/components/segment/form_leaf.tsx:207
+#: src/components/two_factor/SetupWizard.tsx:133
 msgid "Confirm"
 msgstr "Confirmar"
 
@@ -6868,6 +6946,10 @@ msgstr "Árvore de Estrutura do Conteúdo"
 msgid "Contents"
 msgstr "Conteúdos"
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:134
+msgid "Continue"
+msgstr "Continuar"
+
 #: src/components/seo/SEOSettingsForm.tsx:74
 #: src/components/seo/SEOSettingsForm.tsx:188
 #~ msgid "Control how search engines index and follow links on your blog"
@@ -6919,6 +7001,8 @@ msgstr "Copiado"
 #: src/components/settings/ZapierSettings.tsx:260
 #: src/components/setup/SsoPanel.tsx:116
 #: src/components/transactional/ApiCallPanel.tsx:76
+#: src/components/two_factor/RecoveryCodesList.tsx:69
+#: src/components/two_factor/SetupWizard.tsx:168
 msgid "Copy"
 msgstr "Copiar"
 
@@ -6997,6 +7081,10 @@ msgstr "Cantos"
 #~ msgid "Cost"
 #~ msgstr "Custo"
 
+#: src/components/two_factor/RecoveryCodesList.tsx:32
+msgid "Could not copy the codes. Select them and copy by hand."
+msgstr "Não foi possível copiar os códigos. Selecione e copie manualmente."
+
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:210
 msgid "Could not copy the external ID"
 msgstr "Não foi possível copiar o ID externo"
@@ -7004,6 +7092,10 @@ msgstr "Não foi possível copiar o ID externo"
 #: src/components/lists/ListDrawer.tsx:363
 msgid "Could not copy the ID"
 msgstr "Não foi possível copiar o ID"
+
+#: src/components/two_factor/SetupWizard.tsx:122
+msgid "Could not copy the key. Type it by hand."
+msgstr "Não foi possível copiar a chave. Digite manualmente."
 
 #: src/components/logs/AuditEntryDetail.tsx:97
 msgid "Could not copy the link"
@@ -7052,7 +7144,7 @@ msgstr "Não foi possível carregar esta meta"
 msgid "Could not load this report"
 msgstr "Não foi possível carregar este relatório"
 
-#: src/components/settings/LicenseSettings.tsx:53
+#: src/components/settings/LicenseSettings.tsx:60
 msgid "Could not read the licence state"
 msgstr ""
 
@@ -7081,7 +7173,7 @@ msgstr "Não foi possível carregar mais posts"
 msgid "Couldn't load stats"
 msgstr "Não foi possível carregar as estatísticas"
 
-#: src/components/logs/AuditLogTab.tsx:557
+#: src/components/logs/AuditLogTab.tsx:565
 msgid "Couldn't load the audit log"
 msgstr "Não foi possível carregar o log de auditoria"
 
@@ -7719,7 +7811,7 @@ msgctxt "template selector"
 msgid "Current"
 msgstr "Atual"
 
-#: src/layouts/app-shell/AccountMenu.tsx:92
+#: src/layouts/app-shell/AccountMenu.tsx:98
 msgid "Current language"
 msgstr "Idioma atual"
 
@@ -7870,7 +7962,7 @@ msgstr "Campos personalizados"
 msgid "Custom header"
 msgstr "Cabeçalho personalizado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:444
+#: src/components/settings/SystemSettingsDrawer.tsx:464
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr "Hostname personalizado usado no comando SMTP EHLO/HELO. Deixe vazio para usar o padrão."
 
@@ -7950,7 +8042,7 @@ msgstr "Campos de Número Personalizados"
 msgid "Custom permissions"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:116
+#: src/components/settings/LicenseSettings.tsx:135
 msgid "Custom permissions (RBAC)"
 msgstr ""
 
@@ -8034,7 +8126,7 @@ msgstr "Zona de perigo"
 #~ msgid "Danger Zone"
 #~ msgstr "Zona de Perigo"
 
-#: src/layouts/app-shell/AppSidebar.tsx:250
+#: src/layouts/app-shell/AppSidebar.tsx:253
 #: src/layouts/app-shell/menuItems.ts:232
 #: src/pages/AnalyticsPage.tsx:130
 #: src/pages/WebAnalyticsLivePage.tsx:127
@@ -8106,7 +8198,7 @@ msgstr "dias (ou nunca)"
 msgid "Debug Segment Builder"
 msgstr "Depurar Construtor de Segmento"
 
-#: src/pages/AcceptInvitationPage.tsx:175
+#: src/pages/AcceptInvitationPage.tsx:217
 msgid "Decline"
 msgstr "Recusar"
 
@@ -8166,7 +8258,7 @@ msgstr "Idioma padrão: {languageName}"
 msgid "Default marketing"
 msgstr "Padrão de marketing"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:723
+#: src/components/settings/SystemSettingsDrawer.tsx:743
 msgid "Default retention (days)"
 msgstr "Retenção padrão (dias)"
 
@@ -8823,7 +8915,7 @@ msgid "Denied"
 msgstr "Negado"
 
 #: src/components/logs/AuditEntryDetail.tsx:194
-#: src/components/logs/AuditLogTab.tsx:532
+#: src/components/logs/AuditLogTab.tsx:534
 msgid "Deployment"
 msgstr "Deployment"
 
@@ -9228,6 +9320,8 @@ msgstr "Não rastrear aberturas e cliques neste broadcast"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:264
 #: src/components/settings/ZapierSettings.tsx:269
 #: src/components/templates/TemplateTranslationsTab.tsx:501
+#: src/components/two_factor/AccountSecurityPanel.tsx:126
+#: src/components/two_factor/SetupWizard.tsx:230
 msgid "Done"
 msgstr "Concluído"
 
@@ -9267,6 +9361,10 @@ msgstr "Confirmação dupla"
 #: src/components/web_analytics/explore/CsvExportModal.tsx:139
 msgid "Download"
 msgstr "Baixar"
+
+#: src/components/two_factor/RecoveryCodesList.tsx:72
+msgid "Download .txt"
+msgstr "Baixar .txt"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:608
 msgid "Download as CSV"
@@ -9497,6 +9595,10 @@ msgstr "Cada mensagem conta uma vez, na hora da sua primeira abertura ou clique;
 msgid "Each message counts once, on the day of its first open or click; clicks count each message clicked once."
 msgstr "Cada mensagem conta uma vez, no dia da sua primeira abertura ou clique; os cliques contam uma vez cada mensagem clicada."
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:176
+msgid "Each one works once, if you lose your phone."
+msgstr "Cada um funciona uma vez, se você perder o celular."
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:167
 msgid "Each recipient's timezone"
 msgstr "Fuso horário de cada destinatário"
@@ -9688,7 +9790,7 @@ msgid "Edit permissions"
 msgstr "Editar permissões"
 
 #. placeholder {0}: member?.email
-#: src/components/settings/EditPermissionsDrawer.tsx:92
+#: src/components/settings/EditPermissionsDrawer.tsx:120
 msgid "Edit Permissions for {0}"
 msgstr "Editar Permissões para {0}"
 
@@ -9825,7 +9927,7 @@ msgstr "Modo do editor"
 msgid "EHLO hostname"
 msgstr "Nome do host EHLO"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:442
+#: src/components/settings/SystemSettingsDrawer.tsx:462
 msgid "EHLO Hostname"
 msgstr "Hostname EHLO"
 
@@ -9861,8 +9963,8 @@ msgstr "Tempo decorrido"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:284
-#: src/pages/SignInPage.tsx:291
+#: src/pages/SignInPage.tsx:305
+#: src/pages/SignInPage.tsx:312
 msgid "Email"
 msgstr "Email"
 
@@ -9992,6 +10094,10 @@ msgstr "Os links de email não podem identificar contatos enquanto nenhum domín
 #: src/components/analytics/EmailMetricsChart.tsx:291
 #~ msgid "Email Metrics"
 #~ msgstr "Métricas de Email"
+
+#: src/components/settings/SystemSecuritySettings.tsx:86
+msgid "Email of the person"
+msgstr "Email da pessoa"
 
 #: src/components/automations/describeTrigger.ts:129
 #: src/components/segment/timelineKindLabels.ts:11
@@ -10123,7 +10229,7 @@ msgstr "Email, país, idioma, campos personalizados, consentimento de rastreamen
 msgid "Email, name or external ID"
 msgstr "E-mail, nome ou ID externo"
 
-#: src/pages/AcceptInvitationPage.tsx:153
+#: src/pages/AcceptInvitationPage.tsx:195
 msgid "Email:"
 msgstr "Email:"
 
@@ -10271,7 +10377,7 @@ msgstr "Ativar esta regra?"
 msgid "Enable this translation to edit it."
 msgstr "Ative esta tradução para editá-la."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:365
+#: src/components/settings/SystemSettingsDrawer.tsx:385
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Habilitar criptografia TLS para conexão SMTP"
 
@@ -10295,8 +10401,8 @@ msgstr "Habilitar webhook"
 #: src/components/settings/BlogSettings.tsx:241
 #: src/components/settings/Integrations.tsx:408
 #: src/components/settings/integrations/providerDetails.ts:54
-#: src/components/settings/SystemSettingsDrawer.tsx:469
-#: src/components/settings/SystemSettingsDrawer.tsx:554
+#: src/components/settings/SystemSettingsDrawer.tsx:489
+#: src/components/settings/SystemSettingsDrawer.tsx:574
 #: src/components/settings/WebAnalyticsSettings.tsx:216
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
@@ -10528,6 +10634,11 @@ msgstr "Digite a URL do logo ou selecione uma imagem"
 msgid "Enter number..."
 msgstr "Digite um número..."
 
+#: src/components/two_factor/ProofModal.tsx:76
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:83
+msgid "Enter one of your recovery codes"
+msgstr "Digite um dos seus códigos de recuperação"
+
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:71
 #~ msgid "Enter preview text that appears in email clients..."
 #~ msgstr "Digite o texto de pré-visualização que aparece nos clientes de email..."
@@ -10548,9 +10659,27 @@ msgstr "Digite o texto de prévia ({name})"
 msgid "Enter the {name} subject"
 msgstr "Digite o assunto ({name})"
 
-#: src/pages/SignInPage.tsx:320
+#: src/components/two_factor/ProofModal.tsx:76
+#: src/components/two_factor/SetupWizard.tsx:199
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:92
+msgid "Enter the 6-digit code from your app"
+msgstr "Digite o código de 6 dígitos do app"
+
+#: src/pages/SignInPage.tsx:341
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Digite o código de 6 dígitos enviado para {email}"
+
+#: src/pages/AcceptInvitationPage.tsx:128
+msgid "Enter the code from your authenticator app to accept the invitation."
+msgstr "Digite o código do seu app autenticador para aceitar o convite."
+
+#: src/pages/SignInPage.tsx:286
+msgid "Enter the code from your authenticator app."
+msgstr "Digite o código do seu app autenticador."
+
+#: src/components/two_factor/SetupWizard.tsx:189
+msgid "Enter the code shown in the app"
+msgstr "Digite o código mostrado no app"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:318
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
@@ -10885,7 +11014,7 @@ msgstr "Correspondência exata"
 msgid "Exact URL"
 msgstr "URL exata"
 
-#: src/components/logs/AuditLogTab.tsx:367
+#: src/components/logs/AuditLogTab.tsx:369
 #: src/components/logs/InboundWebhooksTab.tsx:173
 #: src/components/logs/MessagesTab.tsx:492
 msgid "Exact value"
@@ -10972,19 +11101,19 @@ msgstr "Expandir {label}"
 #~ msgid "Expand sidebar"
 #~ msgstr "Expandir a barra lateral"
 
-#: src/components/settings/LicenseSettings.tsx:112
+#: src/components/settings/LicenseSettings.tsx:131
 msgid "Expired"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:111
+#: src/components/settings/LicenseSettings.tsx:130
 msgid "Expired, in grace period"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:164
+#: src/components/settings/LicenseSettings.tsx:183
 msgid "Expires"
 msgstr ""
 
-#: src/pages/AcceptInvitationPage.tsx:156
+#: src/pages/AcceptInvitationPage.tsx:198
 msgid "Expires:"
 msgstr "Expira:"
 
@@ -10998,7 +11127,7 @@ msgstr "Explorar"
 #: src/components/contacts/ContactsViewHeader.tsx:91
 #: src/components/contacts/ExportContactsModal.tsx:367
 #: src/components/email_builder/MjmlCodeEditor.tsx:644
-#: src/components/logs/AuditLogTab.tsx:455
+#: src/components/logs/AuditLogTab.tsx:457
 #: src/components/templates/ImportExportButton.tsx:235
 msgid "Export"
 msgstr "Exportar"
@@ -11137,7 +11266,7 @@ msgstr "Falhou na automação {name}"
 msgid "Failed journeys"
 msgstr "Jornadas com falha"
 
-#: src/pages/AcceptInvitationPage.tsx:86
+#: src/pages/AcceptInvitationPage.tsx:96
 msgid "Failed to accept invitation"
 msgstr "Falha ao aceitar convite"
 
@@ -11386,7 +11515,7 @@ msgstr "Falha ao importar template MJML. Por favor, verifique a sintaxe MJML."
 msgid "Failed to import template. Please check the file format."
 msgstr "Falha ao importar template. Por favor, verifique o formato do arquivo."
 
-#: src/components/settings/LicenseSettings.tsx:101
+#: src/components/settings/LicenseSettings.tsx:120
 msgid "Failed to install the licence key"
 msgstr ""
 
@@ -11406,7 +11535,7 @@ msgstr "Falha ao carregar os broadcasts"
 msgid "Failed to load contact lists"
 msgstr "Falha ao carregar listas de contatos"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:62
+#: src/components/settings/SystemSettingsDrawer.tsx:75
 msgid "Failed to load settings"
 msgstr "Falha ao carregar as configurações"
 
@@ -11486,9 +11615,13 @@ msgstr "Falha ao renderizar pré-visualização"
 msgid "Failed to resend invitation"
 msgstr "Falha ao reenviar convite"
 
-#: src/pages/SignInPage.tsx:240
+#: src/pages/SignInPage.tsx:249
 msgid "Failed to resend magic code"
 msgstr "Falha ao reenviar código mágico"
+
+#: src/components/two_factor/ResetTwoFactorButton.tsx:101
+msgid "Failed to reset two-factor authentication"
+msgstr "Não foi possível redefinir a autenticação de dois fatores"
 
 #: src/components/broadcasts/useBroadcastActions.tsx:87
 msgid "Failed to resume broadcast"
@@ -11523,7 +11656,7 @@ msgstr "Falha ao salvar integração"
 msgid "Failed to save LLM integration"
 msgstr "Falha ao salvar integração LLM"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:218
+#: src/components/settings/SystemSettingsDrawer.tsx:231
 msgid "Failed to save settings"
 msgstr "Falha ao salvar as configurações"
 
@@ -11572,7 +11705,7 @@ msgstr "Falha ao selecionar vencedor"
 msgid "Failed to send broadcast"
 msgstr "Falha ao enviar broadcast"
 
-#: src/pages/SignInPage.tsx:104
+#: src/pages/SignInPage.tsx:117
 msgid "Failed to send magic code"
 msgstr "Falha ao enviar código mágico"
 
@@ -11595,6 +11728,10 @@ msgstr "Falha ao voltar o broadcast para rascunho"
 msgid "Failed to set default provider"
 msgstr "Falha ao definir provedor padrão"
 
+#: src/components/two_factor/SetupWizard.tsx:66
+msgid "Failed to start the setup"
+msgstr "Não foi possível iniciar a configuração"
+
 #: src/components/settings/integrations/TestEmailModal.tsx:54
 msgid "Failed to test email provider"
 msgstr "Falha ao testar provedor de email"
@@ -11611,6 +11748,10 @@ msgstr "Falha ao testar conexão SMTP"
 #: src/components/settings/WebhookDetail.tsx:182
 msgid "Failed to toggle webhook subscription"
 msgstr "Falha ao alternar assinatura de webhook"
+
+#: src/components/two_factor/SetupWizard.tsx:109
+msgid "Failed to turn on two-factor authentication"
+msgstr "Não foi possível ativar a autenticação de dois fatores"
 
 #: src/components/blog/PostsTable.tsx:180
 msgid "Failed to unpublish post"
@@ -11657,7 +11798,7 @@ msgstr "Falha ao atualizar configurações do gerenciador de arquivos"
 msgid "Failed to update notification: {0}"
 msgstr "Falha ao atualizar notificação: {0}"
 
-#: src/components/settings/EditPermissionsDrawer.tsx:81
+#: src/components/settings/EditPermissionsDrawer.tsx:109
 msgid "Failed to update permissions"
 msgstr "Falha ao atualizar permissões"
 
@@ -11692,11 +11833,12 @@ msgstr "Falha ao atualizar as configurações de web analytics"
 msgid "Failed to update workspace settings"
 msgstr "Falha ao atualizar configurações do workspace"
 
-#: src/layouts/WorkspaceLayout.tsx:129
+#: src/layouts/WorkspaceLayout.tsx:131
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Falha ao atualizar configurações do workspace: {errorMessage}"
 
-#: src/pages/SignInPage.tsx:75
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:55
+#: src/pages/SignInPage.tsx:88
 msgid "Failed to verify code"
 msgstr "Falha ao verificar código"
 
@@ -11734,7 +11876,7 @@ msgstr "Imagem de destaque"
 #~ msgid "Featured Image URL"
 #~ msgstr "URL da Imagem Destacada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:696
+#: src/components/settings/SystemSettingsDrawer.tsx:716
 msgid "Features"
 msgstr "Recursos"
 
@@ -11773,6 +11915,10 @@ msgstr "Buscando dados..."
 #: src/components/ai-assistant/useAIAssistant.tsx:338
 msgid "Fetching: {0}"
 msgstr "Buscando: {0}"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:182
+msgid "Few recovery codes left. Generate new ones."
+msgstr "Restam poucos códigos de recuperação. Gere novos."
 
 #: src/components/logs/AuditEntryDetail.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:184
@@ -12177,6 +12323,10 @@ msgstr "Peso da fonte"
 msgid "for {0}"
 msgstr "há {0}"
 
+#: src/components/settings/SystemSecuritySettings.tsx:78
+msgid "For a person who lost both their phone and their recovery codes, including someone who belongs to no workspace."
+msgstr "Para uma pessoa que perdeu o celular e os códigos de recuperação, inclusive quem não pertence a nenhum workspace."
+
 #: src/components/integrations/LLMIntegration.tsx:243
 msgid "For an OpenAI-compatible service (Ollama, vLLM, LiteLLM, Azure…). Empty: the OpenAI API"
 msgstr "Para um serviço compatível com OpenAI (Ollama, vLLM, LiteLLM, Azure…). Vazio: a API da OpenAI"
@@ -12286,7 +12436,7 @@ msgstr "De console.anthropic.com"
 msgid "From email"
 msgstr "E-mail do remetente"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:409
+#: src/components/settings/SystemSettingsDrawer.tsx:429
 msgid "From Email"
 msgstr "Email do Remetente"
 
@@ -12306,7 +12456,7 @@ msgstr "Do Google AI Studio"
 msgid "From name"
 msgstr "Nome do remetente"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:425
+#: src/components/settings/SystemSettingsDrawer.tsx:445
 msgid "From Name"
 msgstr "Nome do Remetente"
 
@@ -12431,7 +12581,7 @@ msgstr "gemini-4-argon ou um ID de modelo personalizado"
 
 #: src/components/settings/GeneralSettings.tsx:156
 #: src/components/settings/SettingsSidebar.tsx:63
-#: src/components/settings/SystemSettingsDrawer.tsx:260
+#: src/components/settings/SystemSettingsDrawer.tsx:276
 msgid "General"
 msgstr "Geral"
 
@@ -12443,6 +12593,15 @@ msgstr "Geral"
 #: src/components/settings/GeneralSettings.tsx:209
 #~ msgid "General settings for your workspace"
 #~ msgstr "Configurações gerais do seu workspace"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:135
+#: src/components/two_factor/AccountSecurityPanel.tsx:174
+msgid "Generate new codes"
+msgstr "Gerar novos códigos"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:135
+msgid "Generate new recovery codes"
+msgstr "Gerar novos códigos de recuperação"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:162
 msgid "Generate report"
@@ -12536,7 +12695,7 @@ msgstr "Resposta do Feed Global"
 msgid "Go to sign in"
 msgstr "Ir para o login"
 
-#: src/pages/AcceptInvitationPage.tsx:127
+#: src/pages/AcceptInvitationPage.tsx:169
 msgid "Go to Sign In"
 msgstr "Ir para Login"
 
@@ -13070,6 +13229,10 @@ msgstr "Humano"
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "Executei {maxRounds} rodadas de chamadas de ferramentas sem chegar a uma resposta e parei por aí. Faça uma pergunta mais específica e eu tentarei novamente."
 
+#: src/components/two_factor/RecoveryCodesList.tsx:79
+msgid "I saved my recovery codes somewhere safe"
+msgstr "Guardei meus códigos de recuperação em um lugar seguro"
+
 #: src/components/segment/button_upsert.tsx:466
 #~ msgid "i.e: Big spenders..."
 #~ msgstr "ex: Grandes compradores..."
@@ -13288,9 +13451,17 @@ msgstr "Se um contato com este email já existir, os campos fornecidos serão so
 #~ msgid "If enabled, the broadcast will be sent according to each recipient's timezone"
 #~ msgstr "Se habilitado, o broadcast será enviado de acordo com o fuso horário de cada destinatário"
 
+#: src/components/two_factor/ResetTwoFactorButton.tsx:38
+msgid "If Notifuse requires two-factor authentication, they set it up again at their next sign-in."
+msgstr "Se o Notifuse exigir autenticação de dois fatores, a pessoa configura de novo no próximo login."
+
 #: src/components/transactional/ApiCommandDrawer.tsx:111
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Se o email do contato não existir no seu workspace, ele será criado automaticamente."
+
+#: src/components/two_factor/SetupWizard.tsx:224
+msgid "If you lose your phone, each code lets you sign in once. This is the only time Notifuse shows them."
+msgstr "Se você perder o celular, cada código permite entrar uma vez. O Notifuse só os mostra agora."
 
 #: src/components/updates/UpdateCard.tsx:47
 msgid "Ignore"
@@ -13732,11 +13903,11 @@ msgstr "Dentro da coluna"
 msgid "Install"
 msgstr "Instalar"
 
-#: src/components/settings/LicenseSettings.tsx:207
+#: src/components/settings/LicenseSettings.tsx:226
 msgid "Install a licence key"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:223
+#: src/components/settings/LicenseSettings.tsx:242
 msgid "Install licence key"
 msgstr ""
 
@@ -13793,7 +13964,7 @@ msgstr "Integrações"
 msgid "Invalid display condition"
 msgstr "Condição de exibição inválida"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:413
+#: src/components/settings/SystemSettingsDrawer.tsx:433
 msgid "Invalid email"
 msgstr "Email inválido"
 
@@ -13802,7 +13973,7 @@ msgid "Invalid email format"
 msgstr "Formato de email inválido"
 
 #. placeholder {0}: invalid.join(', ')
-#: src/components/settings/SystemSettingsDrawer.tsx:93
+#: src/components/settings/SystemSettingsDrawer.tsx:107
 #: src/components/setup/AdministratorPanel.tsx:20
 msgid "Invalid email: {0}"
 msgstr "Email inválido: {0}"
@@ -13811,11 +13982,11 @@ msgstr "Email inválido: {0}"
 msgid "Invalid format. Use: 90 or 1:30 or 1:00:30"
 msgstr "Formato inválido. Use: 90 ou 1:30 ou 1:00:30"
 
-#: src/pages/AcceptInvitationPage.tsx:120
+#: src/pages/AcceptInvitationPage.tsx:162
 msgid "Invalid Invitation"
 msgstr "Convite Inválido"
 
-#: src/pages/AcceptInvitationPage.tsx:35
+#: src/pages/AcceptInvitationPage.tsx:40
 msgid "Invalid invitation link: missing token"
 msgstr "Link de convite inválido: token ausente"
 
@@ -13832,7 +14003,7 @@ msgstr "Formato JSON inválido. Por favor, verifique sua sintaxe."
 msgid "Invalid JSON in field {field}"
 msgstr "JSON inválido no campo {field}"
 
-#: src/pages/AcceptInvitationPage.tsx:55
+#: src/pages/AcceptInvitationPage.tsx:60
 msgid "Invalid or expired invitation token"
 msgstr "Token de convite inválido ou expirado"
 
@@ -13884,7 +14055,8 @@ msgstr "Formato de URL inválido. Use uma URL válida ou uma expressão Liquid c
 msgid "Invalid YouTube URL"
 msgstr "URL do YouTube inválida"
 
-#: src/pages/AcceptInvitationPage.tsx:79
+#: src/pages/AcceptInvitationPage.tsx:89
+#: src/pages/AcceptInvitationPage.tsx:112
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Convite aceito com sucesso! Bem-vindo ao workspace."
 
@@ -13941,11 +14113,11 @@ msgstr "Convite de {inviterName}"
 #~ msgstr "IP"
 
 #: src/components/logs/AuditEntryDetail.tsx:177
-#: src/components/logs/AuditLogTab.tsx:264
+#: src/components/logs/AuditLogTab.tsx:266
 msgid "IP address"
 msgstr "Endereço IP"
 
-#: src/components/logs/AuditLogTab.tsx:396
+#: src/components/logs/AuditLogTab.tsx:398
 msgid "IP address, actor email or target ID"
 msgstr "Endereço IP, e-mail do ator ou ID de destino"
 
@@ -14028,7 +14200,7 @@ msgstr "isolado"
 msgid "isolation requested but not provisioned"
 msgstr "isolamento solicitado, mas não provisionado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:564
+#: src/components/settings/SystemSettingsDrawer.tsx:584
 #: src/components/setup/SsoPanel.tsx:66
 msgid "Issuer URL"
 msgstr "URL do emissor"
@@ -14250,11 +14422,11 @@ msgstr "Mantenha esta aba aberta"
 msgid "Keep unsubscribed"
 msgstr "Manter sem inscrição"
 
-#: src/components/logs/AuditLogTab.tsx:614
+#: src/components/logs/AuditLogTab.tsx:622
 msgid "Kept for the deployment default"
 msgstr "Mantido conforme o padrão da instalação"
 
-#: src/components/logs/AuditLogTab.tsx:611
+#: src/components/logs/AuditLogTab.tsx:619
 msgid "Kept forever"
 msgstr "Mantido para sempre"
 
@@ -14269,6 +14441,10 @@ msgstr "Guardadas neste navegador por 7 dias. Solte o mesmo arquivo para continu
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:62
 #~ msgid "Key"
 #~ msgstr "Chave"
+
+#: src/components/two_factor/SetupWizard.tsx:120
+msgid "Key copied"
+msgstr "Chave copiada"
 
 #: src/components/settings/DomainsSettings.tsx:68
 #~ msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
@@ -14334,7 +14510,7 @@ msgstr "URL de destino"
 #: src/components/templates/SendTemplateModal.tsx:404
 #: src/components/templates/TemplatePreviewDrawer.tsx:499
 #: src/components/templates/TemplateSelectorModal.tsx:650
-#: src/layouts/app-shell/AccountMenu.tsx:86
+#: src/layouts/app-shell/AccountMenu.tsx:92
 msgid "Language"
 msgstr "Idioma"
 
@@ -14517,7 +14693,7 @@ msgstr "Deixe vazio para um servidor que aceita emails sem login"
 msgid "Leave empty for full container width"
 msgstr "Deixe vazio para largura total do container"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:614
+#: src/components/settings/SystemSettingsDrawer.tsx:634
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "Deixe vazio para derivá-la do Endpoint API. Defina-a quando o callback for acessado por um proxy ou por um domínio personalizado."
 
@@ -14635,13 +14811,13 @@ msgid "Library"
 msgstr "Biblioteca"
 
 #: src/components/logs/labels.ts:7
-#: src/components/settings/LicenseSettings.tsx:60
-#: src/components/settings/LicenseSettings.tsx:143
+#: src/components/settings/LicenseSettings.tsx:66
+#: src/components/settings/LicenseSettings.tsx:162
 #: src/components/settings/SettingsSidebar.tsx:73
 msgid "Licence"
 msgstr "Licença"
 
-#: src/components/settings/LicenseSettings.tsx:92
+#: src/components/settings/LicenseSettings.tsx:107
 msgid "Licence key installed"
 msgstr ""
 
@@ -14654,7 +14830,7 @@ msgid "Licensed capability"
 msgstr ""
 
 #. placeholder {0}: entitlements.org
-#: src/components/settings/LicenseSettings.tsx:138
+#: src/components/settings/LicenseSettings.tsx:157
 msgid "Licensed to {0}"
 msgstr ""
 
@@ -15096,7 +15272,7 @@ msgstr "Carregar mais {PAGE_SIZE}"
 #: src/components/blog/PostsTable.tsx:497
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:370
 #: src/components/contacts/visits/ContactWebVisits.tsx:371
-#: src/components/logs/AuditLogTab.tsx:632
+#: src/components/logs/AuditLogTab.tsx:640
 #: src/components/logs/InboundWebhooksTab.tsx:348
 #: src/components/logs/MessagesTab.tsx:864
 #: src/components/logs/OutgoingWebhooksTab.tsx:294
@@ -15171,7 +15347,7 @@ msgstr "Carregando template..."
 #: src/components/blog_editor/NotifuseEditor.tsx:490
 #: src/components/templates/CreateTemplateDrawer.tsx:1013
 #: src/components/templates/TemplateSelectorInput.tsx:162
-#: src/layouts/RootLayout.tsx:99
+#: src/layouts/RootLayout.tsx:120
 #: src/pages/ContactsPage.tsx:462
 msgid "Loading..."
 msgstr "Carregando..."
@@ -15218,7 +15394,8 @@ msgstr "Pré-visualização do Logo"
 msgid "Logo URL"
 msgstr "URL do Logo"
 
-#: src/layouts/app-shell/AccountMenu.tsx:98
+#: src/layouts/app-shell/AccountMenu.tsx:104
+#: src/pages/AccountSecurityPage.tsx:53
 msgid "Logout"
 msgstr "Sair"
 
@@ -15238,6 +15415,10 @@ msgstr "Buscar o registro completo de um contato pelo seu próprio ID externo"
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:419
 msgid "Loop"
 msgstr "Repetir"
+
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:119
+msgid "Lost your phone and your recovery codes? Your Notifuse administrator can reset two-factor authentication for your account."
+msgstr "Perdeu o celular e os códigos de recuperação? O administrador do Notifuse pode redefinir a autenticação de dois fatores da sua conta."
 
 #: src/components/integrations/LLMIntegration.tsx:262
 #: src/components/settings/Integrations.tsx:342
@@ -15273,7 +15454,7 @@ msgstr "Lumen"
 msgid "Magenta"
 msgstr "Magenta"
 
-#: src/pages/SignInPage.tsx:102
+#: src/pages/SignInPage.tsx:115
 msgid "Magic code sent to your email"
 msgstr "Código mágico enviado para seu email"
 
@@ -15313,7 +15494,7 @@ msgstr "O Mailjet reescreve os links de cancelamento de inscrição, então só 
 #~ msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 #~ msgstr "Logo principal do seu blog. Tamanho recomendado: 200x50px ou proporção similar"
 
-#: src/layouts/app-shell/AppSidebar.tsx:290
+#: src/layouts/app-shell/AppSidebar.tsx:293
 msgid "Main navigation"
 msgstr "Navegação principal"
 
@@ -15542,7 +15723,7 @@ msgstr "O intervalo máximo é de 2 anos"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "O intervalo máximo é de 2 anos. As datas são lidas em {timezone}."
 
-#: src/components/logs/AuditLogTab.tsx:187
+#: src/components/logs/AuditLogTab.tsx:189
 msgid "Me"
 msgstr "Eu"
 
@@ -15607,7 +15788,7 @@ msgstr "Mídias"
 
 #: src/components/logs/auditDisplay.ts:20
 #: src/components/settings/WorkspaceMembers.tsx:246
-#: src/layouts/app-shell/AccountMenu.tsx:77
+#: src/layouts/app-shell/AccountMenu.tsx:80
 msgid "Member"
 msgstr "Membro"
 
@@ -15968,8 +16149,8 @@ msgstr "Páginas mais vistas"
 #~ msgid "Move later"
 #~ msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:568
-#: src/components/settings/SystemSettingsDrawer.tsx:610
+#: src/components/settings/SystemSettingsDrawer.tsx:588
+#: src/components/settings/SystemSettingsDrawer.tsx:630
 #: src/components/setup/SsoPanel.tsx:70
 msgid "Must be a valid https URL"
 msgstr "Deve ser uma URL https válida"
@@ -16207,7 +16388,7 @@ msgstr "Nova chave"
 msgid "New list"
 msgstr "Nova lista"
 
-#: src/pages/SignInPage.tsx:238
+#: src/pages/SignInPage.tsx:247
 msgid "New magic code sent to your email"
 msgstr "Novo código mágico enviado para seu email"
 
@@ -16317,6 +16498,7 @@ msgstr "Newsletters e anúncios"
 #~ msgstr "Newsletters que ainda podem ser enviadas, notificações transacionais, automações e listas com opt-in duplo. Filtros de segmento sobre um modelo não são contados."
 
 #: src/components/layout/DrawerControls.tsx:61
+#: src/components/two_factor/SetupWizard.tsx:176
 msgid "Next"
 msgstr "Próximo"
 
@@ -16412,7 +16594,7 @@ msgstr "Nenhuma regra de atribuição ainda. Crie a primeira para começar a mol
 #~ msgid "No audit entries match"
 #~ msgstr "Nenhuma entrada de auditoria corresponde"
 
-#: src/components/logs/AuditLogTab.tsx:575
+#: src/components/logs/AuditLogTab.tsx:583
 msgid "No audit entries yet"
 msgstr "Ainda não há entradas de auditoria"
 
@@ -16712,7 +16894,7 @@ msgstr "Nenhuma jornada ainda"
 msgid "No key: sent unsigned"
 msgstr "Sem chave: enviado sem assinatura"
 
-#: src/components/settings/LicenseSettings.tsx:109
+#: src/components/settings/LicenseSettings.tsx:128
 msgid "No licence — Community"
 msgstr ""
 
@@ -16803,7 +16985,7 @@ msgstr "Nenhuma notificação corresponde"
 #~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 #~ msgstr "Nenhuma conta Notifuse está vinculada a essa identidade. Peça a um administrador que o convide primeiro."
 
-#: src/pages/SignInPage.tsx:128
+#: src/pages/SignInPage.tsx:141
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "Nenhuma conta Notifuse está vinculada a essa identidade. Se você foi convidado, abra o link do seu e-mail de convite; caso contrário, peça a um administrador que o convide."
 
@@ -16892,7 +17074,7 @@ msgstr "Sem resposta"
 msgid "No results found"
 msgstr "Nenhum resultado encontrado"
 
-#: src/components/logs/AuditLogTab.tsx:571
+#: src/components/logs/AuditLogTab.tsx:579
 #: src/components/logs/InboundWebhooksTab.tsx:290
 #: src/components/logs/MessagesTab.tsx:806
 #: src/components/logs/OutgoingWebhooksTab.tsx:239
@@ -17436,11 +17618,11 @@ msgstr "Nada aqui"
 msgid "Nothing in the last 24 hours"
 msgstr "Nada nas últimas 24 horas"
 
-#: src/components/logs/AuditLogTab.tsx:577
+#: src/components/logs/AuditLogTab.tsx:585
 msgid "Nothing in the last 7 days"
 msgstr "Nada nos últimos 7 dias"
 
-#: src/components/logs/AuditLogTab.tsx:579
+#: src/components/logs/AuditLogTab.tsx:587
 #: src/components/logs/InboundWebhooksTab.tsx:309
 #: src/components/logs/MessagesTab.tsx:814
 msgid "Nothing in this period"
@@ -17508,6 +17690,14 @@ msgstr "Exportação do Notifuse (.json)"
 #: src/components/setup/SetupRestartView.tsx:52
 msgid "Notifuse is ready"
 msgstr "O Notifuse está pronto"
+
+#: src/components/two_factor/RecoveryCodesList.tsx:25
+msgid "Notifuse recovery codes"
+msgstr "Códigos de recuperação do Notifuse"
+
+#: src/components/two_factor/RecoveryCodesList.tsx:25
+msgid "Notifuse recovery codes for {account}"
+msgstr "Códigos de recuperação do Notifuse de {account}"
 
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:88
 msgid "Notifuse signs each email before handing it to your server, and the signature covers the one-click unsubscribe headers. If your server signs too, both signatures are valid. A key signs only its exact domain."
@@ -17683,6 +17873,7 @@ msgstr "desativados"
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
 #: src/components/transactional/TransactionalDetail.tsx:416
+#: src/components/two_factor/AccountSecurityPanel.tsx:144
 msgid "Off"
 msgstr "Desativado"
 
@@ -17714,6 +17905,7 @@ msgstr "ativados"
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/setup/setupHooks.ts:64
 #: src/components/transactional/TransactionalDetail.tsx:373
+#: src/components/two_factor/AccountSecurityPanel.tsx:160
 msgid "On"
 msgstr "Ativado"
 
@@ -17792,7 +17984,7 @@ msgstr "Apenas um proprietário do workspace pode ver ou rotacionar o segredo de
 msgid "Only an instance administrator can install a licence key — ask the owner of this workspace."
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:71
+#: src/components/settings/LicenseSettings.tsx:86
 msgid "Only an instance administrator can view or install the licence key."
 msgstr ""
 
@@ -17846,6 +18038,10 @@ msgstr "Apenas caracteres alfanuméricos minúsculos, sublinhado e hífen são p
 msgid "Only one breakpoint per email template is allowed"
 msgstr "Apenas um ponto de quebra por template de email é permitido"
 
+#: src/components/settings/EditPermissionsDrawer.tsx:36
+msgid "Only the root account sees this. Use it when {memberEmail} has lost both their phone and their recovery codes."
+msgstr "Só a conta root vê isto. Use quando {memberEmail} tiver perdido o celular e os códigos de recuperação."
+
 #: src/components/broadcasts/compose/ContentCard.tsx:89
 msgid "Only variant A is kept. The other variants and their templates are removed from the broadcast."
 msgstr "Apenas a variante A é mantida. As outras variantes e seus templates são removidos do broadcast."
@@ -17879,6 +18075,10 @@ msgstr "Abertura"
 msgctxt "action"
 msgid "Open"
 msgstr "Abrir"
+
+#: src/components/settings/SystemSecuritySettings.tsx:55
+msgid "Open Account security from your account menu."
+msgstr "Abra Segurança da conta pelo menu da sua conta."
 
 #: src/components/broadcasts/compose/TrackingCard.tsx:46
 #~ msgid "Open and click tracking"
@@ -18198,9 +18398,9 @@ msgstr "opcional"
 #: src/components/analytics/GetStartedChecklist.tsx:367
 #: src/components/analytics/GetStartedChecklist.tsx:387
 #: src/components/contacts/csv-import/ColumnsStep.tsx:215
-#: src/components/settings/SystemSettingsDrawer.tsx:387
-#: src/components/settings/SystemSettingsDrawer.tsx:400
-#: src/components/settings/SystemSettingsDrawer.tsx:455
+#: src/components/settings/SystemSettingsDrawer.tsx:407
+#: src/components/settings/SystemSettingsDrawer.tsx:420
+#: src/components/settings/SystemSettingsDrawer.tsx:475
 #: src/components/setup/SmtpPanel.tsx:195
 #: src/components/setup/SmtpPanel.tsx:204
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
@@ -18248,7 +18448,7 @@ msgstr "Opções"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:242
-#: src/pages/SignInPage.tsx:302
+#: src/pages/SignInPage.tsx:323
 msgid "or"
 msgstr "ou"
 
@@ -18288,7 +18488,7 @@ msgstr "Pesquisa orgânica"
 msgid "Organic social"
 msgstr "Social orgânico"
 
-#: src/components/logs/AuditLogTab.tsx:517
+#: src/components/logs/AuditLogTab.tsx:519
 #: src/components/logs/MessagesTab.tsx:495
 msgid "Origin"
 msgstr "Origem"
@@ -18326,7 +18526,7 @@ msgid "Outbound webhook subscriptions — where the workspace POSTs its own even
 msgstr "Assinaturas de webhook de saída — para onde o workspace publica seus próprios eventos — e seu log de entregas."
 
 #: src/components/logs/AuditEntryDetail.tsx:149
-#: src/components/logs/AuditLogTab.tsx:261
+#: src/components/logs/AuditLogTab.tsx:263
 msgid "Outcome"
 msgstr "Resultado"
 
@@ -18364,7 +18564,7 @@ msgid "Overwrite with mine"
 msgstr "Sobrescrever com a minha"
 
 #: src/components/settings/WorkspaceMembers.tsx:81
-#: src/layouts/app-shell/AccountMenu.tsx:75
+#: src/layouts/app-shell/AccountMenu.tsx:78
 msgid "Owner"
 msgstr "Proprietário"
 
@@ -18462,7 +18662,7 @@ msgstr "Frame pai"
 #~ msgid "Parent Frame"
 #~ msgstr "Frame Pai"
 
-#: src/components/logs/AuditLogTab.tsx:367
+#: src/components/logs/AuditLogTab.tsx:369
 msgid "Part of an email"
 msgstr "Parte de um e-mail"
 
@@ -18511,7 +18711,7 @@ msgstr "Sessões anteriores"
 msgid "Paste it in Supabase › Authentication › Hooks"
 msgstr "Cole em Supabase › Authentication › Hooks"
 
-#: src/components/settings/LicenseSettings.tsx:209
+#: src/components/settings/LicenseSettings.tsx:228
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
 msgstr ""
 
@@ -18672,6 +18872,14 @@ msgstr "Convites pendentes"
 msgid "Pending on {list}"
 msgstr "Pendente em {list}"
 
+#: src/components/settings/SystemSecuritySettings.tsx:40
+msgid "People who haven't turned it on can only open their account page until they do. Single sign-on users and API keys aren't affected."
+msgstr "Quem não ativou só consegue abrir a página da própria conta até ativar. Usuários de login único e chaves API não são afetados."
+
+#: src/components/settings/SystemSecuritySettings.tsx:61
+msgid "People without two-factor authentication"
+msgstr "Pessoas sem autenticação de dois fatores"
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:196
 msgid "Per contact consent"
 msgstr "Conforme o consentimento de cada contato"
@@ -18746,7 +18954,7 @@ msgstr "Detalhes das permissões"
 msgid "Permissions"
 msgstr "Permissões"
 
-#: src/components/settings/EditPermissionsDrawer.tsx:68
+#: src/components/settings/EditPermissionsDrawer.tsx:96
 msgid "Permissions updated successfully"
 msgstr "Permissões atualizadas com sucesso"
 
@@ -18850,7 +19058,7 @@ msgstr "Escolheu a versão vencedora da newsletter <0>{target}</0>"
 msgid "Picked up {name}."
 msgstr "Arrastando {name}."
 
-#: src/layouts/app-shell/AppSidebar.tsx:179
+#: src/layouts/app-shell/AppSidebar.tsx:182
 msgid "Pin sidebar"
 msgstr "Fixar a barra lateral"
 
@@ -18862,12 +19070,16 @@ msgstr "Fixar a barra lateral"
 msgid "Plain text (only safe behind a TLS-terminating proxy)"
 msgstr "Texto puro (só é seguro atrás de um proxy que termine o TLS)"
 
-#: src/components/settings/LicenseSettings.tsx:161
+#: src/components/settings/LicenseSettings.tsx:180
 msgid "Plan"
 msgstr ""
 
 #: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Platform admin"
+msgstr "Administrador da plataforma"
+
+#: src/components/settings/EditPermissionsDrawer.tsx:34
+msgid "Platform administrator"
 msgstr "Administrador da plataforma"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:604
@@ -18976,7 +19188,9 @@ msgstr "Por favor, insira um slug"
 msgid "Please enter a URL"
 msgstr "Por favor, insira uma URL"
 
-#: src/pages/SignInPage.tsx:328
+#: src/components/two_factor/SetupWizard.tsx:200
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:93
+#: src/pages/SignInPage.tsx:349
 msgid "Please enter a valid 6-digit code!"
 msgstr "Por favor, insira um código válido de 6 dígitos!"
 
@@ -18985,7 +19199,7 @@ msgstr "Por favor, insira um código válido de 6 dígitos!"
 msgid "Please enter a valid email"
 msgstr "Por favor, insira um email válido"
 
-#: src/pages/SignInPage.tsx:288
+#: src/pages/SignInPage.tsx:309
 msgid "Please enter a valid email!"
 msgstr "Por favor, insira um email válido!"
 
@@ -19055,11 +19269,11 @@ msgstr "Por favor, insira sua chave API"
 msgid "Please fill in all required fields before testing"
 msgstr "Por favor, preencha todos os campos obrigatórios antes de testar"
 
-#: src/pages/SignInPage.tsx:325
+#: src/pages/SignInPage.tsx:346
 msgid "Please input the magic code!"
 msgstr "Por favor, insira o código mágico!"
 
-#: src/pages/SignInPage.tsx:287
+#: src/pages/SignInPage.tsx:308
 msgid "Please input your email!"
 msgstr "Por favor, insira seu email!"
 
@@ -19183,8 +19397,8 @@ msgstr "Porta"
 #~ msgid "Port for the SMTP bridge server (default: 587)"
 #~ msgstr "Porta para o servidor de relay SMTP (padrão: 587)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:347
-#: src/components/settings/SystemSettingsDrawer.tsx:500
+#: src/components/settings/SystemSettingsDrawer.tsx:367
+#: src/components/settings/SystemSettingsDrawer.tsx:520
 msgid "Port must be 1-65535"
 msgstr "A porta deve estar entre 1 e 65535"
 
@@ -19502,6 +19716,10 @@ msgstr "Semana anterior"
 msgid "Previous year"
 msgstr "Ano anterior"
 
+#: src/components/two_factor/RecoveryCodesList.tsx:75
+msgid "Print"
+msgstr "Imprimir"
+
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:213
 #: src/components/web_analytics/filters/FilterTable.tsx:231
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:95
@@ -19710,6 +19928,10 @@ msgstr "Roxo"
 #: src/components/logs/MessagesTab.tsx:302
 msgid "Push"
 msgstr "Push"
+
+#: src/components/two_factor/SetupWizard.tsx:159
+msgid "QR code for your authenticator app"
+msgstr "QR code para o seu app autenticador"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:329
 #~ msgid "Querying {what}"
@@ -20186,11 +20408,25 @@ msgstr "Registro interrompido: nenhuma licença válida"
 msgid "Records visits from the sites below that carry the snippet; off, incoming visits are rejected"
 msgstr "Registra as visitas dos sites abaixo que têm o snippet; desativado, as visitas recebidas são rejeitadas"
 
+#: src/components/two_factor/ProofModal.tsx:75
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:82
+msgid "Recovery code"
+msgstr "Código de recuperação"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:173
+#: src/components/two_factor/SetupWizard.tsx:133
+msgid "Recovery codes"
+msgstr "Códigos de recuperação"
+
+#: src/components/two_factor/RecoveryCodesList.tsx:30
+msgid "Recovery codes copied"
+msgstr "Códigos de recuperação copiados"
+
 #: src/components/segment/segmentLabels.ts:322
 msgid "Red"
 msgstr "Vermelho"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:608
+#: src/components/settings/SystemSettingsDrawer.tsx:628
 #: src/components/setup/SsoPanel.tsx:101
 #: src/components/setup/SsoPanel.tsx:107
 #: src/components/setup/SsoPanel.tsx:114
@@ -20241,8 +20477,8 @@ msgstr "Referenciadores"
 
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:49
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:52
-#: src/components/logs/AuditLogTab.tsx:460
-#: src/components/logs/AuditLogTab.tsx:463
+#: src/components/logs/AuditLogTab.tsx:462
+#: src/components/logs/AuditLogTab.tsx:465
 #: src/components/logs/InboundWebhooksTab.tsx:197
 #: src/components/logs/InboundWebhooksTab.tsx:200
 #: src/components/logs/MessagesTab.tsx:525
@@ -20252,7 +20488,7 @@ msgstr "Referenciadores"
 #: src/components/messages/MessageHistoryTable.tsx:434
 #: src/components/settings/DomainsSettings.tsx:408
 #: src/components/settings/DomainsSettings.tsx:412
-#: src/components/settings/LicenseSettings.tsx:157
+#: src/components/settings/LicenseSettings.tsx:176
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
 #: src/pages/ContactsPage.tsx:721
@@ -20672,6 +20908,11 @@ msgstr "Substituir \"{name}\" pelo bloco selecionado?"
 msgid "Replace an existing block ({count})"
 msgstr "Substituir um bloco existente ({count})"
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:168
+#: src/components/two_factor/SetupWizard.tsx:213
+msgid "Replace app"
+msgstr "Substituir app"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:718
 msgid "Replace the content?"
 msgstr "Substituir o conteúdo?"
@@ -20679,6 +20920,10 @@ msgstr "Substituir o conteúdo?"
 #: src/components/email_builder/ui/SavedBlockCard.tsx:109
 msgid "Replace with the selected block"
 msgstr "Substituir pelo bloco selecionado"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:134
+msgid "Replace your authenticator app"
+msgstr "Substituir seu app autenticador"
 
 #: src/components/timeline/ContactTimeline.tsx:751
 #~ msgid "Replied"
@@ -20764,11 +21009,16 @@ msgstr "O isolamento de reputação está ligado. Estes remetentes não têm ide
 msgid "Request ID"
 msgstr "ID da requisição"
 
+#: src/components/settings/SystemSecuritySettings.tsx:38
+#: src/components/settings/SystemSecuritySettings.tsx:44
+msgid "Require two-factor authentication for everyone"
+msgstr "Exigir autenticação de dois fatores para todos"
+
 #: src/components/contacts/csv-import/ColumnsStep.tsx:87
-#: src/components/settings/SystemSettingsDrawer.tsx:289
-#: src/components/settings/SystemSettingsDrawer.tsx:328
-#: src/components/settings/SystemSettingsDrawer.tsx:342
-#: src/components/settings/SystemSettingsDrawer.tsx:412
+#: src/components/settings/SystemSettingsDrawer.tsx:305
+#: src/components/settings/SystemSettingsDrawer.tsx:348
+#: src/components/settings/SystemSettingsDrawer.tsx:362
+#: src/components/settings/SystemSettingsDrawer.tsx:432
 msgid "Required"
 msgstr "Obrigatório"
 
@@ -20781,19 +21031,19 @@ msgstr "Obrigatório"
 msgid "Required to create the notification"
 msgstr "Necessário para criar a notificação"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:673
+#: src/components/settings/SystemSettingsDrawer.tsx:693
 msgid "Required when auto-create is enabled"
 msgstr "Obrigatório quando a criação automática está ativada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:481
-#: src/components/settings/SystemSettingsDrawer.tsx:518
-#: src/components/settings/SystemSettingsDrawer.tsx:533
+#: src/components/settings/SystemSettingsDrawer.tsx:501
+#: src/components/settings/SystemSettingsDrawer.tsx:538
+#: src/components/settings/SystemSettingsDrawer.tsx:553
 msgid "Required when bridge is enabled"
 msgstr "Obrigatório quando a ponte está ativada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:567
-#: src/components/settings/SystemSettingsDrawer.tsx:585
-#: src/components/settings/SystemSettingsDrawer.tsx:595
+#: src/components/settings/SystemSettingsDrawer.tsx:587
+#: src/components/settings/SystemSettingsDrawer.tsx:605
+#: src/components/settings/SystemSettingsDrawer.tsx:615
 msgid "Required when SSO is enabled"
 msgstr "Obrigatório quando o SSO está ativado"
 
@@ -20801,7 +21051,7 @@ msgstr "Obrigatório quando o SSO está ativado"
 msgid "Requires a padding"
 msgstr "Requer um espaçamento"
 
-#: src/pages/SignInPage.tsx:361
+#: src/pages/SignInPage.tsx:382
 msgid "Resend code"
 msgstr "Reenviar código"
 
@@ -20811,6 +21061,10 @@ msgstr "Reenviar convite"
 
 #: src/components/templates/TemplateTranslationsTab.tsx:362
 #: src/components/templates/TemplateTranslationsTab.tsx:367
+#: src/components/two_factor/ResetTwoFactorButton.tsx:59
+#: src/components/two_factor/ResetTwoFactorButton.tsx:66
+#: src/components/two_factor/ResetTwoFactorButton.tsx:80
+#: src/components/two_factor/ResetTwoFactorButton.tsx:85
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "Redefinir"
@@ -20871,6 +21125,14 @@ msgstr "Redefinir para o valor herdado"
 msgid "Reset translation"
 msgstr "Redefinir tradução"
 
+#: src/components/settings/SystemSecuritySettings.tsx:76
+msgid "Reset two-factor authentication"
+msgstr "Redefinir autenticação de dois fatores"
+
+#: src/components/two_factor/ResetTwoFactorButton.tsx:53
+msgid "Reset two-factor authentication for {email}?"
+msgstr "Redefinir a autenticação de dois fatores de {email}?"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:265
 #~ msgid "Resolve visitor locations (country)"
 #~ msgstr ""
@@ -20880,8 +21142,8 @@ msgid "Resolved"
 msgstr "Resolvido"
 
 #: src/components/logs/AuditEntryDetail.tsx:147
-#: src/components/logs/AuditLogTab.tsx:406
-#: src/components/logs/AuditLogTab.tsx:507
+#: src/components/logs/AuditLogTab.tsx:408
+#: src/components/logs/AuditLogTab.tsx:509
 #: src/components/settings/PermissionsMatrix.tsx:237
 msgid "Resource"
 msgstr "Recurso"
@@ -20899,7 +21161,7 @@ msgstr "Resposta"
 #~ msgid "Response Body:"
 #~ msgstr "Corpo da Resposta:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:169
+#: src/components/settings/SystemSettingsDrawer.tsx:183
 msgid "Restart Server?"
 msgstr "Reiniciar o Servidor?"
 
@@ -21018,7 +21280,7 @@ msgstr "Tentou novamente os envios com falha da newsletter <0>{target}</0>"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:170
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:825
-#: src/components/logs/AuditLogTab.tsx:559
+#: src/components/logs/AuditLogTab.tsx:567
 #: src/components/logs/InboundWebhooksTab.tsx:282
 #: src/components/logs/MessageDetail.tsx:91
 #: src/components/logs/MessagesTab.tsx:798
@@ -21114,7 +21376,7 @@ msgstr "Da direita para a esquerda"
 msgid "Root"
 msgstr "Raiz"
 
-#: src/layouts/app-shell/AccountMenu.tsx:73
+#: src/layouts/app-shell/AccountMenu.tsx:76
 msgctxt "role"
 msgid "Root"
 msgstr "Administrador"
@@ -21124,7 +21386,7 @@ msgstr "Administrador"
 msgid "Root email"
 msgstr "E-mail root"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:264
+#: src/components/settings/SystemSettingsDrawer.tsx:280
 msgid "Root Email"
 msgstr "Email Principal"
 
@@ -21368,13 +21630,13 @@ msgstr "Modo sandbox"
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:853
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:994
-#: src/components/settings/SystemSettingsDrawer.tsx:249
+#: src/components/settings/SystemSettingsDrawer.tsx:262
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 msgid "Save"
 msgstr "Salvar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:177
+#: src/components/settings/SystemSettingsDrawer.tsx:191
 msgid "Save & Restart"
 msgstr "Salvar e Reiniciar"
 
@@ -21435,7 +21697,7 @@ msgstr "Salvar para importação posterior"
 msgid "Save or discard your changes first"
 msgstr "Salve ou descarte suas alterações primeiro"
 
-#: src/components/settings/EditPermissionsDrawer.tsx:108
+#: src/components/settings/EditPermissionsDrawer.tsx:136
 msgid "Save Permissions"
 msgstr "Salvar Permissões"
 
@@ -21491,6 +21753,14 @@ msgstr "Salvar v{nextVersion}"
 msgid "Save your changes first"
 msgstr "Salve suas alterações primeiro"
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:113
+msgid "Save your new recovery codes"
+msgstr "Salve seus novos códigos de recuperação"
+
+#: src/components/two_factor/SetupWizard.tsx:222
+msgid "Save your recovery codes"
+msgstr "Salve seus códigos de recuperação"
+
 #: src/components/automations/AutomationEditor.tsx:466
 msgid "Saved"
 msgstr "Salvo"
@@ -21538,13 +21808,21 @@ msgstr "Os blocos salvos podem ser usados em todos os templates do workspace. Te
 msgid "Saved the block <0>{target}</0>"
 msgstr "Salvou o bloco <0>{target}</0>"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:159
+#: src/components/settings/SystemSettingsDrawer.tsx:173
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Salvar as configurações reiniciará o servidor. Você precisará entrar novamente."
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:552
 msgid "Saving…"
 msgstr "Salvando…"
+
+#: src/components/two_factor/SetupWizard.tsx:133
+msgid "Scan"
+msgstr "Escanear"
+
+#: src/components/two_factor/SetupWizard.tsx:153
+msgid "Scan this QR code with your authenticator app"
+msgstr "Escaneie este QR code com seu app autenticador"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:399
 #: src/components/broadcasts/compose/SendingCard.tsx:89
@@ -21613,7 +21891,7 @@ msgstr "Agendou a newsletter <0>{target}</0>"
 msgid "Scheduled today"
 msgstr "Agendado para hoje"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:643
+#: src/components/settings/SystemSettingsDrawer.tsx:663
 #: src/components/setup/SsoPanel.tsx:136
 msgid "Scopes"
 msgstr "Escopos"
@@ -21706,7 +21984,7 @@ msgstr "Pesquisar blocos salvos"
 #~ msgid "Search templates..."
 #~ msgstr "Buscar templates..."
 
-#: src/components/logs/AuditLogTab.tsx:395
+#: src/components/logs/AuditLogTab.tsx:397
 msgid "Search the audit log"
 msgstr "Pesquisar no log de auditoria"
 
@@ -21735,15 +22013,15 @@ msgstr "Buscar..."
 msgid "Searches the web and returns relevant URLs"
 msgstr "Pesquisa na web e retorna URLs relevantes"
 
-#: src/components/logs/AuditLogTab.tsx:174
+#: src/components/logs/AuditLogTab.tsx:176
 msgid "Searching by actor email"
 msgstr "Pesquisando por e-mail do ator"
 
-#: src/components/logs/AuditLogTab.tsx:173
+#: src/components/logs/AuditLogTab.tsx:175
 msgid "Searching by IP address"
 msgstr "Pesquisando por endereço IP"
 
-#: src/components/logs/AuditLogTab.tsx:175
+#: src/components/logs/AuditLogTab.tsx:177
 msgid "Searching by target ID"
 msgstr "Pesquisando por ID de destino"
 
@@ -21814,6 +22092,7 @@ msgid "Sections"
 msgstr "Seções"
 
 #: src/components/settings/SettingsSidebar.tsx:33
+#: src/components/settings/SystemSecuritySettings.tsx:33
 #: src/components/transactional/ApiCommandDrawer.tsx:145
 #: src/components/updates/UpdateDrawer.tsx:63
 msgid "Security"
@@ -22390,7 +22669,7 @@ msgstr "Enviar convite"
 #~ msgid "Send Invitation"
 #~ msgstr "Enviar Convite"
 
-#: src/pages/SignInPage.tsx:296
+#: src/pages/SignInPage.tsx:317
 msgid "Send Magic Code"
 msgstr "Enviar Código Mágico"
 
@@ -22762,15 +23041,15 @@ msgstr "Servidor"
 #~ msgid "Server is restarting with new configuration..."
 #~ msgstr "O servidor está reiniciando com a nova configuração..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:185
+#: src/components/settings/SystemSettingsDrawer.tsx:199
 msgid "Server is restarting..."
 msgstr "O servidor está reiniciando..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:210
+#: src/components/settings/SystemSettingsDrawer.tsx:224
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Tempo esgotado para reiniciar o servidor. Por favor, atualize a página manualmente."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:197
+#: src/components/settings/SystemSettingsDrawer.tsx:211
 msgid "Server restarted successfully!"
 msgstr "Servidor reiniciado com sucesso!"
 
@@ -22799,7 +23078,7 @@ msgstr "O SES pausou o envio para este tenant."
 msgid "SES tenant"
 msgstr "Tenant SES"
 
-#: src/components/settings/LicenseSettings.tsx:117
+#: src/components/settings/LicenseSettings.tsx:136
 #: src/services/api/licenseErrors.ts:50
 msgid "SES tenant isolation"
 msgstr "Isolamento de tenant SES"
@@ -22912,7 +23191,7 @@ msgstr "Definido por {integrationName}. Edite o próprio template para alterar o
 msgid "Set by environment"
 msgstr "Definido pelo ambiente"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:102
+#: src/components/settings/SystemSettingsDrawer.tsx:116
 msgid "Set by environment variable"
 msgstr "Definido por variável de ambiente"
 
@@ -22923,6 +23202,10 @@ msgstr "Definido pela integração"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:280
 msgid "Set by the integration. Edit the template itself to change its content."
 msgstr "Definido pela integração. Edite o próprio template para alterar o conteúdo."
+
+#: src/components/settings/SystemSecuritySettings.tsx:49
+msgid "Set by the REQUIRE_TWO_FACTOR environment variable. Change it there and restart Notifuse."
+msgstr "Definido pela variável de ambiente REQUIRE_TWO_FACTOR. Altere-a lá e reinicie o Notifuse."
 
 #: src/services/api/permissions.ts:199
 msgid "Set cc or bcc on a test send (also needs Transactional write)"
@@ -23096,6 +23379,10 @@ msgstr "Configurações"
 msgid "Settings › Integrations"
 msgstr "Configurações › Integrações"
 
+#: src/pages/AccountSecurityPage.tsx:60
+msgid "Settings for your Notifuse account, in every workspace you belong to."
+msgstr "Configurações da sua conta Notifuse, em todos os workspaces de que você participa."
+
 #: src/pages/SetupWizard.tsx:345
 #~ msgid "Setup"
 #~ msgstr "Configuração"
@@ -23167,7 +23454,7 @@ msgstr "Mostrar"
 msgid "Show all rules"
 msgstr "Mostrar todas as regras"
 
-#: src/components/logs/AuditLogTab.tsx:566
+#: src/components/logs/AuditLogTab.tsx:574
 #: src/components/logs/InboundWebhooksTab.tsx:286
 #: src/components/logs/MessagesTab.tsx:802
 msgid "Show all time"
@@ -23295,19 +23582,47 @@ msgstr "Exibido quando o ponteiro para sobre a imagem (atributo title)."
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Mostra as novas versões do Notifuse e as correções de segurança na lista de workspaces."
 
-#: src/pages/SignInPage.tsx:252
+#: src/pages/SignInPage.tsx:261
 msgid "Sign In"
 msgstr "Entrar"
+
+#: src/components/two_factor/RootSessionRefused.tsx:25
+msgid "Sign in again"
+msgstr "Entrar de novo"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:268
+msgid "Sign in again to change system settings"
+msgstr "Entre de novo para alterar as configurações do sistema"
+
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:27
+msgid "Sign in again to continue: turning on two-factor authentication needs a recent sign-in."
+msgstr "Entre de novo para continuar: ativar a autenticação de dois fatores exige um login recente."
+
+#: src/components/settings/LicenseSettings.tsx:74
+msgid "Sign in again to manage the licence"
+msgstr "Entre de novo para gerenciar a licença"
+
+#: src/components/logs/AuditLogTab.tsx:558
+msgid "Sign in again to read the platform audit log"
+msgstr "Entre de novo para ler o log de auditoria da plataforma"
+
+#: src/components/two_factor/ResetTwoFactorButton.tsx:97
+msgid "Sign in again to reset two-factor authentication: it needs a recent sign-in."
+msgstr "Entre de novo para redefinir a autenticação de dois fatores: é preciso um login recente."
 
 #: src/components/setup/SetupRestartView.tsx:54
 msgid "Sign in with {rootEmail}."
 msgstr "Entre com {rootEmail}."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:636
+#: src/components/settings/SystemSettingsDrawer.tsx:656
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:313
+#: src/pages/SignInPage.tsx:334
 msgid "Sign in with SSO"
 msgstr "Entrar com SSO"
+
+#: src/components/two_factor/SetupWizard.tsx:207
+msgid "Sign me out of my other sessions"
+msgstr "Sair das minhas outras sessões"
 
 #: src/components/logs/labels.ts:6
 msgid "Sign-in"
@@ -23359,7 +23674,7 @@ msgstr "Saiu"
 #~ msgstr "Desconectou <0>{target}</0>"
 
 #: src/components/logs/auditDisplay.ts:26
-#: src/components/logs/AuditLogTab.tsx:183
+#: src/components/logs/AuditLogTab.tsx:185
 msgid "Signed-out visitor"
 msgstr "Visitante não conectado"
 
@@ -23410,16 +23725,16 @@ msgstr "Login único"
 msgid "Single sign-on (OpenID Connect)"
 msgstr "Login único (OpenID Connect)"
 
-#: src/components/settings/LicenseSettings.tsx:118
+#: src/components/settings/LicenseSettings.tsx:137
 msgid "Single sign-on (SSO)"
 msgstr ""
 
-#: src/pages/SignInPage.tsx:130
+#: src/pages/SignInPage.tsx:143
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "O single sign-on não pode criar uma conta para o seu domínio de e-mail. Se você foi convidado, abra o link do seu e-mail de convite; caso contrário, peça a um administrador que o convide."
 
-#: src/pages/SignInPage.tsx:140
-#: src/pages/SignInPage.tsx:157
+#: src/pages/SignInPage.tsx:153
+#: src/pages/SignInPage.tsx:166
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "Falha no single sign-on. Tente novamente ou use um código mágico."
 
@@ -23427,7 +23742,7 @@ msgstr "Falha no single sign-on. Tente novamente ou use um código mágico."
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr ""
 
-#: src/pages/SignInPage.tsx:136
+#: src/pages/SignInPage.tsx:149
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "O single sign-on está temporariamente indisponível. Tente um código mágico."
 
@@ -23526,7 +23841,7 @@ msgstr "SMTP"
 msgid "SMTP bridge"
 msgstr "Ponte SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:465
+#: src/components/settings/SystemSettingsDrawer.tsx:485
 msgid "SMTP Bridge"
 msgstr "SMTP Bridge"
 
@@ -23554,11 +23869,11 @@ msgstr "Servidor SMTP bridge para encaminhamento de emails transacionais"
 #~ msgid "SMTP connection successful!"
 #~ msgstr "Conexão SMTP bem-sucedida!"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:121
+#: src/components/settings/SystemSettingsDrawer.tsx:135
 msgid "SMTP connection test failed"
 msgstr "Falha no teste de conexão SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:119
+#: src/components/settings/SystemSettingsDrawer.tsx:133
 msgid "SMTP connection test successful"
 msgstr "Teste de conexão SMTP bem-sucedido"
 
@@ -23578,7 +23893,7 @@ msgstr "Guias SMTP:"
 msgid "SMTP host"
 msgstr "Host SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:326
+#: src/components/settings/SystemSettingsDrawer.tsx:346
 msgid "SMTP Host"
 msgstr "Host SMTP"
 
@@ -23586,7 +23901,7 @@ msgstr "Host SMTP"
 msgid "SMTP host is required"
 msgstr "Host SMTP é obrigatório"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:394
+#: src/components/settings/SystemSettingsDrawer.tsx:414
 msgid "SMTP Password"
 msgstr "Senha SMTP"
 
@@ -23594,7 +23909,7 @@ msgstr "Senha SMTP"
 msgid "SMTP port"
 msgstr "Porta SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:339
+#: src/components/settings/SystemSettingsDrawer.tsx:359
 msgid "SMTP Port"
 msgstr "Porta SMTP"
 
@@ -23632,7 +23947,7 @@ msgstr "Usuário SMTP"
 #~ msgid "SMTP User"
 #~ msgstr "Usuário SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:381
+#: src/components/settings/SystemSettingsDrawer.tsx:401
 msgid "SMTP Username"
 msgstr "Nome de Usuário SMTP"
 
@@ -23726,6 +24041,7 @@ msgid "Someone saved version {0} while you were editing (you started from {1}). 
 msgstr "Alguém salvou a versão {0} enquanto você editava (você partiu da {1}). Recarregue a versão mais recente — suas alterações não salvas serão perdidas — ou sobrescreva-a com a sua."
 
 #: src/components/templates/SendTemplateModal.tsx:199
+#: src/components/two_factor/ProofModal.tsx:45
 msgid "Something went wrong"
 msgstr "Algo deu errado"
 
@@ -23819,7 +24135,7 @@ msgstr "Dividir"
 msgid "SQL Arguments:"
 msgstr "Argumentos SQL:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:549
+#: src/components/settings/SystemSettingsDrawer.tsx:569
 msgid "SSO (OpenID Connect)"
 msgstr "SSO (OpenID Connect)"
 
@@ -23980,7 +24296,7 @@ msgstr "As estatísticas aparecem quando o broadcast começa a ser enviado"
 #: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/BlogSettings.tsx:332
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:61
-#: src/components/settings/LicenseSettings.tsx:150
+#: src/components/settings/LicenseSettings.tsx:169
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
 #: src/components/web_analytics/filters/FilterTable.tsx:310
@@ -24322,8 +24638,7 @@ msgstr "Bem-sucedido"
 #~ msgid "Successfully processed {successful} contacts"
 #~ msgstr "{successful} contatos processados com sucesso"
 
-#: src/pages/SignInPage.tsx:68
-#: src/pages/SignInPage.tsx:152
+#: src/pages/SignInPage.tsx:38
 msgid "Successfully signed in"
 msgstr "Login realizado com sucesso"
 
@@ -24401,7 +24716,7 @@ msgstr "Alterne para o modo Visualização para ver os efeitos do breakpoint. O 
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:287
 #: src/components/logs/auditDisplay.ts:24
-#: src/components/logs/AuditLogTab.tsx:182
+#: src/components/logs/AuditLogTab.tsx:184
 #: src/components/logs/labels.ts:8
 msgid "System"
 msgstr "Sistema"
@@ -24418,12 +24733,12 @@ msgstr "Fontes do sistema"
 #~ msgid "System Fonts"
 #~ msgstr "Fontes do Sistema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:231
-#: src/components/settings/SystemSettingsDrawer.tsx:242
+#: src/components/settings/SystemSettingsDrawer.tsx:243
+#: src/components/settings/SystemSettingsDrawer.tsx:254
 msgid "System Settings"
 msgstr "Configurações do Sistema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:312
+#: src/components/settings/SystemSettingsDrawer.tsx:332
 msgid "System SMTP"
 msgstr "SMTP do Sistema"
 
@@ -24448,11 +24763,15 @@ msgstr "Fazer um tour"
 #~ msgid "Take a Tour"
 #~ msgstr "Fazer um Tour"
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:153
+msgid "Takes about a minute."
+msgstr "Leva cerca de um minuto."
+
 #: src/components/logs/AuditEntryDetail.tsx:163
 msgid "Target"
 msgstr "Destino"
 
-#: src/components/logs/AuditLogTab.tsx:263
+#: src/components/logs/AuditLogTab.tsx:265
 msgid "Target ID"
 msgstr "ID do alvo"
 
@@ -24494,7 +24813,7 @@ msgstr "Limite de membros da equipe atingido. Faça upgrade do seu plano para ad
 msgid "Technical performance insights"
 msgstr "Insights de desempenho técnico"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:700
+#: src/components/settings/SystemSettingsDrawer.tsx:720
 msgid "Telemetry"
 msgstr "Telemetria"
 
@@ -24637,7 +24956,7 @@ msgstr "Template definido"
 #~ msgid "Template structure data is missing or invalid."
 #~ msgstr "Os dados da estrutura do template estão ausentes ou inválidos."
 
-#: src/components/settings/LicenseSettings.tsx:120
+#: src/components/settings/LicenseSettings.tsx:139
 #: src/services/api/licenseErrors.ts:53
 msgid "Template translations"
 msgstr ""
@@ -24771,7 +25090,7 @@ msgstr "Teste concluído"
 msgid "Test connection"
 msgstr "Testar conexão"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:320
+#: src/components/settings/SystemSettingsDrawer.tsx:340
 msgid "Test Connection"
 msgstr "Testar Conexão"
 
@@ -25019,6 +25338,14 @@ msgstr "Versão em texto: automática"
 msgid "Text version: Custom"
 msgstr "Versão em texto: personalizada"
 
+#: src/components/two_factor/SetupWizard.tsx:108
+msgid "That code didn't work. Check that your phone's clock is set automatically, then enter the code the app shows now."
+msgstr "Esse código não funcionou. Confira se o relógio do celular está no ajuste automático e digite o código que o app mostra agora."
+
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:15
+msgid "That code didn't work. Try the code your app shows now."
+msgstr "Esse código não funcionou. Tente o código que o app mostra agora."
+
 #: src/components/transactional/ApiCommandDrawer.tsx:166
 msgid "The"
 msgstr "O"
@@ -25035,7 +25362,7 @@ msgstr "O endereço do arquivo CSS da fonte, ou uma saída Liquid."
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "O assistente de IA: conversar através da integração de LLM configurada no workspace, e as ferramentas do lado do servidor que ele pode chamar."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:163
+#: src/components/settings/SystemSettingsDrawer.tsx:177
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "O endpoint da API mudou. Após o reinício, o console estará disponível em:"
 
@@ -25310,7 +25637,7 @@ msgstr "O e-mail ainda não contém texto."
 msgid "The email this step sends"
 msgstr "O email que esta etapa envia"
 
-#: src/components/logs/AuditLogTab.tsx:149
+#: src/components/logs/AuditLogTab.tsx:151
 msgid "The export failed"
 msgstr "A exportação falhou"
 
@@ -25437,7 +25764,7 @@ msgstr "O último cálculo falhou."
 msgid "The launch of a product or a feature, in three points."
 msgstr "O lançamento de um produto ou recurso, em três pontos."
 
-#: src/components/settings/LicenseSettings.tsx:72
+#: src/components/settings/LicenseSettings.tsx:87
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr ""
 
@@ -25792,6 +26119,10 @@ msgstr "O log de auditoria do workspace: quem alterou o quê, de onde, e se foi 
 msgid "Their address bounced on this list. Only re-subscribe them if it works again. They get no confirmation email."
 msgstr "O endereço retornou nesta lista. Inscreva-o novamente só se ele voltar a funcionar. Nenhum email de confirmação é enviado."
 
+#: src/components/two_factor/ResetTwoFactorButton.tsx:35
+msgid "Their authenticator app and recovery codes stop working."
+msgstr "O app autenticador e os códigos de recuperação param de funcionar."
+
 #: src/components/blog/PostsTable.tsx:536
 msgid "Theme"
 msgstr "Tema"
@@ -25864,6 +26195,10 @@ msgstr "Estes contatos serão inscritos na lista selecionada (status: ativo)."
 msgid "These styles were edited by hand. Edit them in the mj-style block."
 msgstr "Estes estilos foram editados à mão. Edite-os no bloco mj-style."
 
+#: src/components/two_factor/ResetTwoFactorButton.tsx:37
+msgid "They get an email about the reset."
+msgstr "A pessoa recebe um email sobre a redefinição."
+
 #: src/components/contacts/sheet/ContactListsCard.tsx:70
 msgid "They stay unsubscribed. Only re-subscribe them if they asked you to. They get no confirmation email."
 msgstr "O contato continua sem inscrição. Inscreva-o novamente só se ele pediu. Nenhum email de confirmação é enviado."
@@ -25876,11 +26211,19 @@ msgstr "O contato cancelou a inscrição nesta lista. Inscreva-o novamente só s
 msgid "They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time."
 msgstr "O mesmo e-mail será enviado a eles novamente. Corrija primeiro o que o provedor recusou, ou falhará de novo."
 
+#: src/components/settings/SystemSecuritySettings.tsx:63
+msgid "They'll be asked to turn it on the next time they open Notifuse. Let them know before you switch this on."
+msgstr "Elas terão de ativar na próxima vez que abrirem o Notifuse. Avise antes de ligar esta opção."
+
+#: src/components/two_factor/ResetTwoFactorButton.tsx:36
+msgid "They're signed out everywhere."
+msgstr "A pessoa é desconectada de todos os lugares."
+
 #: src/components/ai-assistant/AIAssistantChat.tsx:315
 msgid "Thinking"
 msgstr "Pensando"
 
-#: src/pages/SignInPage.tsx:134
+#: src/pages/SignInPage.tsx:147
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "Esta conta já está vinculada a outra identidade de single sign-on."
 
@@ -26086,7 +26429,7 @@ msgstr "Esta integração será removida em breve: o Mailjet não permite enviar
 msgid "This integration will be removed soon: SparkPost no longer accepts new customers."
 msgstr "Esta integração será removida em breve: o SparkPost não aceita mais novos clientes."
 
-#: src/pages/AcceptInvitationPage.tsx:123
+#: src/pages/AcceptInvitationPage.tsx:165
 msgid "This invitation link is invalid or has expired."
 msgstr "Este link de convite é inválido ou expirou."
 
@@ -26114,7 +26457,7 @@ msgstr "Este é seu editor visual de email. Clique em qualquer elemento do seu e
 #~ msgid "This licence covers the whole deployment — one database, however many containers serve the API."
 #~ msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:61
+#: src/components/settings/LicenseSettings.tsx:67
 msgid "This licence covers the whole deployment — one database. A key pasted here takes effect on this API container now, and on any others at their next restart; with several containers, set NOTIFUSE_LICENSE_KEY instead."
 msgstr ""
 
@@ -26133,6 +26476,10 @@ msgstr "Esta lista ainda não foi criada."
 #: src/pages/ContactsPage.tsx:622
 msgid "This list no longer exists"
 msgstr "Esta lista não existe mais"
+
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:31
+msgid "This needs a session where you entered your authentication code."
+msgstr "Isto exige uma sessão em que você digitou seu código de autenticação."
 
 #: src/components/transactional/notificationRules.ts:51
 #: src/components/transactional/notificationRules.ts:63
@@ -26173,7 +26520,7 @@ msgstr "Esta marca notifuse:condition de uma exportação do Notifuse não cont�
 msgid "This page cannot be previewed here"
 msgstr "Esta página não pode ser pré-visualizada aqui"
 
-#: src/pages/SignInPage.tsx:262
+#: src/pages/SignInPage.tsx:271
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "Esta página é servida a partir de {pageOrigin}, mas esta instância envia suas requisições para {unreachableEndpoint}, que não respondeu. Se o Notifuse foi movido para {pageOrigin}, defina a variável de ambiente API_ENDPOINT com esse endereço e reinicie o servidor."
 
@@ -26254,6 +26601,20 @@ msgstr "Este remetente não faz mais parte da integração de email de marketing
 #: src/components/contacts/visits/ContactWebVisits.tsx:205
 msgid "This session is too long to show in full: only its first pages and goals are listed."
 msgstr "Esta sessão é longa demais para ser exibida por inteiro: apenas as primeiras páginas e metas são listadas."
+
+#: src/components/two_factor/SetupWizard.tsx:150
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:25
+msgid "This setup expired after 15 minutes. Scan the new QR code below."
+msgstr "Esta configuração expirou após 15 minutos. Escaneie o novo QR code abaixo."
+
+#: src/components/two_factor/SetupWizard.tsx:100
+msgid "This setup expired after 15 minutes. Start the replacement again."
+msgstr "Esta configuração expirou após 15 minutos. Comece a substituição de novo."
+
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:64
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:23
+msgid "This sign-in expired after 10 minutes. Start again with your email."
+msgstr "Este login expirou após 10 minutos. Comece de novo com seu email."
 
 #: src/components/automations/NodeConfigPanel.tsx:189
 msgid "This step is edited through the API."
@@ -26379,7 +26740,7 @@ msgstr "Isso substituirá todo o conteúdo pelo template do idioma padrão. Cont
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "Isso definirá o valor como NULL. Tem certeza?"
 
-#: src/components/logs/AuditLogTab.tsx:380
+#: src/components/logs/AuditLogTab.tsx:382
 msgid "This workspace"
 msgstr "Este workspace"
 
@@ -26398,7 +26759,7 @@ msgstr "Liga um clique em um link rastreado de email ao contato, em domínios pe
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/compose/SendingCard.tsx:106
 #: src/components/broadcasts/compose/SendingCard.tsx:108
-#: src/components/logs/AuditLogTab.tsx:475
+#: src/components/logs/AuditLogTab.tsx:477
 #: src/components/logs/InboundWebhooksTab.tsx:243
 #: src/components/logs/MessagesTab.tsx:641
 #: src/components/logs/OutgoingWebhooksTab.tsx:168
@@ -26568,7 +26929,7 @@ msgstr "TLS"
 msgid "TLS certificate (Base64)"
 msgstr "Certificado TLS (Base64)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:516
+#: src/components/settings/SystemSettingsDrawer.tsx:536
 msgid "TLS Certificate (Base64)"
 msgstr "Certificado TLS (Base64)"
 
@@ -26580,7 +26941,7 @@ msgstr "O certificado TLS é obrigatório"
 #~ msgid "TLS Enabled"
 #~ msgstr "TLS Habilitado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:531
+#: src/components/settings/SystemSettingsDrawer.tsx:551
 msgid "TLS Key (Base64)"
 msgstr "Chave TLS (Base64)"
 
@@ -26673,9 +27034,13 @@ msgstr "Alternar legenda"
 msgid "Token"
 msgstr "Token"
 
-#: src/pages/SignInPage.tsx:138
+#: src/pages/SignInPage.tsx:151
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Tentativas de login em excesso. Aguarde um momento e tente novamente."
+
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:18
+msgid "Too many wrong codes. Try again in {minutes} minutes, or use a recovery code."
+msgstr "Códigos errados demais. Tente de novo em {minutes} minutos ou use um código de recuperação."
 
 #: src/components/integrations/FirecrawlIntegration.tsx:125
 #: src/components/settings/Integrations.tsx:492
@@ -27021,6 +27386,10 @@ msgstr "verdadeiro"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "Tente ajustar sua busca ou o filtro de status"
 
+#: src/components/two_factor/SetupWizard.tsx:141
+msgid "Try again"
+msgstr "Tentar de novo"
+
 #: src/pages/TemplatesPage.tsx:556
 msgid "Try selecting a different category or"
 msgstr "Tente selecionar uma categoria diferente ou"
@@ -27034,12 +27403,18 @@ msgstr "Transformar em"
 msgid "Turn Into"
 msgstr "Transformar Em"
 
+#: src/pages/AccountSecurityPage.tsx:67
+msgid "Turn it on to open your workspaces again. Until then, this page is the only one you can use."
+msgstr "Ative para abrir seus workspaces de novo. Até lá, esta é a única página que você pode usar."
+
 #: src/components/settings/BlogSettings.tsx:332
 msgid "Turn it on to publish posts at the root of your custom domain"
 msgstr "Ative-o para publicar posts na raiz do seu domínio personalizado"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:90
 #: src/components/settings/BlogSettings.tsx:513
+#: src/components/two_factor/AccountSecurityPanel.tsx:136
+#: src/components/two_factor/AccountSecurityPanel.tsx:191
 msgid "Turn off"
 msgstr "Desativar"
 
@@ -27065,9 +27440,27 @@ msgstr "Desativar o blog"
 msgid "Turn off the blog?"
 msgstr "Desativar o blog?"
 
+#: src/components/two_factor/AccountSecurityPanel.tsx:136
+#: src/components/two_factor/AccountSecurityPanel.tsx:187
+msgid "Turn off two-factor authentication"
+msgstr "Desativar autenticação de dois fatores"
+
+#: src/components/two_factor/SetupWizard.tsx:213
+msgid "Turn on"
+msgstr "Ativar"
+
 #: src/components/settings/BlogSettings.tsx:357
 msgid "Turn on the blog"
 msgstr "Ativar o blog"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:151
+msgid "Turn on two-factor authentication"
+msgstr "Ativar autenticação de dois fatores"
+
+#: src/components/settings/SystemSecuritySettings.tsx:54
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:33
+msgid "Turn on two-factor authentication for your own account first, so you don't lock yourself out."
+msgstr "Ative primeiro a autenticação de dois fatores na sua própria conta, para não ficar sem acesso."
 
 #: src/components/broadcasts/compose/ContentCard.tsx:88
 msgid "Turn the A/B test off?"
@@ -27104,6 +27497,20 @@ msgstr "Desativar o double opt-in não altera os contatos “Pendentes”: eles 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
 #~ msgstr ""
+
+#: src/components/settings/EditPermissionsDrawer.tsx:33
+#: src/components/two_factor/AccountSecurityPanel.tsx:142
+#: src/components/two_factor/AccountSecurityPanel.tsx:158
+msgid "Two-factor authentication"
+msgstr "Autenticação de dois fatores"
+
+#: src/components/two_factor/ResetTwoFactorButton.tsx:49
+msgid "Two-factor authentication reset for {email}"
+msgstr "Autenticação de dois fatores redefinida para {email}"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:90
+msgid "Two-factor authentication turned off"
+msgstr "Autenticação de dois fatores desativada"
 
 #: src/components/segment/form_leaf.tsx:362
 #: src/components/segment/input.tsx:789
@@ -27234,7 +27641,7 @@ msgstr "Dispositivo desconhecido"
 #: src/components/contacts/bulk-update/useBulkUpdateRun.ts:92
 #: src/components/contacts/csv-import/useCsvImportRun.ts:169
 #: src/components/contacts/csv-import/useCsvImportRun.ts:175
-#: src/layouts/WorkspaceLayout.tsx:128
+#: src/layouts/WorkspaceLayout.tsx:130
 msgid "Unknown error"
 msgstr "Erro desconhecido"
 
@@ -27271,11 +27678,11 @@ msgstr "Segmento desconhecido ({id})"
 #~ msgid "Unknown status"
 #~ msgstr "Status desconhecido"
 
-#: src/components/settings/LicenseSettings.tsx:125
+#: src/components/settings/LicenseSettings.tsx:144
 msgid "Unlimited"
 msgstr ""
 
-#: src/layouts/app-shell/AppSidebar.tsx:179
+#: src/layouts/app-shell/AppSidebar.tsx:182
 msgid "Unpin sidebar"
 msgstr "Desafixar a barra lateral"
 
@@ -27686,7 +28093,7 @@ msgid "Use"
 msgstr "Usar"
 
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:109
-#: src/components/settings/SystemSettingsDrawer.tsx:733
+#: src/components/settings/SystemSettingsDrawer.tsx:753
 msgid "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS} and {AUDIT_LOG_MAX_RETENTION_DAYS}"
 msgstr "Use 0 para manter para sempre, ou um valor entre {AUDIT_LOG_MIN_RETENTION_DAYS} e {AUDIT_LOG_MAX_RETENTION_DAYS}"
 
@@ -27694,13 +28101,22 @@ msgstr "Use 0 para manter para sempre, ou um valor entre {AUDIT_LOG_MIN_RETENTIO
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "Use 0 para manter para sempre, ou um valor entre 30 e 3650"
 
-#: src/pages/SignInPage.tsx:353
+#: src/pages/SignInPage.tsx:374
 msgid "Use a different email"
 msgstr "Usar um email diferente"
+
+#: src/components/two_factor/ProofModal.tsx:86
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:112
+msgid "Use a recovery code instead"
+msgstr "Usar um código de recuperação"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:502
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Use um tenant que você mesmo gerencia. Requer um conjunto de configuração associado a ele na AWS."
+
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:115
+msgid "Use another email"
+msgstr "Usar outro email"
 
 #: src/components/file_manager/context.tsx:218
 msgid "Use Anyway"
@@ -27725,6 +28141,10 @@ msgstr "Usar para transacional"
 #: src/components/settings/Integrations.tsx:470
 #~ msgid "Use for Transactional"
 #~ msgstr "Usar para Transacional"
+
+#: src/components/two_factor/SetupWizard.tsx:155
+msgid "Use Google Authenticator, 1Password, Bitwarden, Microsoft Authenticator or any app that shows 6-digit codes."
+msgstr "Use Google Authenticator, 1Password, Bitwarden, Microsoft Authenticator ou qualquer app que mostre códigos de 6 dígitos."
 
 #: src/components/file_manager/buttonSettings.tsx:273
 msgid "Use path-style URLs (bucket in path instead of subdomain)"
@@ -27775,7 +28195,7 @@ msgstr "Usar este template"
 #~ msgstr "Usar Este Tema"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:593
-#: src/components/settings/SystemSettingsDrawer.tsx:364
+#: src/components/settings/SystemSettingsDrawer.tsx:384
 #: src/components/setup/SmtpPanel.tsx:180
 #: src/components/setup/SmtpPanel.tsx:184
 msgid "Use TLS"
@@ -27788,6 +28208,11 @@ msgstr "Usar o padrão do workspace"
 #: src/components/automations/config/EmailConfigForm.tsx:108
 msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "Padrão do workspace · {defaultIntegrationName}"
+
+#: src/components/two_factor/ProofModal.tsx:86
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:112
+msgid "Use your authenticator app instead"
+msgstr "Usar o app autenticador"
 
 #: src/components/settings/DomainsSettings.tsx:249
 #: src/components/settings/DomainsSettings.tsx:345
@@ -28088,14 +28513,15 @@ msgstr "Verificou o código de login de <0>{target}</0>"
 
 #: src/components/settings/DomainsSettings.tsx:382
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:542
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:107
 msgid "Verify"
 msgstr "Verificar"
 
-#: src/pages/SignInPage.tsx:343
+#: src/pages/SignInPage.tsx:364
 msgid "Verify Code"
 msgstr "Verificar Código"
 
-#: src/pages/AcceptInvitationPage.tsx:105
+#: src/pages/AcceptInvitationPage.tsx:147
 msgid "Verifying invitation..."
 msgstr "Verificando convite..."
 
@@ -28144,7 +28570,7 @@ msgstr "O vídeo começa neste timestamp (MM:SS, HH:MM:SS ou segundos)"
 msgid "View"
 msgstr "Visualização"
 
-#: src/components/logs/AuditLogTab.tsx:425
+#: src/components/logs/AuditLogTab.tsx:427
 msgctxt "audit log scope"
 msgid "View"
 msgstr "Visualização"
@@ -28800,7 +29226,7 @@ msgstr "Quem fez o quê neste workspace: membros, permissões, chaves de API, in
 msgid "Who should be in this segment?"
 msgstr "Quem deve estar neste segmento?"
 
-#: src/components/logs/AuditLogTab.tsx:381
+#: src/components/logs/AuditLogTab.tsx:383
 msgid "Whole deployment"
 msgstr "Todo o deployment"
 
@@ -28974,7 +29400,7 @@ msgid "Works once created"
 msgstr "Funciona após a criação"
 
 #: src/components/logs/AuditEntryDetail.tsx:193
-#: src/components/logs/AuditLogTab.tsx:526
+#: src/components/logs/AuditLogTab.tsx:528
 #: src/components/logs/labels.ts:9
 #: src/components/settings/GeneralSettings.tsx:225
 #: src/components/settings/GeneralSettings.tsx:323
@@ -29019,7 +29445,7 @@ msgstr "O ID do workspace deve ter no máximo {WORKSPACE_ID_MAX_LENGTH} caracter
 msgid "Workspace identity, languages and email tracking"
 msgstr "Identidade do workspace, idiomas e rastreamento de e-mails"
 
-#: src/pages/AcceptInvitationPage.tsx:140
+#: src/pages/AcceptInvitationPage.tsx:182
 msgid "Workspace Invitation"
 msgstr "Convite de Workspace"
 
@@ -29048,14 +29474,14 @@ msgstr "O nome do workspace deve ter pelo menos 3 caracteres"
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "O nome do workspace deve ter no máximo {WORKSPACE_NAME_MAX_LENGTH} caracteres"
 
-#: src/layouts/WorkspaceLayout.tsx:107
+#: src/layouts/WorkspaceLayout.tsx:109
 #: src/pages/AnalyticsPage.tsx:109
 #: src/pages/FileManagerPage.tsx:52
 msgid "Workspace not found"
 msgstr "Workspace não encontrado"
 
 #: src/components/settings/GeneralSettings.tsx:133
-#: src/layouts/WorkspaceLayout.tsx:125
+#: src/layouts/WorkspaceLayout.tsx:127
 msgid "Workspace settings updated successfully"
 msgstr "Configurações do workspace atualizadas com sucesso"
 
@@ -29067,11 +29493,11 @@ msgstr "Configurações do workspace atualizadas com sucesso"
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, creating, updating or deleting an integration, and testing an email provider, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "A escrita de Workspace é bem mais restrita do que o nome sugere: o único endpoint de workspace que ela protege é /api/workspaces.setCustomFieldLabels. Renomear ou excluir o workspace, criar, atualizar ou excluir uma integração, e testar um provedor de email, são ações exclusivas do proprietário e não consultam permissão alguma — conceder isto não as confere, e um proprietário as tem sem isto. /api/workspaces.list também não é protegido: ele retorna os workspaces aos quais você pertence, independentemente do que este interruptor disser. Dois endpoints de configurações que parecem ser configuração de workspace respondem em outro lugar — /api/workspaces.setBlogSettings à escrita de Blog, e /api/workspaces.setWebAnalyticsSettings à escrita de Web Analytics."
 
-#: src/pages/AcceptInvitationPage.tsx:150
+#: src/pages/AcceptInvitationPage.tsx:192
 msgid "Workspace:"
 msgstr "Workspace:"
 
-#: src/components/settings/LicenseSettings.tsx:167
+#: src/components/settings/LicenseSettings.tsx:186
 #: src/services/api/licenseErrors.ts:54
 msgid "Workspaces"
 msgstr ""
@@ -29426,9 +29852,27 @@ msgstr "Você precisa da permissão de escrita de Transacional"
 #~ msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
 #~ msgstr "Você está continuando uma sessão de upload anterior de \"{fileName}\". O upload será retomado a partir da linha {0} de {totalRows}."
 
-#: src/pages/AcceptInvitationPage.tsx:142
+#: src/pages/AcceptInvitationPage.tsx:108
+msgid "You're signed in, but the workspace has no seat left. Ask its owner to make room, then open the invitation again."
+msgstr "Você entrou, mas o workspace não tem vaga. Peça ao dono para liberar espaço e abra o convite de novo."
+
+#: src/pages/AcceptInvitationPage.tsx:110
+msgid "You're signed in. This invitation was already used or has expired."
+msgstr "Você entrou. Este convite já foi usado ou expirou."
+
+#: src/pages/AcceptInvitationPage.tsx:184
 msgid "You've been invited to join"
 msgstr "Você foi convidado a participar"
+
+#: src/components/two_factor/RootSessionRefused.tsx:21
+msgid "Your account has two-factor authentication, but you opened this session without it. System settings, the licence and the platform audit log need a session where you entered your authentication code."
+msgstr "Sua conta tem autenticação de dois fatores, mas você abriu esta sessão sem ela. As configurações do sistema, a licença e o log de auditoria da plataforma exigem uma sessão em que você digitou seu código de autenticação."
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:189
+#: src/components/two_factor/AccountSecurityPanel.tsx:197
+#: src/components/two_factor/useTwoFactorErrorMessage.ts:29
+msgid "Your administrator requires it, so you can't turn it off."
+msgstr "Seu administrador exige, então você não pode desativar."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:294
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
@@ -29474,13 +29918,17 @@ msgstr "Seus emails aparecerão aqui, dia a dia, a partir do seu primeiro envio.
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Seus arquivos podem ser enviados para qualquer armazenamento compatível com S3."
 
-#: src/pages/SignInPage.tsx:132
+#: src/pages/SignInPage.tsx:145
 msgid "Your identity provider has not verified your email address."
 msgstr "Seu provedor de identidade não verificou seu endereço de email."
 
 #: src/components/templates/TemplateTranslationsTab.tsx:342
 msgid "Your licence does not cover translations: see the notice above."
 msgstr "Sua licença não inclui traduções: veja o aviso acima."
+
+#: src/pages/AccountSecurityPage.tsx:66
+msgid "Your Notifuse administrator requires two-factor authentication."
+msgstr "O administrador do Notifuse exige autenticação de dois fatores."
 
 #: src/pages/SetupWizard.tsx:323
 #~ msgid "Your Notifuse instance has been successfully configured."
@@ -29497,6 +29945,10 @@ msgstr ""
 #: src/components/templates/TemplateSettingsAside.tsx:118
 msgid "Your October invoice"
 msgstr "Sua fatura de outubro"
+
+#: src/components/two_factor/AccountSecurityPanel.tsx:114
+msgid "Your previous codes no longer work. This is the only time Notifuse shows these."
+msgstr "Seus códigos anteriores não funcionam mais. O Notifuse só mostra estes agora."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:571
 msgid "Your SMTP server's name"

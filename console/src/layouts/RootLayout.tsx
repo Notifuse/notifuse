@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 
 export function RootLayout() {
   const { t } = useLingui()
-  const { isAuthenticated, loading, workspaces, user } = useAuth()
+  const { isAuthenticated, loading, workspaces, user, twoFactorRequired } = useAuth()
   const navigate = useNavigate()
 
   const isSigninRoute = useMatch({ from: '/console/signin', shouldThrow: false })
@@ -19,6 +19,7 @@ export function RootLayout() {
   const isLogoutRoute = useMatch({ from: '/console/logout', shouldThrow: false })
   const isWorkspaceCreateRoute = useMatch({ from: '/console/workspace/create', shouldThrow: false })
   const isSetupRoute = useMatch({ from: '/console/setup', shouldThrow: false })
+  const isAccountSecurityRoute = useMatch({ from: '/console/account/security', shouldThrow: false })
 
   // Check if system is installed (explicitly check for true to handle undefined case)
   const isInstalled = window.IS_INSTALLED === true
@@ -36,11 +37,18 @@ export function RootLayout() {
   // workspace, so anyone else with none stays on the dashboard, where their pending
   // invitations are: sending them to the form left them on a page the server refuses, which
   // "back" bounced them to again.
+  // The instance requires two-factor authentication and this session has not passed it: only
+  // the account security page works until it does (user.me withholds the workspaces).
+  const shouldRedirectToAccountSecurity =
+    isAuthenticated && twoFactorRequired && !isAccountSecurityRoute && !isPublicRoute
+
   const shouldRedirectToCreateWorkspace =
     isAuthenticated &&
+    !twoFactorRequired &&
     workspaces.length === 0 &&
     isRootUser(user?.email) &&
     !isWorkspaceCreateRoute &&
+    !isAccountSecurityRoute &&
     !isLogoutRoute
 
   // console.log('isAuthenticated', isAuthenticated)
@@ -80,16 +88,29 @@ export function RootLayout() {
       return
     }
 
+    if (shouldRedirectToAccountSecurity) {
+      navigate({ to: '/console/account/security', replace: true })
+      return
+    }
+
     if (shouldRedirectToCreateWorkspace) {
       navigate({ to: '/console/workspace/create' })
       return
     }
-  }, [loading, shouldRedirectToSetup, shouldRedirectToSignin, shouldRedirectToCreateWorkspace, navigate])
+  }, [
+    loading,
+    shouldRedirectToSetup,
+    shouldRedirectToSignin,
+    shouldRedirectToAccountSecurity,
+    shouldRedirectToCreateWorkspace,
+    navigate
+  ])
 
   if (
     loading ||
     shouldRedirectToSetup ||
     shouldRedirectToSignin ||
+    shouldRedirectToAccountSecurity ||
     shouldRedirectToCreateWorkspace
   ) {
     return (

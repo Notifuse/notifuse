@@ -31,7 +31,11 @@ import {
   AUDIT_LOG_MAX_RETENTION_DAYS,
   AUDIT_LOG_MIN_RETENTION_DAYS
 } from '../../services/api/audit_log'
-import type { SystemSettingsData } from '../../types/settings'
+import type { SystemSettingsData, SystemTwoFactorSettings } from '../../types/settings'
+import { SystemSecuritySettings } from './SystemSecuritySettings'
+import { RootSessionRefused } from '../two_factor/RootSessionRefused'
+import { twoFactorErrorCode } from '../../services/api/twoFactor'
+import { useTwoFactorErrorMessage } from '../two_factor/useTwoFactorErrorMessage'
 
 const { Text, Title } = Typography
 
@@ -44,6 +48,10 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
   const [testingSmtp, setTestingSmtp] = useState(false)
   const [envOverrides, setEnvOverrides] = useState<Record<string, boolean>>({})
   const [originalApiEndpoint, setOriginalApiEndpoint] = useState('')
+  const [twoFactorSettings, setTwoFactorSettings] = useState<SystemTwoFactorSettings | undefined>()
+  // The root user has two-factor authentication and this session was opened without it.
+  const [sessionRefused, setSessionRefused] = useState(false)
+  const twoFactorErrorMessage = useTwoFactorErrorMessage()
   const [form] = Form.useForm<SystemSettingsData>()
 
   const fetchSettings = useCallback(async () => {
@@ -58,8 +66,14 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
       form.setFieldsValue(settings)
       setEnvOverrides(response.env_overrides || {})
       setOriginalApiEndpoint(response.settings.api_endpoint || '')
+      setTwoFactorSettings(response.two_factor)
+      setSessionRefused(false)
     } catch (err) {
-      message.error(err instanceof Error ? err.message : t`Failed to load settings`)
+      if (twoFactorErrorCode(err) === 'two_factor_required') {
+        setSessionRefused(true)
+      } else {
+        message.error(err instanceof Error ? err.message : t`Failed to load settings`)
+      }
     } finally {
       setLoading(false)
     }
@@ -214,9 +228,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 setSaving(false)
               }
             } catch (err) {
-              message.error(
-                err instanceof Error ? err.message : t`Failed to save settings`
-              )
+              message.error(twoFactorErrorMessage(err, t`Failed to save settings`))
               setSaving(false)
             }
           }
@@ -245,12 +257,16 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
         onClose={() => setOpen(false)}
         open={open}
         extra={
-          <Button type="primary" onClick={handleSave} loading={saving}>
-            {t`Save`}
-          </Button>
+          sessionRefused ? null : (
+            <Button type="primary" onClick={handleSave} loading={saving}>
+              {t`Save`}
+            </Button>
+          )
         }
       >
-        {loading ? (
+        {sessionRefused ? (
+          <RootSessionRefused title={t`Sign in again to change system settings`} />
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <Spin size="large" />
           </div>
@@ -296,6 +312,10 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 </Form.Item>
               </Col>
             </Row>
+
+            <Divider />
+
+            <SystemSecuritySettings twoFactor={twoFactorSettings} />
 
             <Divider />
 

@@ -11,7 +11,11 @@ import {
 } from "./errors";
 import { licenseRefusalFromBody, licenseRefusedMessage } from "./licenseErrors";
 
-async function handleResponse<T>(response: Response): Promise<T> {
+// Root routes answer two_factor_required for a root user's session opened without the second
+// factor; their screens explain it themselves (RootSessionRefused).
+const ROOT_ROUTE = /^\/api\/(licence\.|settings\.|auditLogs\.|workspaces\.create\b)/;
+
+async function handleResponse<T>(response: Response, endpoint = ""): Promise<T> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
 
@@ -33,6 +37,21 @@ async function handleResponse<T>(response: Response): Promise<T> {
       if (window.location.pathname !== "/console/signin") {
         router.navigate({ to: "/console/signin" });
       }
+    }
+
+    // The instance requires two-factor authentication and this session has not passed it,
+    // say because the root user switched the requirement on while the console was open. The
+    // account security page is the one place the session can go; a 403, unlike a 401, keeps
+    // the token. Root routes answer the same code for a root user's session without a second
+    // factor, and those screens explain it themselves: only workspace routes move the page.
+    if (
+      response.status === 403 &&
+      errorData?.error === "two_factor_required" &&
+      !ROOT_ROUTE.test(endpoint) &&
+      window.location.pathname.startsWith("/console/workspace/") &&
+      window.location.pathname !== "/console/workspace/create"
+    ) {
+      router.navigate({ to: "/console/account/security" });
     }
 
     // A permission denial carries the missing grant alongside its message. Swapping in a
@@ -108,7 +127,7 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const response = await fetchWithAuth(endpoint, options);
-  return handleResponse<T>(response);
+  return handleResponse<T>(response, endpoint);
 }
 
 export const api = {

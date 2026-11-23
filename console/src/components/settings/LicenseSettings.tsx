@@ -14,6 +14,9 @@ import {
   UNLIMITED_WORKSPACES,
   type LicenseFeature
 } from '../../types/license'
+import { twoFactorErrorCode } from '../../services/api/twoFactor'
+import { useTwoFactorErrorMessage } from '../two_factor/useTwoFactorErrorMessage'
+import { RootSessionRefused } from '../two_factor/RootSessionRefused'
 
 const { Paragraph } = Typography
 
@@ -38,6 +41,9 @@ export function LicenseSettings() {
   const { entitlements, licensed, canManageLicense, expiresAt, adopt, refresh } = useLicense()
 
   const [key, setKey] = useState('')
+  const twoFactorErrorMessage = useTwoFactorErrorMessage()
+  // The root user has two-factor authentication and this session was opened without it.
+  const [sessionRefused, setSessionRefused] = useState(false)
 
   // Refresh is the one licence read a human asked for, so its failure is theirs to see. The
   // automatic read on mount stays silent — see LicenseContext — but a button that answers a
@@ -47,11 +53,11 @@ export function LicenseSettings() {
     try {
       await refresh()
     } catch (error) {
-      message.error(
-        error instanceof Error && error.message
-          ? error.message
-          : t`Could not read the licence state`
-      )
+      if (twoFactorErrorCode(error) === 'two_factor_required') {
+        setSessionRefused(true)
+        return
+      }
+      message.error(twoFactorErrorMessage(error, t`Could not read the licence state`))
     }
   }
   const [installing, setInstalling] = useState(false)
@@ -59,6 +65,15 @@ export function LicenseSettings() {
   const header = {
     title: t`Licence`,
     description: t`This licence covers the whole deployment — one database. A key pasted here takes effect on this API container now, and on any others at their next restart; with several containers, set NOTIFUSE_LICENSE_KEY instead.`
+  }
+
+  if (sessionRefused) {
+    return (
+      <>
+        <SettingsSectionHeader title={header.title} description={header.description} />
+        <RootSessionRefused title={t`Sign in again to manage the licence`} />
+      </>
+    )
   }
 
   if (!canManageLicense) {
@@ -95,6 +110,10 @@ export function LicenseSettings() {
       // The server distinguishes a bad paste (400), a key that cannot take effect because
       // NOTIFUSE_LICENSE_KEY wins (409) and a storage failure (500), and each has a different
       // remedy — so its sentence is shown rather than one sentence for all three.
+      if (twoFactorErrorCode(error) === 'two_factor_required') {
+        setSessionRefused(true)
+        return
+      }
       message.error(
         error instanceof ApiError && error.message
           ? error.message
