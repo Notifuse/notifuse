@@ -2,7 +2,8 @@ import { Alert, Button, Col, Form, Input, Modal, Row, Select, Switch, Typography
 import { useState, useEffect } from 'react'
 import { useForm } from 'antd/lib/form/Form'
 import type { FileManagerSettings } from './interfaces'
-import { ListObjectsV2Command, type ListObjectsV2CommandInput, S3Client } from '@aws-sdk/client-s3'
+import { filesApi } from '../../services/api/files'
+import { savedFileManagerSettings } from './settingsPayload'
 import { S3_PROVIDERS, getProviderById, generateEndpoint, type S3Provider } from './s3Providers'
 import { useLingui } from '@lingui/react/macro'
 
@@ -10,6 +11,7 @@ const { Text } = Typography
 
 interface ButtonFilesSettingsProps {
   children: React.ReactNode
+  workspaceId: string
   settings?: FileManagerSettings
   onUpdateSettings: (settings: FileManagerSettings) => Promise<void>
   settingsInfo?: React.ReactNode
@@ -49,7 +51,8 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
         endpoint: props.settings?.endpoint,
         region: props.settings?.region,
         access_key: props.settings?.access_key,
-        secret_key: props.settings?.secret_key,
+        // The secret is never received: blank keeps the stored one.
+        secret_key: '',
         bucket: props.settings?.bucket,
         cdn_endpoint: props.settings?.cdn_endpoint,
         force_path_style: props.settings?.force_path_style ?? resolvedProvider?.forcePathStyle ?? false
@@ -78,7 +81,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
       endpoint: generatedEndpoint || props.settings?.endpoint || '',
       region: defaultRegion || props.settings?.region || '',
       access_key: props.settings?.access_key || '',
-      secret_key: props.settings?.secret_key || '',
+      secret_key: '',
       bucket: props.settings?.bucket || '',
       cdn_endpoint: props.settings?.cdn_endpoint || '',
       force_path_style: provider.forcePathStyle
@@ -98,65 +101,45 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
     }
   }
 
-  const onFinish = () => {
-    form
-      .validateFields()
-      .then((values: FileManagerSettings) => {
-        if (loading) return
+  const onFinish = async () => {
+    let values: FileManagerSettings
+    try {
+      values = await form.validateFields()
+    } catch {
+      // The form shows what is missing.
+      return
+    }
+    if (loading) return
+    if (values.region === '') delete values.region
+    if (values.cdn_endpoint === '') delete values.cdn_endpoint
+    const settings = savedFileManagerSettings(values)
 
-        setLoading(true)
-
-        // check if the bucket can be reached
-        const input: ListObjectsV2CommandInput = {
-          Bucket: values.bucket || ''
-        }
-        const command = new ListObjectsV2Command(input)
-
-        const s3Client = new S3Client({
-          endpoint: values.endpoint || '',
-          credentials: {
-            accessKeyId: values.access_key || '',
-            secretAccessKey: values.secret_key || ''
-          },
-          region: values.region || 'us-east-1',
-          forcePathStyle: values.force_path_style ?? false
-        })
-
-        if (values.region === '') {
-          delete values.region
-        }
-        if (values.cdn_endpoint === '') {
-          delete values.cdn_endpoint
-        }
-
-        s3Client
-          .send(command)
-          .then(() => {
-            props
-              .onUpdateSettings(values)
-              .then(() => {
-                message.success(t`The workspace settings have been updated!`)
-                setLoading(false)
-                toggleSettings()
-              })
-              .catch((error) => {
-                console.error(error)
-                message.error(error.toString())
-                setLoading(false)
-              })
-          })
-          .catch((e: Error) => {
-            console.error(e)
-            message.error(e.toString())
-            setLoading(false)
-          })
-      })
-      .catch((e: Error) => {
-        console.error(e)
-        message.error(e.toString())
-        setLoading(false)
-      })
+    setLoading(true)
+    try {
+      // The server checks that the bucket answers, with the stored secret when none was typed.
+      await filesApi.testSettings(props.workspaceId, settings)
+      await props.onUpdateSettings(settings)
+      message.success(t`The workspace settings have been updated!`)
+      toggleSettings()
+    } catch (error) {
+      console.error(error)
+      message.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setLoading(false)
+    }
   }
+
+  // A stored secret is kept for the same endpoint and access key; other values need it typed.
+  const storedSecretApplies = (endpoint: string, accessKey: string) =>
+    Boolean(props.settings?.has_secret_key) &&
+    endpoint === props.settings?.endpoint &&
+    accessKey === props.settings?.access_key
+
+  const secretPlaceholder = props.settings?.secret_key_hint
+    ? `•••• ${props.settings.secret_key_hint}`
+    : props.settings?.has_secret_key
+      ? t`Stored`
+      : undefined
 
   const renderProviderSelection = () => (
     <div>
@@ -262,8 +245,21 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
           <Input />
         </Form.Item>
 
-        <Form.Item label={t`S3 secret key`} name="secret_key" rules={[{ type: 'string', required: true }]}>
-          <Input type="password" />
+        <Form.Item
+          label={t`S3 secret key`}
+          name="secret_key"
+          dependencies={['endpoint', 'access_key']}
+          extra={props.settings?.has_secret_key ? t`Blank keeps the current one.` : undefined}
+          rules={[
+            ({ getFieldValue }) => ({
+              validator: (_, value?: string) =>
+                value || storedSecretApplies(getFieldValue('endpoint'), getFieldValue('access_key'))
+                  ? Promise.resolve()
+                  : Promise.reject(new Error(t`Enter the secret key`))
+            })
+          ]}
+        >
+          <Input.Password placeholder={secretPlaceholder} autoComplete="new-password" />
         </Form.Item>
 
         <Form.Item label={t`S3 bucket`} name="bucket" rules={[{ type: 'string', required: true }]}>

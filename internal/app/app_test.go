@@ -1179,6 +1179,13 @@ func TestAppInitHandlers(t *testing.T) {
 		// Registered only once the contact visits service is wired (WithContactVisits).
 		"/api/webAnalytics.contactVisits",
 		"/api/webAnalytics.contactSessionPages",
+		// The workspace's file storage, served by the backend.
+		"/api/files.list",
+		"/api/files.presignUpload",
+		"/api/files.createFolder",
+		"/api/files.delete",
+		"/api/files.deleteFolder",
+		"/api/workspaces.testFileManager",
 	}
 
 	for _, route := range annotationRoutes {

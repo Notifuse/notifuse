@@ -42,6 +42,22 @@ services:
       timeout: 5s
       retries: 3
 
+  # The S3-compatible server the docs offer self-hosters, for the file storage suite.
+  selfhost-s3:
+    image: notifuse/selfhost_s3:v1.4
+    environment:
+      S3_BUCKET: test-bucket
+      S3_ACCESS_KEY: testkey
+      S3_SECRET_KEY: testsecret
+      S3_REGION: us-east-1
+    ports:
+      - '9100:9000'
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:9000/health']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   postgres_test_data:
     driver: local

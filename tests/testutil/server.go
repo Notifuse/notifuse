@@ -127,6 +127,8 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		Broadcast: config.BroadcastConfig{
 			DefaultRateLimit: 6000, // 6000 per minute = 100 per second (no rate limiting for tests)
 		},
+		// The file storage suite's selfhost_s3 runs on localhost, a private address.
+		FileStorage: config.FileStorageConfig{AllowPrivateHosts: true},
 		TaskScheduler: config.TaskSchedulerConfig{
 			Enabled: false, // Disable task scheduler and autoExecuteImmediate to prevent background goroutines
 			// Production makes a send-now task wait so the broadcast commits first;

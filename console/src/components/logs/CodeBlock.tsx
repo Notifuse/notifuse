@@ -24,7 +24,7 @@ export function CodeBlock({ value, label }: CodeBlockProps) {
 
   return (
     <div className="relative">
-      <pre className="m-0 max-h-[400px] overflow-auto rounded-md border border-line-soft bg-subtle p-3 font-mono text-xs whitespace-pre-wrap break-all text-ink-2">
+      <pre className="m-0 max-h-[400px] overflow-auto rounded-md border border-line-soft bg-subtle p-3 pr-8 font-mono text-xs whitespace-pre-wrap break-all text-ink-2">
         {text}
       </pre>
       <button

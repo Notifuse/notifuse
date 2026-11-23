@@ -1,26 +1,15 @@
 import type { ReactNode } from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3'
-import { useStorage } from './useStorage'
+import { useStorage, type UploadStatus } from './useStorage'
+import { fakeFiles } from './fakeFilesApi'
+import type { PresignedUpload } from '../../services/api/files'
 
-// Every S3Client the hook builds answers through this send.
-const s3 = vi.hoisted(() => ({ send: vi.fn() }))
-vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>()
-  return {
-    ...actual,
-    S3Client: class {
-      secret: string | undefined
-      constructor(config: { credentials?: { secretAccessKey?: string } }) {
-        this.secret = config.credentials?.secretAccessKey
-      }
-      // The client's secret key comes second, so a test can tell which settings listed.
-      send = (command: unknown) => s3.send(command, this.secret)
-    }
-  }
-})
+// The bucket lives behind the API: an in-memory one here, and the presigned PUTs go to fetch.
+vi.mock('../../services/api/files', async () => ({
+  filesApi: (await import('./fakeFilesApi')).fakeFiles.api
+}))
 
 const settings = { endpoint: 'https://s3.example.com', access_key: 'key', bucket: 'media' }
 
@@ -31,69 +20,78 @@ const wrapper = () => {
   )
 }
 
-const listCalls = () =>
-  s3.send.mock.calls.filter(([command]) => command instanceof ListObjectsV2Command)
-
 const at = (day: number) => new Date(Date.UTC(2026, 0, day))
+
+const renderStorage = () =>
+  renderHook(() => useStorage({ workspaceId: 'ws', settings }), { wrapper: wrapper() })
+
+// Runs an upload, collecting each "index:status" and each failure's message.
+const uploadAll = async (
+  storage: ReturnType<typeof useStorage>,
+  files: File[],
+  signal?: AbortSignal
+) => {
+  const statuses: string[] = []
+  const errors: (string | undefined)[] = []
+  let written: string[] = []
+  await act(async () => {
+    written = await storage.upload(files, 'photos/', {
+      signal,
+      onStatus: (index: number, status: UploadStatus, error?: string) => {
+        statuses.push(`${index}:${status}`)
+        if (status === 'failed') errors.push(error)
+      }
+    })
+  })
+  return { statuses, errors, written }
+}
+
+const png = (name: string) => new File(['x'], name, { type: 'image/png' })
 
 describe('useStorage', () => {
   beforeEach(() => {
-    s3.send.mockReset()
+    fakeFiles.reset()
+    vi.stubGlobal('fetch', fakeFiles.fetch)
   })
 
-  it('lists the bucket again with the new keys once the settings change', async () => {
-    s3.send.mockResolvedValue({ Contents: [], IsTruncated: false })
-    const { rerender } = renderHook(
-      ({ secret }) =>
-        useStorage({ workspaceId: 'ws', settings: { ...settings, secret_key: secret } }),
-      { wrapper: wrapper(), initialProps: { secret: 'old' } }
-    )
-    await waitFor(() => expect(listCalls()).toHaveLength(1))
-    expect(listCalls()[0][1]).toBe('old')
-
-    rerender({ secret: 'new' })
-    await waitFor(() => expect(listCalls()).toHaveLength(2))
-    expect(listCalls()[1][1]).toBe('new')
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
-  it('reads every page of the bucket until the last one', async () => {
-    s3.send.mockImplementation(async (command: ListObjectsV2Command) => {
-      if (!command.input.ContinuationToken) {
-        return {
-          Contents: [{ Key: 'a.png', LastModified: at(1), Size: 10 }],
-          IsTruncated: true,
-          NextContinuationToken: 'next'
-        }
-      }
-      return { Contents: [{ Key: 'b.png', LastModified: at(2), Size: 20 }], IsTruncated: false }
-    })
-
-    const { result } = renderHook(() => useStorage({ workspaceId: 'ws', settings }), {
-      wrapper: wrapper()
-    })
-
-    await waitFor(() => expect(result.current.items).toHaveLength(2))
-    expect(s3.send).toHaveBeenCalledTimes(2)
-    expect(result.current.isCapped).toBe(false)
-    expect(result.current.items.map((item) => item.file_info.url)).toEqual([
-      'https://s3.example.com/media/a.png',
-      'https://s3.example.com/media/b.png'
+  it('lists the bucket from the API and builds each file’s URL from the settings', async () => {
+    fakeFiles.reset([
+      { key: 'a.png', size: 10, lastModified: at(1) },
+      { key: 'docs/b.png', size: 20, lastModified: at(2) }
     ])
+    const { result } = renderStorage()
+
+    await waitFor(() => expect(result.current.items.length).toBeGreaterThan(0))
+    expect(fakeFiles.api.list).toHaveBeenCalledWith('ws')
+    expect(result.current.isCapped).toBe(false)
+    expect(result.current.cutShort).toBe(false)
+    expect(
+      result.current.items.filter((item) => !item.is_folder).map((item) => item.file_info.url)
+    ).toEqual(['https://s3.example.com/media/a.png', 'https://s3.example.com/media/docs/b.png'])
   })
 
-  it('stops at the cap it is given and says so', async () => {
-    s3.send.mockResolvedValue({
-      Contents: ['a.png', 'b.png', 'c.png'].map((Key) => ({ Key, LastModified: at(1) })),
-      IsTruncated: false
-    })
-
-    const { result } = renderHook(
-      () => useStorage({ workspaceId: 'ws', settings, maxObjects: 2 }),
-      { wrapper: wrapper() }
+  it('lists the bucket again once the endpoint or the bucket changes', async () => {
+    const { rerender } = renderHook(
+      ({ bucket }) => useStorage({ workspaceId: 'ws', settings: { ...settings, bucket } }),
+      { wrapper: wrapper(), initialProps: { bucket: 'media' } }
     )
+    await waitFor(() => expect(fakeFiles.api.list).toHaveBeenCalledTimes(1))
+
+    rerender({ bucket: 'other' })
+    await waitFor(() => expect(fakeFiles.api.list).toHaveBeenCalledTimes(2))
+  })
+
+  it('says when the server capped the listing or the storage cut it short', async () => {
+    fakeFiles.reset([{ key: 'a.png', lastModified: at(1) }])
+    fakeFiles.setListing({ capped: true, cut_short: true })
+    const { result } = renderStorage()
 
     await waitFor(() => expect(result.current.isCapped).toBe(true))
-    expect(result.current.items).toHaveLength(2)
+    expect(result.current.cutShort).toBe(true)
   })
 
   it('lists nothing while the storage has no endpoint', async () => {
@@ -103,131 +101,203 @@ describe('useStorage', () => {
     )
 
     await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
-    expect(s3.send).not.toHaveBeenCalled()
+    expect(fakeFiles.api.list).not.toHaveBeenCalled()
     expect(result.current.items).toEqual([])
     expect(result.current.isLoading).toBe(false)
   })
 
-  it('lists the bucket again once an upload ends, with each file under the folder', async () => {
-    s3.send.mockResolvedValue({ Contents: [], IsTruncated: false })
-    const { result } = renderHook(() => useStorage({ workspaceId: 'ws', settings }), {
-      wrapper: wrapper()
-    })
-    await waitFor(() => expect(listCalls()).toHaveLength(1))
+  it('signs each upload, PUTs the file to the signed URL with its headers, then lists again', async () => {
+    const { result } = renderStorage()
+    await waitFor(() => expect(fakeFiles.api.list).toHaveBeenCalledTimes(1))
 
-    const statuses: string[] = []
-    const file = new File(['x'], 'My Photo.PNG', { type: 'image/png' })
-    // jsdom's File has no arrayBuffer(); browsers do.
-    Object.defineProperty(file, 'arrayBuffer', { value: async () => new ArrayBuffer(1) })
-    let uploaded: string[] = []
-    await act(async () => {
-      uploaded = await result.current.upload([file], 'photos/', {
-        onStatus: (index, status) => statuses.push(`${index}:${status}`)
-      })
-    })
+    const file = png('My Photo.PNG')
+    const { statuses, written } = await uploadAll(result.current, [file])
 
     expect(statuses).toEqual(['0:uploading', '0:done'])
-    const put = s3.send.mock.calls.find(([command]) => command instanceof PutObjectCommand)
-    expect(put?.[0].input).toMatchObject({
-      Bucket: 'media',
-      Key: 'photos/My-Photo.png',
-      ContentType: 'image/png'
+    expect(written).toEqual(['photos/My-Photo.png'])
+    expect(fakeFiles.api.presignUpload).toHaveBeenCalledWith({
+      workspace_id: 'ws',
+      key: 'photos/My-Photo.png',
+      content_type: 'image/png',
+      size: file.size
     })
-    expect(uploaded).toEqual(['photos/My-Photo.png'])
-    await waitFor(() => expect(listCalls()).toHaveLength(2))
+    const signed = (await fakeFiles.api.presignUpload.mock.results[0].value) as PresignedUpload
+    expect(fakeFiles.fetch).toHaveBeenCalledTimes(1)
+    const [url, init] = fakeFiles.fetch.mock.calls[0]
+    expect(url).toBe(signed.url)
+    expect(init).toMatchObject({ method: 'PUT', headers: signed.headers })
+    expect(init?.body).toBe(file)
+    // Signed before it was sent.
+    expect(fakeFiles.api.presignUpload.mock.invocationCallOrder[0]).toBeLessThan(
+      fakeFiles.fetch.mock.invocationCallOrder[0]
+    )
+    await waitFor(() => expect(fakeFiles.api.list).toHaveBeenCalledTimes(2))
   })
 
-  it('counts the files of a folder it could not delete, and lists the bucket again', async () => {
-    s3.send.mockImplementation(async (command: unknown) => {
-      if (command instanceof ListObjectsV2Command) {
-        return {
-          Contents: [
-            { Key: 'docs/', LastModified: at(1) },
-            { Key: 'docs/a.png', LastModified: at(1) },
-            { Key: 'docs/b.png', LastModified: at(1) }
-          ],
-          IsTruncated: false
-        }
-      }
-      if (command instanceof DeleteObjectCommand && command.input.Key === 'docs/b.png') {
-        throw new Error('denied')
-      }
-      return {}
+  it('stops at an abort during a PUT and sends no further file', async () => {
+    const { result } = renderStorage()
+    const controller = new AbortController()
+    fakeFiles.fetch.mockImplementationOnce(async () => {
+      controller.abort()
+      throw new DOMException('The operation was aborted.', 'AbortError')
     })
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { result } = renderHook(() => useStorage({ workspaceId: 'ws', settings }), {
-      wrapper: wrapper()
-    })
-    await waitFor(() => expect(result.current.items.length).toBeGreaterThan(0))
-    const before = listCalls().length
 
-    let outcome: { deleted: number; failed: number } | undefined
+    const { statuses, written } = await uploadAll(
+      result.current,
+      [png('a.png'), png('b.png')],
+      controller.signal
+    )
+
+    expect(statuses).toEqual(['0:uploading'])
+    expect(written).toEqual([])
+    expect(fakeFiles.api.presignUpload).toHaveBeenCalledTimes(1)
+    expect(fakeFiles.fetch.mock.calls[0][1]?.signal).toBe(controller.signal)
+  })
+
+  it('sends nothing when the abort comes while the upload is being signed', async () => {
+    const { result } = renderStorage()
+    const controller = new AbortController()
+    fakeFiles.api.presignUpload.mockImplementationOnce(async (request) => {
+      controller.abort()
+      return fakeFiles.impl.presignUpload(request)
+    })
+
+    const { statuses, written } = await uploadAll(
+      result.current,
+      [png('a.png'), png('b.png')],
+      controller.signal
+    )
+
+    expect(fakeFiles.fetch).not.toHaveBeenCalled()
+    expect(fakeFiles.api.presignUpload).toHaveBeenCalledTimes(1)
+    expect(statuses).toEqual(['0:uploading'])
+    expect(written).toEqual([])
+  })
+
+  it('marks a file the storage refused as failed and goes on with the next', async () => {
+    const { result } = renderStorage()
+    fakeFiles.fetch.mockResolvedValueOnce(new Response(null, { status: 403, statusText: 'Forbidden' }))
+
+    const { statuses, errors, written } = await uploadAll(result.current, [
+      png('a.png'),
+      png('b.png')
+    ])
+
+    expect(statuses).toEqual(['0:uploading', '0:failed', '1:uploading', '1:done'])
+    expect(errors).toEqual(['Error: 403 Forbidden'])
+    expect(written).toEqual(['photos/b.png'])
+    expect(fakeFiles.keys()).toEqual(['photos/b.png'])
+  })
+
+  it('points at the bucket’s CORS rules when the PUT never reaches the storage', async () => {
+    const { result } = renderStorage()
+    fakeFiles.fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    const { statuses, errors } = await uploadAll(result.current, [png('a.png')])
+
+    expect(statuses).toEqual(['0:uploading', '0:failed'])
+    expect(errors).toEqual([
+      'The storage did not answer. Check that the bucket accepts PUT requests from this origin (CORS).'
+    ])
+  })
+
+  it('deletes a folder on the server, maps its counts, and lists the bucket again', async () => {
+    fakeFiles.reset([
+      { key: 'docs/', lastModified: at(1) },
+      { key: 'docs/a.png', lastModified: at(1) },
+      { key: 'docs/b.png', lastModified: at(1) }
+    ])
+    fakeFiles.refuseDelete('docs/b.png')
+    const { result } = renderStorage()
+    await waitFor(() => expect(result.current.items.length).toBeGreaterThan(0))
+    const before = fakeFiles.api.list.mock.calls.length
+
+    let outcome: Awaited<ReturnType<typeof result.current.deleteFolder>> | undefined
     await act(async () => {
       outcome = await result.current.deleteFolder('docs/')
     })
 
+    expect(fakeFiles.api.deleteFolder).toHaveBeenCalledWith('ws', 'docs/')
     // The marker is deleted with the files, and counted apart from them.
     expect(outcome).toEqual({ deleted: 2, failed: 1, deletedFiles: 1, failedFiles: 1 })
-    // One listing of the folder for the delete, then the bucket again.
-    await waitFor(() => expect(listCalls().length).toBe(before + 2))
+    await waitFor(() => expect(fakeFiles.api.list.mock.calls.length).toBe(before + 1))
   })
 
   it('counts the files of a folder from its own listing, markers left out', async () => {
-    s3.send.mockResolvedValue({
-      Contents: [
-        { Key: 'docs/', LastModified: at(1) },
-        { Key: 'docs/sub/', LastModified: at(1) },
-        { Key: 'docs/sub/a.png', LastModified: at(1) },
-        { Key: 'docs/b.pdf', LastModified: at(1) }
-      ],
-      IsTruncated: false
-    })
-    const { result } = renderHook(() => useStorage({ workspaceId: 'ws', settings }), {
-      wrapper: wrapper()
-    })
+    fakeFiles.reset([
+      { key: 'docs/', lastModified: at(1) },
+      { key: 'docs/sub/', lastModified: at(1) },
+      { key: 'docs/sub/a.png', lastModified: at(1) },
+      { key: 'docs/b.pdf', lastModified: at(1) },
+      { key: 'other.png', lastModified: at(1) }
+    ])
+    const { result } = renderStorage()
 
-    let count = 0
+    let count: Awaited<ReturnType<typeof result.current.countFolderFiles>> | undefined
     await act(async () => {
       count = await result.current.countFolderFiles('docs/')
     })
 
-    expect(count).toBe(2)
-    expect(listCalls().some(([command]) => command.input.Prefix === 'docs/')).toBe(true)
+    expect(count).toEqual({ count: 2, capped: false })
+    expect(fakeFiles.api.list).toHaveBeenCalledWith('ws', 'docs/')
   })
 
-  it('deletes the files and counts the failures', async () => {
-    s3.send.mockImplementation(async (command: unknown) => {
-      if (command instanceof ListObjectsV2Command) return { Contents: [], IsTruncated: false }
-      if (command instanceof DeleteObjectCommand && command.input.Key === 'b.png') {
-        throw new Error('denied')
-      }
-      return {}
-    })
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { result } = renderHook(() => useStorage({ workspaceId: 'ws', settings }), {
-      wrapper: wrapper()
-    })
+  it('says a folder count is a floor when the server capped the folder’s listing', async () => {
+    fakeFiles.reset([{ key: 'docs/a.png', lastModified: at(1) }])
+    fakeFiles.setListing({ capped: true })
+    const { result } = renderStorage()
+
+    await expect(result.current.countFolderFiles('docs/')).resolves.toEqual({ count: 1, capped: true })
+  })
+
+  it('deletes the files in one call and counts the failures', async () => {
+    fakeFiles.reset([{ key: 'a.png' }, { key: 'b.png' }, { key: 'c.png' }])
+    fakeFiles.refuseDelete('b.png')
+    const { result } = renderStorage()
 
     let outcome: { deleted: number; failed: number } | undefined
     await act(async () => {
       outcome = await result.current.deleteFiles(['a.png', 'b.png', 'c.png'])
     })
 
+    expect(fakeFiles.api.delete).toHaveBeenCalledTimes(1)
+    expect(fakeFiles.api.delete).toHaveBeenCalledWith('ws', ['a.png', 'b.png', 'c.png'])
     expect(outcome).toEqual({ deleted: 2, failed: 1 })
   })
 
-  it('refuses a new folder that already exists', async () => {
-    s3.send.mockImplementation(async (command: ListObjectsV2Command) => {
-      if (command.input.Prefix === 'docs/') {
-        return { Contents: [{ Key: 'docs/a.png' }], IsTruncated: false }
-      }
-      return { Contents: [], IsTruncated: false }
-    })
-    const { result } = renderHook(() => useStorage({ workspaceId: 'ws', settings }), {
-      wrapper: wrapper()
+  it('sends a large selection in batches the server accepts and adds up the counts', async () => {
+    const keys = Array.from({ length: 2500 }, (_, i) => `f${i}.png`)
+    fakeFiles.reset(keys.map((key) => ({ key })))
+    fakeFiles.refuseDelete('f2499.png')
+    const { result } = renderStorage()
+
+    let outcome: { deleted: number; failed: number } | undefined
+    await act(async () => {
+      outcome = await result.current.deleteFiles(keys)
     })
 
+    expect(fakeFiles.api.delete.mock.calls.map(([, batch]) => batch.length)).toEqual([1000, 1000, 500])
+    expect(fakeFiles.api.delete.mock.calls.flatMap(([, batch]) => batch)).toEqual(keys)
+    expect(outcome).toEqual({ deleted: 2499, failed: 1 })
+  })
+
+  it('throws when the storage refuses to delete a single file', async () => {
+    fakeFiles.reset([{ key: 'a.png' }])
+    fakeFiles.refuseDelete('a.png')
+    const { result } = renderStorage()
+
+    await expect(result.current.deleteFile('a.png')).rejects.toThrow(
+      'The storage refused to delete a.png'
+    )
+    expect(fakeFiles.api.delete).toHaveBeenCalledWith('ws', ['a.png'])
+  })
+
+  it('refuses a new folder that already exists', async () => {
+    fakeFiles.reset([{ key: 'docs/a.png' }])
+    const { result } = renderStorage()
+
     await expect(result.current.createFolder('docs/')).resolves.toBe('exists')
-    expect(s3.send.mock.calls.some(([command]) => command instanceof PutObjectCommand)).toBe(false)
+    expect(fakeFiles.api.createFolder).toHaveBeenCalledWith('ws', 'docs/')
+    expect(fakeFiles.keys()).toEqual(['docs/a.png'])
   })
 })

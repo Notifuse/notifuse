@@ -396,6 +396,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Read one reusable template block`,
         },
         {
+          endpoint: "/api/files.list",
+          action: msg`List the workspace's files (any Templates or Blog access allows it)`,
+        },
+        {
           endpoint: "/api/transactional.testTemplate",
           action: msg`Read the template a test email is sent from (also needs Transactional write)`,
         },
@@ -432,6 +436,22 @@ export const PERMISSION_DESCRIPTORS: Record<
         {
           endpoint: "/api/templateBlocks.delete",
           action: msg`Delete a reusable template block`,
+        },
+        {
+          endpoint: "/api/files.presignUpload",
+          action: msg`Upload a file to the workspace's storage (Templates or Blog write allows it)`,
+        },
+        {
+          endpoint: "/api/files.createFolder",
+          action: msg`Create a folder in the workspace's storage (Templates or Blog write allows it)`,
+        },
+        {
+          endpoint: "/api/files.delete",
+          action: msg`Delete files from the workspace's storage (Templates or Blog write allows it)`,
+        },
+        {
+          endpoint: "/api/files.deleteFolder",
+          action: msg`Delete a folder and its files from the workspace's storage (Templates or Blog write allows it)`,
         },
       ],
     },
@@ -473,6 +493,10 @@ export const PERMISSION_DESCRIPTORS: Record<
         {
           endpoint: "/api/blogThemes.getPublished",
           action: msg`Read the currently published theme`,
+        },
+        {
+          endpoint: "/api/files.list",
+          action: msg`List the workspace's files (any Templates or Blog access allows it)`,
         },
       ],
     },
@@ -516,6 +540,22 @@ export const PERMISSION_DESCRIPTORS: Record<
         {
           endpoint: "/api/workspaces.setBlogSettings",
           action: msg`Turn the blog on or off and change its title, SEO, pagination and feed settings`,
+        },
+        {
+          endpoint: "/api/files.presignUpload",
+          action: msg`Upload a file to the workspace's storage (Templates or Blog write allows it)`,
+        },
+        {
+          endpoint: "/api/files.createFolder",
+          action: msg`Create a folder in the workspace's storage (Templates or Blog write allows it)`,
+        },
+        {
+          endpoint: "/api/files.delete",
+          action: msg`Delete files from the workspace's storage (Templates or Blog write allows it)`,
+        },
+        {
+          endpoint: "/api/files.deleteFolder",
+          action: msg`Delete a folder and its files from the workspace's storage (Templates or Blog write allows it)`,
         },
       ],
     },

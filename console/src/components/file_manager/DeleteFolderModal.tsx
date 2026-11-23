@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { folderName } from './storageTree'
+import type { FolderFileCount } from './useStorage'
 
 interface DeleteFolderModalProps {
   /** The folder to delete ("docs/"), null while closed. */
@@ -10,7 +11,7 @@ interface DeleteFolderModalProps {
   workspaceId: string
   bucket: string
   /** Reads the folder's own listing, not the cached one: it may be capped or stale. */
-  countFiles: (folder: string) => Promise<number>
+  countFiles: (folder: string) => Promise<FolderFileCount>
   loading: boolean
   zIndex?: number
   onConfirm: (folder: string) => void
@@ -38,15 +39,19 @@ export function DeleteFolderModal({
   })
 
   const name = folder ? folderName(folder) : ''
+  // The server refuses to delete a folder of more objects than it lists.
+  const tooLarge = count.data?.capped === true
   const question =
     count.data === undefined
       ? t`Delete the folder ${name} and its files?`
-      : count.data === 0
-        ? t`Delete the empty folder ${name}?`
-        : plural(count.data, {
-          one: `Delete the folder ${name} and its # file?`,
-          other: `Delete the folder ${name} and its # files?`
-        })
+      : tooLarge
+        ? t`The folder ${name} holds more than 10,000 files. Delete its subfolders first.`
+        : count.data.count === 0
+          ? t`Delete the empty folder ${name}?`
+          : plural(count.data.count, {
+            one: `Delete the folder ${name} and its # file?`,
+            other: `Delete the folder ${name} and its # files?`
+          })
 
   return (
     <Modal
@@ -54,7 +59,7 @@ export function DeleteFolderModal({
       title={t`Delete folder`}
       okText={t`Delete folder`}
       cancelText={t`Cancel`}
-      okButtonProps={{ danger: true, loading }}
+      okButtonProps={{ danger: true, loading, disabled: tooLarge }}
       zIndex={zIndex}
       onOk={() => folder && onConfirm(folder)}
       onCancel={onCancel}

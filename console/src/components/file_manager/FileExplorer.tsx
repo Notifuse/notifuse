@@ -129,6 +129,7 @@ export function FileExplorer(props: FileExplorerProps) {
   const { mode } = props
   const isPicker = mode === 'picker'
   const readOnly = props.readOnly ?? false
+  const canEditSettings = props.canEditSettings ?? false
   const { t, i18n } = useLingui()
   const { message, modal } = App.useApp()
   const overlayZ = isPicker ? PICKER_OVERLAY_Z : undefined
@@ -433,6 +434,9 @@ export function FileExplorer(props: FileExplorerProps) {
             setCheckedKeys([])
             if (selectedKey && keys.includes(selectedKey)) setSelectedKey(undefined)
           }
+        } catch (error) {
+          message.error(t`Failed to delete the files: ` + (error instanceof Error ? error.message : String(error)))
+          reportError(error)
         } finally {
           if (mountedRef.current) setIsDeletingFiles(false)
         }
@@ -538,7 +542,11 @@ export function FileExplorer(props: FileExplorerProps) {
   }
 
   // useStorage lists the bucket again once the new settings reach it.
-  const updateSettings = (settings: FileManagerSettings) => props.onUpdateSettings(settings)
+  // The listing no longer depends on a client built from the settings: list again once saved.
+  const updateSettings = async (settings: FileManagerSettings) => {
+    await props.onUpdateSettings(settings)
+    await storage.invalidate()
+  }
 
   // Menus
 
@@ -603,18 +611,22 @@ export function FileExplorer(props: FileExplorerProps) {
 
   const browseFiles = () => inputFileRef.current?.click()
 
-  const settingsButton = readOnly ? (
-    <Tooltip title={t`Storage settings (Read-only mode)`}>
-      <Button
-        type="text"
-        size="small"
-        disabled
-        aria-label={t`Storage settings`}
-        icon={<Settings size={15} aria-hidden="true" />}
-      />
+  const settingsButton = !canEditSettings ? (
+    // A disabled button fires no mouse events: the span carries the tooltip.
+    <Tooltip title={t`Only an owner can change the storage settings`}>
+      <span>
+        <Button
+          type="text"
+          size="small"
+          disabled
+          aria-label={t`Storage settings`}
+          icon={<Settings size={15} aria-hidden="true" />}
+        />
+      </span>
     </Tooltip>
   ) : (
     <ButtonFilesSettings
+      workspaceId={props.workspaceId}
       settings={props.settings}
       onUpdateSettings={updateSettings}
       settingsInfo={props.settingsInfo}
@@ -808,9 +820,21 @@ export function FileExplorer(props: FileExplorerProps) {
       title={t`Couldn't load the files`}
       subTitle={storage.error instanceof Error ? storage.error.message : String(storage.error)}
       extra={
-        <Button type="primary" onClick={() => void storage.refetch()}>
-          {t`Retry`}
-        </Button>
+        <div className="flex justify-center gap-2">
+          <Button type="primary" onClick={() => void storage.refetch()}>
+            {t`Retry`}
+          </Button>
+          {canEditSettings && (
+            <ButtonFilesSettings
+              workspaceId={props.workspaceId}
+              settings={props.settings}
+              onUpdateSettings={updateSettings}
+              settingsInfo={props.settingsInfo}
+            >
+              <Button>{t`Storage settings`}</Button>
+            </ButtonFilesSettings>
+          )}
+        </div>
       }
     />
   ) : view === 'list' ? (
@@ -1005,14 +1029,16 @@ export function FileExplorer(props: FileExplorerProps) {
           <div className="text-sm text-ink-3">
             {t`Connect an S3-compatible bucket to upload images for your emails and blog.`}
           </div>
-          {readOnly ? (
-            <Tooltip title={t`Storage settings (Read-only mode)`}>
-              <Button type="primary" disabled>
-                {t`Configure now`}
-              </Button>
+          {!canEditSettings ? (
+            <Tooltip title={t`Only an owner can change the storage settings`}>
+              <span>
+                <Button type="primary" disabled>
+                  {t`Configure now`}
+                </Button>
+              </span>
             </Tooltip>
           ) : (
-            <ButtonFilesSettings settings={props.settings} onUpdateSettings={updateSettings}>
+            <ButtonFilesSettings workspaceId={props.workspaceId} settings={props.settings} onUpdateSettings={updateSettings}>
               <Button type="primary">{t`Configure now`}</Button>
             </ButtonFilesSettings>
           )}

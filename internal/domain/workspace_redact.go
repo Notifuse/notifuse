@@ -47,39 +47,22 @@ func credentialHint(secret string) string {
 // see, for /api/workspaces.verifyInvitationToken.
 //
 // Redact() is calibrated for a member: it keeps the encrypted forms so the
-// console can show "configured", keeps a few characters of each credential as a
-// recognition hint, and keeps the S3 secret because the browser's file manager
-// genuinely needs it. Every one of those justifications assumes the caller is
-// inside the workspace. On the invitation route they are not — they hold a token
-// and may never accept it — so none of it applies.
+// console can show "configured", and keeps a few characters of each credential as
+// a recognition hint. Both assume the caller is inside the workspace. On the
+// invitation route they are not — they hold a token and may never accept it — so
+// neither applies.
 //
 // The invitation page renders the workspace's name and nothing else, so the
-// integrations go entirely: which email provider or LLM a workspace uses is not
-// an invitee's business before they have joined.
+// integrations and the file storage settings go entirely: which email provider,
+// LLM or bucket a workspace uses is not an invitee's business before they have
+// joined.
 func (w *Workspace) RedactForPublic() {
 	if w == nil {
 		return
 	}
 	w.Redact()
 	w.Integrations = nil
-	w.RedactFileManagerSecret()
-}
-
-// RedactFileManagerSecret blanks the S3 credential Redact deliberately keeps.
-//
-// Separate from Redact because the two answer different questions. Redact asks
-// "may this leave the process at all", and for the S3 secret the answer is yes:
-// the console's file manager talks to the bucket from the browser with it.
-// This asks "does THIS response need it", and for a listing that exists to tell
-// a caller which workspaces it can reach, the answer is no.
-//
-// Safe on a nil receiver so boundary call sites need no guard.
-func (w *Workspace) RedactFileManagerSecret() {
-	if w == nil {
-		return
-	}
-	w.Settings.FileManager.SecretKey = ""
-	w.Settings.FileManager.EncryptedSecretKey = ""
+	w.Settings.FileManager = FileManagerSettings{}
 }
 
 // Redact removes every decrypted credential from the workspace, in place.
@@ -99,19 +82,15 @@ func (w *Workspace) Redact() {
 	// public nor the encrypted private keys go out with the workspace.
 	w.Settings.DKIMKeys = nil
 
-	// Settings.FileManager.SecretKey is deliberately NOT redacted, and it is the
-	// one exception here.
-	//
-	// Integration credentials are used server-side only — the backend does the
-	// sending — so no client ever needs them. The S3 secret is different: the
-	// console builds an S3Client in the browser from this exact field
-	// (console/src/components/file_manager/fileManager.tsx) and talks to the
-	// bucket directly, for listing, upload and delete. Blanking it here does not
-	// harden anything, it just breaks the file manager for every user.
-	//
-	// Fixing it properly means the browser never holds the key at all: presigned
-	// URLs minted by the backend, or proxying the operations through it. That is
-	// an architectural change, not a redaction, and it is tracked separately.
+	// The file storage secret is used server-side only: the backend lists, deletes
+	// and signs the upload URLs (files.* endpoints), so no client needs it. The
+	// response says whether one is set, with a hint when it is long enough to give
+	// one, as the integrations do.
+	fm := &w.Settings.FileManager
+	fm.HasSecretKey = fm.SecretKey != "" || fm.EncryptedSecretKey != ""
+	fm.SecretKeyHint = credentialHint(fm.SecretKey)
+	fm.SecretKey = ""
+	fm.EncryptedSecretKey = ""
 
 	for i := range w.Integrations {
 		w.Integrations[i].Redact()
