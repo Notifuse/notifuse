@@ -75,6 +75,7 @@ type AppInterface interface {
 	GetAutomationScheduler() *service.AutomationScheduler
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
+	GetDataRetentionService() *service.DataRetentionService
 	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
 	GetCustomEventRepository() domain.CustomEventRepository
 
@@ -191,6 +192,7 @@ type App struct {
 	auditLogService                  *service.AuditLogService
 	auditLogPurgeWorker              *service.AuditLogPurgeWorker
 	dataRetentionWorker              *service.DataRetentionWorker
+	dataRetentionService             *service.DataRetentionService
 	dkimKeyStore                     *service.DKIMKeyStore
 	dkimService                      *service.DKIMService
 	dkimVerificationWorker           *service.DKIMVerificationWorker
@@ -908,6 +910,20 @@ func (a *App) InitServices() error {
 	)
 	a.contactService.SetErasureRepository(a.contactErasureRepo)
 
+	// Data retention: the policies, their daily run (from the Lot 0 worker) and the
+	// erasure of the history of the contacts it deletes. Holds no licence provider.
+	a.dataRetentionService = service.NewDataRetentionService(
+		a.workspaceRepo,
+		a.settingRepo,
+		repository.NewDataRetentionRepository(a.workspaceRepo),
+		a.contactService,
+		a.authService,
+		a.mailer,
+		a.auditLogService,
+		a.logger,
+	)
+	a.dataRetentionWorker.SetRunner(a.dataRetentionService)
+
 	// Initialize contact list service
 	a.contactListService = service.NewContactListService(
 		a.contactListRepo,
@@ -1444,6 +1460,15 @@ func (a *App) InitServices() error {
 	// Enable the stop-on-reply just-in-time guard for automation sends.
 	a.emailQueueWorker.SetAutomationRepo(a.automationRepo)
 
+	// The two technical logs keep each workspace's data retention period (7 days unless
+	// the workspace or root changed it).
+	a.webhookDeliveryWorker.SetRetentionPeriod(func(ctx context.Context, workspace *domain.Workspace) int {
+		return a.dataRetentionService.EffectiveDays(ctx, workspace, domain.RetentionWebhookDeliveries)
+	})
+	a.emailQueueWorker.SetRetentionPeriod(func(ctx context.Context, workspace *domain.Workspace) int {
+		return a.dataRetentionService.EffectiveDays(ctx, workspace, domain.RetentionFailedEmails)
+	})
+
 	// An open circuit means the provider is refusing everything, so stop the
 	// campaigns riding on it and tell their owners. Without this the breaker only
 	// throttles: it resets after each cooldown and lets five more real attempts
@@ -1833,7 +1858,9 @@ func (a *App) InitHandlers() error {
 
 	// Register routes
 	setupHandler.RegisterRoutes(a.mux) // Setup handler first (should be accessible without auth)
+	a.settingsHandler.SetDataRetention(a.dataRetentionService)
 	a.settingsHandler.RegisterRoutes(a.mux)
+	httpHandler.NewDataRetentionHandler(a.dataRetentionService, getJWTSecret, a.config.IsDemo(), a.logger).RegisterRoutes(a.mux)
 	userHandler.RegisterRoutes(a.mux)
 	oidcHandler.RegisterRoutes(a.mux)
 	workspaceHandler.RegisterRoutes(a.mux)
@@ -2716,6 +2743,11 @@ func (a *App) GetAuditLogService() *service.AuditLogService {
 // deterministically instead of waiting for the ticker).
 func (a *App) GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer {
 	return a.webAnalyticsBuffer
+}
+
+// GetDataRetentionService returns the data retention service (integration tests run it).
+func (a *App) GetDataRetentionService() *service.DataRetentionService {
+	return a.dataRetentionService
 }
 
 // SetHandler allows setting a custom HTTP handler

@@ -160,6 +160,9 @@ type CircuitOpenCallback func(workspaceID string, integrationID string, lastErr 
 
 // EmailQueueWorker processes queued emails
 type EmailQueueWorker struct {
+	// retentionPeriod, when set, gives each workspace's period for its failed rows (its
+	// data retention policy); otherwise the config's TerminalRetentionDays applies to all.
+	retentionPeriod    func(ctx context.Context, workspace *domain.Workspace) int
 	queueRepo          domain.EmailQueueRepository
 	workspaceRepo      domain.WorkspaceRepository
 	emailService       domain.EmailServiceInterface
@@ -1161,7 +1164,14 @@ func (w *EmailQueueWorker) cleanupTerminallyFailed() {
 	}
 
 	for _, workspace := range workspaces {
-		deleted, err := w.queueRepo.DeleteTerminallyFailedOlderThan(w.ctx, workspace.ID, retentionDays)
+		days := retentionDays
+		if w.retentionPeriod != nil {
+			days = w.retentionPeriod(w.ctx, workspace)
+		}
+		if days <= 0 {
+			continue // the workspace keeps its failed rows (data retention: off)
+		}
+		deleted, err := w.queueRepo.DeleteTerminallyFailedOlderThan(w.ctx, workspace.ID, days)
 		if err != nil {
 			w.logger.WithFields(map[string]interface{}{
 				"workspace_id": workspace.ID,
@@ -1191,4 +1201,9 @@ func (w *EmailQueueWorker) GetConfig() *EmailQueueWorkerConfig {
 // GetCircuitBreakerStats returns statistics about all circuit breakers
 func (w *EmailQueueWorker) GetCircuitBreakerStats() map[string]CircuitBreakerStats {
 	return w.circuitBreaker.GetStats()
+}
+
+// SetRetentionPeriod makes the failed-row sweep read each workspace's data retention period.
+func (w *EmailQueueWorker) SetRetentionPeriod(period func(ctx context.Context, workspace *domain.Workspace) int) {
+	w.retentionPeriod = period
 }

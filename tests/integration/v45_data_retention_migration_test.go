@@ -34,10 +34,22 @@ func pre45Bodies(t *testing.T) []string {
 	require.Regexp(t, timeline, trackLists)
 	require.Regexp(t, webhook, webhookLists)
 	require.Contains(t, trackMessages, schema.ErasedContactStep)
+	// The retention engine's purge branches (no segment.left, an address-only contact.deleted).
+	segmentTimeline := regexp.MustCompile(`(?s)\n\s*-- A contact erased by a retention purge does not leave a segment\.\n\s*IF current_setting\('notifuse\.retention_purge', true\) = 'on' THEN\n\s*RETURN OLD;\n\s*END IF;`)
+	trackSegments := schema.TrackContactSegmentChangesFunction()
+	webhookSegments := schema.WebhookContactSegmentsTriggerFunction()
+	require.Regexp(t, segmentTimeline, trackSegments)
+	require.Regexp(t, segmentTimeline, webhookSegments)
+	webhookContacts := schema.WebhookContactsTriggerFunction()
+	purgePayload := regexp.MustCompile(`(?s)IF TG_OP = 'DELETE' AND current_setting\('notifuse\.retention_purge', true\) = 'on' THEN\n.*?ELSE\n(\s*payload := jsonb_build_object\(\n\s*'contact', to_jsonb\(contact_record\)\n\s*\);)\n\s*END IF;`)
+	require.Regexp(t, purgePayload, webhookContacts)
 	return []string{
 		timeline.ReplaceAllString(trackLists, "\n"),
 		webhook.ReplaceAllString(webhookLists, "\n"),
 		strings.Replace(trackMessages, schema.ErasedContactStep, "", 1),
+		segmentTimeline.ReplaceAllString(trackSegments, ""),
+		segmentTimeline.ReplaceAllString(webhookSegments, ""),
+		purgePayload.ReplaceAllString(webhookContacts, "$1"),
 	}
 }
 
@@ -80,6 +92,8 @@ func TestV45DataRetentionMigration(t *testing.T) {
 		`DROP TABLE IF EXISTS contact_opt_out_hash_key`,
 		`DROP TABLE IF EXISTS contact_engagement`,
 		`DROP TABLE IF EXISTS data_retention_state`,
+		`DROP TABLE IF EXISTS data_retention_runs`,
+		`DROP TABLE IF EXISTS data_retention_erasure_queue`,
 	}, pre45Bodies(t)...) {
 		_, err := db.ExecContext(bg, statement)
 		require.NoError(t, err, statement)
@@ -97,7 +111,8 @@ func TestV45DataRetentionMigration(t *testing.T) {
 	}
 
 	// --- the same objects as a workspace created at 45 --------------------------------
-	for _, table := range []string{"contact_opt_out_hashes", "contact_opt_out_hash_key", "contact_engagement", "data_retention_state"} {
+	for _, table := range []string{"contact_opt_out_hashes", "contact_opt_out_hash_key", "contact_engagement", "data_retention_state",
+		"data_retention_runs", "data_retention_erasure_queue"} {
 		assert.True(t, tableExists(t, db, table), table)
 	}
 
@@ -123,7 +138,8 @@ func TestV45DataRetentionMigration(t *testing.T) {
 	require.NoError(t, db.QueryRowContext(bg, `SELECT COUNT(*) FROM contact_opt_out_hash_key WHERE octet_length(key) = 32`).Scan(&keys))
 	assert.Equal(t, 1, keys, "one 32-byte key, generated once")
 	for _, function := range []string{"contact_opt_out_hash", "restore_contact_opt_outs", "track_contact_list_changes",
-		"webhook_contact_lists_trigger", "track_message_history_changes"} {
+		"webhook_contact_lists_trigger", "track_message_history_changes",
+		"track_contact_segment_changes", "webhook_contact_segments_trigger", "webhook_contacts_trigger"} {
 		assert.Equal(t, functionDefinition(t, freshDB, function), functionDefinition(t, db, function), function)
 	}
 	var triggers int

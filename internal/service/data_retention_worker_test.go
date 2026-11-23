@@ -113,3 +113,23 @@ func TestDataRetentionWorker_StartStopsOnCancel(t *testing.T) {
 		t.Fatal("Start did not return after cancel")
 	}
 }
+
+type fakeRetentionRunner struct{ runs int }
+
+func (f *fakeRetentionRunner) RunAll(context.Context) { f.runs++ }
+
+// The policies run after the hashes, in every licence state: the worker holds no licence.
+func TestDataRetentionWorker_RunsThePolicies(t *testing.T) {
+	purger := &fakeHashPurger{}
+	runner := &fakeRetentionRunner{}
+	w := newTestDataRetentionWorker(t, fakeWorkspaceLister{workspaces: []*domain.Workspace{{ID: "a"}}}, purger)
+	w.SetRunner(runner)
+	w.RunOnce(context.Background())
+	assert.Equal(t, 1, purger.callCount())
+	assert.Equal(t, 1, runner.runs)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	w.RunOnce(ctx)
+	assert.Equal(t, 1, runner.runs, "a cancelled context runs nothing")
+}

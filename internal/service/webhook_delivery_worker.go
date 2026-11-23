@@ -127,6 +127,9 @@ type WebhookDeliveryWorker struct {
 	lastCleanupTime  time.Time
 	cleanupInterval  time.Duration
 	retentionDays    int
+	// retentionPeriod, when set, gives each workspace's period (its data retention policy);
+	// otherwise retentionDays applies to all.
+	retentionPeriod  func(ctx context.Context, workspace *domain.Workspace) int
 	claimLease       time.Duration
 	requestTimeout   time.Duration
 	failureThreshold int
@@ -747,7 +750,14 @@ func (w *WebhookDeliveryWorker) cleanupOldDeliveries(ctx context.Context) {
 	}
 
 	for _, workspace := range workspaces {
-		deleted, err := w.deliveryRepo.CleanupOldDeliveries(ctx, workspace.ID, w.retentionDays)
+		days := w.retentionDays
+		if w.retentionPeriod != nil {
+			days = w.retentionPeriod(ctx, workspace)
+		}
+		if days <= 0 {
+			continue // the workspace keeps its deliveries (data retention: off)
+		}
+		deleted, err := w.deliveryRepo.CleanupOldDeliveries(ctx, workspace.ID, days)
 		if err != nil {
 			w.logger.WithFields(map[string]interface{}{
 				"workspace_id": workspace.ID,
@@ -1508,4 +1518,9 @@ func (w *WebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID
 	defer resp.Body.Close()
 
 	return resp.StatusCode, readLimitedResponseBody(resp), nil
+}
+
+// SetRetentionPeriod makes the cleanup read each workspace's data retention period.
+func (w *WebhookDeliveryWorker) SetRetentionPeriod(period func(ctx context.Context, workspace *domain.Workspace) int) {
+	w.retentionPeriod = period
 }

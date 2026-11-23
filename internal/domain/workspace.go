@@ -487,9 +487,13 @@ type WorkspaceSettings struct {
 	// AuditLogs is the per-workspace audit retention; nil means the deployment
 	// default. Written only through workspaces.setAuditLogSettings and preserved
 	// across a partial workspaces.update like the other owner-only settings.
-	AuditLogs       *AuditLogSettings `json:"audit_logs,omitempty"`
-	DefaultLanguage string            `json:"default_language"`
-	Languages       []string          `json:"languages"`
+	AuditLogs *AuditLogSettings `json:"audit_logs,omitempty"`
+	// DataRetention is the workspace's retention policy and the change that waits, if any;
+	// nil means the deployment defaults. Written only through dataRetention.set and
+	// dataRetention.cancelPending, and preserved across a partial workspaces.update.
+	DataRetention   *DataRetentionSettings `json:"data_retention,omitempty"`
+	DefaultLanguage string                 `json:"default_language"`
+	Languages       []string               `json:"languages"`
 	// DKIMKeys are the keys Notifuse signs the workspace's SMTP emails with, one per
 	// domain. Written only by WorkspaceRepository.UpdateDKIMKeys: Update() keeps the
 	// stored ones whatever this field holds. Never opened by AfterLoad.
@@ -1173,6 +1177,9 @@ type WorkspaceRepository interface {
 	Create(ctx context.Context, workspace *Workspace) error
 	// SetMCPSettings writes the MCP switch alone; Update keeps the stored one.
 	SetMCPSettings(ctx context.Context, workspaceID string, settings *MCPSettings) error
+	// SetDataRetentionSettings writes the data retention settings alone, if their stored
+	// revision is still expectedRevision; Update keeps the stored ones.
+	SetDataRetentionSettings(ctx context.Context, workspaceID string, expectedRevision int, settings *DataRetentionSettings) (bool, error)
 	GetByID(ctx context.Context, id string) (*Workspace, error)
 	GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*Workspace, error)
 	// ListCustomEndpoints returns the custom endpoint URL of every workspace that has
@@ -1642,6 +1649,7 @@ var preservableWorkspaceSettingKeys = []string{
 	"email_tracking",
 	"custom_endpoint_url",
 	"audit_logs",
+	"data_retention",
 }
 
 // UnmarshalJSON decodes the request and records which settings the body left out.
@@ -1715,6 +1723,7 @@ func (ws *WorkspaceSettings) PreserveOmitted(stored WorkspaceSettings) {
 	keep("email_tracking", func() { ws.EmailTracking = nil })
 	keep("custom_endpoint_url", func() { ws.CustomEndpointURL = stored.CustomEndpointURL })
 	keep("audit_logs", func() { ws.AuditLogs = stored.AuditLogs })
+	keep("data_retention", func() { ws.DataRetention = stored.DataRetention })
 }
 
 func (r *UpdateWorkspaceRequest) Validate(passphrase string) error {

@@ -126,6 +126,88 @@ type SettingsHandler struct {
 	secretKey      string
 	rootEmail      string
 	app            AppShutdowner
+	// retentionDefaults serves dataRetention.getDefaults and setDefaults; nil answers 503.
+	retentionDefaults retentionDefaultsService
+}
+
+// retentionDefaultsService is what the settings handler needs from DataRetentionService.
+type retentionDefaultsService interface {
+	Defaults(ctx context.Context) (*domain.RetentionDefaults, error)
+	SetDefaults(ctx context.Context, categories map[domain.RetentionCategory]int) (*domain.RetentionDefaults, error)
+}
+
+// SetDataRetention supplies the deployment's data retention defaults (root only).
+func (h *SettingsHandler) SetDataRetention(svc retentionDefaultsService) {
+	h.retentionDefaults = svc
+}
+
+// GET /api/dataRetention.getDefaults — the deployment's default periods (root), and the
+// change that waits, if any. Not part of settings.update: saving it needs no restart.
+func (h *SettingsHandler) handleGetRetentionDefaults(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.requireRootUser(w, r) == nil {
+		return
+	}
+	if h.retentionDefaults == nil {
+		WriteJSONError(w, "Data retention is not available", http.StatusServiceUnavailable)
+		return
+	}
+	stored, err := h.retentionDefaults.Defaults(r.Context())
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to read the data retention defaults")
+		WriteJSONError(w, "Failed to read the data retention defaults", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"defaults": stored.ResolvedDefaults(time.Now()),
+		"stored":   stored,
+	})
+}
+
+// POST /api/dataRetention.setDefaults {"categories": {...}} — root. A default that deletes
+// more waits 7 days and the owners of the workspaces it reaches are told.
+func (h *SettingsHandler) handleSetRetentionDefaults(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.requireRootUser(w, r) == nil {
+		return
+	}
+	if h.retentionDefaults == nil {
+		WriteJSONError(w, "Data retention is not available", http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		Categories map[domain.RetentionCategory]int `json:"categories"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.Categories == nil {
+		WriteJSONError(w, "categories is required", http.StatusBadRequest)
+		return
+	}
+	ctx := r.Context()
+	before, _ := h.retentionDefaults.Defaults(ctx) // for the audit diff only; SetDefaults reports a failed read
+	saved, err := h.retentionDefaults.SetDefaults(ctx, req.Categories)
+	if err != nil {
+		if writeServiceError(w, err, "Failed to set the data retention defaults") {
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to set the data retention defaults")
+		WriteJSONError(w, "Failed to set the data retention defaults", http.StatusInternalServerError)
+		return
+	}
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetSettings, "data_retention_defaults", "")
+		audit.SetChanges(domain.AuditDiff(before, saved))
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"stored": saved, "defaults": saved.ResolvedDefaults(time.Now())})
 }
 
 // NewSettingsHandler creates a new settings handler
@@ -738,6 +820,8 @@ func (h *SettingsHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/settings.get", requireAuth(http.HandlerFunc(h.handleGet)))
 	mux.Handle("/api/settings.update", requireAuth(http.HandlerFunc(h.handleUpdate)))
 	mux.Handle("/api/settings.testSmtp", requireAuth(http.HandlerFunc(h.handleTestSMTP)))
+	mux.Handle("/api/dataRetention.getDefaults", requireAuth(http.HandlerFunc(h.handleGetRetentionDefaults)))
+	mux.Handle("/api/dataRetention.setDefaults", requireAuth(http.HandlerFunc(h.handleSetRetentionDefaults)))
 
 	// licence.* rather than settings.licence.*: the console reads the licence on pages that
 	// have nothing to do with settings, so filing it under the settings namespace would name

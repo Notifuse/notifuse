@@ -567,6 +567,25 @@ func TestV39WebhookContactsTriggerFunction_IsTheGeneratorWithoutTheConsentColumn
 	require.Equal(t, 1, strings.Count(current, consentComparisons),
 		"the generator no longer ends its comparison with the three consent columns")
 
+	// v45 added the retention purge's address-only payload (data retention, D8): v39 built
+	// the full payload on every path.
+	const purgePayload = "-- Build payload with full contact object. A contact deleted by a retention purge\n" +
+		"\t\t\t-- is announced by its address only: subscribers get the signal to propagate the\n" +
+		"\t\t\t-- deletion, not a copy of the data being erased.\n" +
+		"\t\t\tIF TG_OP = 'DELETE' AND " + schema.RetentionPurgeOn + " THEN\n" +
+		"\t\t\t\tpayload := jsonb_build_object('contact', jsonb_build_object('email', OLD.email));\n" +
+		"\t\t\tELSE\n" +
+		"\t\t\t\tpayload := jsonb_build_object(\n" +
+		"\t\t\t\t\t'contact', to_jsonb(contact_record)\n" +
+		"\t\t\t\t);\n" +
+		"\t\t\tEND IF;\n"
+	const fullPayload = "-- Build payload with full contact object\n" +
+		"\t\t\tpayload := jsonb_build_object(\n" +
+		"\t\t\t\t'contact', to_jsonb(contact_record)\n" +
+		"\t\t\t);\n"
+	require.Equal(t, 1, strings.Count(current, purgePayload), "the generator no longer has the purge payload")
+	current = strings.Replace(current, purgePayload, fullPayload, 1)
+
 	assert.Equal(t, strings.Replace(current, consentComparisons, " THEN", 1), v39WebhookContactsTriggerFunction)
 }
 
