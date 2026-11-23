@@ -154,6 +154,12 @@ func TestCommitAndFail(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, ErrTwoFactorInvalidCode, inner, "the caller gets the business error, unwrapped")
 
+	// CommitAndFail(nil) is a bug: it must not commit and report success.
+	nilMarked := CommitAndFail(nil)
+	require.Error(t, nilMarked)
+	_, ok = AsCommitAndFail(nilMarked)
+	assert.False(t, ok, "rolled back, not committed")
+
 	plain := errors.New("database down")
 	inner, ok = AsCommitAndFail(plain)
 	assert.False(t, ok)

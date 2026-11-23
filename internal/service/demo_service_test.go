@@ -218,7 +218,7 @@ func TestDemoService_RootContext(t *testing.T) {
 
 		// The context authenticates the way a signed-in console does.
 		authRepo := domainmocks.NewMockAuthRepository(ctrl)
-		authRepo.EXPECT().GetSessionByID(gomock.Any(), session.ID, root.ID).Return(&session.ExpiresAt, nil)
+		authRepo.EXPECT().GetSessionByID(gomock.Any(), session.ID, root.ID).Return(&domain.SessionAuth{ExpiresAt: session.ExpiresAt}, nil)
 		authRepo.EXPECT().GetUserByID(gomock.Any(), root.ID).Return(root, nil)
 		authService := NewAuthService(AuthServiceConfig{Repository: authRepo, Logger: logger.NewLoggerWithLevel("disabled")})
 
@@ -307,7 +307,7 @@ func TestDemoService_SeedContext_OutlivesTheSession(t *testing.T) {
 	ctx = context.WithValue(ctx, domain.SessionIDKey, "seed-session")
 
 	// The one check, while the session is open.
-	authRepo.EXPECT().GetSessionByID(gomock.Any(), "seed-session", root.ID).Return(&expiresAt, nil).Times(1)
+	authRepo.EXPECT().GetSessionByID(gomock.Any(), "seed-session", root.ID).Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil).Times(1)
 	authRepo.EXPECT().GetUserByID(gomock.Any(), root.ID).Return(root, nil).Times(1)
 	workspaceRepo.EXPECT().GetByID(gomock.Any(), "demo").Return(&domain.Workspace{ID: "demo"}, nil).Times(1)
 	workspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), root.ID, "demo").

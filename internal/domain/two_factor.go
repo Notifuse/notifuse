@@ -236,8 +236,16 @@ type commitAndFail struct {
 func (c *commitAndFail) Error() string { return c.err.Error() }
 func (c *commitAndFail) Unwrap() error { return c.err }
 
-// CommitAndFail wraps err so that a system transaction commits before returning it.
+// errCommitAndFailWithoutError is what CommitAndFail(nil) returns: a bug, which must roll
+// back rather than commit and report success.
+var errCommitAndFailWithoutError = errors.New("CommitAndFail called without an error")
+
+// CommitAndFail wraps err so that a system transaction commits before returning it. The
+// caller receives err itself: context wrapped around the marker is not kept.
 func CommitAndFail(err error) error {
+	if err == nil {
+		return errCommitAndFailWithoutError
+	}
 	return &commitAndFail{err: err}
 }
 

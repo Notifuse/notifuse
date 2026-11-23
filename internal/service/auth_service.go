@@ -98,18 +98,20 @@ func (s *AuthService) InvalidateSecretCache() {
 }
 func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.User, error) {
 
+	// A request without the claims of a token is not authenticated: ErrSessionAuthFailed,
+	// which answers 401, like an expired session.
 	userID, ok := ctx.Value(domain.UserIDKey).(string)
 	if !ok || userID == "" {
-		return nil, ErrUserNotFound
+		return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 	}
 	userType, ok := ctx.Value(domain.UserTypeKey).(string)
 	if !ok || userType == "" {
-		return nil, ErrUserNotFound
+		return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 	}
 	if userType == string(domain.UserTypeUser) {
 		sessionID, ok := ctx.Value(domain.SessionIDKey).(string)
 		if !ok || sessionID == "" {
-			return nil, ErrUserNotFound
+			return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 		}
 		return s.VerifyUserSession(ctx, userID, sessionID)
 	} else if userType == string(domain.UserTypeAPIKey) {
@@ -132,7 +134,7 @@ func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.
 		}
 		return user, err
 	}
-	return nil, ErrUserNotFound
+	return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 }
 
 // AuthenticateUserForWorkspace checks if the user exists and the session is valid for a specific workspace.
@@ -241,44 +243,49 @@ func (s *AuthService) recordActor(ctx context.Context, user *domain.User, userWo
 
 // VerifyUserSession checks if the user exists and the session is valid
 func (s *AuthService) VerifyUserSession(ctx context.Context, userID, sessionID string) (*domain.User, error) {
-	// First check if the session is valid and not expired
-	expiresAt, err := s.repo.GetSessionByID(ctx, sessionID, userID)
+	user, _, err := s.verifySession(ctx, userID, sessionID)
+	return user, err
+}
 
+// verifySession checks the session and its user, and returns what the request needs to
+// know about the session. Every failure that means "not authenticated" (no usable session,
+// an expired one, a user that is gone or that is not a person) wraps
+// domain.ErrSessionAuthFailed, which the HTTP layer answers with 401; a lookup that could
+// not be answered stays a plain error, so a database failure is not taken for a sign-out.
+func (s *AuthService) verifySession(ctx context.Context, userID, sessionID string) (*domain.User, *domain.SessionAuth, error) {
+	session, err := s.repo.GetSessionByID(ctx, sessionID, userID)
 	if err == sql.ErrNoRows {
 		if s.logger != nil {
 			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).Error("Session not found")
 		}
-		return nil, ErrSessionExpired
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrSessionExpired)
 	}
 	if err != nil {
 		if s.logger != nil {
 			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("error", err.Error()).Error("Failed to query session")
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
-	// Check if session is expired
-	if time.Now().After(*expiresAt) {
+	if time.Now().After(session.ExpiresAt) {
 		if s.logger != nil {
-			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("expires_at", expiresAt).Error("Session expired")
+			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("expires_at", session.ExpiresAt).Error("Session expired")
 		}
-		return nil, ErrSessionExpired
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrSessionExpired)
 	}
 
-	// Get user details
 	user, err := s.repo.GetUserByID(ctx, userID)
-
 	if err == sql.ErrNoRows {
 		if s.logger != nil {
 			s.logger.WithField("user_id", userID).Error("User not found")
 		}
-		return nil, ErrUserNotFound
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 	}
 	if err != nil {
 		if s.logger != nil {
 			s.logger.WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to query user")
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Sessions belong to people. An API key account never signs in, so a session
@@ -287,10 +294,10 @@ func (s *AuthService) VerifyUserSession(ctx context.Context, userID, sessionID s
 		if s.logger != nil {
 			s.logger.WithField("user_id", userID).Error("Session token names an account that is not a user")
 		}
-		return nil, ErrUserNotFound
+		return nil, nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrUserNotFound)
 	}
 
-	return user, nil
+	return user, session, nil
 }
 
 // GenerateUserAuthToken generates an authentication token for a user

@@ -17,7 +17,10 @@ const WorkspaceIDKey ContextKey = "workspace_id"
 
 // AuthRepository defines the interface for auth-related database operations
 type AuthRepository interface {
-	GetSessionByID(ctx context.Context, sessionID string, userID string) (*time.Time, error)
+	// GetSessionByID returns a usable session (sql.ErrNoRows when there is none).
+	GetSessionByID(ctx context.Context, sessionID string, userID string) (*SessionAuth, error)
+	// IsTwoFactorEnabled reports whether the user turned on two-factor authentication.
+	IsTwoFactorEnabled(ctx context.Context, userID string) (bool, error)
 	GetUserByID(ctx context.Context, userID string) (*User, error)
 }
 
