@@ -200,3 +200,14 @@ func TestTheConsoleHasALabelForEveryAuditCategory(t *testing.T) {
 		assert.Regexp(t, `(?m)^\s+`+category+`: msg`+"`", block, "the console has no label for the %s category", category)
 	}
 }
+
+func TestAuditCatalogue_MCPSwitchIsAuditedLikeTheOtherWorkspaceSetters(t *testing.T) {
+	spec, ok := AuditedActions["workspaces.setMCPSettings"]
+	require.True(t, ok, "switching MCP off or on is an owner's control-plane change")
+	assert.Equal(t, AuditActionSpec{Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"}, spec)
+
+	_, read := AuditLoggedReads["workspaces.setMCPSettings"]
+	assert.False(t, read)
+	_, excluded := AuditExcludedRoutes["workspaces.setMCPSettings"]
+	assert.False(t, excluded)
+}

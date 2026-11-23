@@ -135,12 +135,22 @@ func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.
 	return nil, ErrUserNotFound
 }
 
-// AuthenticateUserForWorkspace checks if the user exists and the session is valid for a specific workspace
+// AuthenticateUserForWorkspace checks if the user exists and the session is valid for a specific workspace.
+//
+// When the context carries an MCPCaller, the workspace must also be reachable
+// over MCP: a membership row and the workspace's MCP switch on. A nonexistent
+// workspace, a missing membership and a switched-off workspace then all answer
+// ErrUserNotInWorkspace, so an MCP client cannot tell them apart.
 func (s *AuthService) AuthenticateUserForWorkspace(ctx context.Context, workspaceID string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
-	// Check if user is already set in context for this workspace
+	// Check if user is already set in context for this workspace. The membership
+	// is cached per workspace and must name this one: a context authenticated
+	// against several workspaces holds one membership for each.
 	if workspaceUser, ok := ctx.Value(domain.WorkspaceUserKey(workspaceID)).(*domain.User); ok && workspaceUser != nil {
-		// Also check if we have the userWorkspace in context
-		if userWorkspace, ok := ctx.Value(domain.UserWorkspaceKey).(*domain.UserWorkspace); ok && userWorkspace != nil {
+		if userWorkspace, ok := ctx.Value(domain.WorkspaceMembershipKey(workspaceID)).(*domain.UserWorkspace); ok && userWorkspace != nil && userWorkspace.WorkspaceID == workspaceID {
+			// An audit record created after the first authentication (an MCP
+			// tool call opens its own) still has to name its actor. The cache lives
+			// in the request's context, so it never outlives one HTTP request.
+			s.recordActor(ctx, workspaceUser, userWorkspace, workspaceID)
 			return ctx, workspaceUser, userWorkspace, nil
 		}
 	}
@@ -150,24 +160,47 @@ func (s *AuthService) AuthenticateUserForWorkspace(ctx context.Context, workspac
 		return ctx, nil, nil, err
 	}
 
-	// First check if the workspace exists - this will return ErrWorkspaceNotFound if it doesn't exist
-	_, err = s.workspaceRepo.GetByID(ctx, workspaceID)
+	mcpCaller := domain.MCPCallerFromContext(ctx)
+	// An MCP call is always the API key its credential names: any other account,
+	// such as a console session token that reached /mcp, gets the not-found answer.
+	if mcpCaller != nil && (user.Type != domain.UserTypeAPIKey || user.ID != mcpCaller.APIKeyUserID) {
+		return ctx, nil, nil, domain.ErrUserNotInWorkspace
+	}
+
+	// First check if the workspace exists - this will return ErrWorkspaceNotFound if it doesn't exist.
+	// The row is kept: the MCP reachability check reads its switch.
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
 	if err != nil {
+		var notFound *domain.ErrWorkspaceNotFound
+		if mcpCaller != nil && errors.As(err, &notFound) {
+			return ctx, nil, nil, domain.ErrUserNotInWorkspace
+		}
 		return ctx, nil, nil, err
 	}
 
 	// Then check if the user is a member of the workspace
 	userWorkspace, err := s.workspaceRepo.GetUserWorkspace(ctx, user.ID, workspaceID)
+
+	if mcpCaller != nil {
+		if errors.Is(err, domain.ErrUserNotInWorkspace) || (err == nil && !workspace.MCPEnabled()) {
+			return ctx, nil, nil, domain.ErrUserNotInWorkspace
+		}
+	}
+
+	// Platform admins (ROOT_EMAIL) are full owners of every workspace. An API key
+	// account is never one, whatever its email: a key must not become an owner
+	// because ROOT_EMAIL was later set to the address it was created with.
+	isRoot := s.isRootUser(user)
 	switch {
 	case err == nil:
-		// Platform admins (ROOT_EMAIL) are full owners of every workspace. Elevate a root user
-		// who happens to hold a non-owner membership row so their access is identical to a root
-		// user who holds no row at all (handled below).
-		if s.isRootEmail != nil && s.isRootEmail(user.Email) && userWorkspace.Role != "owner" {
+		// Elevate a root user who happens to hold a non-owner membership row so
+		// their access is identical to a root user who holds no row at all
+		// (handled below).
+		if isRoot && userWorkspace.Role != "owner" {
 			userWorkspace.Role = "owner"
-			userWorkspace.Permissions = domain.FullPermissions
+			userWorkspace.Permissions = domain.NewFullPermissions()
 		}
-	case errors.Is(err, domain.ErrUserNotInWorkspace) && s.isRootEmail != nil && s.isRootEmail(user.Email):
+	case errors.Is(err, domain.ErrUserNotInWorkspace) && isRoot:
 		// Platform-admin override: a configured ROOT_EMAIL gets synthesized owner access to
 		// every existing workspace, even without a membership row. Keyed off the typed
 		// not-found error so genuine DB failures still propagate. The GetByID check above
@@ -176,23 +209,34 @@ func (s *AuthService) AuthenticateUserForWorkspace(ctx context.Context, workspac
 			UserID:      user.ID,
 			WorkspaceID: workspaceID,
 			Role:        "owner",
-			Permissions: domain.FullPermissions,
+			Permissions: domain.NewFullPermissions(),
 		}
 	default:
 		return ctx, nil, nil, err
 	}
 
-	// Name the actor and the workspace for the audit log; a no-op outside an
-	// audited request. Root is recorded as such whatever the membership row says.
-	if record := domain.AuditFromContext(ctx); record != nil {
-		record.SetActor(user, userWorkspace, s.isRootEmail != nil && s.isRootEmail(user.Email))
-		record.SetWorkspace(workspaceID)
-	}
+	s.recordActor(ctx, user, userWorkspace, workspaceID)
 
 	// Store user and user workspace in context for future calls - return the new context to the caller
 	newCtx := context.WithValue(ctx, domain.WorkspaceUserKey(workspaceID), user)
-	newCtx = context.WithValue(newCtx, domain.UserWorkspaceKey, userWorkspace)
+	newCtx = context.WithValue(newCtx, domain.WorkspaceMembershipKey(workspaceID), userWorkspace)
 	return newCtx, user, userWorkspace, nil
+}
+
+// isRootUser reports whether the user is a platform admin (ROOT_EMAIL). Only a
+// person's account can be one; an API key account never is.
+func (s *AuthService) isRootUser(user *domain.User) bool {
+	return user.Type != domain.UserTypeAPIKey && s.isRootEmail != nil && s.isRootEmail(user.Email)
+}
+
+// recordActor names the actor and the workspace for the audit log; a no-op
+// outside an audited request. Root is recorded as such whatever the membership
+// row says.
+func (s *AuthService) recordActor(ctx context.Context, user *domain.User, userWorkspace *domain.UserWorkspace, workspaceID string) {
+	if record := domain.AuditFromContext(ctx); record != nil {
+		record.SetActor(user, userWorkspace, s.isRootUser(user))
+		record.SetWorkspace(workspaceID)
+	}
 }
 
 // VerifyUserSession checks if the user exists and the session is valid

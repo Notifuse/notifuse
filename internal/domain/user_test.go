@@ -37,6 +37,13 @@ func TestWorkspaceUserKey(t *testing.T) {
 	assert.Equal(t, contextKey("workspace_user_workspace-123_456@example"), specialKey)
 }
 
+func TestWorkspaceMembershipKey(t *testing.T) {
+	assert.Equal(t, contextKey("workspace_membership_workspace123"), WorkspaceMembershipKey("workspace123"))
+	assert.NotEqual(t, WorkspaceMembershipKey("workspaceA"), WorkspaceMembershipKey("workspaceB"))
+	assert.NotEqual(t, WorkspaceUserKey("workspace123"), WorkspaceMembershipKey("workspace123"),
+		"the user and the membership of one workspace are two entries")
+}
+
 func TestSession(t *testing.T) {
 	now := time.Now()
 	expiry := now.Add(time.Hour * 24)
