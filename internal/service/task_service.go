@@ -14,6 +14,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -160,6 +161,13 @@ type TaskService struct {
 	// the task scheduler stop with it, and runs counts them so the stop can wait for them.
 	stopCtx context.Context
 	runs    runCounter
+
+	// restorePermanentTasks turns restorePermanentTasksIfDue on; see
+	// SetRestorePermanentTasks.
+	restorePermanentTasks bool
+	// permanentTasksRestoredAt is when RestorePermanentTasks last succeeded on this instance,
+	// in Unix nanoseconds; 0 until it has (see restorePermanentTasksIfDue).
+	permanentTasksRestoredAt atomic.Int64
 }
 
 // runCounter counts the runs in flight, and lets a stop wait until there are none.
@@ -305,6 +313,15 @@ func (s *TaskService) SetDirectExecution(enabled bool) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.directExecution = enabled
+}
+
+// SetRestorePermanentTasks turns on the restore of the permanent tasks that ExecutePendingTasks
+// runs on its first pass and then hourly (restorePermanentTasksIfDue). The app turns it on unless
+// TaskScheduler.SkipPermanentTaskRestore is set, which only the integration harness does.
+func (s *TaskService) SetRestorePermanentTasks(enabled bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.restorePermanentTasks = enabled
 }
 
 // SetSecretKey sets the installation's SECRET_KEY, from which the key that signs
@@ -463,11 +480,66 @@ func (s *TaskService) DeleteTask(ctx context.Context, workspace, id string) erro
 	tracing.AddAttribute(ctx, "workspace_id", workspace)
 	tracing.AddAttribute(ctx, "task_id", id)
 
-	err := s.repo.Delete(ctx, workspace, id)
+	// The last permanent task of its type would leave the workspace's segments frozen until
+	// the next periodic restore. A duplicate, which the check-then-create of releases before
+	// 45.0 could leave, may go.
+	task, err := s.repo.Get(ctx, workspace, id)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return err
+	}
+	if domain.IsPermanentTaskType(task.Type) {
+		_, count, err := s.repo.List(ctx, workspace, domain.TaskFilter{Type: []string{task.Type}, Limit: 1})
+		if err != nil {
+			tracing.MarkSpanError(ctx, err)
+			return fmt.Errorf("failed to count %s tasks: %w", task.Type, err)
+		}
+		if count <= 1 {
+			return domain.NewValidationError(fmt.Sprintf("task type %s runs for every workspace and its last task cannot be deleted", task.Type))
+		}
+	}
+
+	err = s.repo.Delete(ctx, workspace, id)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 	}
 	return err
+}
+
+// permanentTaskRestoreInterval is how often restorePermanentTasksIfDue runs the restore again
+// after a success. A workspace whose tasks went missing since the last one, such as one whose
+// creation could not create them, gets them back within this interval.
+const permanentTaskRestoreInterval = time.Hour
+
+// restorePermanentTasksIfDue runs TaskRepository.RestorePermanentTasks for every workspace on
+// the first ExecutePendingTasks of this instance, then again once permanentTaskRestoreInterval
+// has passed since the last success. A failure is logged and tried again on the next pass; it
+// does not hold the batch. ExecutePendingTasks is the path both execution modes share: the
+// internal scheduler calls it, and so does /api/cron on an instance that runs none.
+func (s *TaskService) restorePermanentTasksIfDue(ctx context.Context) {
+	s.lock.RLock()
+	enabled := s.restorePermanentTasks
+	s.lock.RUnlock()
+	if !enabled {
+		return
+	}
+	if last := s.permanentTasksRestoredAt.Load(); last != 0 && time.Since(time.Unix(0, last)) < permanentTaskRestoreInterval {
+		return
+	}
+	restored, err := s.repo.RestorePermanentTasks(ctx, "")
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Error("Failed to restore permanent tasks; retrying on the next pass")
+		return
+	}
+	s.permanentTasksRestoredAt.Store(time.Now().UnixNano())
+	if restored.Changed() {
+		s.logger.WithFields(map[string]interface{}{
+			"revived": restored.Revived,
+			"created": restored.Created,
+			"removed": restored.Removed,
+		}).Info("Restored permanent tasks")
+	}
 }
 
 // ExecutePendingTasks processes a batch of pending tasks
@@ -483,6 +555,8 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 	} else {
 		s.logger.Debug("Updated last cron run timestamp")
 	}
+
+	s.restorePermanentTasksIfDue(ctx)
 
 	// Get the next batch of tasks
 	// each workspace has a permanent task to process the contact segment queue
@@ -1015,6 +1089,17 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		}).Error("Task execution timed out past its grace window")
 		return timeoutErr
 	case completed := <-done:
+		if completed && domain.IsPermanentTaskType(task.Type) {
+			// A permanent task completed would never run again: nothing recreates it while
+			// its row exists. Its processor reports done only through a bug; treat the run as
+			// not done, so the task is pending and due again.
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"task_type":    task.Type,
+			}).Warn("Permanent task reported done; keeping it pending")
+			completed = false
+		}
 		if completed {
 			// Check if this is a recurring task
 			if task.IsRecurring() {

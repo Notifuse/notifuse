@@ -21,7 +21,6 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -92,10 +91,9 @@ func TestSegmentQueueDrainsUnderConcurrentEngagement(t *testing.T) {
 	// The factory's CreateWorkspace bypasses the workspace service, which
 	// normally seeds the recurring process_contact_segment_queue task. Without
 	// this, the queue piles up forever and the cascade we want to observe
-	// never runs. (Same pattern as broadcast_scheduled_live_scheduler_test.go:283.)
-	taskRepo := suite.ServerManager.GetApp().GetTaskRepository()
+	// never runs. (Same pattern as broadcast_scheduled_live_scheduler_test.go.)
 	require.NoError(t,
-		service.EnsureContactSegmentQueueProcessingTask(context.Background(), taskRepo, ws.ID),
+		factory.EnsurePermanentTask(ws.ID, domain.TaskTypeProcessContactSegmentQueue),
 		"seed segment queue task")
 
 	list, err := factory.CreateList(ws.ID, testutil.WithListName("Cascade Diag List"))

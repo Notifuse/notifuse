@@ -75,8 +75,7 @@ func TestWorkspaceService_CreateWorkspace_SeedsWebAnalyticsDefaults(t *testing.T
 	mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
 	mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
 	mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
-	mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-	mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
+	mockTaskRepo.EXPECT().RestorePermanentTasks(detachedCtx(), workspaceID).Return(domain.PermanentTaskRestore{Created: 2}, nil).AnyTimes()
 
 	workspace, err := service.CreateWorkspace(ctx, workspaceID, "WS", "https://example.com", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
 	require.NoError(t, err)

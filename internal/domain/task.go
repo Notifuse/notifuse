@@ -188,9 +188,104 @@ func (t *Task) IsRecurring() bool {
 
 // HasRetriesLeft reports whether a failure of the current attempt is retried:
 // MarkAsFailed schedules another attempt while the count of failed attempts in a
-// row is below MaxRetries, and marks the task failed otherwise.
+// row is below MaxRetries, and marks the task failed otherwise. A permanent task
+// is retried whatever the count (see RetryDelay).
 func (t *Task) HasRetriesLeft() bool {
 	return t.RetryCount < t.MaxRetries
+}
+
+// The task types every workspace runs for ever. Their processor never reports done, so each
+// run ends pending and due again at once.
+const (
+	TaskTypeProcessContactSegmentQueue = "process_contact_segment_queue"
+	TaskTypeCheckSegmentRecompute      = "check_segment_recompute"
+)
+
+// PermanentTaskTypes are the task types each workspace keeps one task of for ever. Nothing
+// but TaskRepository.RestorePermanentTasks creates them, and they never stay failed: a
+// workspace whose segment queue task stopped would have its segments frozen, with nothing to
+// tell anyone.
+var PermanentTaskTypes = []string{
+	TaskTypeProcessContactSegmentQueue,
+	TaskTypeCheckSegmentRecompute,
+}
+
+// The settings every permanent task is created with: one slice of a scheduler pass, retried
+// a minute after a failure.
+const (
+	PermanentTaskMaxRuntime    = 50
+	PermanentTaskMaxRetries    = 3
+	PermanentTaskRetryInterval = 60
+)
+
+// PermanentTaskMessage is the state message a permanent task of taskType is created with.
+func PermanentTaskMessage(taskType string) string {
+	switch taskType {
+	case TaskTypeProcessContactSegmentQueue:
+		return "Contact segment queue processing task"
+	case TaskTypeCheckSegmentRecompute:
+		return "Check segments for daily recompute"
+	}
+	return ""
+}
+
+// PermanentTaskRestore counts what TaskRepository.RestorePermanentTasks changed.
+type PermanentTaskRestore struct {
+	// Revived is the number of permanent tasks set back to pending, due now.
+	Revived int64
+	// Created is the number of permanent tasks created for workspaces that lacked them.
+	Created int64
+	// Removed is the number of permanent tasks deleted because their workspace is gone.
+	Removed int64
+}
+
+// Changed reports whether the restore wrote anything.
+func (r PermanentTaskRestore) Changed() bool {
+	return r.Revived > 0 || r.Created > 0 || r.Removed > 0
+}
+
+// IsPermanentTaskType reports whether taskType is one of PermanentTaskTypes.
+func IsPermanentTaskType(taskType string) bool {
+	for _, permanent := range PermanentTaskTypes {
+		if taskType == permanent {
+			return true
+		}
+	}
+	return false
+}
+
+// Retry delays of a failed task.
+const (
+	// DefaultTaskRetryInterval is the delay used when a task has no positive RetryInterval.
+	DefaultTaskRetryInterval = 60 * time.Second
+	// MaxPermanentTaskRetryDelay caps the delay of a permanent task failing again and again,
+	// such as one whose workspace database is down.
+	MaxPermanentTaskRetryDelay = 15 * time.Minute
+)
+
+// RetryDelay is how long after a failed attempt the next one runs, read before the failure
+// is counted. While retries are left it is RetryInterval. A permanent task past its retries
+// waits twice as long after each further failure, up to MaxPermanentTaskRetryDelay: it is
+// never given up, and a lasting failure must not hold the scheduler, whose direct execution
+// waits for every task of its batch. RetryDelay is meaningless for a task with no retry left
+// that is not permanent.
+func (t *Task) RetryDelay() time.Duration {
+	interval := time.Duration(t.RetryInterval) * time.Second
+	if interval <= 0 {
+		interval = DefaultTaskRetryInterval
+	}
+	if t.HasRetriesLeft() {
+		return interval
+	}
+	doublings := t.RetryCount - t.MaxRetries + 1
+	if doublings > 4 {
+		doublings = 4
+	}
+	delay := interval << doublings
+	if delay > MaxPermanentTaskRetryDelay {
+		delay = MaxPermanentTaskRetryDelay
+	}
+	return delay
 }
 
 type TaskService interface {
@@ -269,6 +364,11 @@ type TaskRepository interface {
 	// MarkAsCompleted marks a task as completed and saves the final state
 	MarkAsCompleted(ctx context.Context, workspace, id string, state *TaskState) error
 	MarkAsCompletedTx(ctx context.Context, tx *sql.Tx, workspace, id string, state *TaskState) error
+
+	// RestorePermanentTasks makes the permanent tasks of every workspace runnable, or of the
+	// one workspace named when workspaceID is not empty: it sets the stuck ones pending and
+	// due now, creates the missing ones and deletes those whose workspace is gone.
+	RestorePermanentTasks(ctx context.Context, workspaceID string) (PermanentTaskRestore, error)
 
 	// MarkAsFailed marks a task as failed
 	MarkAsFailed(ctx context.Context, workspace, id string, errorMsg string) error

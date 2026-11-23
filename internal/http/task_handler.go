@@ -398,8 +398,12 @@ func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.taskService.DeleteTask(ctx, deleteRequest.WorkspaceID, deleteRequest.ID); err != nil {
+		var validationErr domain.ValidationError
 		if errors.Is(err, domain.ErrTaskNotFound) {
 			WriteJSONError(w, "Task not found", http.StatusNotFound)
+		} else if errors.As(err, &validationErr) {
+			// A task the service refuses to delete, such as a workspace's permanent task.
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
 		} else {
 			h.logger.WithField("error", err.Error()).Error("Failed to delete task")
 			WriteJSONError(w, "Failed to delete task", http.StatusInternalServerError)

@@ -1010,6 +1010,7 @@ func (a *App) InitServices() error {
 	// If task scheduler is disabled (e.g., in tests), also disable background task execution
 	a.taskService.SetAutoExecuteImmediate(a.config.TaskScheduler.Enabled)
 	a.taskService.SetSendNowDelay(a.config.TaskScheduler.SendNowDelay)
+	a.taskService.SetRestorePermanentTasks(!a.config.TaskScheduler.SkipPermanentTaskRestore)
 
 	// Execution mode is coupled to the internal scheduler: when this instance runs its own
 	// scheduler it executes due tasks in-process, instead of dispatching over HTTP to its own

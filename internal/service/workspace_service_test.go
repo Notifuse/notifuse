@@ -380,9 +380,8 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			ListIDs: []string{"test"},
 		}, true).Return(nil)
 
-		// Expect EnsureContactSegmentQueueProcessingTask to be called
-		mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-		mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
+		// The workspace's permanent tasks are created through the shared restore
+		mockTaskRepo.EXPECT().RestorePermanentTasks(detachedCtx(), workspaceID).Return(domain.PermanentTaskRestore{Created: 2}, nil).AnyTimes()
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
@@ -645,10 +644,34 @@ func TestWorkspaceService_CreateWorkspace_MultipleRootEmails(t *testing.T) {
 		mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
 		mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
 		mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
-		mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-		mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
+		mockTaskRepo.EXPECT().RestorePermanentTasks(detachedCtx(), workspaceID).Return(domain.PermanentTaskRestore{Created: 2}, nil).AnyTimes()
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Second Root Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
+			Endpoint:  "https://s3.amazonaws.com",
+			Bucket:    "my-bucket",
+			AccessKey: "AKIAIOSFODNN7EXAMPLE",
+		}, "en", []string{"en"})
+		require.NoError(t, err)
+		assert.Equal(t, workspaceID, workspace.ID)
+	})
+
+	t.Run("a failed permanent task restore does not fail the creation", func(t *testing.T) {
+		workspaceID := "norestore"
+		secondRoot := &domain.User{ID: "root2", Email: "root2@example.com", Name: "Second Root"}
+
+		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(secondRoot, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+		mockUserService.EXPECT().GetUserByID(detachedCtx(), secondRoot.ID).Return(secondRoot, nil)
+		mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
+		mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
+		mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
+		// The next restore, on a server's first scheduler pass, creates the tasks.
+		mockTaskRepo.EXPECT().RestorePermanentTasks(detachedCtx(), workspaceID).
+			Return(domain.PermanentTaskRestore{}, errors.New("system database unavailable")).Times(1)
+
+		workspace, err := service.CreateWorkspace(ctx, workspaceID, "No Restore Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
@@ -758,8 +781,7 @@ func TestWorkspaceService_CreateWorkspace_CustomLanguageSettings(t *testing.T) {
 	mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
 	mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
 	mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
-	mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-	mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
+	mockTaskRepo.EXPECT().RestorePermanentTasks(detachedCtx(), workspaceID).Return(domain.PermanentTaskRestore{Created: 2}, nil).AnyTimes()
 
 	workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 		Endpoint:  "https://s3.amazonaws.com",
