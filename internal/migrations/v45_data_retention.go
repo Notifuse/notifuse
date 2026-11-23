@@ -26,7 +26,16 @@ func dataRetentionWorkspaceV45Statements() []string {
 	// Lot 1, engagement clock: the table, and a readiness marker left unset until the
 	// workspace's backfill task has read its history.
 	statements = append(statements, schema.ContactEngagementStatements()...)
-	return append(statements, schema.MigratedWorkspaceDataRetentionMarker)
+	statements = append(statements, schema.MigratedWorkspaceDataRetentionMarker)
+	// Lot 1, engine: run reports, the erasure work table, the message history cursor, and
+	// the three functions that honour notifuse.retention_purge (no segment.left for an
+	// erased contact, contact.deleted with the address only).
+	statements = append(statements, schema.DataRetentionStatements()...)
+	return append(statements,
+		schema.TrackContactSegmentChangesFunction(),
+		schema.WebhookContactSegmentsTriggerFunction(),
+		schema.WebhookContactsTriggerFunction(),
+	)
 }
 
 // dataRetentionSystemV45Statements is the data retention part of the v45 system migration:

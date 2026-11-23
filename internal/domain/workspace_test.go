@@ -6330,3 +6330,18 @@ func TestWorkspaceSettings_MCP_JSONRoundTrip(t *testing.T) {
 		assert.True(t, (&Workspace{Settings: scanned}).MCPEnabled())
 	})
 }
+
+// The data retention settings have their own writer: a partial workspaces.update that omits
+// them keeps the stored ones.
+func TestWorkspaceSettings_PreserveOmittedKeepsDataRetention(t *testing.T) {
+	stored := WorkspaceSettings{DataRetention: &DataRetentionSettings{Revision: 2,
+		Policy: &DataRetentionPolicy{Categories: map[RetentionCategory]int{RetentionInactiveContacts: 1095}}}}
+	var request UpdateWorkspaceRequest
+	if err := json.Unmarshal([]byte(`{"id": "ws", "name": "Acme", "settings": {"timezone": "UTC"}}`), &request); err != nil {
+		t.Fatal(err)
+	}
+	request.Settings.PreserveOmitted(stored)
+	if request.Settings.DataRetention != stored.DataRetention {
+		t.Fatalf("data_retention was not kept: %+v", request.Settings.DataRetention)
+	}
+}

@@ -103,10 +103,16 @@ func WebhookContactsTriggerFunction() string {
 				RETURN COALESCE(NEW, OLD);
 			END IF;
 
-			-- Build payload with full contact object
-			payload := jsonb_build_object(
-				'contact', to_jsonb(contact_record)
-			);
+			-- Build payload with full contact object. A contact deleted by a retention purge
+			-- is announced by its address only: subscribers get the signal to propagate the
+			-- deletion, not a copy of the data being erased.
+			IF TG_OP = 'DELETE' AND ` + RetentionPurgeOn + ` THEN
+				payload := jsonb_build_object('contact', jsonb_build_object('email', OLD.email));
+			ELSE
+				payload := jsonb_build_object(
+					'contact', to_jsonb(contact_record)
+				);
+			END IF;
 
 			-- Insert webhook deliveries for matching subscriptions
 			FOR sub IN
@@ -283,6 +289,10 @@ func WebhookContactSegmentsTriggerFunction() string {
 			IF TG_OP = 'INSERT' THEN
 				event_kind := 'segment.joined';
 			ELSIF TG_OP = 'DELETE' THEN
+				-- A contact erased by a retention purge does not leave a segment.
+				IF ` + RetentionPurgeOn + ` THEN
+					RETURN OLD;
+				END IF;
 				event_kind := 'segment.left';
 			ELSE
 				RETURN NEW;
