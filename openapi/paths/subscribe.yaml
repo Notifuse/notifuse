@@ -63,7 +63,7 @@
 
       Unlike the public `/subscribe` endpoint, this endpoint can subscribe contacts to **any list** (public or private) as long as the authenticated user has write permission on lists.
 
-      **Note:** Double opt-in is bypassed for authenticated requests. Contacts are immediately set to `active` status regardless of the list's double opt-in setting. This allows administrators to manually add contacts without requiring email confirmation.
+      **Note:** This endpoint skips double opt-in, since the caller may have collected consent outside Notifuse: a new subscription is set to `active` whatever the list's setting. A contact who had unsubscribed goes to `pending` first and gets the confirmation email when the list has one; a second call sets them to `active`. A bounced or complained contact is left unchanged.
     operationId: subscribeToListsAuthenticated
     security:
       - BearerAuth: []
