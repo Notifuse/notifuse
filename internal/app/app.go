@@ -135,6 +135,8 @@ type App struct {
 	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
 	webhookDeliveryRepo           domain.WebhookDeliveryRepository
 	contactErasureRepo            domain.ContactErasureRepository
+	contactEngagementRepo         domain.ContactEngagementRepository
+	engagementRecorder            *service.EngagementRecorder
 	automationRepo                domain.AutomationRepository
 	emailQueueRepo                domain.EmailQueueRepository
 	webAnalyticsRepo              domain.WebAnalyticsRepository
@@ -653,6 +655,8 @@ func (a *App) InitRepositories() error {
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
 	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo, a.logger)
 	a.contactErasureRepo = repository.NewContactErasureRepository(a.workspaceRepo)
+	a.contactEngagementRepo = repository.NewContactEngagementRepository(a.workspaceRepo)
+	a.engagementRecorder = service.NewEngagementRecorder(a.contactEngagementRepo, a.logger)
 
 	// Create trigger generator for automation repository
 	queryBuilder := service.NewQueryBuilder()
@@ -961,6 +965,7 @@ func (a *App) InitServices() error {
 		a.config.WebhookEndpoint,
 		a.config.APIEndpoint,
 	)
+	a.emailService.SetEngagementRecorder(a.engagementRecorder)
 
 	// DKIM: one key store, shared by the sends that sign and the service and worker
 	// that change the keys, so a change is seen by the next send on this instance.
@@ -996,6 +1001,7 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 		a.blogCache,
 	)
+	a.listService.SetEngagementRecorder(a.engagementRecorder)
 
 	// Initialize DNS verification service (before workspace service)
 	a.dnsVerificationService = service.NewDNSVerificationService(
@@ -1049,6 +1055,7 @@ func (a *App) InitServices() error {
 		a.automationRepo,
 		a.listService,
 	)
+	a.inboundWebhookEventService.SetEngagementRecorder(a.engagementRecorder)
 
 	// Initialize Supabase service (before workspace service)
 	a.supabaseService = service.NewSupabaseService(
@@ -1237,6 +1244,14 @@ func (a *App) InitServices() error {
 	// — integrationSyncProcessor.RegisterHandler("<type>", handler).
 	a.taskService.RegisterProcessor(integrationSyncProcessor)
 
+	// Data retention: reads the engagement of existing contacts back from their history,
+	// once per workspace upgraded to 45.
+	a.taskService.RegisterProcessor(service.NewDataRetentionBackfillProcessor(
+		a.contactEngagementRepo,
+		a.taskRepo,
+		a.logger,
+	))
+
 	// Attribution backfill for web analytics (rewrites historical rows after
 	// rule changes).
 	a.taskService.RegisterProcessor(service.NewWebAnalyticsBackfillProcessor(
@@ -1347,6 +1362,7 @@ func (a *App) InitServices() error {
 		a.logger.WithField("path", geoPath).Info("GeoIP database loaded")
 	}
 	a.webAnalyticsBuffer = service.NewWebAnalyticsBuffer(a.webAnalyticsRepo, a.logger, service.DefaultWebAnalyticsBufferConfig())
+	a.webAnalyticsBuffer.SetEngagementRecorder(a.engagementRecorder)
 
 	// The bridge hangs off the BUFFER, never off the repository: the demo data
 	// generator calls FlushBatch directly, and hooking there would bridge its

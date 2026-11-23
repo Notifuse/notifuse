@@ -15,6 +15,8 @@ import (
 )
 
 type ListService struct {
+	// engagement records what the contact does themselves (data retention); nil records nothing.
+	engagement         *EngagementRecorder
 	repo               domain.ListRepository
 	workspaceRepo      domain.WorkspaceRepository
 	contactListRepo    domain.ContactListRepository
@@ -401,6 +403,16 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 	// One entry per requested list, in the order they were asked for.
 	results := make([]*domain.ContactList, 0, len(payload.ListIDs))
 
+	// The contact's own subscription (no bearer token: the form, the notification center,
+	// the confirmation link) counts for the engagement clock when it leaves them active.
+	// A pending row is not engagement, its confirmation is; the workspace's own calls never
+	// are.
+	contactSubscribed := func(written *domain.ContactList) {
+		if !hasBearerToken && written.Status == domain.ContactListStatusActive {
+			s.engagement.Touch(ctx, workspace.ID, written.Email, time.Now())
+		}
+	}
+
 	// get the list
 	for _, listID := range payload.ListIDs {
 
@@ -533,6 +545,7 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 			if hasBearerToken {
 				resubscribedListIDs = append(resubscribedListIDs, listID)
 			}
+			contactSubscribed(contactList)
 		} else if !skipDBWrite {
 			// Subscribe to the list
 			err = s.contactListRepo.AddContactToList(ctx, workspace.ID, contactList)
@@ -544,6 +557,7 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 				// codecov:ignore:end
 				return nil, fmt.Errorf("failed to subscribe to list: %w", err)
 			}
+			contactSubscribed(contactList)
 		}
 
 		// For pending resend: ensure status is pending so DOI email logic fires
@@ -846,4 +860,9 @@ func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, emai
 		Status: domain.ContactListStatusUnsubscribed,
 	})
 	return err == nil, err
+}
+
+// SetEngagementRecorder supplies the recorder of the data retention engagement clock.
+func (s *ListService) SetEngagementRecorder(recorder *EngagementRecorder) {
+	s.engagement = recorder
 }

@@ -38,6 +38,7 @@ var taskTypeResources = []struct {
 	{"process_contact_segment_queue", domain.PermissionResourceSegments},
 	{"sync_integration", domain.PermissionResourceWorkspace},
 	{domain.WebAnalyticsBackfillTaskType, domain.PermissionResourceWebAnalytics},
+	{domain.DataRetentionBackfillTaskType, domain.PermissionResourceContacts},
 }
 
 // taskTypeResource returns the resource that owns a task type, and whether the

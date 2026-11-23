@@ -2929,3 +2929,37 @@ func TestEmailService_SendEmailForTemplate_SenderAndReplyTo(t *testing.T) {
 		assert.Equal(t, "agent@example.com", sent.EmailOptions.ReplyTo)
 	})
 }
+
+// A click counts for the data retention engagement clock only when its token is verified
+// and it leads to a real destination: an unsubscribe, preferences or web version link points
+// back at the instance and records no destination.
+func TestEmailService_VisitLink_RecordsEngagement(t *testing.T) {
+	const workspaceID, messageID, ownHost = "ws", "msg-1", "click.notifuse.test"
+	for _, tc := range []struct {
+		name     string
+		url      string
+		verified bool
+		counts   bool
+	}{
+		{"verified click on a real destination", "https://shop.example.com/p", true, true},
+		{"unverified click", "https://shop.example.com/p", false, false},
+		{"unsubscribe link back at the instance", "https://" + ownHost + "/notification-center?action=unsubscribe", true, false},
+		{"aggregate-only click", "", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			messageRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+			engagementRepo := mocks.NewMockContactEngagementRepository(ctrl)
+			log := pkgmocks.NewMockLogger(ctrl)
+			service := EmailService{logger: log, messageRepo: messageRepo}
+			service.SetEngagementRecorder(NewEngagementRecorder(engagementRepo, log))
+
+			messageRepo.EXPECT().SetClicked(gomock.Any(), workspaceID, messageID, gomock.Any(), gomock.Any(), tc.verified).Return(nil)
+			if tc.counts {
+				engagementRepo.EXPECT().TouchForMessage(gomock.Any(), workspaceID, messageID, gomock.Any()).Return(nil)
+			}
+
+			require.NoError(t, service.VisitLink(context.Background(), messageID, workspaceID, tc.url, []string{ownHost}, tc.verified))
+		})
+	}
+}

@@ -1628,6 +1628,7 @@ func TestContactService_DeleteContactErasureSteps(t *testing.T) {
 				mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil),
 				mockSegmentQueueRepo.EXPECT().RemoveFromQueue(ctx, workspaceID, email).Return(nil),
 				erasure.EXPECT().DeleteJourneysForEmail(ctx, workspaceID, email).Return(nil),
+				erasure.EXPECT().DeleteEngagementForEmail(ctx, workspaceID, email).Return(nil),
 				erasure.EXPECT().DeleteWebhookDeliveriesForEmail(ctx, workspaceID, email).Return(int64(2), nil),
 			)
 			gomock.InOrder(calls...)
@@ -1689,6 +1690,7 @@ func TestContactService_DeleteContactErasureFailures(t *testing.T) {
 					erasure.EXPECT().DeleteJourneysForEmail(ctx, ws, email).Return(boom)
 				} else {
 					erasure.EXPECT().DeleteJourneysForEmail(ctx, ws, email).Return(nil)
+					erasure.EXPECT().DeleteEngagementForEmail(ctx, ws, email).Return(nil)
 					erasure.EXPECT().DeleteWebhookDeliveriesForEmail(ctx, ws, email).Return(int64(0), boom)
 				}
 			}

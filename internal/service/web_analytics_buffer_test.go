@@ -15,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
 func newBufferForTest(t *testing.T) (*WebAnalyticsBuffer, *mocks.MockWebAnalyticsRepository, *time.Time) {
@@ -122,7 +123,7 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 		*now = now.Add(3 * time.Second)
 		s2, p2, g2 := bufSession("s1", 2, 0)
 		buffer.Add("ws1", 0, s2, p2, g2) // the visitor's last beat
-		buffer.flushDue(ctx)                    // not due yet
+		buffer.flushDue(ctx)             // not due yet
 
 		*now = now.Add(70 * time.Second)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
@@ -405,5 +406,51 @@ func TestWebAnalyticsBufferProjectsNavigation(t *testing.T) {
 			buffer.Add("ws4", 0, identified(session, "her@example.com"), pages, goals)
 			buffer.FlushAll(ctx)
 		}
+	})
+}
+
+// An identified visit counts for the data retention engagement clock, whether its timeline
+// projection landed or not: the visit is read from web_sessions, already written.
+func TestWebAnalyticsBufferRecordsEngagementAfterTheProjection(t *testing.T) {
+	ctx := context.Background()
+	email := "her@example.com"
+
+	t.Run("after a projection that landed", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		ctrl := gomock.NewController(t)
+		engagementRepo := mocks.NewMockContactEngagementRepository(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		buffer.SetEngagementRecorder(NewEngagementRecorder(engagementRepo, log))
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		gomock.InOrder(
+			repo.EXPECT().ProjectContactNavigation(gomock.Any(), "ws1", gomock.Any()).Return(nil),
+			engagementRepo.EXPECT().TouchForWebSessions(gomock.Any(), "ws1", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, sessions []*domain.WebSession) error {
+					require.Len(t, sessions, 1)
+					assert.Equal(t, "s-known", sessions[0].ID)
+					return nil
+				}),
+		)
+
+		session, pages, goals := bufSession("s-known", 1, 0)
+		session.ContactEmail = &email
+		buffer.Add("ws1", 0, session, pages, goals)
+		buffer.FlushAll(ctx)
+	})
+
+	t.Run("also after a projection that failed", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		ctrl := gomock.NewController(t)
+		engagementRepo := mocks.NewMockContactEngagementRepository(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		buffer.SetEngagementRecorder(NewEngagementRecorder(engagementRepo, log))
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws2", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		repo.EXPECT().ProjectContactNavigation(gomock.Any(), "ws2", gomock.Any()).Return(errors.New("boom")).AnyTimes()
+		engagementRepo.EXPECT().TouchForWebSessions(gomock.Any(), "ws2", gomock.Any()).Return(nil).MinTimes(1)
+
+		session, pages, goals := bufSession("s-known", 1, 0)
+		session.ContactEmail = &email
+		buffer.Add("ws2", 0, session, pages, goals)
+		buffer.FlushAll(ctx)
 	})
 }

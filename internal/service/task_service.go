@@ -359,6 +359,7 @@ func getTaskTypes() []string {
 		"check_segment_recompute",
 		"sync_integration",
 		domain.WebAnalyticsBackfillTaskType,
+		domain.DataRetentionBackfillTaskType,
 	}
 }
 

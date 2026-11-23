@@ -74,6 +74,17 @@ func (r *contactErasureRepository) DeleteJourneysForEmail(ctx context.Context, w
 	return nil
 }
 
+func (r *contactErasureRepository) DeleteEngagementForEmail(ctx context.Context, workspaceID, email string) error {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM contact_engagement WHERE email = $1`, email); err != nil {
+		return fmt.Errorf("failed to delete contact engagement: %w", err)
+	}
+	return nil
+}
+
 // The address sits at the top level of list, segment and email payloads, under contact for
 // contact events, and under custom_event for custom events. The two kinds of event the
 // deletion itself sends are kept: contact.deleted, and segment.left for each segment the

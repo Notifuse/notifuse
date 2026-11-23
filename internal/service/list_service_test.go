@@ -3219,3 +3219,72 @@ func TestListService_GetLists_WithCounts(t *testing.T) {
 		assert.Contains(t, err.Error(), "db down")
 	})
 }
+
+// The contact's own subscription counts for the data retention engagement clock when it
+// leaves them active; a pending row (double opt-in not confirmed yet) and the workspace's own
+// call do not.
+func TestListService_SubscribeToLists_RecordsEngagement(t *testing.T) {
+	const workspaceID, email = "workspace123", "jane@example.com"
+	for _, tc := range []struct {
+		name        string
+		bearer      bool
+		signed      bool
+		doubleOptin bool
+		active      bool // already active on the list
+		counts      bool
+	}{
+		{"signed request on a single opt-in list", false, true, false, false, true},
+		{"anonymous request on a single opt-in list", false, false, false, false, true},
+		{"anonymous request on a double opt-in list (pending)", false, false, true, false, false},
+		{"API call", true, false, false, false, false},
+		// Posting the address of a contact already on the list writes nothing, so a form
+		// post repeated by a third party cannot keep a dormant contact's clock running.
+		{"anonymous request for a contact already active on the list", false, false, false, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			service, mockRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuthService := newSubscribeResultsService(ctrl)
+			engagementRepo := mocks.NewMockContactEngagementRepository(ctrl)
+			log := pkgmocks.NewMockLogger(ctrl)
+			service.SetEngagementRecorder(NewEngagementRecorder(engagementRepo, log))
+			ctx := context.Background()
+
+			workspace := subscribeResultsWorkspace(workspaceID)
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+			contact := domain.Contact{Email: email}
+			if tc.signed {
+				contact.EmailHMAC = domain.ComputeEmailHMAC(email, workspace.Settings.SecretKey)
+			}
+			if tc.bearer {
+				mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+					Return(ctx, &domain.User{}, subscribeResultsUserWorkspace(workspaceID), nil)
+			}
+			if tc.bearer || tc.signed {
+				mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+			} else {
+				mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(nil, domain.ErrContactNotFound)
+				mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+			}
+			mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
+				{ID: "list1", Name: "List", IsPublic: true, IsDoubleOptin: tc.doubleOptin},
+			}, nil)
+			if tc.active {
+				mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list1").
+					Return(&domain.ContactList{Email: email, ListID: "list1", Status: domain.ContactListStatusActive}, nil)
+			} else {
+				mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list1").
+					Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+				mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			}
+			if tc.counts {
+				engagementRepo.EXPECT().Touch(gomock.Any(), workspaceID, email, gomock.Any()).Return(nil)
+			}
+
+			_, err := service.SubscribeToListsWithResults(ctx, &domain.SubscribeToListsRequest{
+				WorkspaceID: workspaceID, Contact: contact, ListIDs: []string{"list1"},
+			}, tc.bearer)
+			require.NoError(t, err)
+		})
+	}
+}

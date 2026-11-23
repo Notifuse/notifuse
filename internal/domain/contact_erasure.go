@@ -48,6 +48,10 @@ type ContactErasureRepository interface {
 	// executions cascade) and their automation_trigger_log rows.
 	DeleteJourneysForEmail(ctx context.Context, workspaceID, email string) error
 
+	// DeleteEngagementForEmail deletes the contact's engagement row (the data retention
+	// clock), so a contact created again later does not inherit it.
+	DeleteEngagementForEmail(ctx context.Context, workspaceID, email string) error
+
 	// DeleteWebhookDeliveriesForEmail deletes the webhook deliveries whose payload carries
 	// the address, whatever their status, except the two kinds the deletion itself sends,
 	// contact.deleted and segment.left: they are how subscribers learn of it.
