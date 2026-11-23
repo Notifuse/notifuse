@@ -498,7 +498,8 @@ func TestBroadcastSingleExecution_PauseBeforeTheFinalWriteIsKept(t *testing.T) {
 		_ = resp.Body.Close()
 		pause <- execution{code: resp.StatusCode}
 	}()
-	h.waitUntil("the pause to wait for the broadcast's row", func() bool { return h.blockedOn("%UPDATE broadcasts%") == 1 })
+	// The pause reads the row with its lock, so it waits on that read.
+	h.waitUntil("the pause to wait for the broadcast's row", func() bool { return h.blockedOn("%FROM broadcasts%FOR UPDATE%") == 1 })
 
 	releaseContacts()
 	h.waitUntil("the run's final write to wait behind the pause", func() bool { return h.blockedOn("%broadcasts%") == 2 })
