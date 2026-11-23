@@ -323,6 +323,10 @@ type TaskSchedulerConfig struct {
 	// keeps the default (5s). Never read from the environment: the integration
 	// harness shortens it, since every test broadcast otherwise waits it out.
 	SendNowDelay time.Duration
+	// SkipPermanentTaskRestore turns off TaskService's restore of the permanent tasks on its
+	// first pass. Never read from the environment: the integration harness sets it, since a
+	// segment queue task in every test workspace would hold each pass for close to a minute.
+	SkipPermanentTaskRestore bool
 }
 
 type AutomationSchedulerConfig struct {

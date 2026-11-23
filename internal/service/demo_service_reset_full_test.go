@@ -123,6 +123,7 @@ func runResetFullGraph(t *testing.T) (*domain.Workspace, bool, error) {
 		Return([]*domain.Task{{Status: domain.TaskStatusPending, NextRunAfter: &past}}, 1, nil).AnyTimes()
 	taskRepo.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	taskRepo.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	taskRepo.EXPECT().RestorePermanentTasks(gomock.Any(), "demo").Return(domain.PermanentTaskRestore{Created: 2}, nil).Times(1)
 
 	// --- workspace service (real) ---
 	userServiceIface := mocks.NewMockUserServiceInterface(ctrl)

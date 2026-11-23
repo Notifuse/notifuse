@@ -76,6 +76,26 @@ func TestTaskHandler_DeleteTask_GoneBetweenCheckAndDelete(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
 
+func TestTaskHandler_DeleteTask_PermanentTaskRefused(t *testing.T) {
+	for _, taskType := range domain.PermanentTaskTypes {
+		t.Run(taskType, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
+			allowOwner(mockAuth)
+			mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+				Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", Type: taskType}, nil)
+			mockTaskService.EXPECT().DeleteTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+				Return(domain.NewValidationError("task type " + taskType + " runs for every workspace and cannot be deleted"))
+
+			rec := httptest.NewRecorder()
+			handler.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-1&id=11111111-1111-4111-8111-111111111111", nil))
+
+			assert.Equal(t, http.StatusBadRequest, rec.Code)
+			assert.Contains(t, errorMessage(t, rec), "cannot be deleted")
+		})
+	}
+}
+
 // The dispatcher takes a 409 for a run already under way and logs anything else as an
 // error, so a concurrent run must answer 409 and a real failure must not.
 func TestTaskHandler_ExecuteTask_FailureStatuses(t *testing.T) {

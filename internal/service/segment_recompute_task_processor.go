@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -133,68 +132,4 @@ func (p *SegmentRecomputeTaskProcessor) Process(ctx context.Context, task *domai
 	// This allows it to be picked up again on the next cron run
 	task.Progress = 0 // Reset progress for next run
 	return false, nil // false = task is not complete, will be marked as "pending" and re-run
-}
-
-// EnsureSegmentRecomputeTask creates or updates the permanent recompute checking task for a workspace
-// This should be called when a workspace is created or during migration
-func EnsureSegmentRecomputeTask(ctx context.Context, taskRepo domain.TaskRepository, workspaceID string) error {
-	// Try to find existing task
-	filter := domain.TaskFilter{
-		Type:   []string{"check_segment_recompute"},
-		Limit:  1,
-		Offset: 0,
-	}
-
-	tasks, _, err := taskRepo.List(ctx, workspaceID, filter)
-	if err != nil {
-		return fmt.Errorf("failed to check for existing segment recompute task: %w", err)
-	}
-
-	// If task already exists, ensure it's configured correctly
-	if len(tasks) > 0 {
-		existingTask := tasks[0]
-		needsUpdate := false
-
-		// Ensure task is pending and scheduled to run now
-		if existingTask.Status != domain.TaskStatusPending {
-			existingTask.Status = domain.TaskStatusPending
-			needsUpdate = true
-		}
-
-		now := time.Now().UTC()
-		if existingTask.NextRunAfter == nil || existingTask.NextRunAfter.After(now) {
-			existingTask.NextRunAfter = &now
-			needsUpdate = true
-		}
-
-		if needsUpdate {
-			if err := taskRepo.Update(ctx, workspaceID, existingTask); err != nil {
-				return fmt.Errorf("failed to update segment recompute task: %w", err)
-			}
-		}
-
-		return nil
-	}
-
-	// Create new task
-	now := time.Now().UTC()
-	task := &domain.Task{
-		WorkspaceID:   workspaceID,
-		Type:          "check_segment_recompute",
-		Status:        domain.TaskStatusPending,
-		NextRunAfter:  &now,
-		MaxRuntime:    50, // 50 seconds (same as other tasks)
-		MaxRetries:    3,
-		RetryInterval: 60, // 1 minute
-		Progress:      0,
-		State: &domain.TaskState{
-			Message: "Check segments for daily recompute",
-		},
-	}
-
-	if err := taskRepo.Create(ctx, workspaceID, task); err != nil {
-		return fmt.Errorf("failed to create segment recompute task: %w", err)
-	}
-
-	return nil
 }

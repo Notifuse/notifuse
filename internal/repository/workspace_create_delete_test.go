@@ -192,6 +192,7 @@ func TestWorkspaceRepository_DeleteUnderNameLock(t *testing.T) {
 		mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).WithArgs(inLockAt()).WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec(`DELETE FROM workspace_invitations WHERE workspace_id = \$1`).WithArgs(inLockAt()).WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec(`DELETE FROM workspaces WHERE id = \$1`).WithArgs(inLockAt()).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`DELETE FROM tasks WHERE workspace_id = \$1`).WithArgs(inLockAt()).WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectCommit()
 
 		require.NoError(t, repo.Delete(context.Background(), workspaceID))
@@ -243,6 +244,7 @@ func TestWorkspaceRepository_DeleteUnderNameLock(t *testing.T) {
 		mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).WithArgs(workspaceID).WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec(`DELETE FROM workspace_invitations WHERE workspace_id = \$1`).WithArgs(workspaceID).WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec(`DELETE FROM workspaces WHERE id = \$1`).WithArgs(workspaceID).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`DELETE FROM tasks WHERE workspace_id = \$1`).WithArgs(workspaceID).WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectCommit()
 
 		require.NoError(t, repo.Delete(context.Background(), workspaceID))

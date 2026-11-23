@@ -439,6 +439,21 @@ func (mr *MockTaskRepositoryMockRecorder) ResetRetryBudget(arg0, arg1, arg2 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetRetryBudget", reflect.TypeOf((*MockTaskRepository)(nil).ResetRetryBudget), arg0, arg1, arg2)
 }
 
+// RestorePermanentTasks mocks base method.
+func (m *MockTaskRepository) RestorePermanentTasks(arg0 context.Context, arg1 string) (domain.PermanentTaskRestore, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RestorePermanentTasks", arg0, arg1)
+	ret0, _ := ret[0].(domain.PermanentTaskRestore)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RestorePermanentTasks indicates an expected call of RestorePermanentTasks.
+func (mr *MockTaskRepositoryMockRecorder) RestorePermanentTasks(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestorePermanentTasks", reflect.TypeOf((*MockTaskRepository)(nil).RestorePermanentTasks), arg0, arg1)
+}
+
 // SaveState mocks base method.
 func (m *MockTaskRepository) SaveState(arg0 context.Context, arg1, arg2 string, arg3 float64, arg4 *domain.TaskState) error {
 	m.ctrl.T.Helper()

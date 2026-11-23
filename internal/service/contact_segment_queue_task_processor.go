@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -123,68 +122,4 @@ func (p *ContactSegmentQueueTaskProcessor) Process(ctx context.Context, task *do
 	// The task's NextRunAfter is set to NOW in the EnsureTask function, so it's immediately available
 	task.Progress = 0 // Reset progress for next run
 	return false, nil // false = task is not complete, will be marked as "pending" and re-run
-}
-
-// EnsureContactSegmentQueueProcessingTask creates or updates the permanent queue processing task for a workspace
-// This should be called when a workspace is created or during migration
-func EnsureContactSegmentQueueProcessingTask(ctx context.Context, taskRepo domain.TaskRepository, workspaceID string) error {
-	// Try to find existing task
-	filter := domain.TaskFilter{
-		Type:   []string{"process_contact_segment_queue"},
-		Limit:  1,
-		Offset: 0,
-	}
-
-	tasks, _, err := taskRepo.List(ctx, workspaceID, filter)
-	if err != nil {
-		return fmt.Errorf("failed to check for existing queue processing task: %w", err)
-	}
-
-	// If task already exists, ensure it's configured correctly
-	if len(tasks) > 0 {
-		existingTask := tasks[0]
-		needsUpdate := false
-
-		// Ensure task is pending and scheduled to run now
-		if existingTask.Status != domain.TaskStatusPending {
-			existingTask.Status = domain.TaskStatusPending
-			needsUpdate = true
-		}
-
-		now := time.Now().UTC()
-		if existingTask.NextRunAfter == nil || existingTask.NextRunAfter.After(now) {
-			existingTask.NextRunAfter = &now
-			needsUpdate = true
-		}
-
-		if needsUpdate {
-			if err := taskRepo.Update(ctx, workspaceID, existingTask); err != nil {
-				return fmt.Errorf("failed to update queue processing task: %w", err)
-			}
-		}
-
-		return nil
-	}
-
-	// Create new task
-	now := time.Now().UTC()
-	task := &domain.Task{
-		WorkspaceID:   workspaceID,
-		Type:          "process_contact_segment_queue",
-		Status:        domain.TaskStatusPending,
-		NextRunAfter:  &now,
-		MaxRuntime:    50, // 50 seconds (same as other tasks)
-		MaxRetries:    3,
-		RetryInterval: 60, // 1 minute
-		Progress:      0,
-		State: &domain.TaskState{
-			Message: "Contact segment queue processing task",
-		},
-	}
-
-	if err := taskRepo.Create(ctx, workspaceID, task); err != nil {
-		return fmt.Errorf("failed to create queue processing task: %w", err)
-	}
-
-	return nil
 }
