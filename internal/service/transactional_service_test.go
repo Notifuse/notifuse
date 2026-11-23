@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -2054,18 +2055,8 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 			Get(gomock.Any(), workspace, notificationID).
 			Return(notification, nil)
 
-		// Contact upsert succeeds
-		mockContactService.EXPECT().
-			UpsertContact(gomock.Any(), workspace, contact).
-			Return(domain.UpsertContactOperation{
-				Email:  contact.Email,
-				Action: domain.UpsertContactOperationUpdate,
-			})
-
-		// Get contact succeeds
-		mockContactService.EXPECT().
-			GetContactByEmail(gomock.Any(), workspace, contact.Email).
-			Return(contact, nil)
+		// The check runs before the contact upsert: a replay changes no contact, and the
+		// mock fails on any UpsertContact or GetContactByEmail call.
 
 		// Message with external ID already exists
 		existingMessage := &domain.MessageHistory{
@@ -2357,18 +2348,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 			Get(gomock.Any(), workspace, notificationID).
 			Return(notification, nil)
 
-		// Contact upsert succeeds
-		mockContactService.EXPECT().
-			UpsertContact(gomock.Any(), workspace, contact).
-			Return(domain.UpsertContactOperation{
-				Email:  contact.Email,
-				Action: domain.UpsertContactOperationUpdate,
-			})
-
-		// Get contact succeeds
-		mockContactService.EXPECT().
-			GetContactByEmail(gomock.Any(), workspace, contact.Email).
-			Return(contact, nil)
+		// The check runs before the contact upsert, so a failed check upserts nothing.
 
 		// External ID check fails with a real database error (not "not found")
 		mockMsgHistoryRepo.EXPECT().
@@ -5031,4 +5011,207 @@ func TestTransactionalNotificationService_TestTemplate_WithList(t *testing.T) {
 			assert.Equal(t, "Tester@Example.com", f.sent.To, "the provider still gets the address as typed")
 		})
 	}
+}
+
+// external_id deduplication of SendNotification: a replay is answered before the contact is
+// touched, and a concurrent call that loses the race on the unique index answers the winner's
+// message without sending.
+func TestTransactionalNotificationService_SendNotification_ExternalID(t *testing.T) {
+	workspaceID := "test-workspace"
+	notificationID := "order_confirmation"
+	externalID := "order-981"
+	contact := &domain.Contact{Email: "buyer@example.com"}
+
+	notification := &domain.TransactionalNotification{
+		ID: notificationID,
+		Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+			domain.TransactionalChannelEmail: {TemplateID: "tpl-1"},
+		},
+	}
+	workspaceObj := &domain.Workspace{
+		ID: workspaceID,
+		Settings: domain.WorkspaceSettings{
+			TransactionalEmailProviderID: "integration-1",
+			SecretKey:                    "test-secret-key",
+		},
+		Integrations: []domain.Integration{{
+			ID:   "integration-1",
+			Type: "email",
+			EmailProvider: domain.EmailProvider{
+				Kind:      domain.EmailProviderKindSparkPost,
+				Senders:   []domain.EmailSender{domain.NewEmailSender("test@example.com", "Test Sender")},
+				SparkPost: &domain.SparkPostSettings{EncryptedAPIKey: "encrypted-api-key"},
+			},
+		}},
+	}
+	notFound := fmt.Errorf("external_id %s: %w", externalID, domain.ErrMessageHistoryNotFound)
+
+	type fixture struct {
+		service  *TransactionalNotificationService
+		history  *mocks.MockMessageHistoryRepository
+		contacts *mocks.MockContactService
+		email    *mocks.MockEmailServiceInterface
+	}
+	setup := func(t *testing.T) fixture {
+		ctrl := gomock.NewController(t)
+		logger := pkgmocks.NewMockLogger(ctrl)
+		logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+		logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+		logger.EXPECT().Info(gomock.Any()).AnyTimes()
+		logger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceObj, nil)
+		repo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		repo.EXPECT().Get(gomock.Any(), workspaceID, notificationID).Return(notification, nil)
+
+		f := fixture{
+			history:  mocks.NewMockMessageHistoryRepository(ctrl),
+			contacts: mocks.NewMockContactService(ctrl),
+			email:    mocks.NewMockEmailServiceInterface(ctrl),
+		}
+		f.service = &TransactionalNotificationService{
+			transactionalRepo:  repo,
+			messageHistoryRepo: f.history,
+			contactService:     f.contacts,
+			emailService:       f.email,
+			logger:             logger,
+			workspaceRepo:      workspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+		}
+		return f
+	}
+	expectContact := func(f fixture) *gomock.Call {
+		upsert := f.contacts.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+			Return(domain.UpsertContactOperation{Email: contact.Email, Action: domain.UpsertContactOperationUpdate})
+		return f.contacts.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, contact.Email).Return(contact, nil).After(upsert)
+	}
+	ctx := context.WithValue(context.Background(), domain.SystemCallKey, true)
+	params := domain.TransactionalNotificationSendParams{ID: notificationID, Contact: contact, ExternalID: &externalID}
+
+	t.Run("a new key is checked before the contact upsert, then sent under it", func(t *testing.T) {
+		f := setup(t)
+		check := f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).Return(nil, notFound)
+		upsert := f.contacts.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+			Return(domain.UpsertContactOperation{Email: contact.Email, Action: domain.UpsertContactOperationCreate}).After(check)
+		f.contacts.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, contact.Email).Return(contact, nil).After(upsert)
+		f.email.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, request domain.SendEmailRequest) error {
+				require.NotNil(t, request.ExternalID)
+				assert.Equal(t, externalID, *request.ExternalID)
+				return nil
+			})
+
+		messageID, err := f.service.SendNotification(ctx, workspaceID, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, messageID)
+	})
+
+	t.Run("a concurrent call that wrote its message first is answered with it, without sending", func(t *testing.T) {
+		f := setup(t)
+		first := f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).Return(nil, notFound)
+		expectContact(f)
+		// The unique index refused this call's message: the email service sent nothing.
+		send := f.email.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).
+			Return(fmt.Errorf("failed to create message history: %w", &domain.ErrExternalIDTaken{ExternalID: externalID})).After(first)
+		f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).
+			Return(&domain.MessageHistory{ID: "winner-msg", ExternalID: &externalID}, nil).After(send)
+
+		messageID, err := f.service.SendNotification(ctx, workspaceID, params)
+		require.NoError(t, err)
+		assert.Equal(t, "winner-msg", messageID)
+	})
+
+	// A key is never released: a winner whose provider call failed keeps it, and the loser is
+	// answered with that failed message as a replay would be.
+	t.Run("a concurrent call whose winner failed is answered with the failed message", func(t *testing.T) {
+		f := setup(t)
+		first := f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).Return(nil, notFound)
+		expectContact(f)
+		send := f.email.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).
+			Return(fmt.Errorf("failed to create message history: %w", &domain.ErrExternalIDTaken{ExternalID: externalID})).After(first)
+		failedAt := time.Now()
+		f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).
+			Return(&domain.MessageHistory{ID: "failed-msg", ExternalID: &externalID, FailedAt: &failedAt}, nil).After(send)
+
+		messageID, err := f.service.SendNotification(ctx, workspaceID, params)
+		require.NoError(t, err)
+		assert.Equal(t, "failed-msg", messageID)
+	})
+
+	// The row that refused this call's message is never deleted nor released, so not finding
+	// it is a fault, reported as one.
+	t.Run("a winner that cannot be read after losing the race is an error", func(t *testing.T) {
+		f := setup(t)
+		f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).Return(nil, notFound).Times(2)
+		expectContact(f)
+		f.email.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).
+			Return(fmt.Errorf("failed to create message history: %w", &domain.ErrExternalIDTaken{ExternalID: externalID}))
+
+		messageID, err := f.service.SendNotification(ctx, workspaceID, params)
+		require.ErrorContains(t, err, "could not be read")
+		assert.Empty(t, messageID)
+		// The transactional.send handler answers 400 to an error saying "not found".
+		assert.NotContains(t, err.Error(), "not found")
+	})
+
+	// Only the repository's sentinel means no message: a database error whose text happens to
+	// say "not found" is a failed check, and the send stops before touching the contact.
+	t.Run("a lookup error saying not found is an error, not a missing message", func(t *testing.T) {
+		f := setup(t)
+		f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).
+			Return(nil, errors.New(`pq: relation "message_history" not found`))
+
+		messageID, err := f.service.SendNotification(ctx, workspaceID, params)
+		require.ErrorContains(t, err, "failed to check for existing message")
+		assert.Empty(t, messageID)
+	})
+
+	// "" is no key: it is not looked up, and the send carries none, so two sends with it both
+	// send.
+	t.Run("an empty external_id is no key", func(t *testing.T) {
+		empty := ""
+		p := params
+		p.ExternalID = &empty
+		var sent []string
+		for range 2 {
+			f := setup(t)
+			expectContact(f)
+			f.email.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, request domain.SendEmailRequest) error {
+					assert.Nil(t, request.ExternalID)
+					return nil
+				})
+
+			messageID, err := f.service.SendNotification(ctx, workspaceID, p)
+			require.NoError(t, err)
+			sent = append(sent, messageID)
+		}
+		assert.NotEqual(t, sent[0], sent[1], "each send is its own message")
+	})
+
+	t.Run("a lookup error after losing the race is returned", func(t *testing.T) {
+		f := setup(t)
+		f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).Return(nil, notFound)
+		expectContact(f)
+		f.email.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).
+			Return(fmt.Errorf("failed to create message history: %w", &domain.ErrExternalIDTaken{ExternalID: externalID}))
+		f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).
+			Return(nil, errors.New("connection reset"))
+
+		_, err := f.service.SendNotification(ctx, workspaceID, params)
+		require.ErrorContains(t, err, "failed to check for existing message: connection reset")
+	})
+
+	t.Run("without an external_id nothing is looked up", func(t *testing.T) {
+		f := setup(t)
+		expectContact(f)
+		f.email.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).Return(nil)
+
+		p := params
+		p.ExternalID = nil
+		messageID, err := f.service.SendNotification(ctx, workspaceID, p)
+		require.NoError(t, err)
+		assert.NotEmpty(t, messageID)
+	})
 }
