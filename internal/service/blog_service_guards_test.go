@@ -250,7 +250,7 @@ func TestBlogService_CreatePost_Branches(t *testing.T) {
 		postRepo.EXPECT().GetPostBySlug(gomock.Any(), "hello-world").
 			Return(&domain.BlogPost{ID: "old"}, nil).Times(1)
 		_, err := svc.CreatePost(ctx, validReq())
-		require.EqualError(t, err, "post with slug 'hello-world' already exists")
+		requireAlreadyExists(t, err, "blog_post", "hello-world", false)
 	})
 
 	t.Run("a slug-lookup error does not block creation", func(t *testing.T) {

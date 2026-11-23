@@ -264,16 +264,18 @@ func (h *WorkspaceHandler) handleUpdate(w http.ResponseWriter, r *http.Request) 
 		req.Settings,
 	)
 	if err != nil {
+		// Before writeServiceError, which answers a validation error with its "validation
+		// error: " prefix: this endpoint has always sent the bare message (e.g., DNS
+		// verification failed).
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
+			return
+		}
 		if writeServiceError(w, err, "You are not allowed to update this workspace") {
 			return
 		}
 		if writeStaleCredential(w, err) {
-			return
-		}
-		// Check if it's a validation error (e.g., DNS verification failed)
-		var validationErr domain.ValidationError
-		if errors.As(err, &validationErr) {
-			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
 			return
 		}
 		WriteJSONError(w, "Failed to update workspace", http.StatusInternalServerError)

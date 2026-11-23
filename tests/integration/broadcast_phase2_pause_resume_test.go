@@ -962,8 +962,8 @@ func TestBroadcastPhase2_PauseIdempotency(t *testing.T) {
 	})
 	require.NoError(t, err)
 	defer resp2.Body.Close()
-	assert.Equal(t, http.StatusInternalServerError, resp2.StatusCode,
-		"double-pause must be rejected")
+	assert.Equal(t, http.StatusConflict, resp2.StatusCode,
+		"double-pause must be rejected as a state conflict")
 
 	// Resume, then double-resume rejection.
 	resumeResp, err := h.client.ResumeBroadcast(map[string]interface{}{
@@ -981,8 +981,8 @@ func TestBroadcastPhase2_PauseIdempotency(t *testing.T) {
 	})
 	require.NoError(t, err)
 	defer resumeResp2.Body.Close()
-	assert.Equal(t, http.StatusInternalServerError, resumeResp2.StatusCode,
-		"double-resume must be rejected")
+	assert.Equal(t, http.StatusConflict, resumeResp2.StatusCode,
+		"double-resume must be rejected as a state conflict")
 }
 
 // TestBroadcastPause_IsolatesBySourceID creates two broadcasts in the same

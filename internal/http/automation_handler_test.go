@@ -678,8 +678,36 @@ func TestAutomationHandler_GetContactNodeExecutions(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("not found", func(t *testing.T) {
-		automationSvc.EXPECT().GetContactNodeExecutions(gomock.Any(), "workspace-123", "auto-123", "notfound@example.com").Return(nil, nil, errors.New("not found"))
+	t.Run("unknown or deleted automation answers 404", func(t *testing.T) {
+		automationSvc.EXPECT().GetContactNodeExecutions(gomock.Any(), "workspace-123", "auto-123", "notfound@example.com").
+			Return(nil, nil, fmt.Errorf("failed to get automation: %w", &domain.ErrNotFound{Entity: "automation", ID: "auto-123"}))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/automations.nodeExecutions?workspace_id=workspace-123&automation_id=auto-123&email=notfound@example.com", nil)
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, "automation not found with ID: auto-123", decodeErrorMessage(t, w))
+	})
+
+	t.Run("a contact the automation never enrolled answers 404", func(t *testing.T) {
+		automationSvc.EXPECT().GetContactNodeExecutions(gomock.Any(), "workspace-123", "auto-123", "notfound@example.com").
+			Return(nil, nil, fmt.Errorf("failed to get contact automation: %w", &domain.ErrNotFound{Entity: "contact_automation", ID: "notfound@example.com"}))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/automations.nodeExecutions?workspace_id=workspace-123&automation_id=auto-123&email=notfound@example.com", nil)
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("any other failure stays a 500", func(t *testing.T) {
+		automationSvc.EXPECT().GetContactNodeExecutions(gomock.Any(), "workspace-123", "auto-123", "notfound@example.com").
+			Return(nil, nil, errors.New("database connection lost"))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/automations.nodeExecutions?workspace_id=workspace-123&automation_id=auto-123&email=notfound@example.com", nil)
 		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
@@ -688,6 +716,57 @@ func TestAutomationHandler_GetContactNodeExecutions(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+// An automation whose status refuses the action answers 409 with the state; one whose
+// configuration refuses activation answers 400. Both answered 500.
+func TestAutomationHandler_InvalidStateMapping(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+	body := `{"workspace_id":"workspace-123","automation_id":"auto-123"}`
+
+	post := func(path string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader([]byte(body)))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("activate of a live automation answers 409", func(t *testing.T) {
+		automationSvc.EXPECT().Activate(gomock.Any(), "workspace-123", "auto-123").
+			Return(domain.NewInvalidStateError("automation", "auto-123", "activate", "live"))
+
+		w := post("/api/automations.activate")
+
+		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.JSONEq(t, `{
+			"error": "cannot activate automation auto-123: its status is live",
+			"invalid_state": {"entity": "automation", "id": "auto-123", "action": "activate", "status": "live"}
+		}`, w.Body.String())
+	})
+
+	t.Run("pause of a draft answers 409", func(t *testing.T) {
+		automationSvc.EXPECT().Pause(gomock.Any(), "workspace-123", "auto-123").
+			Return(domain.NewInvalidStateError("automation", "auto-123", "pause", "draft"))
+
+		w := post("/api/automations.pause")
+
+		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.JSONEq(t, `{
+			"error": "cannot pause automation auto-123: its status is draft",
+			"invalid_state": {"entity": "automation", "id": "auto-123", "action": "pause", "status": "draft"}
+		}`, w.Body.String())
+	})
+
+	t.Run("activate of email nodes without a list answers 400", func(t *testing.T) {
+		automationSvc.EXPECT().Activate(gomock.Any(), "workspace-123", "auto-123").
+			Return(domain.NewValidationError("cannot activate automation with email nodes when list_id is not set"))
+
+		w := post("/api/automations.activate")
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, "cannot activate automation with email nodes when list_id is not set", decodeErrorMessage(t, w))
 	})
 }
 

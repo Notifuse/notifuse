@@ -1848,15 +1848,14 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 		// Notification not found
 		mockRepo.EXPECT().
 			Get(gomock.Any(), workspace, notificationID).
-			Return(nil, errors.New("notification not found"))
+			Return(nil, &domain.ErrNotFound{Entity: "transactional_notification", ID: notificationID})
 
 		// Call the method
 		messageID, err := service.SendNotification(ctx, workspace, params)
 
-		// Assertions
-		require.Error(t, err)
+		// Assertions: the handler finds the missing notification by type
 		require.Empty(t, messageID)
-		assert.Contains(t, err.Error(), "notification not found")
+		requireNotFound(t, err, "transactional_notification", notificationID)
 	})
 
 	t.Run("Error_ContactRequired", func(t *testing.T) {

@@ -99,6 +99,23 @@ func TestSegmentService_CreateSegment(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 	})
 
+	t.Run("an ID a deleted segment holds", func(t *testing.T) {
+		req := &domain.CreateSegmentRequest{
+			WorkspaceID: "workspace123",
+			ID:          "segment1",
+			Name:        "Test Segment",
+			Color:       "#FF5733",
+			Timezone:    "UTC",
+			Tree:        createTestTree(),
+		}
+		mockRepo.EXPECT().CreateSegment(gomock.Any(), "workspace123", gomock.Any()).
+			Return(domain.NewAlreadyExistsError("segment", "segment1", true))
+
+		segment, err := service.CreateSegment(ctx, req)
+		assert.Nil(t, segment)
+		requireAlreadyExists(t, err, "segment", "segment1", true)
+	})
+
 	t.Run("validation requires ID", func(t *testing.T) {
 		// Note: ID is required by validation, so auto-generation doesn't work as expected
 		// This tests that missing ID fails validation
@@ -124,9 +141,8 @@ func TestSegmentService_CreateSegment(t *testing.T) {
 		}
 
 		segment, err := service.CreateSegment(ctx, req)
-		assert.Error(t, err)
 		assert.Nil(t, segment)
-		assert.Contains(t, err.Error(), "invalid request")
+		requireValidationError(t, err, "id is required")
 	})
 
 	t.Run("invalid tree structure", func(t *testing.T) {
@@ -142,10 +158,26 @@ func TestSegmentService_CreateSegment(t *testing.T) {
 		}
 
 		segment, err := service.CreateSegment(ctx, req)
-		assert.Error(t, err)
 		assert.Nil(t, segment)
 		// Tree validation happens first during request validation
-		assert.Contains(t, err.Error(), "invalid tree")
+		requireValidationError(t, err, "invalid tree")
+	})
+
+	t.Run("tree the builder cannot compile", func(t *testing.T) {
+		tree := createTestTree()
+		tree.Leaf.Contact.Filters[0].FieldName = "no_such_field"
+		req := &domain.CreateSegmentRequest{
+			WorkspaceID: "workspace123",
+			ID:          "segment1",
+			Name:        "Test Segment",
+			Color:       "#FF5733",
+			Timezone:    "UTC",
+			Tree:        tree,
+		}
+
+		segment, err := service.CreateSegment(ctx, req)
+		assert.Nil(t, segment)
+		requireValidationError(t, err, "invalid segment tree")
 	})
 
 	t.Run("repository error", func(t *testing.T) {
@@ -529,9 +561,8 @@ func TestSegmentService_UpdateSegment(t *testing.T) {
 		}
 
 		segment, err := service.UpdateSegment(ctx, req)
-		assert.Error(t, err)
 		assert.Nil(t, segment)
-		assert.Contains(t, err.Error(), "invalid request")
+		requireValidationError(t, err, "id is required")
 	})
 
 	t.Run("segment not found", func(t *testing.T) {
@@ -567,10 +598,27 @@ func TestSegmentService_UpdateSegment(t *testing.T) {
 		}
 
 		segment, err := service.UpdateSegment(ctx, req)
-		assert.Error(t, err)
 		assert.Nil(t, segment)
 		// Tree validation happens first during request validation
-		assert.Contains(t, err.Error(), "invalid tree")
+		requireValidationError(t, err, "invalid tree")
+	})
+
+	t.Run("tree the builder cannot compile", func(t *testing.T) {
+		tree := createTestTree()
+		tree.Leaf.Contact.Filters[0].FieldName = "no_such_field"
+		req := &domain.UpdateSegmentRequest{
+			WorkspaceID: "workspace123",
+			ID:          "segment1",
+			Name:        "Test Segment",
+			Color:       "#FF5733",
+			Timezone:    "UTC",
+			Tree:        tree,
+		}
+		mockRepo.EXPECT().GetSegmentByID(ctx, "workspace123", "segment1").Return(&domain.Segment{ID: "segment1", Tree: createTestTree(), Timezone: "UTC", Version: 1}, nil)
+
+		segment, err := service.UpdateSegment(ctx, req)
+		assert.Nil(t, segment)
+		requireValidationError(t, err, "invalid segment tree")
 	})
 
 	t.Run("repository update error", func(t *testing.T) {
@@ -658,8 +706,7 @@ func TestSegmentService_DeleteSegment(t *testing.T) {
 		}
 
 		err := service.DeleteSegment(ctx, req)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid request")
+		requireValidationError(t, err, "id is required")
 	})
 
 	t.Run("segment not found", func(t *testing.T) {
@@ -877,6 +924,18 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 				assert.Nil(t, response)
 				assert.Contains(t, err.Error(), tc.errContains)
 			})
+		}
+
+		// A tree that does not validate, or that the builder cannot compile, is the caller's
+		// input: a ValidationError, which answers 400.
+		for _, tree := range []*domain.TreeNode{{Kind: "invalid"}, func() *domain.TreeNode {
+			tree := createTestTree()
+			tree.Leaf.Contact.Filters[0].FieldName = "no_such_field"
+			return tree
+		}()} {
+			response, err := service.PreviewSegment(ctx, "workspace123", tree, 10)
+			assert.Nil(t, response)
+			requireValidationError(t, err, "invalid segment tree")
 		}
 	})
 

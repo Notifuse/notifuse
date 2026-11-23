@@ -108,7 +108,7 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 	// Validate the request
 	segment, workspaceID, err := req.Validate()
 	if err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
+		return nil, domain.NewValidationError(err.Error())
 	}
 
 	// Generate ID if not provided
@@ -128,9 +128,10 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 	segment.DBUpdatedAt = now
 
 	// Validate and generate SQL from the tree
+	// The tree is the caller's: a tree the builder cannot compile is bad input, not a fault.
 	sqlQuery, args, err := s.queryBuilder.BuildSQL(segment.Tree)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build SQL from tree: %w", err)
+		return nil, domain.NewValidationError("invalid segment tree: " + err.Error())
 	}
 
 	// Store generated SQL and args for debugging and reuse
@@ -284,7 +285,7 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 	// Validate the request
 	updates, workspaceID, err := req.Validate()
 	if err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
+		return nil, domain.NewValidationError(err.Error())
 	}
 
 	// Fetch the existing segment
@@ -315,7 +316,7 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 		// Regenerate SQL and args
 		sqlQuery, args, err := s.queryBuilder.BuildSQL(existing.Tree)
 		if err != nil {
-			return nil, fmt.Errorf("failed to build SQL from updated tree: %w", err)
+			return nil, domain.NewValidationError("invalid segment tree: " + err.Error())
 		}
 		existing.GeneratedSQL = &sqlQuery
 		existing.GeneratedArgs = domain.JSONArray(args)
@@ -430,7 +431,7 @@ func (s *SegmentService) DeleteSegment(ctx context.Context, req *domain.DeleteSe
 
 	workspaceID, id, err := req.Validate()
 	if err != nil {
-		return fmt.Errorf("invalid request: %w", err)
+		return domain.NewValidationError(err.Error())
 	}
 
 	if err := s.segmentRepo.DeleteSegment(ctx, workspaceID, id); err != nil {
@@ -542,13 +543,13 @@ func (s *SegmentService) PreviewSegment(ctx context.Context, workspaceID string,
 
 	// Validate the tree
 	if err := tree.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid tree: %w", err)
+		return nil, domain.NewValidationError("invalid segment tree: " + err.Error())
 	}
 
 	// Build SQL from tree
 	sqlQuery, args, err := s.queryBuilder.BuildSQL(tree)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build SQL: %w", err)
+		return nil, domain.NewValidationError("invalid segment tree: " + err.Error())
 	}
 
 	s.logger.WithFields(map[string]interface{}{

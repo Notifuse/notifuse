@@ -2324,3 +2324,39 @@ func TestTimelineTriggerConfig_Validate_LinkClicked(t *testing.T) {
 		}
 	})
 }
+
+func TestAutomation_WithoutWebhookSecrets(t *testing.T) {
+	secretNode := func() *AutomationNode {
+		return &AutomationNode{ID: "hook", Type: NodeTypeWebhook, Config: map[string]interface{}{
+			"url": "https://hooks.example.com/in", "secret": "s3cret", "description": "CRM",
+		}}
+	}
+	emailNode := &AutomationNode{ID: "mail", Type: NodeTypeEmail, Config: map[string]interface{}{"template_id": "tpl"}}
+	noSecretHook := &AutomationNode{ID: "open-hook", Type: NodeTypeWebhook, Config: map[string]interface{}{"url": "https://hooks.example.com/open"}}
+
+	stored := &Automation{ID: "auto-1", Name: "Onboarding", Nodes: []*AutomationNode{secretNode(), emailNode, noSecretHook}}
+	redacted := stored.WithoutWebhookSecrets()
+
+	t.Run("the webhook node loses its secret and keeps the rest", func(t *testing.T) {
+		assert.Equal(t, map[string]interface{}{"url": "https://hooks.example.com/in", "description": "CRM"}, redacted.Nodes[0].Config)
+		assert.Equal(t, "Onboarding", redacted.Name)
+	})
+
+	t.Run("the stored automation is unchanged", func(t *testing.T) {
+		assert.Equal(t, secretNode(), stored.Nodes[0])
+		assert.NotSame(t, stored, redacted)
+		assert.NotSame(t, stored.Nodes[0], redacted.Nodes[0])
+		assert.Len(t, stored.Nodes, len(redacted.Nodes))
+	})
+
+	t.Run("nodes without a secret are shared, not copied", func(t *testing.T) {
+		assert.Same(t, emailNode, redacted.Nodes[1])
+		assert.Same(t, noSecretHook, redacted.Nodes[2])
+	})
+
+	t.Run("a nil automation and one without nodes", func(t *testing.T) {
+		var none *Automation
+		assert.Nil(t, none.WithoutWebhookSecrets())
+		assert.Nil(t, (&Automation{ID: "empty"}).WithoutWebhookSecrets().Nodes)
+	})
+}

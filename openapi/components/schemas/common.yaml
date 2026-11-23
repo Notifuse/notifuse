@@ -26,3 +26,49 @@ PermissionErrorResponse:
     - error
     - resource
     - permission
+
+InvalidStateErrorResponse:
+  type: object
+  description: Returned with a 409 when the object exists but its status refuses the action, such as scheduling a broadcast that is no longer a draft. Status is the status as it was read.
+  properties:
+    error:
+      type: string
+      description: Error message
+    invalid_state:
+      type: object
+      properties:
+        entity:
+          type: string
+          example: broadcast
+        id:
+          type: string
+        action:
+          type: string
+          example: schedule
+        status:
+          type: string
+          example: processing
+  required:
+    - error
+    - invalid_state
+
+AlreadyExistsErrorResponse:
+  type: object
+  description: Returned with a 409 when a create or update uses an identifier that is already taken, such as a slug. `deleted` is true when the object holding it was deleted, since a deleted object keeps its identifier.
+  properties:
+    error:
+      type: string
+      description: Error message
+    already_exists:
+      type: object
+      properties:
+        entity:
+          type: string
+          example: blog_post
+        id:
+          type: string
+        deleted:
+          type: boolean
+  required:
+    - error
+    - already_exists

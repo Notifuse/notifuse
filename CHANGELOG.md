@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The Gmail app on iOS no longer shows a broken-image icon at the bottom of emails with open tracking. The tracking pixel was a PNG with truncated pixel data, which Gmail could not display; it is now a valid transparent PNG. Opens were recorded correctly all along.
 
+- **Fix**: The API no longer answers 500 when a broadcast, blog post, segment, automation or transactional notification refuses a request. An action the object's status does not allow, such as scheduling a broadcast that is no longer a draft or publishing a published post, answers 409 with that status; an ID or slug already taken answers 409; an unknown object answers 404; an invalid segment answers 400. Two pauses, resumes or cancellations of the same broadcast sent at the same time no longer both go through.
+
+- **Security**: `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
+
 ## [44.0] - 2026-11-19
 
 ### Before you upgrade

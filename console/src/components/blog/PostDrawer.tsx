@@ -21,11 +21,11 @@ import { countWords, effectivePostSeo, type PostDraft } from './post/postSeo'
 import { PostChecks } from './post/PostChecks'
 import { usePostChecks } from './post/usePostChecks'
 import { postState } from './postState'
+import { templateVersionConflict } from './templateVersionConflict'
 import { docKey } from './post/docKey'
 import { defaultEditorStyles } from '../blog_editor/config/defaultEditorStyles'
 import { ImageURLInput } from '../common/ImageURLInput'
 import { templatesApi } from '../../services/api/template'
-import { ApiError } from '../../services/api/client'
 import { useTemplateConflictModal } from '../templates/useTemplateConflictModal'
 import { AuthorsField } from './AuthorsField'
 import {
@@ -510,10 +510,11 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       handleClose()
     },
     onError: (error: Error) => {
-      // 409: the template advanced past our base while editing. Let the user keep their
+      // The template advanced past our base while editing. Let the user keep their
       // work (overwrite) or load the latest (discard theirs) rather than losing changes.
-      if (error instanceof ApiError && error.status === 409) {
-        const latest = (error.data as { latest_version?: number } | undefined)?.latest_version
+      const conflict = templateVersionConflict(error)
+      if (conflict) {
+        const latest = conflict.latestVersion
         showConflict({
           latestVersion: latest,
           baseVersion: baseVersionRef.current,

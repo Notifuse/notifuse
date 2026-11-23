@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -563,51 +562,6 @@ func TestHandleSchedule(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 
-	// Test invalid status (not draft)
-	t.Run("InvalidStatus", func(t *testing.T) {
-		request := &domain.ScheduleBroadcastRequest{
-			WorkspaceID: "workspace123",
-			ID:          "broadcast123",
-			SendNow:     true,
-		}
-
-		// Create a custom handler just for this test
-		customController := gomock.NewController(t)
-		defer customController.Finish()
-		customMock := mocks.NewMockBroadcastService(customController)
-		customLogger := pkgmocks.NewMockLogger(customController)
-
-		// Create a public key for authentication
-		jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
-
-		// Create the handler with mocks
-		customHandler := http_handler.NewBroadcastHandler(
-			customMock,
-			func() ([]byte, error) { return jwtSecret, nil },
-			customLogger,
-			false,
-		)
-
-		// Set up expectations differently - this is more direct and explicit
-		errorLogger := pkgmocks.NewMockLogger(customController)
-		customLogger.EXPECT().WithField("error", "only broadcasts with draft status can be scheduled, current status: sending").Return(errorLogger)
-		errorLogger.EXPECT().Error("Failed to schedule broadcast")
-
-		// Setup mock to return a status error
-		customMock.EXPECT().
-			ScheduleBroadcast(gomock.Any(), gomock.Any()).
-			Return(fmt.Errorf("only broadcasts with draft status can be scheduled, current status: sending"))
-
-		requestBody, _ := json.Marshal(request)
-		req := httptest.NewRequest(http.MethodPost, "/api/broadcasts.schedule", bytes.NewBuffer(requestBody))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		customHandler.HandleSchedule(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
-
 	// Test service error
 	t.Run("ServiceError", func(t *testing.T) {
 		request := &domain.ScheduleBroadcastRequest{
@@ -758,37 +712,6 @@ func TestHandleCancel(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 
-	// Test invalid status
-	t.Run("InvalidStatus", func(t *testing.T) {
-		request := &domain.CancelBroadcastRequest{
-			WorkspaceID: "workspace123",
-			ID:          "broadcast123",
-		}
-
-		// Create a custom handler just for this test
-		customHandler, customMock, customLogger, customCtrl := setupBroadcastHandler(t)
-		defer customCtrl.Finish()
-
-		// Set up expectations differently - this is more direct and explicit
-		errorLogger := pkgmocks.NewMockLogger(customCtrl)
-		customLogger.EXPECT().WithField("error", "only broadcasts with scheduled or paused status can be cancelled, current status: draft").Return(errorLogger)
-		errorLogger.EXPECT().Error("Failed to cancel broadcast")
-
-		// Setup mock to return a status error
-		customMock.EXPECT().
-			CancelBroadcast(gomock.Any(), gomock.Any()).
-			Return(fmt.Errorf("only broadcasts with scheduled or paused status can be cancelled, current status: draft"))
-
-		requestBody, _ := json.Marshal(request)
-		req := httptest.NewRequest(http.MethodPost, "/api/broadcasts.cancel", bytes.NewBuffer(requestBody))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		customHandler.HandleCancel(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
-
 	// Test service error
 	t.Run("ServiceError", func(t *testing.T) {
 		request := &domain.CancelBroadcastRequest{
@@ -923,37 +846,6 @@ func TestHandlePause(t *testing.T) {
 		customHandler.HandlePause(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
-	})
-
-	// Test invalid status
-	t.Run("InvalidStatus", func(t *testing.T) {
-		request := &domain.PauseBroadcastRequest{
-			WorkspaceID: "workspace123",
-			ID:          "broadcast123",
-		}
-
-		// Create a custom handler just for this test
-		customHandler, customMock, customLogger, customCtrl := setupBroadcastHandler(t)
-		defer customCtrl.Finish()
-
-		// Set up expectations differently - this is more direct and explicit
-		errorLogger := pkgmocks.NewMockLogger(customCtrl)
-		customLogger.EXPECT().WithField("error", "only broadcasts with sending status can be paused, current status: draft").Return(errorLogger)
-		errorLogger.EXPECT().Error("Failed to pause broadcast")
-
-		// Setup mock to return a status error
-		customMock.EXPECT().
-			PauseBroadcast(gomock.Any(), gomock.Any()).
-			Return(fmt.Errorf("only broadcasts with sending status can be paused, current status: draft"))
-
-		requestBody, _ := json.Marshal(request)
-		req := httptest.NewRequest(http.MethodPost, "/api/broadcasts.pause", bytes.NewBuffer(requestBody))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		customHandler.HandlePause(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 
 	// Test service error

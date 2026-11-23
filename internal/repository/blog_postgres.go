@@ -3,12 +3,18 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
+
 	"github.com/Notifuse/notifuse/internal/domain"
 )
+
+// blogPostEntity names a blog post in typed errors.
+const blogPostEntity = "blog_post"
 
 // blogCategoryRepository implements domain.BlogCategoryRepository for PostgreSQL
 type blogCategoryRepository struct {
@@ -418,9 +424,10 @@ func (r *blogPostRepository) CreatePost(ctx context.Context, post *domain.BlogPo
 		return fmt.Errorf("workspace_id not found in context")
 	}
 
-	return r.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+	err := r.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
 		return r.CreatePostTx(ctx, tx, post)
 	})
+	return r.refineBlogSlugTaken(ctx, workspaceID, err)
 }
 
 // CreatePostTx persists a new blog post within a transaction
@@ -445,6 +452,9 @@ func (r *blogPostRepository) CreatePostTx(ctx context.Context, tx *sql.Tx, post 
 		post.UpdatedAt,
 	)
 	if err != nil {
+		if taken := blogSlugTaken(err, post.Slug); taken != nil {
+			return taken
+		}
 		return fmt.Errorf("failed to create blog post: %w", err)
 	}
 
@@ -481,7 +491,7 @@ func (r *blogPostRepository) GetPost(ctx context.Context, id string) (*domain.Bl
 		&post.DeletedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("blog post not found")
+		return nil, &domain.ErrNotFound{Entity: blogPostEntity, ID: id}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blog post: %w", err)
@@ -510,7 +520,7 @@ func (r *blogPostRepository) GetPostTx(ctx context.Context, tx *sql.Tx, id strin
 		&post.DeletedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("blog post not found")
+		return nil, &domain.ErrNotFound{Entity: blogPostEntity, ID: id}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blog post: %w", err)
@@ -549,7 +559,7 @@ func (r *blogPostRepository) GetPostBySlug(ctx context.Context, slug string) (*d
 		&post.DeletedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("blog post not found")
+		return nil, &domain.ErrNotFound{Entity: blogPostEntity, ID: slug}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blog post: %w", err)
@@ -578,7 +588,7 @@ func (r *blogPostRepository) GetPostBySlugTx(ctx context.Context, tx *sql.Tx, sl
 		&post.DeletedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("blog post not found")
+		return nil, &domain.ErrNotFound{Entity: blogPostEntity, ID: slug}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blog post: %w", err)
@@ -618,7 +628,7 @@ func (r *blogPostRepository) GetPostByCategoryAndSlug(ctx context.Context, categ
 		&post.DeletedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("blog post not found")
+		return nil, &domain.ErrNotFound{Entity: blogPostEntity, ID: categorySlug + "/" + postSlug}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blog post: %w", err)
@@ -634,9 +644,10 @@ func (r *blogPostRepository) UpdatePost(ctx context.Context, post *domain.BlogPo
 		return fmt.Errorf("workspace_id not found in context")
 	}
 
-	return r.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+	err := r.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
 		return r.UpdatePostTx(ctx, tx, post)
 	})
+	return r.refineBlogSlugTaken(ctx, workspaceID, err)
 }
 
 // UpdatePostTx updates an existing blog post within a transaction
@@ -658,6 +669,9 @@ func (r *blogPostRepository) UpdatePostTx(ctx context.Context, tx *sql.Tx, post 
 		post.ID,
 	)
 	if err != nil {
+		if taken := blogSlugTaken(err, post.Slug); taken != nil {
+			return taken
+		}
 		return fmt.Errorf("failed to update blog post: %w", err)
 	}
 
@@ -667,7 +681,7 @@ func (r *blogPostRepository) UpdatePostTx(ctx context.Context, tx *sql.Tx, post 
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("blog post not found")
+		return &domain.ErrNotFound{Entity: blogPostEntity, ID: post.ID}
 	}
 
 	return nil
@@ -704,7 +718,7 @@ func (r *blogPostRepository) DeletePostTx(ctx context.Context, tx *sql.Tx, id st
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("blog post not found")
+		return &domain.ErrNotFound{Entity: blogPostEntity, ID: id}
 	}
 
 	return nil
@@ -1166,7 +1180,7 @@ func (r *blogPostRepository) PublishPostTx(ctx context.Context, tx *sql.Tx, id s
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("blog post not found or already published")
+		return blogPostStateError(ctx, tx, id, "publish")
 	}
 
 	return nil
@@ -1204,10 +1218,62 @@ func (r *blogPostRepository) UnpublishPostTx(ctx context.Context, tx *sql.Tx, id
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("blog post not found or not published")
+		return blogPostStateError(ctx, tx, id, "unpublish")
 	}
 
 	return nil
+}
+
+// blogPostStateError says why a publish or an unpublish changed no row: the post is not there
+// (or was deleted), or its state refuses the action. It reads the post in the same transaction,
+// after the conditional write that matched nothing.
+func blogPostStateError(ctx context.Context, tx *sql.Tx, id, action string) error {
+	var publishedAt sql.NullTime
+	err := tx.QueryRowContext(ctx, `SELECT published_at FROM blog_posts WHERE id = $1 AND deleted_at IS NULL`, id).Scan(&publishedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return &domain.ErrNotFound{Entity: blogPostEntity, ID: id}
+	}
+	if err != nil {
+		return fmt.Errorf("failed to read blog post after %s matched no row: %w", action, err)
+	}
+	status := domain.BlogPostStatusDraft
+	if publishedAt.Valid {
+		status = domain.BlogPostStatusPublished
+		if publishedAt.Time.After(time.Now().UTC()) {
+			status = domain.BlogPostStatusScheduled
+		}
+	}
+	return domain.NewInvalidStateError(blogPostEntity, id, action, string(status))
+}
+
+// blogSlugTaken turns a unique violation of a post write into an AlreadyExistsError for its
+// slug, the only unique column besides the generated ID. Deleted is left for
+// refineBlogSlugTaken, which can read outside the failed transaction.
+func blogSlugTaken(err error, slug string) error {
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		return domain.NewAlreadyExistsError(blogPostEntity, slug, false)
+	}
+	return nil
+}
+
+// refineBlogSlugTaken sets Deleted on a taken slug once its transaction has rolled back: the
+// slug column is unique across deleted posts too, so a deleted post keeps its slug for good. A
+// lookup error leaves Deleted false: the caller still learns the slug is taken.
+func (r *blogPostRepository) refineBlogSlugTaken(ctx context.Context, workspaceID string, err error) error {
+	var exists *domain.AlreadyExistsError
+	if !errors.As(err, &exists) || exists.Entity != blogPostEntity {
+		return err
+	}
+	db, connErr := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if connErr != nil {
+		return err
+	}
+	var live bool
+	if db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM blog_posts WHERE slug = $1 AND deleted_at IS NULL)`, exists.ID).Scan(&live) == nil {
+		exists.Deleted = !live
+	}
+	return err
 }
 
 // DeletePostsByCategoryIDTx soft deletes all posts belonging to a category within a transaction

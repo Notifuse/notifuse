@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -1366,4 +1367,99 @@ func TestBlogHandler_RegisterRoutes(t *testing.T) {
 	// However, since routes require auth, we'll just verify RegisterRoutes doesn't panic
 	// and that the mux is not nil after registration
 	assert.NotNil(t, mux, "mux should not be nil after RegisterRoutes")
+}
+
+// Posts answer by type: a post that is not there 404, a publish or an unpublish its state
+// refuses 409 with the state, a slug already taken 409. They answered 400 with the error's
+// text, and a get of an unknown post 500.
+func TestBlogHandler_TypedPostErrors(t *testing.T) {
+	post := func(handler *http_handler.BlogHandler, serve func(*http_handler.BlogHandler, http.ResponseWriter, *http.Request), path, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, path+"?workspace_id=ws-123", bytes.NewReader([]byte(body)))
+		w := httptest.NewRecorder()
+		serve(handler, w, req)
+		return w
+	}
+	quietLogger := func(logger *pkgmocks.MockLogger) {
+		logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+		logger.EXPECT().Error(gomock.Any()).AnyTimes()
+	}
+
+	t.Run("publish of a published post answers 409", func(t *testing.T) {
+		handler, service, logger, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		quietLogger(logger)
+		service.EXPECT().PublishPost(gomock.Any(), gomock.Any()).
+			Return(fmt.Errorf("failed to publish post: %w", domain.NewInvalidStateError("blog_post", "post-1", "publish", "published")))
+
+		w := post(handler, (*http_handler.BlogHandler).HandlePublishPost, "/api/blogPosts.publish", `{"id":"post-1"}`)
+
+		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.JSONEq(t, `{
+			"error": "cannot publish blog_post post-1: its status is published",
+			"invalid_state": {"entity": "blog_post", "id": "post-1", "action": "publish", "status": "published"}
+		}`, w.Body.String())
+	})
+
+	t.Run("unpublish of a draft answers 409", func(t *testing.T) {
+		handler, service, logger, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		quietLogger(logger)
+		service.EXPECT().UnpublishPost(gomock.Any(), gomock.Any()).
+			Return(domain.NewInvalidStateError("blog_post", "post-1", "unpublish", "draft"))
+
+		w := post(handler, (*http_handler.BlogHandler).HandleUnpublishPost, "/api/blogPosts.unpublish", `{"id":"post-1"}`)
+
+		assert.Equal(t, http.StatusConflict, w.Code)
+	})
+
+	t.Run("delete of an unknown post answers 404", func(t *testing.T) {
+		handler, service, logger, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		quietLogger(logger)
+		service.EXPECT().DeletePost(gomock.Any(), gomock.Any()).
+			Return(fmt.Errorf("post not found: %w", &domain.ErrNotFound{Entity: "blog_post", ID: "post-1"}))
+
+		w := post(handler, (*http_handler.BlogHandler).HandleDeletePost, "/api/blogPosts.delete", `{"id":"post-1"}`)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("create with a taken slug answers 409", func(t *testing.T) {
+		handler, service, logger, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		quietLogger(logger)
+		service.EXPECT().CreatePost(gomock.Any(), gomock.Any()).
+			Return(nil, fmt.Errorf("failed to create post: %w", domain.NewAlreadyExistsError("blog_post", "hello", true)))
+
+		w := post(handler, (*http_handler.BlogHandler).HandleCreatePost, "/api/blogPosts.create", `{"category_id":"cat-1","slug":"hello","title":"Hello"}`)
+
+		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.JSONEq(t, `{
+			"error": "blog_post hello already exists and was deleted: its identifier cannot be reused",
+			"already_exists": {"entity": "blog_post", "id": "hello", "deleted": true}
+		}`, w.Body.String())
+	})
+
+	t.Run("get of an unknown post answers 404", func(t *testing.T) {
+		handler, service, _, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		service.EXPECT().GetPost(gomock.Any(), "post-1").Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: "post-1"})
+
+		req := httptest.NewRequest(http.MethodGet, "/api/blogPosts.get?workspace_id=ws-123&id=post-1", nil)
+		w := httptest.NewRecorder()
+		handler.HandleGetPost(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("any other failure keeps its 400", func(t *testing.T) {
+		handler, service, logger, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		quietLogger(logger)
+		service.EXPECT().PublishPost(gomock.Any(), gomock.Any()).Return(errors.New("cannot publish post"))
+
+		w := post(handler, (*http_handler.BlogHandler).HandlePublishPost, "/api/blogPosts.publish", `{"id":"post-1"}`)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }

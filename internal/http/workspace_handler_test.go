@@ -4695,3 +4695,24 @@ func TestWorkspaceHandler_JoinInvitation(t *testing.T) {
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 	})
 }
+
+// A validation refusal of a workspace update answers 400 with its bare message, as it always
+// has: writeServiceError, which the handler also uses, would add a "validation error: " prefix.
+func TestWorkspaceHandler_HandleUpdate_ValidationErrorKeepsItsBareMessage(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	workspaceSvc.EXPECT().
+		UpdateWorkspace(gomock.Any(), "testworkspace1", "Renamed", gomock.Any()).
+		Return(nil, domain.NewValidationError("DNS verification failed for track.example.com"))
+
+	body := `{"id":"testworkspace1","name":"Renamed","settings":{"timezone":"UTC","default_language":"en","languages":["en"]}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.update", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	var response map[string]string
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+	assert.Equal(t, "DNS verification failed for track.example.com", response["error"])
+}

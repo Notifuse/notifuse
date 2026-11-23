@@ -420,3 +420,39 @@ func TestTemplateRenderError(t *testing.T) {
 		t.Errorf("errors.As found %v, want the wrapped error", found)
 	}
 }
+
+func TestInvalidStateError(t *testing.T) {
+	err := NewInvalidStateError("broadcast", "b1", "pause", "draft")
+
+	if got, want := err.Error(), "cannot pause broadcast b1: its status is draft"; got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
+	}
+	if *err != (InvalidStateError{Entity: "broadcast", ID: "b1", Action: "pause", Status: "draft"}) {
+		t.Errorf("fields = %+v", *err)
+	}
+
+	var target *InvalidStateError
+	if !errors.As(fmt.Errorf("failed to pause broadcast: %w", err), &target) || target != err {
+		t.Error("errors.As must find an InvalidStateError through a wrap")
+	}
+}
+
+func TestAlreadyExistsError(t *testing.T) {
+	live := NewAlreadyExistsError("segment", "vip", false)
+	if got, want := live.Error(), "segment vip already exists"; got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
+	}
+
+	deleted := NewAlreadyExistsError("transactional_notification", "welcome", true)
+	if got, want := deleted.Error(), "transactional_notification welcome already exists and was deleted: its identifier cannot be reused"; got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
+	}
+	if *deleted != (AlreadyExistsError{Entity: "transactional_notification", ID: "welcome", Deleted: true}) {
+		t.Errorf("fields = %+v", *deleted)
+	}
+
+	var target *AlreadyExistsError
+	if !errors.As(fmt.Errorf("failed to create notification: %w", deleted), &target) || target != deleted {
+		t.Error("errors.As must find an AlreadyExistsError through a wrap")
+	}
+}

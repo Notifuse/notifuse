@@ -245,8 +245,8 @@ func TestTransactionalNotificationHandler_HandleList(t *testing.T) {
 			// Check status code
 			assert.Equal(t, tc.expectedStatus, w.Code)
 
-			// If success case, check response content
-			if tc.expectedStatus == http.StatusOK && tc.checkResponse != nil {
+			// Check response content
+			if tc.checkResponse != nil {
 				var response map[string]interface{}
 				err := json.NewDecoder(w.Body).Decode(&response)
 				require.NoError(t, err)
@@ -311,10 +311,12 @@ func TestTransactionalNotificationHandler_HandleGet(t *testing.T) {
 			setupMock: func() {
 				mockService.EXPECT().
 					GetNotification(gomock.Any(), workspaceID, notificationID).
-					Return(nil, errors.New("notification not found"))
+					Return(nil, &domain.ErrNotFound{Entity: "transactional_notification", ID: notificationID})
 			},
 			expectedStatus: http.StatusNotFound,
-			checkResponse:  nil,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "transactional_notification not found with ID: "+notificationID, response["error"])
+			},
 		},
 		{
 			name:   "successful get",
@@ -376,8 +378,8 @@ func TestTransactionalNotificationHandler_HandleGet(t *testing.T) {
 			// Check status code
 			assert.Equal(t, tc.expectedStatus, w.Code)
 
-			// If success case, check response content
-			if tc.expectedStatus == http.StatusOK && tc.checkResponse != nil {
+			// Check response content
+			if tc.checkResponse != nil {
 				var response map[string]interface{}
 				err := json.NewDecoder(w.Body).Decode(&response)
 				require.NoError(t, err)
@@ -474,6 +476,23 @@ func TestTransactionalNotificationHandler_HandleCreate(t *testing.T) {
 			},
 		},
 		{
+			name:        "an ID held by a deleted notification",
+			method:      http.MethodPost,
+			requestBody: validReqBody,
+			setupMock: func() {
+				mockService.EXPECT().
+					CreateNotification(gomock.Any(), workspaceID, gomock.Any()).
+					Return(nil, fmt.Errorf("failed to create notification: %w",
+						domain.NewAlreadyExistsError("transactional_notification", "test-notification", true)))
+			},
+			expectedStatus: http.StatusConflict,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, map[string]interface{}{
+					"entity": "transactional_notification", "id": "test-notification", "deleted": true,
+				}, response["already_exists"])
+			},
+		},
+		{
 			name:        "template validation error",
 			method:      http.MethodPost,
 			requestBody: validReqBody,
@@ -539,8 +558,8 @@ func TestTransactionalNotificationHandler_HandleCreate(t *testing.T) {
 			// Check status code
 			assert.Equal(t, tc.expectedStatus, w.Code)
 
-			// If success case, check response content
-			if tc.expectedStatus == http.StatusCreated && tc.checkResponse != nil {
+			// Check response content
+			if tc.checkResponse != nil {
 				var response map[string]interface{}
 				err := json.NewDecoder(w.Body).Decode(&response)
 				require.NoError(t, err)
@@ -616,10 +635,12 @@ func TestTransactionalNotificationHandler_HandleUpdate(t *testing.T) {
 			setupMock: func() {
 				mockService.EXPECT().
 					UpdateNotification(gomock.Any(), workspaceID, notificationID, gomock.Any()).
-					Return(nil, errors.New("notification not found"))
+					Return(nil, &domain.ErrNotFound{Entity: "transactional_notification", ID: notificationID})
 			},
 			expectedStatus: http.StatusNotFound,
-			checkResponse:  nil,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "transactional_notification not found with ID: "+notificationID, response["error"])
+			},
 		},
 		{
 			name:        "successful update",
@@ -703,8 +724,8 @@ func TestTransactionalNotificationHandler_HandleUpdate(t *testing.T) {
 			// Check status code
 			assert.Equal(t, tc.expectedStatus, w.Code)
 
-			// If success case, check response content
-			if tc.expectedStatus == http.StatusOK && tc.checkResponse != nil {
+			// Check response content
+			if tc.checkResponse != nil {
 				var response map[string]interface{}
 				err := json.NewDecoder(w.Body).Decode(&response)
 				require.NoError(t, err)
@@ -811,10 +832,12 @@ func TestTransactionalNotificationHandler_HandleDelete(t *testing.T) {
 			setupMock: func() {
 				mockService.EXPECT().
 					DeleteNotification(gomock.Any(), workspaceID, notificationID).
-					Return(errors.New("notification not found"))
+					Return(&domain.ErrNotFound{Entity: "transactional_notification", ID: notificationID})
 			},
 			expectedStatus: http.StatusNotFound,
-			checkResponse:  nil,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "transactional_notification not found with ID: "+notificationID, response["error"])
+			},
 		},
 		{
 			name:        "successful deletion",
@@ -880,8 +903,8 @@ func TestTransactionalNotificationHandler_HandleDelete(t *testing.T) {
 			// Check status code
 			assert.Equal(t, tc.expectedStatus, w.Code)
 
-			// If success case, check response content
-			if tc.expectedStatus == http.StatusOK && tc.checkResponse != nil {
+			// Check response content
+			if tc.checkResponse != nil {
 				var response map[string]interface{}
 				err := json.NewDecoder(w.Body).Decode(&response)
 				require.NoError(t, err)
@@ -985,16 +1008,13 @@ func TestTransactionalNotificationHandler_HandleSend(t *testing.T) {
 			setupMock: func() {
 				mockService.EXPECT().
 					SendNotification(gomock.Any(), gomock.Eq(workspaceID), gomock.Any()).
-					Return("", errors.New("notification not found"))
-
-				mockLogger.EXPECT().
-					WithField(gomock.Eq("error"), gomock.Any()).
-					Return(mockLogger)
-				mockLogger.EXPECT().
-					Error(gomock.Eq("Failed to send transactional notification"))
+					Return("", fmt.Errorf("failed to get notification: %w", &domain.ErrNotFound{Entity: "transactional_notification", ID: notificationID}))
 			},
+			// Found by type, and kept at the 400 the send documents.
 			expectedStatus: http.StatusBadRequest,
-			checkResponse:  nil,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "failed to get notification: transactional_notification not found with ID: "+notificationID, response["error"])
+			},
 		},
 		{
 			name:   "sender chosen in email_options that the integration does not have",
@@ -1270,8 +1290,8 @@ func TestTransactionalNotificationHandler_HandleSend(t *testing.T) {
 			// Check status code
 			assert.Equal(t, tc.expectedStatus, w.Code)
 
-			// If success case, check response content
-			if tc.expectedStatus == http.StatusOK && tc.checkResponse != nil {
+			// Check response content
+			if tc.checkResponse != nil {
 				var response map[string]interface{}
 				err := json.NewDecoder(w.Body).Decode(&response)
 				require.NoError(t, err)

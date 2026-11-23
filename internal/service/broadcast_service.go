@@ -416,7 +416,7 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 
 		// Only draft broadcasts can be scheduled
 		if bcast.Status != domain.BroadcastStatusDraft {
-			err := fmt.Errorf("only broadcasts with draft status can be scheduled, current status: %s", bcast.Status)
+			err := domain.NewInvalidStateError("broadcast", bcast.ID, "schedule", string(bcast.Status))
 			s.logger.Error("Cannot schedule broadcast with non-draft status")
 			return err
 		}
@@ -573,7 +573,7 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 	// Use transaction to retrieve, update the broadcast, and publish the event
 	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
 		// Retrieve the broadcast
-		broadcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
+		broadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
 		if err != nil {
 			s.logger.Error("Failed to get broadcast for pausing")
 			return err
@@ -582,7 +582,7 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 		// Only a sending broadcast can be paused: its task queuing recipients (Phase 1), an
 		// A/B test at any step, or the queue draining what was queued (Phase 2, processed).
 		if !slices.Contains(pausableBroadcastStatuses, broadcast.Status) {
-			err := fmt.Errorf("only broadcasts that are sending can be paused, current status: %s", broadcast.Status)
+			err := domain.NewInvalidStateError("broadcast", broadcast.ID, "pause", string(broadcast.Status))
 			s.logger.Error("Cannot pause broadcast with invalid status")
 			return err
 		}
@@ -689,8 +689,9 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 	startNow := false
 
 	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
-		// Retrieve the broadcast
-		broadcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
+		// The broadcast is read with its lock: the status write below has no condition, so
+		// two resumes reading it unlocked would both pass the paused check and both act.
+		broadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
 		if err != nil {
 			s.logger.Error("Failed to get broadcast for resuming")
 			return err
@@ -698,7 +699,7 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 
 		// Only paused broadcasts can be resumed
 		if broadcast.Status != domain.BroadcastStatusPaused {
-			err := fmt.Errorf("only broadcasts with paused status can be resumed, current status: %s", broadcast.Status)
+			err := domain.NewInvalidStateError("broadcast", broadcast.ID, "resume", string(broadcast.Status))
 			s.logger.Error("Cannot resume broadcast with invalid status")
 			return err
 		}
@@ -947,7 +948,7 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 	// Use transaction to retrieve, update the broadcast, and publish the event
 	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
 		// Retrieve the broadcast
-		broadcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
+		broadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
 		if err != nil {
 			s.logger.Error("Failed to get broadcast for cancellation")
 			return err
@@ -956,7 +957,7 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 		// Cancel is allowed from scheduled, paused, or any sending status: processing
 		// (mid-enqueue), an A/B test at any step, or processed (mid-drain).
 		if !slices.Contains(cancellableBroadcastStatuses, broadcast.Status) {
-			err := fmt.Errorf("only broadcasts that are scheduled, paused or sending can be cancelled, current status: %s", broadcast.Status)
+			err := domain.NewInvalidStateError("broadcast", broadcast.ID, "cancel", string(broadcast.Status))
 			s.logger.Error("Cannot cancel broadcast with invalid status")
 			return err
 		}
@@ -1214,7 +1215,7 @@ func (s *BroadcastService) DeleteBroadcast(ctx context.Context, request *domain.
 
 	// Broadcasts in 'sending' status cannot be deleted
 	if broadcast.Status == domain.BroadcastStatusProcessing {
-		err := fmt.Errorf("broadcasts in 'sending' status cannot be deleted")
+		err := domain.NewInvalidStateError("broadcast", broadcast.ID, "delete", string(broadcast.Status))
 		s.logger.Error("Cannot delete broadcast with sending status")
 		return err
 	}
@@ -1490,7 +1491,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	}
 
 	if variation == nil {
-		err := fmt.Errorf("variation with ID %s not found in broadcast", templateID)
+		err := &domain.ErrNotFound{Entity: "broadcast_variation", ID: templateID}
 		s.logger.Error("Variation not found in broadcast")
 		return err
 	}
@@ -1844,7 +1845,7 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 		}
 
 		if !validForWinnerSelection {
-			return fmt.Errorf("broadcast is not in test completed state")
+			return domain.NewInvalidStateError("broadcast", broadcast.ID, "select_winner", string(broadcast.Status))
 		}
 
 		// Validate template ID
@@ -1856,7 +1857,7 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 			}
 		}
 		if !validTemplate {
-			return fmt.Errorf("invalid template ID")
+			return &domain.ErrNotFound{Entity: "broadcast_variation", ID: templateID}
 		}
 
 		// Update broadcast with winning template

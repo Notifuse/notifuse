@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 )
@@ -97,10 +100,25 @@ func (r *segmentRepository) CreateSegment(ctx context.Context, workspaceID strin
 	)
 
 	if err != nil {
+		// The primary key is the only unique constraint, and a deleted segment keeps its row
+		// and its ID. Match the SQLSTATE, never the message, which PostgreSQL translates.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return domain.NewAlreadyExistsError("segment", segment.ID, isSegmentDeleted(ctx, workspaceDB, segment.ID))
+		}
 		return fmt.Errorf("failed to create segment: %w", err)
 	}
 
 	return nil
+}
+
+// isSegmentDeleted reports whether the segment holding an ID is deleted. It only refines the
+// error of a create that already failed, so a lookup error answers false: the caller still
+// learns the ID is taken.
+func isSegmentDeleted(ctx context.Context, db *sql.DB, id string) bool {
+	var deleted bool
+	err := db.QueryRowContext(ctx, `SELECT status = 'deleted' FROM segments WHERE id = $1`, id).Scan(&deleted)
+	return err == nil && deleted
 }
 
 // GetSegmentByID retrieves a segment by its ID

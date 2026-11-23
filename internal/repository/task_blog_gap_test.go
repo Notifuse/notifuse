@@ -664,7 +664,7 @@ func TestTaskBlogGap_BlogPostTx_GetBranches(t *testing.T) {
 			WithArgs("post-404").WillReturnRows(sqlmock.NewRows(blogPostCols))
 		post, err := repo.GetPostTx(ctx, tx, "post-404")
 		assert.Nil(t, post)
-		require.EqualError(t, err, "blog post not found")
+		requireNotFound(t, err, "blog_post", "post-404")
 		assert.NotErrorIs(t, err, sql.ErrNoRows)
 	})
 
@@ -676,7 +676,7 @@ func TestTaskBlogGap_BlogPostTx_GetBranches(t *testing.T) {
 			WithArgs("gone").WillReturnRows(sqlmock.NewRows(blogPostCols))
 		post, err := repo.GetPostBySlugTx(ctx, tx, "gone")
 		assert.Nil(t, post)
-		require.EqualError(t, err, "blog post not found")
+		requireNotFound(t, err, "blog_post", "gone")
 		assert.NotErrorIs(t, err, sql.ErrNoRows)
 	})
 
@@ -708,7 +708,7 @@ func TestTaskBlogGap_BlogPostTx_WriteBranches(t *testing.T) {
 			WithArgs("cat-1", "hello", sqlmock.AnyArg(), &published, sqlmock.AnyArg(), "post-1").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		err := repo.UpdatePostTx(ctx, tx, post())
-		require.EqualError(t, err, "blog post not found")
+		requireNotFound(t, err, "blog_post", "post-1")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -731,7 +731,7 @@ func TestTaskBlogGap_BlogPostTx_WriteBranches(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta("SET deleted_at = $1")).
 			WithArgs(sqlmock.AnyArg(), "post-1").WillReturnResult(sqlmock.NewResult(0, 0))
 		err := repo.DeletePostTx(ctx, tx, "post-1")
-		require.EqualError(t, err, "blog post not found")
+		requireNotFound(t, err, "blog_post", "post-1")
 	})
 
 	t.Run("DeletePostTx exec failure is wrapped", func(t *testing.T) {
@@ -759,24 +759,54 @@ func TestTaskBlogGap_BlogPostTx_WriteBranches(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("PublishPostTx zero rows names the already-published case", func(t *testing.T) {
+	// A publish or an unpublish that matched no row reads the post again in its transaction
+	// to say why: the post is not there, or its state refuses the action.
+	stateQuery := regexp.QuoteMeta("SELECT published_at FROM blog_posts WHERE id = $1 AND deleted_at IS NULL")
+	future := time.Now().UTC().Add(24 * time.Hour)
+
+	for _, tc := range []struct {
+		name        string
+		publishedAt interface{}
+		status      string
+	}{
+		{"PublishPostTx zero rows on a published post is an invalid state", published, "published"},
+		{"PublishPostTx zero rows on a scheduled post is an invalid state", future, "scheduled"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, _ := gapBlogPostRepo(t)
+			_, mock, tx := gapBlogTx(t)
+			defer func() { _ = tx.Rollback() }()
+			mock.ExpectExec(regexp.QuoteMeta("UPDATE blog_posts")).
+				WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(stateQuery).WithArgs("post-1").
+				WillReturnRows(sqlmock.NewRows([]string{"published_at"}).AddRow(tc.publishedAt))
+			err := repo.PublishPostTx(ctx, tx, "post-1", nil)
+			requireInvalidState(t, err, "blog_post", "post-1", "publish", tc.status)
+		})
+	}
+
+	t.Run("PublishPostTx zero rows on a missing post is not found", func(t *testing.T) {
 		repo, _ := gapBlogPostRepo(t)
 		_, mock, tx := gapBlogTx(t)
 		defer func() { _ = tx.Rollback() }()
 		mock.ExpectExec(regexp.QuoteMeta("UPDATE blog_posts")).
 			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(stateQuery).WithArgs("post-1").
+			WillReturnRows(sqlmock.NewRows([]string{"published_at"}))
 		err := repo.PublishPostTx(ctx, tx, "post-1", nil)
-		require.EqualError(t, err, "blog post not found or already published")
+		requireNotFound(t, err, "blog_post", "post-1")
 	})
 
-	t.Run("UnpublishPostTx zero rows names the not-published case", func(t *testing.T) {
+	t.Run("UnpublishPostTx zero rows on a draft is an invalid state", func(t *testing.T) {
 		repo, _ := gapBlogPostRepo(t)
 		_, mock, tx := gapBlogTx(t)
 		defer func() { _ = tx.Rollback() }()
 		mock.ExpectExec(regexp.QuoteMeta("SET published_at = NULL, updated_at = $1")).
 			WithArgs(sqlmock.AnyArg(), "post-1").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(stateQuery).WithArgs("post-1").
+			WillReturnRows(sqlmock.NewRows([]string{"published_at"}).AddRow(nil))
 		err := repo.UnpublishPostTx(ctx, tx, "post-1")
-		require.EqualError(t, err, "blog post not found or not published")
+		requireInvalidState(t, err, "blog_post", "post-1", "unpublish", "draft")
 	})
 
 	t.Run("UnpublishPostTx rows-affected failure is wrapped", func(t *testing.T) {
