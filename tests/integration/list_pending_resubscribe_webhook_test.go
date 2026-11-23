@@ -55,9 +55,12 @@ func TestListPendingWebhookOnResubscribe(t *testing.T) {
 
 	tag := strings.ToLower(strings.ReplaceAll(uuid.New().String(), "-", ""))[:8]
 
-	// Public, without double opt-in: a first subscription is active, so the contact goes to
-	// pending only because subscribing again after an unsubscribe forces double opt-in.
-	list, err := factory.CreateList(workspace.ID, testutil.WithListPublic(true))
+	// Public, without double opt-in but with a confirmation template: a first subscription
+	// is active, and a contact who unsubscribed and posts the form again is only sent the
+	// confirmation (the harness has no email provider, so nothing actually goes out).
+	list, err := factory.CreateList(workspace.ID, testutil.WithListPublic(true), func(l *domain.List) {
+		l.DoubleOptInTemplate = &domain.TemplateReference{ID: "doi-template", Version: 1}
+	})
 	require.NoError(t, err)
 
 	// Nothing delivers it: the harness runs no delivery worker, so the deliveries the
@@ -69,13 +72,17 @@ func TestListPendingWebhookOnResubscribe(t *testing.T) {
 
 	// --- helpers ---------------------------------------------------------------------
 
-	subscribeViaAPI := func(t *testing.T, email string) {
+	subscribeViaAPI := func(t *testing.T, email string, resubscribe bool) {
 		t.Helper()
-		resp, err := client.Post("/api/lists.subscribe", map[string]interface{}{
+		payload := map[string]interface{}{
 			"workspace_id": workspace.ID,
 			"contact":      map[string]interface{}{"email": email},
 			"list_ids":     []string{list.ID},
-		})
+		}
+		if resubscribe {
+			payload["resubscribe"] = true
+		}
+		resp, err := client.Post("/api/lists.subscribe", payload)
 		require.NoError(t, err)
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
@@ -146,62 +153,55 @@ func TestListPendingWebhookOnResubscribe(t *testing.T) {
 		return out
 	}
 
-	// requirePendingAfterUnsubscribe checks the deliveries queued for a contact who
-	// subscribed, unsubscribed and subscribed again: one each, list.pending last, with the
-	// payload of the other list events and the status the contact came from.
-	requirePendingAfterUnsubscribe := func(t *testing.T, email string) {
-		t.Helper()
-		deliveries := b24Deliveries(t, db, subscriptionID, email)
-		require.Equal(t, []string{"list.subscribed", "list.unsubscribed", "list.pending"}, kinds(deliveries))
-		assert.Equal(t, map[string]interface{}{
-			"email":           email,
-			"list_id":         list.ID,
-			"list_name":       list.Name,
-			"status":          "pending",
-			"previous_status": "unsubscribed",
-		}, deliveries[2].payload)
-		assert.Equal(t, sortedKeys(deliveries[1].payload), sortedKeys(deliveries[2].payload),
-			"list.pending carries the fields list.unsubscribed carries")
-		assert.Equal(t, 1, timelinePending(t, email, list.ID), "the timeline records it once too")
-	}
-
 	// --- through the API ----------------------------------------------------------------
 
-	t.Run("lists.subscribe after an unsubscribe sends list.pending once, then list.confirmed", func(t *testing.T) {
+	// The API never re-subscribes implicitly. Without the flag the row stays
+	// unsubscribed and nothing is sent; with it, the contact is active at once, with no
+	// double opt-in, and subscribers get list.resubscribed.
+	t.Run("lists.subscribe after an unsubscribe changes nothing without resubscribe", func(t *testing.T) {
 		email := fmt.Sprintf("resub-api-%s@example.com", tag)
 
-		subscribeViaAPI(t, email)
+		subscribeViaAPI(t, email, false)
 		unsubscribe(t, email)
-		subscribeViaAPI(t, email)
+		subscribeViaAPI(t, email, false)
+		subscribeViaAPI(t, email, false)
 
-		requireOnListAs(t, email, "pending")
-		requirePendingAfterUnsubscribe(t, email)
+		requireOnListAs(t, email, "unsubscribed")
+		require.Equal(t, []string{"list.subscribed", "list.unsubscribed"}, kinds(b24Deliveries(t, db, subscriptionID, email)))
+		assert.Zero(t, timelinePending(t, email, list.ID))
 
-		// The confirmation link moves them to active: list.confirmed, and no other
-		// list.pending.
-		subscribeViaPublicEndpoint(t, email, true)
+		subscribeViaAPI(t, email, true)
 
 		requireOnListAs(t, email, "active")
 		deliveries := b24Deliveries(t, db, subscriptionID, email)
-		require.Equal(t, []string{"list.subscribed", "list.unsubscribed", "list.pending", "list.confirmed"}, kinds(deliveries))
-		assert.Equal(t, "pending", deliveries[3].payload["previous_status"])
-		assert.Equal(t, 1, timelinePending(t, email, list.ID))
+		require.Equal(t, []string{"list.subscribed", "list.unsubscribed", "list.resubscribed"}, kinds(deliveries))
+		assert.Equal(t, "unsubscribed", deliveries[2].payload["previous_status"])
+		assert.Zero(t, timelinePending(t, email, list.ID))
 	})
 
 	// --- through the subscribe form ---------------------------------------------------
 
-	t.Run("the subscribe form after an unsubscribe sends list.pending once", func(t *testing.T) {
+	// An anonymous form post can carry anyone's address: it leaves the row unsubscribed
+	// and only sends the confirmation, whose signed link brings the contact back.
+	t.Run("the subscribe form after an unsubscribe changes nothing until the signed link", func(t *testing.T) {
 		email := fmt.Sprintf("resub-form-%s@example.com", tag)
 
 		subscribeViaPublicEndpoint(t, email, false)
 		unsubscribe(t, email)
 		subscribeViaPublicEndpoint(t, email, false)
-		// Submitting the form again while pending writes nothing, so nothing is sent
-		// again.
 		subscribeViaPublicEndpoint(t, email, false)
 
-		requireOnListAs(t, email, "pending")
-		requirePendingAfterUnsubscribe(t, email)
+		requireOnListAs(t, email, "unsubscribed")
+		require.Equal(t, []string{"list.subscribed", "list.unsubscribed"}, kinds(b24Deliveries(t, db, subscriptionID, email)))
+		assert.Zero(t, timelinePending(t, email, list.ID))
+
+		// The confirmation link is signed: the contact's own request.
+		subscribeViaPublicEndpoint(t, email, true)
+
+		requireOnListAs(t, email, "active")
+		deliveries := b24Deliveries(t, db, subscriptionID, email)
+		require.Equal(t, []string{"list.subscribed", "list.unsubscribed", "list.resubscribed"}, kinds(deliveries))
+		assert.Equal(t, "unsubscribed", deliveries[2].payload["previous_status"])
 	})
 
 	// --- every transition, on the triggers themselves ------------------------------------

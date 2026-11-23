@@ -18,13 +18,16 @@ vi.mock('../../../services/api/list', () => ({
 }))
 
 import { contactListApi } from '../../../services/api/contact_list'
+import { listsApi } from '../../../services/api/list'
+import { contactListStatusOptions } from '../contactDisplay'
 import { ContactListsCard, ContactSegmentsCard } from './ContactListsCard'
 
 const workspace = { id: 'ws', settings: { timezone: 'UTC' } } as unknown as Workspace
 const lists = [
   { id: 'news', name: 'Newsletter' },
   { id: 'beta', name: 'Beta' },
-  { id: 'vip', name: 'VIP' }
+  { id: 'vip', name: 'VIP' },
+  { id: 'events', name: 'Events' }
 ] as List[]
 const contact = {
   email: 'ann@x.com',
@@ -40,6 +43,13 @@ const contact = {
       email: 'ann@x.com',
       list_id: 'beta',
       status: 'bounced',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: ''
+    },
+    {
+      email: 'ann@x.com',
+      list_id: 'vip',
+      status: 'complained',
       created_at: '2026-01-01T00:00:00Z',
       updated_at: ''
     }
@@ -75,7 +85,7 @@ describe('ContactListsCard', () => {
     expect(within(row('Newsletter')).getByText('Active')).toBeInTheDocument()
     expect(within(row('Beta')).getByText('Bounced')).toBeInTheDocument()
     expect(within(row('Newsletter')).getByText(/^Since /)).toBeInTheDocument()
-    expect(document.querySelector('[data-count]')?.textContent).toBe('2')
+    expect(document.querySelector('[data-count]')?.textContent).toBe('3')
   })
 
   it('removes the contact from a list after confirmation', async () => {
@@ -101,6 +111,61 @@ describe('ContactListsCard', () => {
     expect(screen.getByRole('button', { name: /Subscribe to list/ })).toBeInTheDocument()
   })
 
+  it('re-subscribes a bounced contact after a confirmation that says no email is sent', async () => {
+    const { onChanged } = renderCard()
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Beta' }))
+    fireEvent.click(await screen.findByText('Re-subscribe…'))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/They get no confirmation email/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Re-subscribe' }))
+    await waitFor(() =>
+      expect(contactListApi.updateStatus).toHaveBeenCalledWith({
+        workspace_id: 'ws',
+        email: 'ann@x.com',
+        list_id: 'beta',
+        status: 'active',
+        resubscribe: true
+      })
+    )
+    await waitFor(() => expect(onChanged).toHaveBeenCalled())
+  })
+
+  it('offers neither re-subscribe nor a status change on a complaint', async () => {
+    renderCard()
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for VIP' }))
+    expect(await screen.findByText('Remove from list')).toBeInTheDocument()
+    expect(screen.queryByText('Re-subscribe…')).toBeNull()
+    expect(screen.queryByText('Change status…')).toBeNull()
+  })
+
+  it('offers no re-subscribe on an active subscription', async () => {
+    renderCard()
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Newsletter' }))
+    expect(await screen.findByText('Change status…')).toBeInTheDocument()
+    expect(screen.queryByText('Re-subscribe…')).toBeNull()
+  })
+
+  it('asks before re-subscribing a contact the server kept unsubscribed', async () => {
+    vi.mocked(listsApi.subscribe)
+      .mockResolvedValueOnce({ success: true, contact_lists: [{ list_id: 'events', status: 'unsubscribed' }] })
+      .mockResolvedValueOnce({ success: true, contact_lists: [{ list_id: 'events', status: 'active' }] })
+    renderCard()
+    fireEvent.click(screen.getByRole('button', { name: /Subscribe to list/ }))
+    const form = await screen.findByRole('dialog')
+    fireEvent.mouseDown(within(form).getByRole('combobox'))
+    fireEvent.click(await screen.findByTitle('Events'))
+    fireEvent.click(within(form).getByRole('button', { name: 'Subscribe' }))
+
+    const [title] = await screen.findAllByText('ann@x.com unsubscribed from Events')
+    expect(listsApi.subscribe).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(listsApi.subscribe).mock.calls[0][0]).not.toHaveProperty('resubscribe')
+
+    const confirm = title.closest('[role=dialog]') as HTMLElement
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Re-subscribe' }))
+    await waitFor(() => expect(listsApi.subscribe).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(listsApi.subscribe).mock.calls[1][0]).toMatchObject({ list_ids: ['events'], resubscribe: true })
+  })
+
   it('has no subscribe without lists write', () => {
     const permissions = createFullPermissions()
     permissions.lists = { read: true, write: false }
@@ -122,5 +187,15 @@ describe('ContactSegmentsCard', () => {
     expect(screen.getByText('Plan Pro')).toBeInTheDocument()
     expect(screen.getByText('since Jan 2, 2026')).toBeInTheDocument()
     expect(document.querySelector('[data-count]')?.textContent).toBe('1')
+  })
+})
+
+describe('contactListStatusOptions', () => {
+  it('offers every status from a subscription, and only stronger opt-outs from an opt-out', () => {
+    expect(contactListStatusOptions('active')).toEqual(['active', 'pending', 'unsubscribed', 'bounced', 'complained'])
+    expect(contactListStatusOptions('pending')).toEqual(['active', 'pending', 'unsubscribed', 'bounced', 'complained'])
+    expect(contactListStatusOptions('unsubscribed')).toEqual(['unsubscribed', 'bounced', 'complained'])
+    expect(contactListStatusOptions('bounced')).toEqual(['bounced', 'complained'])
+    expect(contactListStatusOptions('complained')).toEqual(['complained'])
   })
 })

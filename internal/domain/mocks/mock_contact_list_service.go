@@ -95,16 +95,16 @@ func (mr *MockContactListServiceMockRecorder) RemoveContactFromList(arg0, arg1, 
 }
 
 // UpdateContactListStatus mocks base method.
-func (m *MockContactListService) UpdateContactListStatus(arg0 context.Context, arg1, arg2, arg3 string, arg4 domain.ContactListStatus) (*domain.UpdateContactListStatusResult, error) {
+func (m *MockContactListService) UpdateContactListStatus(arg0 context.Context, arg1, arg2, arg3 string, arg4 domain.ContactListStatus, arg5 bool) (*domain.UpdateContactListStatusResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateContactListStatus", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "UpdateContactListStatus", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(*domain.UpdateContactListStatusResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateContactListStatus indicates an expected call of UpdateContactListStatus.
-func (mr *MockContactListServiceMockRecorder) UpdateContactListStatus(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockContactListServiceMockRecorder) UpdateContactListStatus(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateContactListStatus", reflect.TypeOf((*MockContactListService)(nil).UpdateContactListStatus), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateContactListStatus", reflect.TypeOf((*MockContactListService)(nil).UpdateContactListStatus), arg0, arg1, arg2, arg3, arg4, arg5)
 }

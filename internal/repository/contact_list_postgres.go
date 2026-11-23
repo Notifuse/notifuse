@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -34,12 +35,14 @@ func (r *contactListRepository) AddContactToList(ctx context.Context, workspaceI
 	contactList.CreatedAt = now
 	contactList.UpdatedAt = now
 
+	// An opted-out row keeps its status, like the bulk path below: an unsubscribe is
+	// only undone by ResubscribeContactToList, never by an ordinary add.
 	query := `
 		INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at)
 		VALUES ($1, $2, $3, $4, $5, NULL)
 		ON CONFLICT (email, list_id) DO UPDATE
 		SET status = $3, updated_at = $5, deleted_at = NULL
-		WHERE contact_lists.status NOT IN ('bounced', 'complained')
+		WHERE contact_lists.status NOT IN ('unsubscribed', 'bounced', 'complained')
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		contactList.Email,
@@ -53,6 +56,47 @@ func (r *contactListRepository) AddContactToList(ctx context.Context, workspaceI
 	}
 
 	return nil
+}
+
+// ResubscribeContactToList is AddContactToList without the guard on unsubscribed: the
+// write the contact's own subscription and the explicit resubscribe flag make. A bounced
+// row is overwritten only with clearBounce, and a complained row never is.
+func (r *contactListRepository) ResubscribeContactToList(ctx context.Context, workspaceID string, contactList *domain.ContactList, clearBounce bool) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	now := time.Now().UTC()
+	contactList.CreatedAt = now
+	contactList.UpdatedAt = now
+
+	query := `
+		INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at)
+		VALUES ($1, $2, $3, $4, $5, NULL)
+		ON CONFLICT (email, list_id) DO UPDATE
+		SET status = $3, updated_at = $5, deleted_at = NULL
+		WHERE contact_lists.status <> 'complained'
+		AND (contact_lists.status <> 'bounced' OR $6)
+	`
+	result, err := workspaceDB.ExecContext(ctx, query,
+		contactList.Email,
+		contactList.ListID,
+		contactList.Status,
+		contactList.CreatedAt,
+		contactList.UpdatedAt,
+		clearBounce,
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to resubscribe contact to list: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	return rows > 0, nil
 }
 
 // BulkAddContactsToLists adds multiple contacts to multiple lists in a single database operation
@@ -266,10 +310,18 @@ func (r *contactListRepository) UpdateContactListStatus(ctx context.Context, wor
 
 	now := time.Now().UTC()
 
+	// The status rule of domain.ContactListStatusTransitionAllowed, in SQL, so that a
+	// row opted out between the caller's read and this write still keeps its opt-out.
 	query := `
 		UPDATE contact_lists
-		SET status = $1, updated_at = $2, deleted_at = NULL	
+		SET status = $1, updated_at = $2, deleted_at = NULL
 		WHERE email = $3 AND list_id = $4
+		AND (
+			status = $1
+			OR status NOT IN ('unsubscribed', 'bounced', 'complained')
+			OR (status = 'unsubscribed' AND $1 IN ('bounced', 'complained'))
+			OR (status = 'bounced' AND $1 = 'complained')
+		)
 	`
 
 	result, err := workspaceDB.ExecContext(ctx, query,
@@ -289,7 +341,23 @@ func (r *contactListRepository) UpdateContactListStatus(ctx context.Context, wor
 	}
 
 	if rows == 0 {
-		return &domain.ErrContactListNotFound{Message: "contact list not found"}
+		// No row, or one the guard kept: read it to tell the two apart.
+		var stored domain.ContactListStatus
+		err := workspaceDB.QueryRowContext(ctx,
+			`SELECT status FROM contact_lists WHERE email = $1 AND list_id = $2`,
+			email, listID,
+		).Scan(&stored)
+		if errors.Is(err, sql.ErrNoRows) {
+			return &domain.ErrContactListNotFound{Message: "contact list not found"}
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read contact list status: %w", err)
+		}
+		if !domain.IsOptOutContactListStatus(stored) {
+			// The row changed between the update and this read: not a refusal to report.
+			return fmt.Errorf("contact list status changed concurrently (now %s), retry", stored)
+		}
+		return &domain.ErrContactListOptedOut{Status: stored}
 	}
 
 	return nil

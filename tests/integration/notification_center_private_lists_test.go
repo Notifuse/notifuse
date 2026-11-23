@@ -212,23 +212,35 @@ func TestNotificationCenterPrivateListsAsDelivered(t *testing.T) {
 	})
 
 	// Through the authenticated API the workspace still decides: it adds a contact to a
-	// private list, including one they left
-	t.Run("the API still adds the contact to a private list, even one they left", func(t *testing.T) {
+	// private list, including one they left, but only when it says it is re-subscribing them
+	t.Run("the API adds the contact back to a private list they left only with resubscribe", func(t *testing.T) {
 		private, err := factory.CreateList(workspace.ID)
 		require.NoError(t, err)
 		onList(t, private.ID, domain.ContactListStatusUnsubscribed)
 
-		resp, err := client.Post("/api/lists.subscribe", map[string]interface{}{
-			"workspace_id": workspace.ID,
-			"contact":      map[string]interface{}{"email": email},
-			"list_ids":     []string{private.ID},
-		})
-		require.NoError(t, err)
-		body, _ := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
+		subscribeViaAPI := func(resubscribe bool) {
+			t.Helper()
+			payload := map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"contact":      map[string]interface{}{"email": email},
+				"list_ids":     []string{private.ID},
+			}
+			if resubscribe {
+				payload["resubscribe"] = true
+			}
+			resp, err := client.Post("/api/lists.subscribe", payload)
+			require.NoError(t, err)
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode, "lists.subscribe: %s", body)
+		}
 
-		require.Equal(t, http.StatusOK, resp.StatusCode, "lists.subscribe: %s", body)
-		assert.NotEqual(t, string(domain.ContactListStatusUnsubscribed), statusOf(t, email, private.ID),
+		subscribeViaAPI(false)
+		assert.Equal(t, string(domain.ContactListStatusUnsubscribed), statusOf(t, email, private.ID),
+			"without the flag the unsubscribe stands")
+
+		subscribeViaAPI(true)
+		assert.Equal(t, string(domain.ContactListStatusActive), statusOf(t, email, private.ID),
 			"the workspace's API call is not refused like a link's")
 	})
 

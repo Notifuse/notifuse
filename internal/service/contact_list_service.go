@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -148,11 +149,27 @@ func (s *ContactListService) GetListsByEmail(ctx context.Context, workspaceID st
 	return contactLists, nil
 }
 
-func (s *ContactListService) UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status domain.ContactListStatus) (*domain.UpdateContactListStatusResult, error) {
+// UpdateContactListStatus changes a contact's status on a list. A contact who opted out
+// keeps their opt-out: a plain change may only make it stronger
+// (domain.ContactListStatusTransitionAllowed). With resubscribe, the row goes back to
+// active from unsubscribed, and from bounced for a console user (a mailbox fixed since),
+// never from complained. The route is audited only when that happens.
+func (s *ContactListService) UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status domain.ContactListStatus, resubscribe bool) (*domain.UpdateContactListStatusResult, error) {
+	// Marks the audit record when the contact actually leaves an opt-out: the handler
+	// keeps the entry only then.
+	audit := domain.AuditFromContext(ctx)
+	resubscribed := false
+	defer func() {
+		if resubscribed {
+			audit.AddMetadata(domain.AuditResubscribedListIDs, []string{listID})
+		}
+	}()
+
 	// Verify contact list exists
 	var err error
+	var user *domain.User
 	var userWorkspace *domain.UserWorkspace
-	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -175,7 +192,7 @@ func (s *ContactListService) UpdateContactListStatus(ctx context.Context, worksp
 		)
 	}
 
-	_, err = s.repo.GetContactListByIDs(ctx, workspaceID, email, listID)
+	existing, err := s.repo.GetContactListByIDs(ctx, workspaceID, email, listID)
 	if err != nil {
 		// If contact is not in the list, return success with message
 		if _, ok := err.(*domain.ErrContactListNotFound); ok {
@@ -191,7 +208,49 @@ func (s *ContactListService) UpdateContactListStatus(ctx context.Context, worksp
 		return nil, fmt.Errorf("contact list not found: %w", err)
 	}
 
+	if resubscribe && domain.IsOptOutContactListStatus(existing.Status) {
+		// A console user may clear a bounce (the mailbox was fixed); an API key only an
+		// unsubscribe. A complaint is never cleared.
+		clearBounce := user != nil && user.Type == domain.UserTypeUser
+		if existing.Status == domain.ContactListStatusComplained ||
+			(existing.Status == domain.ContactListStatusBounced && !clearBounce) {
+			return nil, &domain.ErrContactListOptedOut{Status: existing.Status}
+		}
+		written, err := s.repo.ResubscribeContactToList(ctx, workspaceID, &domain.ContactList{
+			Email:  email,
+			ListID: listID,
+			Status: domain.ContactListStatusActive,
+		}, clearBounce)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resubscribe contact to list: %w", err)
+		}
+		if !written {
+			// A complaint (or, for an API key, a bounce) was recorded since the read. The
+			// row may also have been removed meanwhile, so it is read whatever deleted_at.
+			stored, err := s.repo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read contact list: %w", err)
+			}
+			return nil, &domain.ErrContactListOptedOut{Status: stored.Status}
+		}
+		resubscribed = true
+		return &domain.UpdateContactListStatusResult{
+			Success: true,
+			Message: "contact resubscribed",
+			Found:   true,
+		}, nil
+	}
+
+	if !domain.ContactListStatusTransitionAllowed(existing.Status, status) {
+		return nil, &domain.ErrContactListOptedOut{Status: existing.Status}
+	}
+
 	if err := s.repo.UpdateContactListStatus(ctx, workspaceID, email, listID, status); err != nil {
+		var optedOut *domain.ErrContactListOptedOut
+		if errors.As(err, &optedOut) {
+			// Opted out since the read above.
+			return nil, err
+		}
 		s.logger.WithField("email", email).
 			WithField("list_id", listID).
 			Error(fmt.Sprintf("Failed to update contact list status: %v", err))

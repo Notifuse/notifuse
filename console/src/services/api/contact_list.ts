@@ -32,6 +32,8 @@ export interface UpdateContactListStatusRequest {
   email: string
   list_id: string
   status: string
+  /** Brings back a contact who opted out (status active only): see contactListStatusOptions. */
+  resubscribe?: boolean
 }
 
 export interface RemoveContactFromListRequest {

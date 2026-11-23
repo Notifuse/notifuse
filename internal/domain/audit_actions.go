@@ -205,9 +205,14 @@ var AuditedActions = map[string]AuditActionSpec{
 	"blogThemes.publish": {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme, TargetKey: "version"},
 
 	// contacts: only the destructive and the bulk operations
-	"contacts.delete":     {Category: AuditCategoryContacts, TargetType: AuditTargetContact, TargetKey: "email"},
-	"contacts.import":     {Category: AuditCategoryContacts},
-	"customEvents.import": {Category: AuditCategoryContacts},
+	"contacts.delete": {Category: AuditCategoryContacts, TargetType: AuditTargetContact, TargetKey: "email"},
+	"contacts.import": {Category: AuditCategoryContacts},
+	// Recorded only when a contact who had opted out is subscribed again: the
+	// resubscribe flag overrides their unsubscribe. Every other call is data plane
+	// and skipped (AuditResubscribedListIDs).
+	"lists.subscribe":           {Category: AuditCategoryContacts, TargetType: AuditTargetContact, TargetKey: "contact.email"},
+	"contactLists.updateStatus": {Category: AuditCategoryContacts, TargetType: AuditTargetContact, TargetKey: "email"},
+	"customEvents.import":       {Category: AuditCategoryContacts},
 
 	// web analytics
 	"annotations.create":          {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetAnnotation, ResponseKey: "annotation.id"},
@@ -247,9 +252,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"customEvents.upsert":        {},
 	"transactional.send":         {},
 	"transactional.testTemplate": {},
-	"lists.subscribe":            {},
 	"contactLists.removeContact": {},
-	"contactLists.updateStatus":  {},
 	// utilities and tests that change nothing durable
 	"llm.chat":                     {},
 	"email.testProvider":           {},

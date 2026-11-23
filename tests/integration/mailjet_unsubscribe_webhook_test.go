@@ -286,13 +286,17 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 
 	// subscribeAgain subscribes the contact to the list through the API, as an integration
 	// would, and returns the status the subscription left them in
-	subscribeAgain := func(t *testing.T, email, listID string) domain.ContactListStatus {
+	subscribeAgain := func(t *testing.T, email, listID string, resubscribe bool) domain.ContactListStatus {
 		t.Helper()
-		raw := post(t, "/api/lists.subscribe", map[string]interface{}{
+		body := map[string]interface{}{
 			"workspace_id": workspace.ID,
 			"contact":      map[string]interface{}{"email": email},
 			"list_ids":     []string{listID},
-		})
+		}
+		if resubscribe {
+			body["resubscribe"] = true
+		}
+		raw := post(t, "/api/lists.subscribe", body)
 		var subscribed struct {
 			ContactLists []struct {
 				Status string `json:"status"`
@@ -364,8 +368,9 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 		require.NotNil(t, listed.Events[0].MessageID)
 		assert.Equal(t, messageID, *listed.Events[0].MessageID)
 
-		// An unsubscribed contact can subscribe again, confirming by double opt-in
-		assert.Equal(t, domain.ContactListStatusPending, subscribeAgain(t, email, list.ID))
+		// The API leaves an unsubscribed contact unsubscribed, unless it says to re-subscribe them
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, subscribeAgain(t, email, list.ID, false))
+		assert.Equal(t, domain.ContactListStatusActive, subscribeAgain(t, email, list.ID, true))
 	})
 
 	// A broadcast for the cases below, each with a recipient of its own. Mailjet can't send
@@ -417,7 +422,7 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 		assert.Equal(t, []string{"email.complained", "email.unsubscribed", "list.complained"}, queued(t, email))
 
 		// A complained contact cannot subscribe again
-		assert.Equal(t, domain.ContactListStatusComplained, subscribeAgain(t, email, edgeList.ID))
+		assert.Equal(t, domain.ContactListStatusComplained, subscribeAgain(t, email, edgeList.ID, true))
 		assert.Equal(t, &listRow{status: domain.ContactListStatusComplained}, rowOf(t, email, edgeList.ID))
 	})
 
