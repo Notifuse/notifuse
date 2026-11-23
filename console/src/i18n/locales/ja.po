@@ -716,11 +716,11 @@ msgstr "{bounced, plural, one {#件のアドレス} other {#件のアドレス}}
 
 #: src/services/api/licenseErrors.ts:118
 msgid "{capability} requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "{capability}には Notifuse {tier} ライセンスが必要です。"
 
 #: src/services/api/licenseErrors.ts:120
 msgid "{capability} requires a Notifuse licence."
-msgstr ""
+msgstr "{capability}には Notifuse のライセンスが必要です。"
 
 #: src/components/templates/TemplateSelectorInput.tsx:233
 msgid "{categoryLabel} category"
@@ -3954,7 +3954,7 @@ msgstr "監査ログ"
 
 #: src/components/license/LicenceGateNotice.tsx:56
 msgid "Audit logs require a Notifuse {tier} licence."
-msgstr ""
+msgstr "監査ログには Notifuse {tier} ライセンスが必要です。"
 
 #: src/components/logs/labels.ts:78
 msgid "Auth email"
@@ -5273,7 +5273,7 @@ msgstr "ボタンの幅"
 
 #: src/components/settings/LicenseSettings.tsx:221
 msgid "Buy a licence"
-msgstr ""
+msgstr "ライセンスを購入"
 
 #: src/components/contacts/ForgetOptOutsCheckbox.tsx:23
 msgid "By default, Notifuse keeps a coded trace of the lists this contact unsubscribed from, bounced on or complained about, for 3 years. If the address comes back, through an import or a form, those lists stay off. Tick this to keep nothing, for test data or when the person asked that nothing remain."
@@ -5538,7 +5538,7 @@ msgstr "正規URL"
 
 #: src/components/settings/LicenseSettings.tsx:187
 msgid "Capabilities"
-msgstr ""
+msgstr "機能"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:172
 msgid "Capitalize"
@@ -6427,7 +6427,7 @@ msgstr "一般的なポート: 587 (TLS)、465 (SSL)、25 (暗号化なし)"
 
 #: src/components/settings/LicenseSettings.tsx:181
 msgid "Community"
-msgstr ""
+msgstr "Community"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:467
 msgid "Compare this period with the previous one and explain the biggest drivers of the change in sessions."
@@ -7257,7 +7257,7 @@ msgstr "このレポートを読み込めませんでした"
 
 #: src/components/settings/LicenseSettings.tsx:60
 msgid "Could not read the licence state"
-msgstr ""
+msgstr "ライセンスの状態を読み込めませんでした"
 
 #: src/components/templates/DeleteTemplateModal.tsx:57
 msgid "Couldn't check where this template is used"
@@ -8168,15 +8168,15 @@ msgstr "カスタム数値フィールド"
 
 #: src/services/api/licenseErrors.ts:49
 msgid "Custom permissions"
-msgstr ""
+msgstr "カスタム権限"
 
 #: src/components/settings/LicenseSettings.tsx:135
 msgid "Custom permissions (RBAC)"
-msgstr ""
+msgstr "カスタム権限 (RBAC)"
 
 #: src/components/license/LicenceGateNotice.tsx:53
 msgid "Custom permissions require a Notifuse {tier} licence."
-msgstr ""
+msgstr "カスタム権限には Notifuse {tier} ライセンスが必要です。"
 
 #: src/components/logs/periodLabels.ts:16
 #: src/components/web_analytics/usePeriodLabels.ts:26
@@ -10631,7 +10631,7 @@ msgstr "完全なメールアドレスを入力してください"
 
 #: src/components/license/LicenseBanner.tsx:103
 msgid "Enter a licence key"
-msgstr ""
+msgstr "ライセンスキーを入力"
 
 #: src/components/email_builder/ui/SaveBlockModal.tsx:139
 msgid "Enter a name for this block"
@@ -11140,7 +11140,7 @@ msgstr "インポートしたすべてのコンタクトがこれらのリスト
 
 #: src/components/license/LicenceGateNotice.tsx:64
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
-msgstr ""
+msgstr "各メンバーは今のアクセス権をそのまま保持し、どのメンバーにも引き続きフルアクセスを付与できます。ライセンスが必要なのは、範囲を絞った権限の付与だけです。"
 
 #. placeholder {0}: context.minSessions
 #: src/components/web_analytics/explore/ExploreTable.tsx:233
@@ -11164,7 +11164,7 @@ msgstr "毎回"
 
 #: src/components/license/LicenceGateNotice.tsx:66
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
-msgstr ""
+msgstr "それまでは全員がログインコードでサインインします。サインインできなくなる人はいません。"
 
 #: src/pages/LogsPage.tsx:60
 msgid "Everything sent, received and changed in this workspace"
@@ -11172,7 +11172,7 @@ msgstr "このワークスペースで送信、受信、変更されたすべて
 
 #: src/components/license/LicenseBanner.tsx:120
 msgid "Everything the key grants keeps working during the grace period. Renew it to avoid losing licensed capabilities."
-msgstr ""
+msgstr "猶予期間中は、キーで使える機能はすべて引き続き動作します。ライセンス対象の機能を失わないよう、ライセンスを更新してください。"
 
 #: src/components/logs/MessagesTab.tsx:414
 #: src/components/logs/MessagesTab.tsx:454
@@ -11284,15 +11284,15 @@ msgstr "{label} を展開"
 
 #: src/components/settings/LicenseSettings.tsx:131
 msgid "Expired"
-msgstr ""
+msgstr "期限切れ"
 
 #: src/components/settings/LicenseSettings.tsx:130
 msgid "Expired, in grace period"
-msgstr ""
+msgstr "期限切れ (猶予期間中)"
 
 #: src/components/settings/LicenseSettings.tsx:183
 msgid "Expires"
-msgstr ""
+msgstr "有効期限"
 
 #: src/pages/AcceptInvitationPage.tsx:198
 msgid "Expires:"
@@ -11707,7 +11707,7 @@ msgstr "テンプレートのインポートに失敗しました。ファイル
 
 #: src/components/settings/LicenseSettings.tsx:120
 msgid "Failed to install the licence key"
-msgstr ""
+msgstr "ライセンスキーのインストールに失敗しました"
 
 #: src/components/settings/WorkspaceMembers.tsx:337
 msgid "Failed to invite member"
@@ -14112,11 +14112,11 @@ msgstr "設置"
 
 #: src/components/settings/LicenseSettings.tsx:226
 msgid "Install a licence key"
-msgstr ""
+msgstr "ライセンスキーをインストール"
 
 #: src/components/settings/LicenseSettings.tsx:242
 msgid "Install licence key"
-msgstr ""
+msgstr "ライセンスキーをインストール"
 
 #: src/components/web_analytics/InstallOverlay.tsx:68
 msgid "Install the tracking snippet"
@@ -15030,20 +15030,20 @@ msgstr "ライセンス"
 
 #: src/components/settings/LicenseSettings.tsx:107
 msgid "Licence key installed"
-msgstr ""
+msgstr "ライセンスキーをインストールしました"
 
 #: src/components/license/LicenceBlock.tsx:63
 msgid "Licence settings"
-msgstr ""
+msgstr "ライセンス設定"
 
 #: src/components/license/LicenceBlock.tsx:55
 msgid "Licensed capability"
-msgstr ""
+msgstr "ライセンス対象の機能"
 
 #. placeholder {0}: entitlements.org
 #: src/components/settings/LicenseSettings.tsx:157
 msgid "Licensed to {0}"
-msgstr ""
+msgstr "ライセンス先: {0}"
 
 #: src/components/templates/gallery/labels.ts:31
 msgid "Lifecycle"
@@ -17131,7 +17131,7 @@ msgstr "キーなし: 署名なしで送信"
 
 #: src/components/settings/LicenseSettings.tsx:128
 msgid "No licence — Community"
-msgstr ""
+msgstr "ライセンスなし (Community)"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:115
 msgid "No link"
@@ -18252,11 +18252,11 @@ msgstr "署名シークレットを閲覧またはローテーションできる
 
 #: src/components/license/LicenseBanner.tsx:125
 msgid "Only an instance administrator can install a licence key — ask the owner of this workspace."
-msgstr ""
+msgstr "ライセンスキーをインストールできるのはインスタンスの管理者だけです。このワークスペースのオーナーに依頼してください。"
 
 #: src/components/settings/LicenseSettings.tsx:86
 msgid "Only an instance administrator can view or install the licence key."
-msgstr ""
+msgstr "ライセンスキーを表示またはインストールできるのは、インスタンスの管理者だけです。"
 
 #: src/components/file_manager/FileExplorer.tsx:616
 #: src/components/file_manager/FileExplorer.tsx:1033
@@ -18995,7 +18995,7 @@ msgstr "Supabase › Authentication › Hooksに貼り付けてください"
 
 #: src/components/settings/LicenseSettings.tsx:228
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
-msgstr ""
+msgstr "購入時のメールに記載されたキーを貼り付けてください。キーはこのバイナリに組み込まれた署名キーでオフラインで検証され、どこにも何も送信されません。"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:421
 msgid "Paste this snippet before the closing </head> tag of every page of your sites."
@@ -19358,7 +19358,7 @@ msgstr "平文 (TLS終端プロキシの背後でのみ安全)"
 
 #: src/components/settings/LicenseSettings.tsx:180
 msgid "Plan"
-msgstr ""
+msgstr "プラン"
 
 #: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Platform admin"
@@ -21184,7 +21184,7 @@ msgstr "レンダリング中…"
 
 #: src/components/license/LicenseBanner.tsx:113
 msgid "Renew licence"
-msgstr ""
+msgstr "ライセンスを更新"
 
 #: src/components/automations/AutomationFlowEditor.tsx:583
 #: src/components/automations/AutomationFlowEditor.tsx:586
@@ -23228,7 +23228,7 @@ msgstr "テストWebhookを送信中..."
 
 #: src/components/license/LicenceGateNotice.tsx:65
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
-msgstr ""
+msgstr "この連携を使った送信には影響がなく、既存のテナントも引き続き使われます。分離をオンにするにはライセンスが必要です。"
 
 #: src/components/analytics/GetStartedChecklist.tsx:257
 msgid "Sends as {marketing}"
@@ -23450,7 +23450,7 @@ msgstr "SESテナントの分離"
 
 #: src/components/license/LicenceGateNotice.tsx:54
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "SESテナントの分離には Notifuse {tier} ライセンスが必要です。"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:38
@@ -24104,7 +24104,7 @@ msgstr "シングルサインオン (OpenID Connect)"
 
 #: src/components/settings/LicenseSettings.tsx:137
 msgid "Single sign-on (SSO)"
-msgstr ""
+msgstr "シングルサインオン (SSO)"
 
 #: src/pages/SignInPage.tsx:150
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
@@ -24117,7 +24117,7 @@ msgstr "シングルサインオンに失敗しました。もう一度お試し
 
 #: src/components/license/SsoLicenceNotice.tsx:44
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
-msgstr ""
+msgstr "シングルサインオンがオンになっていますが、このデプロイメントのライセンスには含まれていません。"
 
 #: src/pages/SignInPage.tsx:156
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
@@ -24125,7 +24125,7 @@ msgstr "シングルサインオンは一時的に利用できません。マジ
 
 #: src/components/license/LicenceGateNotice.tsx:55
 msgid "Single sign-on requires a Notifuse {tier} licence."
-msgstr ""
+msgstr "シングルサインオンには Notifuse {tier} ライセンスが必要です。"
 
 #: src/components/contacts/sheet/activityLabel.ts:25
 msgid "Site visit"
@@ -25349,11 +25349,11 @@ msgstr "テンプレート設定済み"
 #: src/components/settings/LicenseSettings.tsx:139
 #: src/services/api/licenseErrors.ts:53
 msgid "Template translations"
-msgstr ""
+msgstr "テンプレート翻訳"
 
 #: src/components/license/LicenceGateNotice.tsx:57
 msgid "Template translations require a Notifuse {tier} licence."
-msgstr ""
+msgstr "テンプレート翻訳には Notifuse {tier} ライセンスが必要です。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:350
 #~ msgid "Template updated successfully"
@@ -26161,7 +26161,7 @@ msgstr "製品や機能のリリースを3つのポイントで紹介します�
 
 #: src/components/settings/LicenseSettings.tsx:87
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
-msgstr ""
+msgstr "ライセンスはこのワークスペース単位ではなく、デプロイメント全体に適用されます。このNotifuseインスタンスを運用している担当者に依頼してください。"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:217
 #: src/components/email_builder/blocks/MjImageBlock.tsx:138
@@ -26375,7 +26375,7 @@ msgstr "このサイトは他のページ内での表示を拒否しています
 
 #: src/components/license/SsoLicenceNotice.tsx:45
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
-msgstr ""
+msgstr "SSOを含むライセンスがインストールされるまで、サインインページにSSOボタンは表示されません。それまでは全員がログインコードでサインインします。サインインできなくなる人はおらず、終了したセッションもありません。"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:51
 msgid "The status to assign when adding to the list"
@@ -26754,7 +26754,7 @@ msgstr "現在のポリシーより多く削除するため、その部分は{0}
 
 #: src/services/api/licenseErrors.ts:111
 msgid "This deployment has reached the number of workspaces its licence allows. Existing workspaces are unaffected; a licence with a higher limit allows more."
-msgstr ""
+msgstr "このデプロイメントは、ライセンスで許可されたワークスペース数の上限に達しました。既存のワークスペースには影響ありません。上限の高いライセンスにすると、さらに作成できます。"
 
 #: src/services/api/licenseErrors.ts:113
 #~ msgid "This deployment is in read-only mode: single sign-on is enabled without a licence that covers it. Turn SSO off, or install a licence, to make changes."
@@ -26867,7 +26867,7 @@ msgstr "これはビジュアルメールエディターです。メール内の
 
 #: src/components/settings/LicenseSettings.tsx:67
 msgid "This licence covers the whole deployment — one database. A key pasted here takes effect on this API container now, and on any others at their next restart; with several containers, set NOTIFUSE_LICENSE_KEY instead."
-msgstr ""
+msgstr "このライセンスはデプロイメント全体 (1つのデータベース) に適用されます。ここに貼り付けたキーは、このAPIコンテナではすぐに、ほかのコンテナでは次回の再起動時に有効になります。コンテナが複数ある場合は、代わりにNOTIFUSE_LICENSE_KEYを設定してください。"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:301
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
@@ -27758,7 +27758,7 @@ msgstr "翻訳"
 
 #: src/components/license/LicenceGateNotice.tsx:68
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
-msgstr ""
+msgstr "保存済みの翻訳は引き続き送信され、翻訳をオフにすることはいつでもできます。翻訳の追加や編集にはライセンスが必要です。"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:141
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:86
@@ -28096,7 +28096,7 @@ msgstr "不明なセグメント ({id})"
 
 #: src/components/settings/LicenseSettings.tsx:144
 msgid "Unlimited"
-msgstr ""
+msgstr "無制限"
 
 #: src/layouts/app-shell/AppSidebar.tsx:182
 msgid "Unpin sidebar"
@@ -29947,7 +29947,7 @@ msgstr "ワークスペース:"
 #: src/components/settings/LicenseSettings.tsx:186
 #: src/services/api/licenseErrors.ts:54
 msgid "Workspaces"
-msgstr ""
+msgstr "ワークスペース"
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:44
 #~ msgid "Wrapper attributes"
@@ -30391,11 +30391,11 @@ msgstr "Notifuse の管理者が二要素認証を必須にしています。"
 
 #: src/components/license/LicenseBanner.tsx:152
 msgid "Your Notifuse licence expired on {expiryLabel} and is in its grace period."
-msgstr ""
+msgstr "Notifuse のライセンスは {expiryLabel} に期限切れとなり、現在は猶予期間中です。"
 
 #: src/components/license/LicenseBanner.tsx:153
 msgid "Your Notifuse licence has expired and is in its grace period."
-msgstr ""
+msgstr "Notifuse のライセンスは期限切れとなり、現在は猶予期間中です。"
 
 #: src/components/templates/TemplateSettingsAside.tsx:118
 msgid "Your October invoice"
