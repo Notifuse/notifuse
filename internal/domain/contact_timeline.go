@@ -155,3 +155,16 @@ type ContactTimelineService interface {
 	// keeps only those types; entries the caller may not read are dropped either way.
 	List(ctx context.Context, workspaceID string, email string, limit int, cursor *string, entityTypes []string) ([]*ContactTimelineEntry, *string, error)
 }
+
+// TimelineEntityPermissions names, for the entity types that carry more than the contact,
+// the resource a member must be able to read to see them. Provider events (bounces,
+// complaints) carry the message's template and ID, so they go with message history. The
+// timeline service drops an entry its caller cannot read, and the MCP timeline tool reads
+// the same table to say which types it left out.
+var TimelineEntityPermissions = map[string]PermissionResource{
+	TimelineEntityMessageHistory:      PermissionResourceMessageHistory,
+	TimelineEntityInboundWebhookEvent: PermissionResourceMessageHistory,
+	TimelineEntityWebhookEvent:        PermissionResourceMessageHistory,
+	TimelineEntityWebSession:          PermissionResourceWebAnalytics,
+	TimelineEntityWebPage:             PermissionResourceWebAnalytics,
+}

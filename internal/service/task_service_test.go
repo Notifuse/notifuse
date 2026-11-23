@@ -718,6 +718,8 @@ func TestTaskService_DeleteTask(t *testing.T) {
 		taskID := "task123"
 
 		// Configure mock
+		mockRepo.EXPECT().Get(gomock.Any(), workspaceID, taskID).
+			Return(&domain.Task{ID: taskID, WorkspaceID: workspaceID, Type: "send_broadcast"}, nil)
 		mockRepo.EXPECT().
 			Delete(gomock.Any(), workspaceID, taskID).
 			Return(nil)
@@ -737,6 +739,8 @@ func TestTaskService_DeleteTask(t *testing.T) {
 		expectedErr := errors.New("delete failed")
 
 		// Configure mock
+		mockRepo.EXPECT().Get(gomock.Any(), workspaceID, taskID).
+			Return(&domain.Task{ID: taskID, WorkspaceID: workspaceID, Type: "send_broadcast"}, nil)
 		mockRepo.EXPECT().
 			Delete(gomock.Any(), workspaceID, taskID).
 			Return(expectedErr)
@@ -747,6 +751,50 @@ func TestTaskService_DeleteTask(t *testing.T) {
 		// Assert
 		assert.Error(t, err)
 		assert.Equal(t, expectedErr, err)
+	})
+
+	for _, taskType := range domain.PermanentTaskTypes {
+		t.Run("Refuses to delete the last "+taskType+" task", func(t *testing.T) {
+			mockRepo.EXPECT().Get(gomock.Any(), "workspace1", "permanent").
+				Return(&domain.Task{ID: "permanent", WorkspaceID: "workspace1", Type: taskType}, nil)
+			mockRepo.EXPECT().List(gomock.Any(), "workspace1", domain.TaskFilter{Type: []string{taskType}, Limit: 1}).
+				Return([]*domain.Task{{ID: "permanent"}}, 1, nil)
+			// No Delete expected: gomock fails the test on an unexpected call.
+
+			err := taskService.DeleteTask(context.Background(), "workspace1", "permanent")
+
+			var validationErr domain.ValidationError
+			require.ErrorAs(t, err, &validationErr)
+			assert.Contains(t, err.Error(), taskType)
+		})
+
+		t.Run("Deletes a duplicate "+taskType+" task", func(t *testing.T) {
+			mockRepo.EXPECT().Get(gomock.Any(), "workspace1", "duplicate").
+				Return(&domain.Task{ID: "duplicate", WorkspaceID: "workspace1", Type: taskType}, nil)
+			mockRepo.EXPECT().List(gomock.Any(), "workspace1", domain.TaskFilter{Type: []string{taskType}, Limit: 1}).
+				Return([]*domain.Task{{ID: "first"}}, 2, nil)
+			mockRepo.EXPECT().Delete(gomock.Any(), "workspace1", "duplicate").Return(nil)
+
+			require.NoError(t, taskService.DeleteTask(context.Background(), "workspace1", "duplicate"))
+		})
+	}
+
+	t.Run("A failed count deletes nothing", func(t *testing.T) {
+		mockRepo.EXPECT().Get(gomock.Any(), "workspace1", "permanent").
+			Return(&domain.Task{ID: "permanent", WorkspaceID: "workspace1", Type: domain.TaskTypeProcessContactSegmentQueue}, nil)
+		mockRepo.EXPECT().List(gomock.Any(), "workspace1", gomock.Any()).Return(nil, 0, errors.New("db down"))
+
+		err := taskService.DeleteTask(context.Background(), "workspace1", "permanent")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "db down")
+	})
+
+	t.Run("Returns the read error and deletes nothing", func(t *testing.T) {
+		mockRepo.EXPECT().Get(gomock.Any(), "workspace1", "missing").Return(nil, domain.ErrTaskNotFound)
+
+		err := taskService.DeleteTask(context.Background(), "workspace1", "missing")
+
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 	})
 }
 
@@ -814,6 +862,11 @@ func TestTaskService_RegisterProcessor(t *testing.T) {
 
 		mockProcessor.EXPECT().
 			CanProcess(domain.WebAnalyticsBackfillTaskType).
+			Return(false).
+			Times(1)
+
+		mockProcessor.EXPECT().
+			CanProcess(domain.DataRetentionBackfillTaskType).
 			Return(false).
 			Times(1)
 

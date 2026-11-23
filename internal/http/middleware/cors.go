@@ -6,9 +6,16 @@ import (
 	"strings"
 )
 
-// CORSMiddleware handles CORS headers for all requests
+// CORSMiddleware handles CORS headers for all requests but the MCP endpoint,
+// which answers its own (ApplyMCPCORS): CORS_ALLOW_ORIGIN and credentials do
+// not apply there.
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if IsMCPPath(r.URL.Path) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Get allowed origin from environment variable with default value "*"
 		allowOrigin, varies := resolveAllowOrigin(os.Getenv("CORS_ALLOW_ORIGIN"), r.Header.Get("Origin"))
 		if varies {
@@ -83,4 +90,38 @@ func resolveAllowOrigin(configured, requestOrigin string) (allowOrigin string, v
 		}
 	}
 	return "", true
+}
+
+// MCPPath is the path of the MCP endpoint.
+const MCPPath = "/mcp"
+
+// mcpAllowedHeaders are the request headers an MCP client may send from a
+// browser: the API's own plus the MCP transport's.
+const mcpAllowedHeaders = "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, Mcp-Protocol-Version, Mcp-Method, Mcp-Name, Mcp-Session-Id"
+
+// IsMCPPath reports whether a path belongs to the MCP endpoint, which handles
+// CORS itself.
+func IsMCPPath(path string) bool {
+	return path == MCPPath || strings.HasPrefix(path, MCPPath+"/")
+}
+
+// ApplyMCPCORS writes the CORS headers of an MCP response for a request whose
+// Origin the caller has already accepted. A request without Origin gets none.
+// The origin is reflected, never "*", and credentials are never allowed: an MCP
+// client sends its key in Authorization, not in a cookie. It reports whether
+// the request was a preflight, which it answers.
+func ApplyMCPCORS(w http.ResponseWriter, r *http.Request) (preflight bool) {
+	origin := r.Header.Get("Origin")
+	if origin != "" {
+		w.Header().Add("Vary", "Origin")
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", mcpAllowedHeaders)
+		w.Header().Set("Access-Control-Expose-Headers", "WWW-Authenticate")
+	}
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+	return false
 }

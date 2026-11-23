@@ -37,6 +37,8 @@ import (
 //     internal/database/init.go.
 //   - data retention, Lot 0 (workspace): the opt-out hashes of deleted contacts, their
 //     restore trigger and the bodies that honour them (v45_data_retention.go).
+//   - data retention, Lot 1 (system, after the two-factor tables): one engagement backfill
+//     task per existing workspace (v45_data_retention.go).
 type V45Migration struct{}
 
 func (m *V45Migration) GetMajorVersion() float64 { return 45.0 }
@@ -52,6 +54,11 @@ func (m *V45Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return fmt.Errorf("v45: failed to create the two-factor authentication tables: %w", err)
 		}
+	}
+	// Data retention, Lot 1: one engagement backfill task per existing workspace
+	// (v45_data_retention.go).
+	if err := applyDataRetentionSystemV45(ctx, db); err != nil {
+		return err
 	}
 	return nil
 }

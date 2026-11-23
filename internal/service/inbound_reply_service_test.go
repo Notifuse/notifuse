@@ -263,3 +263,34 @@ func TestProcessInboundReply_DedupedReplyDoesNotExit(t *testing.T) {
 		replyReq(`[["In-Reply-To","<orig-1@example.com>"],["Message-Id","<reply-1@x>"]]`))
 	require.NoError(t, err)
 }
+
+// A genuine reply counts for the data retention engagement clock, an auto-reply does not.
+func TestProcessInboundReply_RecordsEngagementForAGenuineReplyOnly(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		headers string
+		counts  bool
+	}{
+		{"genuine reply", `[["In-Reply-To","<orig-1@example.com>"],["Message-Id","<g@x>"]]`, true},
+		{"auto-reply", `[["Auto-Submitted","auto-replied"],["In-Reply-To","<orig-1@example.com>"],["Message-Id","<a@x>"]]`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := newReplyTestDeps(t, domain.EmailProviderKindMailgun)
+			ctrl := gomock.NewController(t)
+			engagementRepo := mocks.NewMockContactEngagementRepository(ctrl)
+			log := pkgmocks.NewMockLogger(ctrl)
+			d.svc.SetEngagementRecorder(NewEngagementRecorder(engagementRepo, log))
+
+			d.mhRepo.EXPECT().GetBySMTPMessageID(gomock.Any(), d.workspaceID, "orig-1@example.com").
+				Return(&domain.MessageHistory{ContactEmail: "jane@example.com"}, nil)
+			d.repo.EXPECT().StoreReplyEvent(gomock.Any(), d.workspaceID, gomock.Any()).Return(true, nil)
+			d.autoRepo.EXPECT().ExitContactJourneysOnReply(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(0, nil).AnyTimes()
+			if tc.counts {
+				engagementRepo.EXPECT().Touch(gomock.Any(), d.workspaceID, "jane@example.com", gomock.Any()).Return(nil)
+			}
+
+			require.NoError(t, d.svc.ProcessInboundReply(context.Background(), d.workspaceID, d.integID, replyReq(tc.headers)))
+		})
+	}
+}

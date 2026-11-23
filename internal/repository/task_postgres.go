@@ -894,9 +894,14 @@ func (r *TaskRepository) MarkAsFailedTx(ctx context.Context, tx *sql.Tx, workspa
 	newStatus := domain.TaskStatusFailed
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	// Handle retries if applicable
+	// Handle retries if applicable. A permanent task is never given up: failed, it would
+	// stay failed for good, since nothing runs it again (see domain.PermanentTaskTypes).
 	var nextRunAfter *time.Time
-	if task.HasRetriesLeft() {
+	if domain.IsPermanentTaskType(task.Type) {
+		retryTime := now.Add(task.RetryDelay())
+		nextRunAfter = &retryTime
+		newStatus = domain.TaskStatusPending
+	} else if task.HasRetriesLeft() {
 		// Calculate next retry time
 		retryTime := now.Add(time.Duration(task.RetryInterval) * time.Second)
 		nextRunAfter = &retryTime

@@ -18,6 +18,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: SMTP integrations can sign their emails with DKIM. Add the sending domain in **Settings** → **Domains** and publish the TXT record shown: signing starts once Notifuse finds it.
 
+- **Fix**: Segments could stop updating on their own. After four failed runs in a row, the task that recomputes a workspace's segments as contacts change, or the one that rebuilds date-based segments each morning, stopped for good, and segments then changed only on a manual rebuild. These tasks now keep retrying, and the first task run after the upgrade restarts any that stopped or were deleted.
+
 - **Fix**: SMTP senders on an internationalized domain (`news@bücher.de`) now go out in ASCII form. Notifuse sent raw UTF-8, which strict mail servers refuse.
 
 - **Fix**: Nothing re-subscribes a contact who opted out of a list any more. An automation's add-to-list step and `contactLists.updateStatus` could set an unsubscribed contact back to active, and the console could also revive a bounced or complained one. The add-to-list step now leaves them as they are and says so in its output, and a status change out of an opt-out returns 409. A form post with the address of a contact who unsubscribed no longer sets them to pending: it only sends the list's confirmation email, whose link brings them back.
@@ -35,6 +37,10 @@ All notable changes to this project will be documented in this file.
 - **Fix**: The API no longer answers 500 when a broadcast, blog post, segment, automation or transactional notification refuses a request. An action the object's status does not allow, such as scheduling a broadcast that is no longer a draft or publishing a published post, answers 409 with that status; an ID or slug already taken answers 409; an unknown object answers 404; an invalid segment answers 400. Two pauses, resumes or cancellations of the same broadcast sent at the same time no longer both go through.
 
 - **Security**: `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
+
+- **Fix**: `broadcasts.list` no longer repeats or skips broadcasts created at the same instant when it pages: they are ordered by creation date, then by ID.
+
+- **Fix**: `contacts.list` no longer answers 500 when asked for the page after a contact whose email contains `~`. The cursor joins a date and an email with that character, and the email's own `~` broke it.
 
 ## [44.0] - 2026-11-19
 

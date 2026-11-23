@@ -18,6 +18,8 @@ import (
 )
 
 type EmailService struct {
+	// engagement records what the contact does themselves (data retention); nil records nothing.
+	engagement       *EngagementRecorder
 	logger           logger.Logger
 	authService      domain.AuthService
 	secretKey        string
@@ -267,10 +269,20 @@ const maxRecordedClickedURLLength = domain.MaxClickedURLLength
 // carried clickedURL; see MessageHistoryRepository.SetClicked.
 func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, ownHosts []string, verified bool) error {
 	// find the message by id
-	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, ownHosts), verified)
+	now := time.Now()
+	recorded := sanitizeClickedURL(clickedURL, ownHosts)
+	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, now, recorded, verified)
 	if err != nil {
 		s.logger.Error(err.Error())
 		return fmt.Errorf("failed to set clicked: %w", err)
+	}
+
+	// A click is the contact's own action, and counts for the engagement clock, when its
+	// token is verified (a forged click URL proves nothing) and it leads to a real
+	// destination. A link back to the instance (unsubscribe, preferences, web version)
+	// records no destination: an unsubscribe is an opposition, not an interest.
+	if verified && recorded != "" {
+		s.engagement.TouchForMessage(ctx, workspaceID, messageID, now)
 	}
 
 	return nil
@@ -790,4 +802,9 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 
 	tracing.AddAttribute(ctx, "email.sent", true)
 	return nil
+}
+
+// SetEngagementRecorder supplies the recorder of the data retention engagement clock.
+func (s *EmailService) SetEngagementRecorder(recorder *EngagementRecorder) {
+	s.engagement = recorder
 }

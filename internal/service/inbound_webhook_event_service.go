@@ -33,6 +33,8 @@ type ListUnsubscriber interface {
 
 // InboundWebhookEventService implements the domain.InboundWebhookEventServiceInterface
 type InboundWebhookEventService struct {
+	// engagement records what the contact does themselves (data retention); nil records nothing.
+	engagement         *EngagementRecorder
 	repo               domain.InboundWebhookEventRepository
 	authService        domain.AuthService
 	logger             logger.Logger
@@ -190,6 +192,11 @@ func (s *InboundWebhookEventService) ProcessInboundReply(ctx context.Context, wo
 	inserted, err := s.repo.StoreReplyEvent(ctx, workspaceID, event)
 	if err != nil {
 		return fmt.Errorf("failed to store inbound reply event: %w", err)
+	}
+
+	// A person who wrote back engaged; a mail server's auto-reply did not.
+	if class == domain.ReplyGenuine {
+		s.engagement.Touch(ctx, workspaceID, contactEmail, reply.ReceivedAt)
 	}
 
 	// Only a genuine human reply exits the journey, and only when this reply was NEWLY
@@ -1754,4 +1761,9 @@ func (s *InboundWebhookEventService) ListEvents(ctx context.Context, workspaceID
 	}
 
 	return result, nil
+}
+
+// SetEngagementRecorder supplies the recorder of the data retention engagement clock.
+func (s *InboundWebhookEventService) SetEngagementRecorder(recorder *EngagementRecorder) {
+	s.engagement = recorder
 }

@@ -859,6 +859,9 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		// them when the address returns (shared DDL with the v45 migration). Last: the
 		// trigger is on contacts and writes contact_lists, whose triggers must exist.
 		{failure: "failed to create contact opt-out hashes", statements: schema.ContactOptOutStatements()},
+		// The engagement clock of the data retention plan, and its readiness marker, set
+		// at once: a new workspace has no history to read back.
+		{failure: "failed to create contact engagement", statements: append(schema.ContactEngagementStatements(), schema.NewWorkspaceDataRetentionMarker)},
 	}
 }
 

@@ -99,11 +99,13 @@ func webBufferKey(sessionID string, tabID int64) string {
 
 // WebAnalyticsBuffer is safe for concurrent use.
 type WebAnalyticsBuffer struct {
-	repo   domain.WebAnalyticsRepository
-	bridge *WebAnalyticsContactBridge
-	logger logger.Logger
-	cfg    WebAnalyticsBufferConfig
-	nowFn  func() time.Time
+	// engagement records what the contact does themselves (data retention); nil records nothing.
+	engagement *EngagementRecorder
+	repo       domain.WebAnalyticsRepository
+	bridge     *WebAnalyticsContactBridge
+	logger     logger.Logger
+	cfg        WebAnalyticsBufferConfig
+	nowFn      func() time.Time
 
 	mu         sync.Mutex
 	workspaces map[string]*webWorkspaceBuffer
@@ -449,6 +451,10 @@ func (b *WebAnalyticsBuffer) projectNavigation(ctx context.Context, workspaceID 
 		return
 	}
 	err := b.repo.ProjectContactNavigation(ctx, workspaceID, sessions)
+	// An identified visit is the contact's own action. It is read from web_sessions, which
+	// the flush has written, not from the timeline: a projection that failed, even for one
+	// chunk, must not lose it. Best effort, and harmless when a retried projection repeats it.
+	b.engagement.TouchForWebSessions(ctx, workspaceID, sessions)
 	if err == nil {
 		b.clearProjectionAttempts(workspaceID, entries)
 		return
@@ -556,4 +562,9 @@ func (b *WebAnalyticsBuffer) PendingSessions(workspaceID string) int {
 		return 0
 	}
 	return len(ws.sessions)
+}
+
+// SetEngagementRecorder supplies the recorder of the data retention engagement clock.
+func (b *WebAnalyticsBuffer) SetEngagementRecorder(recorder *EngagementRecorder) {
+	b.engagement = recorder
 }

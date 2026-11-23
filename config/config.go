@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -33,6 +34,7 @@ type Config struct {
 	// WebhookEndpoint below, which is the public address email providers post
 	// INBOUND events to.
 	Webhook             WebhookConfig
+	MCP                 MCPConfig
 	FileStorage         FileStorageConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
@@ -253,6 +255,46 @@ type BroadcastConfig struct {
 	AllowPrivateDataFeedHosts bool
 }
 
+// MCPConfig is the instance-wide switch of the MCP endpoint (/mcp) and the
+// browser origins allowed to call it.
+type MCPConfig struct {
+	// Enabled turns /mcp on. Off by default until the console can manage MCP;
+	// demo deployments never serve it, whatever this says.
+	Enabled bool
+	// AllowedOrigins are the browser origins accepted on /mcp besides
+	// API_ENDPOINT's own, from the comma-separated MCP_ALLOWED_ORIGINS. A
+	// request without an Origin header is not affected by them.
+	AllowedOrigins []string
+}
+
+// parseOriginList splits a comma-separated origin list, trimming spaces and
+// trailing slashes, lower-casing each entry and dropping its scheme's default
+// port (:80 for http, :443 for https), since a browser's Origin header never
+// carries it. Every entry must be an origin,
+// scheme://host[:port] over http or https: "*" and anything with a path are
+// refused at startup, since the MCP Origin check compares exact strings and a
+// wildcard would silently match nothing.
+func parseOriginList(raw string) ([]string, error) {
+	var origins []string
+	for origin := range strings.SplitSeq(raw, ",") {
+		origin = strings.ToLower(strings.TrimRight(strings.TrimSpace(origin), "/"))
+		if origin == "" {
+			continue
+		}
+		parsed, err := url.Parse(origin)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" ||
+			parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.User != nil {
+			return nil, fmt.Errorf("MCP_ALLOWED_ORIGINS: %q is not an origin (scheme://host[:port]); wildcards are not supported", origin)
+		}
+		host := parsed.Host
+		if port := parsed.Port(); (parsed.Scheme == "http" && port == "80") || (parsed.Scheme == "https" && port == "443") {
+			host = strings.TrimSuffix(host, ":"+port)
+		}
+		origins = append(origins, parsed.Scheme+"://"+host)
+	}
+	return origins, nil
+}
+
 type WebhookConfig struct {
 	// AllowPrivateDeliveryHosts disables SSRF protection on outgoing webhooks,
 	// allowing subscriptions and automation webhook nodes to target
@@ -287,6 +329,10 @@ type TaskSchedulerConfig struct {
 	// keeps the default (5s). Never read from the environment: the integration
 	// harness shortens it, since every test broadcast otherwise waits it out.
 	SendNowDelay time.Duration
+	// SkipPermanentTaskRestore turns off TaskService's restore of the permanent tasks on its
+	// first pass. Never read from the environment: the integration harness sets it, since a
+	// segment queue task in every test workspace would hold each pass for close to a minute.
+	SkipPermanentTaskRestore bool
 }
 
 type AutomationSchedulerConfig struct {
@@ -629,6 +675,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("ANALYTICS_WORK_MEM", "64MB")
 	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("VERSION", VERSION)
+	v.SetDefault("MCP_ENABLED", false)
 
 	// SMTP and SMTP bridge: deliberately NO viper SetDefault (SMTP_FROM_NAME,
 	// SMTP_BRIDGE_PORT, SMTP_BRIDGE_ENABLED…). A default would make the variable read
@@ -1002,6 +1049,11 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, fmt.Errorf("PLAN_DATA_RETENTION_MONTHS cannot be negative (got %d)", planConfig.DataRetentionMonths)
 	}
 
+	mcpAllowedOrigins, err := parseOriginList(v.GetString("MCP_ALLOWED_ORIGINS"))
+	if err != nil {
+		return nil, err
+	}
+
 	config := &Config{
 		Server: ServerConfig{
 			Port: v.GetInt("SERVER_PORT"),
@@ -1062,6 +1114,10 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		},
 		Webhook: WebhookConfig{
 			AllowPrivateDeliveryHosts: v.GetBool("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS"),
+		},
+		MCP: MCPConfig{
+			Enabled:        v.GetBool("MCP_ENABLED"),
+			AllowedOrigins: mcpAllowedOrigins,
 		},
 		FileStorage: FileStorageConfig{
 			AllowPrivateHosts: v.GetBool("FILE_STORAGE_ALLOW_PRIVATE_HOSTS"),

@@ -1110,3 +1110,56 @@ func TestTaskRequests_IDMustBeAUUID(t *testing.T) {
 	assert.NoError(t, (&ResetTaskRequest{WorkspaceID: "ws", ID: valid}).Validate())
 	assert.NoError(t, (&TriggerTaskRequest{WorkspaceID: "ws", ID: valid}).Validate())
 }
+
+func TestIsPermanentTaskType(t *testing.T) {
+	assert.True(t, IsPermanentTaskType(TaskTypeProcessContactSegmentQueue))
+	assert.True(t, IsPermanentTaskType(TaskTypeCheckSegmentRecompute))
+	assert.Equal(t, "process_contact_segment_queue", TaskTypeProcessContactSegmentQueue, "the type is stored in tasks rows")
+	assert.Equal(t, "check_segment_recompute", TaskTypeCheckSegmentRecompute, "the type is stored in tasks rows")
+	for _, other := range []string{"send_broadcast", "build_segment", "sync_integration", WebAnalyticsBackfillTaskType, ""} {
+		assert.False(t, IsPermanentTaskType(other), other)
+	}
+}
+
+func TestPermanentTaskMessage(t *testing.T) {
+	assert.Equal(t, "Contact segment queue processing task", PermanentTaskMessage(TaskTypeProcessContactSegmentQueue))
+	assert.Equal(t, "Check segments for daily recompute", PermanentTaskMessage(TaskTypeCheckSegmentRecompute))
+	assert.Empty(t, PermanentTaskMessage("send_broadcast"))
+}
+
+func TestPermanentTaskRestore_Changed(t *testing.T) {
+	assert.False(t, PermanentTaskRestore{}.Changed())
+	assert.True(t, PermanentTaskRestore{Revived: 1}.Changed())
+	assert.True(t, PermanentTaskRestore{Created: 1}.Changed())
+	assert.True(t, PermanentTaskRestore{Removed: 1}.Changed())
+}
+
+func TestTask_RetryDelay(t *testing.T) {
+	task := func(retryCount, retryInterval int) *Task {
+		return &Task{Type: TaskTypeProcessContactSegmentQueue, MaxRetries: 3, RetryCount: retryCount, RetryInterval: retryInterval}
+	}
+
+	t.Run("RetryInterval while retries are left", func(t *testing.T) {
+		for count := 0; count < 3; count++ {
+			assert.Equal(t, 60*time.Second, task(count, 60).RetryDelay(), "count %d", count)
+		}
+	})
+
+	t.Run("doubles after each failure past the retries, up to the cap", func(t *testing.T) {
+		assert.Equal(t, 120*time.Second, task(3, 60).RetryDelay())
+		assert.Equal(t, 240*time.Second, task(4, 60).RetryDelay())
+		assert.Equal(t, 480*time.Second, task(5, 60).RetryDelay())
+		assert.Equal(t, 900*time.Second, task(6, 60).RetryDelay(), "16 minutes is capped at 15")
+		assert.Equal(t, MaxPermanentTaskRetryDelay, task(1000, 60).RetryDelay())
+	})
+
+	t.Run("a long interval is capped too", func(t *testing.T) {
+		assert.Equal(t, MaxPermanentTaskRetryDelay, task(3, 3600).RetryDelay())
+	})
+
+	t.Run("no positive interval falls back to the default", func(t *testing.T) {
+		assert.Equal(t, DefaultTaskRetryInterval, task(0, 0).RetryDelay())
+		assert.Equal(t, DefaultTaskRetryInterval, task(0, -5).RetryDelay())
+		assert.Equal(t, 2*DefaultTaskRetryInterval, task(3, 0).RetryDelay())
+	})
+}

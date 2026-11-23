@@ -333,6 +333,12 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 			s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete automation journeys: %v", err))
 			return fmt.Errorf("failed to delete automation journeys: %w", err)
 		}
+		// Their engagement date (the data retention clock), so a contact created again
+		// with this address starts from their own collection.
+		if err := s.erasureRepo.DeleteEngagementForEmail(ctx, workspaceID, email); err != nil {
+			s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete contact engagement: %v", err))
+			return fmt.Errorf("failed to delete contact engagement: %w", err)
+		}
 	}
 
 	// Webhook deliveries that carry the address and were queued before the deletion: a

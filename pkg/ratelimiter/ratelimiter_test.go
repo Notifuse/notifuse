@@ -474,3 +474,16 @@ func TestRateLimiter_DifferentWindowsPerNamespace(t *testing.T) {
 	// Long should allow again
 	assert.True(t, rl.Allow("long", key), "Long window should have expired")
 }
+
+func TestPolicy_ReturnsTheConfiguredValues(t *testing.T) {
+	rl := NewRateLimiter()
+	defer rl.Stop()
+	rl.SetPolicy("ns", 7, 3*time.Minute)
+
+	policy, ok := rl.Policy("ns")
+	require.True(t, ok)
+	assert.Equal(t, RatePolicy{MaxAttempts: 7, Window: 3 * time.Minute}, policy)
+
+	_, ok = rl.Policy("unknown")
+	assert.False(t, ok)
+}

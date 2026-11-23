@@ -75,21 +75,21 @@ func expectLaterMigrations(t *testing.T, mock sqlmock.Sqlmock, after float64) {
 	}
 }
 
-// expectLatestSystemUpdate expects the system update of the latest workspace migration. That is
-// v45, whose system part is two-factor authentication (schema.TwoFactorTableDefinitions). A
-// project that adds another system part to v45 adds its SQL here.
+// expectLatestSystemUpdate expects the system update of the latest workspace migration, v45, in
+// UpdateSystem's order: the two-factor authentication tables (schema.TwoFactorTableDefinitions),
+// then the data retention part (one engagement backfill task per workspace). Each project that
+// adds a system part to v45 adds its statements here.
 func expectLatestSystemUpdate(t *testing.T, mock sqlmock.Sqlmock) {
 	t.Helper()
 	m, ok := GetRegisteredMigration(latestWorkspaceMigrationVersion(t))
 	require.True(t, ok)
-	switch m.GetMajorVersion() {
-	case 45.0:
-		require.True(t, m.HasSystemUpdate())
-		for _, stmt := range schema.TwoFactorTableDefinitions() {
-			mock.ExpectExec(regexp.QuoteMeta(stmt)).WillReturnResult(sqlmock.NewResult(0, 0))
-		}
-	default:
-		require.Falsef(t, m.HasSystemUpdate(), "v%.0f now has a system part: expect its SQL here", m.GetMajorVersion())
+	require.Equal(t, 45.0, m.GetMajorVersion(), "the latest workspace migration moved: expect its system SQL here")
+	require.True(t, m.HasSystemUpdate())
+	for _, statement := range schema.TwoFactorTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	for _, statement := range dataRetentionSystemV45Statements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 }
 

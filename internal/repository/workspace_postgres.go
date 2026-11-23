@@ -521,6 +521,14 @@ func (r *workspaceRepository) deleteUnderLock(ctx context.Context, id string) er
 		return &domain.ErrWorkspaceNotFound{WorkspaceID: id}
 	}
 
+	// And its tasks, after the row. WorkspaceService.DeleteWorkspace deleted them before the
+	// database was dropped, but a restore of the permanent tasks (TaskRepository.
+	// RestorePermanentTasks) running since then can have created them again; a later one waits
+	// for the row lock taken above and then no longer sees the workspace.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM tasks WHERE workspace_id = $1`, id); err != nil {
+		return fmt.Errorf("failed to delete tasks of workspace %s: %w", id, err)
+	}
+
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit deletion of workspace %s: %w", id, err)
 	}

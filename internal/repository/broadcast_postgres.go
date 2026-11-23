@@ -577,9 +577,10 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 		}
 	}
 
-	// Then query paginated data using the same filters plus pagination.
+	// Then query paginated data using the same filters plus pagination. The ID breaks
+	// ties of created_at, so an offset always lands on the same broadcast.
 	dataQuery := fmt.Sprintf(
-		"SELECT %s FROM broadcasts WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d",
+		"SELECT %s FROM broadcasts WHERE %s ORDER BY created_at DESC, id DESC LIMIT $%d OFFSET $%d",
 		broadcastListColumns, whereClause, argIdx, argIdx+1,
 	)
 	dataArgs := append(append([]interface{}{}, args...), params.Limit, params.Offset)

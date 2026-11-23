@@ -388,6 +388,15 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	ctx, cancel := context.WithTimeout(detached, workspaceSetupTimeout)
 	defer cancel()
 
+	// Create the permanent tasks of the workspace (segment queue and recompute) as soon as
+	// its row exists, before any step below can return early, and under the lock every
+	// restore takes, so a restore running at the same time creates no second one.
+	if _, err := s.taskRepo.RestorePermanentTasks(ctx, id); err != nil {
+		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to create the permanent tasks of the workspace")
+		// Don't fail workspace creation: the next periodic restore creates them
+		// (TaskService.restorePermanentTasksIfDue).
+	}
+
 	// Add the creator as owner
 	userWorkspace := &domain.UserWorkspace{
 		UserID:      user.ID,
@@ -461,18 +470,6 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	if err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to create default contact list for workspace")
 		return nil, err
-	}
-
-	// Create permanent contact segment queue processing task for this workspace
-	if err := EnsureContactSegmentQueueProcessingTask(ctx, s.taskRepo, id); err != nil {
-		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to create contact segment queue processing task")
-		// Don't fail workspace creation if task creation fails - it can be created later
-	}
-
-	// Create permanent segment recompute checking task for this workspace
-	if err := EnsureSegmentRecomputeTask(ctx, s.taskRepo, id); err != nil {
-		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to create segment recompute task")
-		// Don't fail workspace creation if task creation fails - it can be created later
 	}
 
 	if audit := domain.AuditFromContext(ctx); audit != nil {

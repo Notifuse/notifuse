@@ -18,6 +18,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	httpHandler "github.com/Notifuse/notifuse/internal/http"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
+	mcpserver "github.com/Notifuse/notifuse/internal/mcp"
 	"github.com/Notifuse/notifuse/internal/migrations"
 	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/internal/service"
@@ -141,6 +142,8 @@ type App struct {
 	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
 	webhookDeliveryRepo           domain.WebhookDeliveryRepository
 	contactErasureRepo            domain.ContactErasureRepository
+	contactEngagementRepo         domain.ContactEngagementRepository
+	engagementRecorder            *service.EngagementRecorder
 	automationRepo                domain.AutomationRepository
 	emailQueueRepo                domain.EmailQueueRepository
 	webAnalyticsRepo              domain.WebAnalyticsRepository
@@ -693,6 +696,8 @@ func (a *App) InitRepositories() error {
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
 	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo, a.logger)
 	a.contactErasureRepo = repository.NewContactErasureRepository(a.workspaceRepo)
+	a.contactEngagementRepo = repository.NewContactEngagementRepository(a.workspaceRepo)
+	a.engagementRecorder = service.NewEngagementRecorder(a.contactEngagementRepo, a.logger)
 
 	// Create trigger generator for automation repository
 	queryBuilder := service.NewQueryBuilder()
@@ -804,6 +809,13 @@ func (a *App) InitServices() error {
 	// Second-factor codes, by IP. Only damps noise: the address can be forged, and the
 	// failure counters stored on the account are the protection.
 	a.rateLimiter.SetPolicy(httpHandler.TwoFactorVerifyPolicy, 20, 1*time.Minute)
+	// MCP, registered whether MCP_ENABLED is on or not, for the same reason. The
+	// first two are per API key: every call (tools/list included), then the calls
+	// that send or change what sends emit. The third is per IP, for requests whose
+	// credential fails, and bounds the lookups an invalid key can cause.
+	a.rateLimiter.SetPolicy(mcpserver.RateLimitNamespace, 120, 1*time.Minute)
+	a.rateLimiter.SetPolicy(mcpserver.SendRateLimitNamespace, 30, 1*time.Minute)
+	a.rateLimiter.SetPolicy(httpHandler.MCPAuthFailRateLimitNamespace, 60, 1*time.Minute)
 
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
@@ -1024,6 +1036,7 @@ func (a *App) InitServices() error {
 		a.config.WebhookEndpoint,
 		a.config.APIEndpoint,
 	)
+	a.emailService.SetEngagementRecorder(a.engagementRecorder)
 
 	// DKIM: one key store, shared by the sends that sign and the service and worker
 	// that change the keys, so a change is seen by the next send on this instance.
@@ -1059,6 +1072,7 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 		a.blogCache,
 	)
+	a.listService.SetEngagementRecorder(a.engagementRecorder)
 
 	// Initialize DNS verification service (before workspace service)
 	a.dnsVerificationService = service.NewDNSVerificationService(
@@ -1073,6 +1087,7 @@ func (a *App) InitServices() error {
 	// If task scheduler is disabled (e.g., in tests), also disable background task execution
 	a.taskService.SetAutoExecuteImmediate(a.config.TaskScheduler.Enabled)
 	a.taskService.SetSendNowDelay(a.config.TaskScheduler.SendNowDelay)
+	a.taskService.SetRestorePermanentTasks(!a.config.TaskScheduler.SkipPermanentTaskRestore)
 
 	// Execution mode is coupled to the internal scheduler: when this instance runs its own
 	// scheduler it executes due tasks in-process, instead of dispatching over HTTP to its own
@@ -1112,6 +1127,7 @@ func (a *App) InitServices() error {
 		a.automationRepo,
 		a.listService,
 	)
+	a.inboundWebhookEventService.SetEngagementRecorder(a.engagementRecorder)
 
 	// Initialize Supabase service (before workspace service)
 	a.supabaseService = service.NewSupabaseService(
@@ -1307,6 +1323,14 @@ func (a *App) InitServices() error {
 	// — integrationSyncProcessor.RegisterHandler("<type>", handler).
 	a.taskService.RegisterProcessor(integrationSyncProcessor)
 
+	// Data retention: reads the engagement of existing contacts back from their history,
+	// once per workspace upgraded to 45.
+	a.taskService.RegisterProcessor(service.NewDataRetentionBackfillProcessor(
+		a.contactEngagementRepo,
+		a.taskRepo,
+		a.logger,
+	))
+
 	// Attribution backfill for web analytics (rewrites historical rows after
 	// rule changes).
 	a.taskService.RegisterProcessor(service.NewWebAnalyticsBackfillProcessor(
@@ -1417,6 +1441,7 @@ func (a *App) InitServices() error {
 		a.logger.WithField("path", geoPath).Info("GeoIP database loaded")
 	}
 	a.webAnalyticsBuffer = service.NewWebAnalyticsBuffer(a.webAnalyticsRepo, a.logger, service.DefaultWebAnalyticsBufferConfig())
+	a.webAnalyticsBuffer.SetEngagementRecorder(a.engagementRecorder)
 
 	// The bridge hangs off the BUFFER, never off the repository: the demo data
 	// generator calls FlushBatch directly, and hooking there would bridge its
@@ -1938,6 +1963,40 @@ func (a *App) InitHandlers() error {
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
 	llmHandler.RegisterRoutes(a.mux)
+
+	// /mcp sits inside the mux, under the audit middleware, so that the
+	// integration harness serves it as production does. It answers 404 while
+	// MCP_ENABLED is off and on demo deployments.
+	mcpServer := mcpserver.NewServer(mcpserver.Deps{
+		Auth:             a.authService,
+		Workspaces:       a.workspaceRepo,
+		WorkspaceService: a.workspaceService,
+		Contacts:         a.contactService,
+		Timeline:         a.contactTimelineService,
+		Lists:            a.listService,
+		Segments:         a.segmentService,
+		Templates:        a.templateService,
+		Broadcasts:       a.broadcastService,
+		Transactional:    a.transactionalNotificationService,
+		Messages:         a.messageHistoryService,
+		Analytics:        a.analyticsService,
+		Automations:      a.automationService,
+		Blog:             a.blogService,
+		Recorder:         a.auditLogService,
+		RateLimiter:      a.rateLimiter,
+		Logger:           a.logger,
+		Version:          a.config.Version,
+	})
+	httpHandler.NewMCPHandler(httpHandler.MCPHandlerConfig{
+		Enabled:        a.config.MCP.Enabled,
+		IsDemo:         a.config.IsDemo(),
+		APIEndpoint:    func() string { return a.config.APIEndpoint },
+		AllowedOrigins: a.config.MCP.AllowedOrigins,
+		GetJWTSecret:   getJWTSecret,
+		Auth:           a.authService,
+		RateLimiter:    a.rateLimiter,
+		Server:         mcpServer.Handler(),
+	}).RegisterRoutes(a.mux)
 
 	// The audit middleware wraps the whole mux. It is applied here, not in the
 	// Start() chain, because the integration harness serves GetHandler() and

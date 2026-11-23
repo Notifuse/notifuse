@@ -403,7 +403,7 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 
 		// Parse the compound cursor (timestamp~email)
 		cursorStr := string(decodedCursor)
-		cursorParts := strings.Split(cursorStr, "~")
+		cursorParts := strings.SplitN(cursorStr, "~", 2)
 		if len(cursorParts) != 2 {
 			return nil, fmt.Errorf("invalid cursor format: expected timestamp~email")
 		}
