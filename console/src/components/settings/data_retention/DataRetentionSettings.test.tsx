@@ -7,13 +7,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DataRetentionSettings } from './DataRetentionSettings'
 import { api } from '../../../services/api/client'
 import type { DataRetentionView, RetentionCategory, RetentionCategorySpec } from '../../../services/api/dataRetention'
+import { LicenseContext, UNKNOWN_LICENSE } from '../../../contexts/licenseState'
+import type { Entitlements } from '../../../types/license'
 
 // The API client is the only thing mocked: the requests are checked as the server receives them.
 vi.mock('../../../services/api/client', () => ({
   api: { get: vi.fn(), post: vi.fn(), download: vi.fn() }
 }))
 vi.mock('@tanstack/react-router', () => ({
-  useBlocker: () => ({ status: 'idle', proceed: undefined, reset: undefined })
+  useBlocker: () => ({ status: 'idle', proceed: undefined, reset: undefined }),
+  // The licence notice's button routes to Settings › Licence.
+  useNavigate: () => vi.fn()
 }))
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
@@ -64,8 +68,19 @@ const mockServer = (view: DataRetentionView) => {
   })
 }
 
-const renderSection = (isOwner = true) =>
-  render(
+// A deployment whose licence is known and grants only these features.
+const licensedFor = (features: Entitlements['features']): Entitlements => ({
+  tier: features.length ? 'Enterprise' : '',
+  org: '',
+  sub: '',
+  max_workspaces: 3,
+  features,
+  state: features.length ? 'active' : 'none',
+  expires_at: '0001-01-01T00:00:00Z'
+})
+
+const renderSection = (isOwner = true, features?: Entitlements['features']) => {
+  const page = (
     <I18nProvider i18n={i18n}>
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <App>
@@ -74,6 +89,14 @@ const renderSection = (isOwner = true) =>
       </QueryClientProvider>
     </I18nProvider>
   )
+  return render(
+    features ? (
+      <LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, entitlements: licensedFor(features) }}>{page}</LicenseContext.Provider>
+    ) : (
+      page
+    )
+  )
+}
 
 const rowOf = (label: string) => screen.getByText(label, { selector: 'div.font-medium' }).closest('tr') as HTMLElement
 
@@ -97,6 +120,27 @@ describe('DataRetentionSettings', () => {
     const contacts = await waitFor(() => rowOf('Inactive contacts'))
     expect(within(contacts).getByRole('switch')).toBeDisabled()
     expect(screen.queryByRole('button', { name: /preview and save/i })).not.toBeInTheDocument()
+  })
+
+  it('without a licence, a category can be switched off but not on, and its period is fixed', async () => {
+    mockServer(baseView())
+    renderSection(true, [])
+    const contacts = await waitFor(() => rowOf('Inactive contacts'))
+    expect(screen.getByText('Data retention policies require a Notifuse Enterprise licence.')).toBeInTheDocument()
+    expect(within(contacts).getByRole('switch')).toBeEnabled()
+    expect(within(contacts).getByRole('spinbutton')).toBeDisabled()
+    expect(within(rowOf('Message history')).getByRole('switch')).toBeDisabled()
+    // A built-in default is not a configuration: the technical logs can come back on.
+    expect(within(rowOf('Webhook deliveries')).getByRole('switch')).toBeEnabled()
+    expect(screen.getByRole('combobox', { name: 'Custom events that count as activity' })).toBeDisabled()
+  })
+
+  it('with the licence, no notice and nothing locked', async () => {
+    mockServer(baseView())
+    renderSection(true, ['data_retention'])
+    await waitFor(() => rowOf('Inactive contacts'))
+    expect(screen.queryByText('Data retention policies require a Notifuse Enterprise licence.')).not.toBeInTheDocument()
+    expect(within(rowOf('Message history')).getByRole('switch')).toBeEnabled()
   })
 
   it('refuses a period shorter than its category allows', async () => {

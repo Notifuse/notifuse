@@ -70,6 +70,7 @@ func mintDevLicense() (string, error) {
 			string(domain.FeatureSSO),
 			string(domain.FeatureAuditLogs),
 			string(domain.FeatureTemplateI18n),
+			string(domain.FeatureDataRetention),
 		},
 		MaxWS: domain.UnlimitedWorkspaces,
 		// Issued an hour ago so a runner whose clock runs ahead of the minting host is

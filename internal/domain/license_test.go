@@ -27,6 +27,8 @@ func TestFeatureIsValid(t *testing.T) {
 		{"ses_tenant is a feature this build gates", FeatureSESTenant, true},
 		{"sso is a feature this build gates", FeatureSSO, true},
 		{"audit_logs is a feature this build gates", FeatureAuditLogs, true},
+		{"template_i18n is a feature this build gates", FeatureTemplateI18n, true},
+		{"data_retention is a feature this build gates", FeatureDataRetention, true},
 		{"a feature name this build does not know is rejected", Feature("web_analytics"), false},
 		{"the empty feature is rejected", Feature(""), false},
 		{"a known name in the wrong case is rejected", Feature("RBAC"), false},
@@ -49,6 +51,9 @@ func TestFeatureWireStrings(t *testing.T) {
 		assert.Equal(t, "ses_tenant", string(FeatureSESTenant))
 		assert.Equal(t, "sso", string(FeatureSSO))
 		assert.Equal(t, "audit_logs", string(FeatureAuditLogs))
+		assert.Equal(t, "template_i18n", string(FeatureTemplateI18n))
+		// The homepage and the cloud's tier list already carry this exact string.
+		assert.Equal(t, "data_retention", string(FeatureDataRetention))
 	})
 
 	t.Run("the wire value of every licence state is frozen", func(t *testing.T) {
@@ -238,6 +243,12 @@ func TestErrFeatureNotLicensed(t *testing.T) {
 			feature:      FeatureAuditLogs,
 			requiredTier: "Enterprise",
 			message:      "Audit logs require a Notifuse Enterprise licence.",
+		},
+		{
+			name:         "data retention is sold from the top plan",
+			feature:      FeatureDataRetention,
+			requiredTier: "Enterprise",
+			message:      "Data retention policies require a Notifuse Enterprise licence. A policy already saved keeps running, and switching a category off is always allowed.",
 		},
 	}
 
@@ -594,7 +605,7 @@ func TestTheConsoleNamesTheSameTierTheServerDoes(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, f := range []Feature{
-		FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n,
+		FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n, FeatureDataRetention,
 	} {
 		entry := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(string(f)) + `: '([A-Za-z]+)'`)
 		match := entry.FindSubmatch(source)

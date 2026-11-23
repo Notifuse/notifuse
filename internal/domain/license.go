@@ -83,6 +83,15 @@ const (
 	// other four are per-customer (workspaces, SES tenants) or governance (SSO, audit
 	// logs), so a sender with one brand and three languages met none of them.
 	FeatureTemplateI18n Feature = "template_i18n"
+
+	// FeatureDataRetention gates *configuring* an automatic data retention policy: a
+	// workspace policy, or root's deployment defaults. A save that only switches categories
+	// off or removes exemptions passes without it (RetentionPolicyNeedsLicence).
+	//
+	// The purge itself is never gated. A policy saved under a key keeps running after the
+	// key lapses: licensing never blocks a deletion, and a deployment must always be able to
+	// delete less.
+	FeatureDataRetention Feature = "data_retention"
 )
 
 // IsValid reports whether the feature is one this build knows how to gate.
@@ -92,7 +101,7 @@ const (
 // point — and IsValid is how a caller filters it out.
 func (f Feature) IsValid() bool {
 	switch f {
-	case FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n:
+	case FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n, FeatureDataRetention:
 		return true
 	default:
 		return false
@@ -281,6 +290,12 @@ func NewFeatureNotLicensedError(f Feature) *ErrFeatureNotLicensed {
 			RequiredTier: tierStudio,
 			Message:      "Template translations require a Notifuse licence (Studio or above). Translations already saved keep being sent, and removing one is always allowed.",
 		}
+	case FeatureDataRetention:
+		return &ErrFeatureNotLicensed{
+			Feature:      f,
+			RequiredTier: tierEnterprise,
+			Message:      "Data retention policies require a Notifuse Enterprise licence. A policy already saved keeps running, and switching a category off is always allowed.",
+		}
 	default:
 		return &ErrFeatureNotLicensed{
 			Feature:      f,
@@ -365,6 +380,12 @@ func (e *ErrWorkspaceQuotaReached) Error() string {
 //     deployment does write is the marker that says recording stopped (and, later,
 //     resumed), so a gap in the log is never silent. The purge worker that deletes rows
 //     past their retention holds no provider and must never be given one.
+//   - internal/service/data_retention_service.go, SetPolicy and SetDefaults —
+//     FeatureDataRetention (G7), only when the save configures something the deployment
+//     had not (domain.RetentionPolicyNeedsLicence, RetentionDefaultsNeedLicence). Switching
+//     a category off and removing an exemption pass, and so does cancelling a waiting change.
+//     The daily run in the same file never asks: a policy saved under a key keeps running
+//     after it lapses, and licensing never blocks a deletion.
 //   - internal/service/oidc_service.go, IsEnabled — FeatureSSO (G2). It answers "switched on
 //     AND licensed for", and ensureProvider and ExchangeCode call it rather than restating
 //     it, so every path that reaches the IdP is covered by one expression. This is the

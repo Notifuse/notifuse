@@ -111,6 +111,7 @@ func TestDataRetentionHandler(t *testing.T) {
 			{domain.NewValidationError("bad period"), http.StatusBadRequest},
 			{&domain.ErrUnauthorized{Message: "Only workspace owners can change the data retention policy"}, http.StatusForbidden},
 			{&domain.ErrRetentionConflict{Message: "changed meanwhile"}, http.StatusConflict},
+			{domain.NewFeatureNotLicensedError(domain.FeatureDataRetention), http.StatusPaymentRequired},
 			{assert.AnError, http.StatusInternalServerError},
 		} {
 			h := newRetentionHandler(t, &fakeRetentionService{err: tc.err})
