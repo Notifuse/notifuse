@@ -83,6 +83,8 @@ type AppInterface interface {
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
 	GetDataRetentionService() *service.DataRetentionService
+	// GetOAuthService lets a test replace the metadata document fetcher.
+	GetOAuthService() *service.OAuthService
 	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
 	GetCustomEventRepository() domain.CustomEventRepository
 }

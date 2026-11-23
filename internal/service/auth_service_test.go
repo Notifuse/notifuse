@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1003,21 +1005,57 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 }
 
 func TestAuthService_InvalidateSecretCache(t *testing.T) {
-	// Test AuthService.InvalidateSecretCache - this was at 0% coverage
-	_, _, _, service := setupAuthTest(t)
+	var loads atomic.Int32
+	service := NewAuthService(AuthServiceConfig{GetSecret: func() ([]byte, error) {
+		loads.Add(1)
+		return []byte("0123456789abcdef0123456789abcdef"), nil
+	}})
 
-	// Call the method - it should execute without error
-	service.InvalidateSecretCache()
+	_, err := service.jwtSecret()
+	require.NoError(t, err)
+	_, err = service.jwtSecret()
+	require.NoError(t, err)
+	require.Equal(t, int32(1), loads.Load(), "the secret is cached")
 
-	// Verify it can be called multiple times without issue
 	service.InvalidateSecretCache()
-	service.InvalidateSecretCache()
+	_, err = service.jwtSecret()
+	require.NoError(t, err)
+	require.Equal(t, int32(2), loads.Load(), "an invalidated secret is loaded again")
+}
 
-	// The method clears the cache, so the next time ensureSecret is called,
-	// it should reload the secret. We can verify this indirectly by checking
-	// that methods that use ensureSecret still work after invalidation.
-	// Since secretLoaded is private, we test behavior indirectly.
-	require.NotNil(t, service)
+// Every request that checks a token reads the cached secret while a setup or
+// a secret change may invalidate it. Run with -race: an unguarded cache is a
+// data race the detector reports.
+func TestAuthService_SecretCacheConcurrentInvalidation(t *testing.T) {
+	secret := []byte("0123456789abcdef0123456789abcdef")
+	service := NewAuthService(AuthServiceConfig{GetSecret: func() ([]byte, error) { return secret, nil }})
+	key := &domain.User{ID: "key-1", Email: "key@example.com", Type: domain.UserTypeAPIKey}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 200; j++ {
+				got, err := service.jwtSecret()
+				if err != nil || string(got) != string(secret) {
+					t.Errorf("read %q, %v", got, err)
+					return
+				}
+				if service.GenerateAPIAuthToken(key) == "" {
+					t.Error("no token signed")
+					return
+				}
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 200; j++ {
+				service.InvalidateSecretCache()
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 // TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin covers the ROOT_EMAIL
@@ -1505,4 +1543,51 @@ func TestAuthService_AuthenticateUserForWorkspace_SetActorOnCacheHit(t *testing.
 	require.Equal(t, domain.AuditActorAPIKey, event.ActorType)
 	require.Equal(t, "member", event.ActorRole)
 	require.Equal(t, workspaceID, event.WorkspaceID)
+}
+
+// The authorization page takes what was pasted and resolves it as /mcp resolves its header:
+// an API key token of this installation whose account is still an API key.
+func TestAuthService_AuthenticateAPIKeyToken(t *testing.T) {
+	mockAuthRepo, _, mockLogger, service := setupAuthTest(t)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	key := &domain.User{ID: "key-1", Email: "agent@example.com", Type: domain.UserTypeAPIKey}
+
+	t.Run("an API key token loads its account", func(t *testing.T) {
+		mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), "key-1").Return(key, nil)
+		user, err := service.AuthenticateAPIKeyToken(context.Background(), service.GenerateAPIAuthToken(key))
+		require.NoError(t, err)
+		require.Equal(t, "key-1", user.ID)
+	})
+
+	t.Run("a deleted key is revoked", func(t *testing.T) {
+		mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), "key-1").Return(nil, sql.ErrNoRows)
+		_, err := service.AuthenticateAPIKeyToken(context.Background(), service.GenerateAPIAuthToken(key))
+		require.ErrorIs(t, err, domain.ErrAPIKeyRevoked)
+	})
+
+	t.Run("a key token naming a person's account is refused", func(t *testing.T) {
+		mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), "key-1").Return(&domain.User{ID: "key-1", Type: domain.UserTypeUser}, nil)
+		_, err := service.AuthenticateAPIKeyToken(context.Background(), service.GenerateAPIAuthToken(key))
+		require.ErrorIs(t, err, domain.ErrAPIKeyRevoked)
+	})
+
+	session := service.GenerateUserAuthToken(&domain.User{ID: "user-1", Email: "ann@example.com", Type: domain.UserTypeUser}, "session-1", time.Now().Add(time.Hour))
+	invitation := service.GenerateInvitationToken(&domain.WorkspaceInvitation{ID: "inv-1", WorkspaceID: "ws1", Email: "bob@example.com", ExpiresAt: time.Now().Add(time.Hour)})
+	foreign := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{UserID: "key-1", Type: string(domain.UserTypeAPIKey)})
+	foreignToken, err := foreign.SignedString([]byte("another-installation-secret-1234567"))
+	require.NoError(t, err)
+	for name, token := range map[string]string{
+		"a console session token":         session,
+		"an invitation token":             invitation,
+		"a token of another installation": foreignToken,
+		"a malformed string":              "not-a-token",
+		"an empty string":                 "",
+		"an OAuth access token":           "nfmcp_at_abcdef",
+	} {
+		t.Run(name+" is not an API key", func(t *testing.T) {
+			_, err := service.AuthenticateAPIKeyToken(context.Background(), token)
+			require.ErrorIs(t, err, domain.ErrNotAnAPIKey)
+		})
+	}
 }

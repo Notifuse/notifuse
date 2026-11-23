@@ -146,9 +146,16 @@ func precheck(tool *Tool, args map[string]any, user *domain.User, membership *do
 func (s *Server) newAuditRecord(ctx context.Context, call *Call) *domain.AuditRecord {
 	meta := RequestMetaFromContext(ctx)
 	record := domain.NewAuditRecord(meta.IP, meta.UserAgent, meta.RequestID)
+	if call.Caller.Kind == domain.MCPCredentialOAuth {
+		// Set before the actor: an API key actor keeps an OAuth method.
+		record.SetAuthMethod(domain.AuditAuthOAuth)
+	}
 	record.SetActorClaims(call.Caller.APIKeyUserID, string(domain.UserTypeAPIKey))
 	record.AddMetadata("channel", "mcp")
 	record.AddMetadata("mcp_tool", call.Tool.Name)
+	if call.Caller.Kind == domain.MCPCredentialOAuth && call.Caller.ClientName != "" {
+		record.AddMetadata("oauth_client", call.Caller.ClientName)
+	}
 	if memberships, err := s.deps.Workspaces.GetUserWorkspaces(ctx, call.Caller.APIKeyUserID); err == nil && len(memberships) > 0 {
 		record.SetWorkspace(memberships[0].WorkspaceID)
 	}

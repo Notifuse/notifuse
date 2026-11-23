@@ -65,40 +65,48 @@ func IsPrivateIP(ip net.IP) bool {
 	return false
 }
 
+// dialer bounds the connection set-up of DialContext.
+var dialer = &net.Dialer{
+	Timeout: 5 * time.Second,
+}
+
+// DialContext resolves the host, skips every private or reserved address, and
+// dials the first public one directly, never the hostname, so a DNS answer
+// that changes between the check and the dial cannot reach a private address.
+// It refuses with ErrPrivateIP when no public address is left. Every client
+// built on it, New's and the OAuth metadata fetcher's, gets the same guard.
+func DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid address %s: %w", addr, err)
+	}
+
+	// Resolve DNS
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return nil, fmt.Errorf("DNS resolution failed for %s: %w", host, err)
+	}
+
+	// Find a non-private IP and dial it directly (not the hostname)
+	for _, ipAddr := range ips {
+		if IsPrivateIP(ipAddr.IP) {
+			continue
+		}
+		// Dial the resolved IP directly to prevent DNS rebinding
+		resolvedAddr := net.JoinHostPort(ipAddr.IP.String(), port)
+		return dialer.DialContext(ctx, network, resolvedAddr)
+	}
+
+	return nil, ErrPrivateIP
+}
+
 // New creates an *http.Client with SSRF protection.
 // It validates all resolved IPs at DialContext time (preventing DNS rebinding),
 // blocks private/reserved IP ranges, and applies a 10-second timeout.
 // Redirects are safe because each new connection goes through the same DialContext.
 func New() *http.Client {
-	dialer := &net.Dialer{
-		Timeout: 5 * time.Second,
-	}
-
 	transport := &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			host, port, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid address %s: %w", addr, err)
-			}
-
-			// Resolve DNS
-			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-			if err != nil {
-				return nil, fmt.Errorf("DNS resolution failed for %s: %w", host, err)
-			}
-
-			// Find a non-private IP and dial it directly (not the hostname)
-			for _, ipAddr := range ips {
-				if IsPrivateIP(ipAddr.IP) {
-					continue
-				}
-				// Dial the resolved IP directly to prevent DNS rebinding
-				resolvedAddr := net.JoinHostPort(ipAddr.IP.String(), port)
-				return dialer.DialContext(ctx, network, resolvedAddr)
-			}
-
-			return nil, ErrPrivateIP
-		},
+		DialContext:         DialContext,
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 10,
 		IdleConnTimeout:     90 * time.Second,

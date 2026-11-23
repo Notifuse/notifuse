@@ -621,6 +621,15 @@ func TestAppInitServices(t *testing.T) {
 	assert.NotNil(t, appImpl.eventBus, "Event bus should be initialized")
 	assert.NotNil(t, appImpl.annotationService, "Annotation service should be initialized")
 	assert.NotNil(t, appImpl.supabaseService, "Supabase service should be initialized")
+	assert.NotNil(t, appImpl.oauthRepo, "OAuth repository should be initialized")
+	assert.NotNil(t, appImpl.oauthService, "OAuth service should be initialized")
+	require.NotNil(t, appImpl.oauthWorker, "OAuth worker should be initialized")
+	// It reads API_ENDPOINT from the config at each call.
+	assert.Equal(t, "API_ENDPOINT is not an http(s) URL", appImpl.oauthService.Unavailable())
+	cfg.APIEndpoint = "http://notifuse.example.com"
+	assert.Equal(t, "API_ENDPOINT is not https", appImpl.oauthService.Unavailable())
+	cfg.APIEndpoint = "https://notifuse.example.com"
+	assert.Equal(t, "", appImpl.oauthService.Unavailable())
 }
 
 // TestAppInitServicesSubscribesAnnotationServiceToEventBus pins the annotation
@@ -1249,10 +1258,38 @@ func TestAppInitHandlers(t *testing.T) {
 	app.GetHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+
+	// The OAuth authorization server and its discovery documents are mounted
+	// too, and answer a JSON 404 while MCP_ENABLED is off.
+	for route, wantPattern := range map[string]string{
+		"/oauth/authorize":                          "/oauth/authorize",
+		"/oauth/token":                              "/oauth/token",
+		"/oauth/revoke":                             "/oauth/revoke",
+		"/oauth/register":                           "/oauth/",
+		"/.well-known/oauth-protected-resource":     "/.well-known/oauth-protected-resource",
+		"/.well-known/oauth-protected-resource/mcp": "/.well-known/oauth-protected-resource/",
+		"/.well-known/oauth-authorization-server":   "/.well-known/oauth-authorization-server",
+		"/.well-known/openid-configuration":         "/.well-known/openid-configuration",
+		"/api/oauth.getAuthorizationRequest":        "/api/oauth.getAuthorizationRequest",
+		"/api/oauth.approveWithKey":                 "/api/oauth.approveWithKey",
+		"/api/oauth.createKeyAndApprove":            "/api/oauth.createKeyAndApprove",
+		"/api/oauth.deny":                           "/api/oauth.deny",
+		"/api/oauth.listWorkspaceGrants":            "/api/oauth.listWorkspaceGrants",
+		"/api/oauth.revokeGrant":                    "/api/oauth.revokeGrant",
+	} {
+		_, pattern := mux.Handler(httptest.NewRequest(http.MethodGet, route, nil))
+		assert.Equal(t, wantPattern, pattern, "Route should be registered: %s", route)
+	}
+	for _, route := range []string{"/oauth/token", "/.well-known/oauth-authorization-server", "/.well-known/openid-configuration"} {
+		rec := httptest.NewRecorder()
+		app.GetHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, route, nil))
+		assert.Equal(t, http.StatusNotFound, rec.Code, route)
+		assert.Equal(t, "application/json", rec.Header().Get("Content-Type"), route)
+	}
 }
 
-// The MCP limits are enforced, not only named: a missing policy would refuse
-// every MCP request, since the rate limiter fails closed.
+// The MCP and OAuth limits are enforced, not only named: a missing policy would
+// refuse every request of its namespace, since the rate limiter fails closed.
 func TestAppInitServices_SetsTheMCPRateLimits(t *testing.T) {
 	mockDB, _, err := setupTestDBMock()
 	require.NoError(t, err)
@@ -1277,9 +1314,13 @@ func TestAppInitServices_SetsTheMCPRateLimits(t *testing.T) {
 
 	limiter := app.(*App).rateLimiter
 	for namespace, want := range map[string]ratelimiter.RatePolicy{
-		"mcp":           {MaxAttempts: 120, Window: time.Minute},
-		"mcp_send":      {MaxAttempts: 30, Window: time.Minute},
-		"mcp_auth_fail": {MaxAttempts: 60, Window: time.Minute},
+		"mcp":                    {MaxAttempts: 120, Window: time.Minute},
+		"mcp_send":               {MaxAttempts: 30, Window: time.Minute},
+		"mcp_auth_fail":          {MaxAttempts: 60, Window: time.Minute},
+		"oauth_authorize":        {MaxAttempts: 30, Window: time.Minute},
+		"oauth_approve":          {MaxAttempts: 20, Window: time.Minute},
+		"oauth_token_ip":         {MaxAttempts: 600, Window: time.Minute},
+		"oauth_token_credential": {MaxAttempts: 10, Window: time.Minute},
 	} {
 		got, ok := limiter.Policy(namespace)
 		require.True(t, ok, "%s has no policy", namespace)

@@ -52,6 +52,9 @@ const (
 	AuditAuthMagicCode    = "magic_code"
 	AuditAuthSSO          = "sso"
 	AuditAuthRootPassword = "root_password"
+	// AuditAuthOAuth: an API key reached through an OAuth access token, or a
+	// client acting on its own OAuth tokens.
+	AuditAuthOAuth = "oauth"
 
 	// AuditScopeWorkspace lists one workspace's rows and needs a workspace_id;
 	// AuditScopeDeployment is the root user's view of every row, deployment-level
@@ -173,7 +176,7 @@ func (r *AuditRecord) SetActorClaims(userID, userType string) {
 	switch userType {
 	case string(UserTypeAPIKey):
 		r.event.ActorType = AuditActorAPIKey
-		r.event.AuthMethod = AuditAuthAPIKey
+		r.event.AuthMethod = apiKeyAuthMethod(r.event.AuthMethod)
 	default:
 		r.event.ActorType = AuditActorUser
 		if r.event.AuthMethod == "" {
@@ -199,7 +202,7 @@ func (r *AuditRecord) SetActor(user *User, membership *UserWorkspace, isRoot boo
 	r.event.ActorName = user.Name
 	if user.Type == UserTypeAPIKey {
 		r.event.ActorType = AuditActorAPIKey
-		r.event.AuthMethod = AuditAuthAPIKey
+		r.event.AuthMethod = apiKeyAuthMethod(r.event.AuthMethod)
 	} else {
 		r.event.ActorType = AuditActorUser
 		if r.event.AuthMethod == "" {
@@ -215,6 +218,16 @@ func (r *AuditRecord) SetActor(user *User, membership *UserWorkspace, isRoot boo
 	if membership != nil && membership.WorkspaceID != "" && r.event.WorkspaceID == "" {
 		r.event.WorkspaceID = membership.WorkspaceID
 	}
+}
+
+// apiKeyAuthMethod is how an API key authenticated: through OAuth when the
+// record already says so, with the key itself otherwise. A key never holds a
+// session, so a session default set before the actor was known gives way.
+func apiKeyAuthMethod(current string) string {
+	if current == AuditAuthOAuth {
+		return AuditAuthOAuth
+	}
+	return AuditAuthAPIKey
 }
 
 // SetWorkspace names the workspace the action belongs to. Services override

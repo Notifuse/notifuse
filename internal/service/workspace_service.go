@@ -1664,6 +1664,44 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 // and the owner check run for both origins and BEFORE the licence gate, so a non-member is
 // answered with 401/403 and never learns the deployment's licence state from a 402.
 func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string, emailPrefix string, permissions domain.UserPermissions, scope apiKeyScope) (string, string, error) {
+	ctx, apiUser, membership, err := s.prepareAPIKey(ctx, workspaceID, emailPrefix, permissions, scope)
+	if err != nil {
+		return "", "", err
+	}
+	if err := s.storeAPIKey(ctx, workspaceID, apiUser, membership); err != nil {
+		return "", "", err
+	}
+
+	// Generate the token using the auth service
+	token := s.authService.GenerateAPIAuthToken(apiUser)
+	recordAPIKeyCreation(ctx, apiUser, permissions, scope)
+	return token, apiUser.Email, nil
+}
+
+// CreateAPIKeyWith creates an API key under the rules of CreateAPIKey (a member who owns the
+// workspace, root counting as owner; a restricted permission set only with the RBAC licence)
+// and hands its two rows to store, which writes them together with whatever must commit with
+// them: the OAuth authorization server creates a key, its grant and its code in one
+// transaction. No token is minted; the key's account is returned.
+func (s *WorkspaceService) CreateAPIKeyWith(ctx context.Context, workspaceID string, emailPrefix string, permissions domain.UserPermissions, store func(ctx context.Context, key *domain.User, membership *domain.UserWorkspace) error) (*domain.User, error) {
+	ctx, apiUser, membership, err := s.prepareAPIKey(ctx, workspaceID, emailPrefix, permissions, scopeChosenByCustomer)
+	if err != nil {
+		return nil, err
+	}
+	if err := store(ctx, apiUser, membership); err != nil {
+		var userExistsErr *domain.ErrUserExists
+		if errors.As(err, &userExistsErr) {
+			return nil, fmt.Errorf("api key email already in use: %w", userExistsErr)
+		}
+		return nil, err
+	}
+	recordAPIKeyCreation(ctx, apiUser, permissions, scopeChosenByCustomer)
+	return apiUser, nil
+}
+
+// prepareAPIKey runs every check of an API key creation and builds its users row and its
+// membership, writing nothing.
+func (s *WorkspaceService) prepareAPIKey(ctx context.Context, workspaceID string, emailPrefix string, permissions domain.UserPermissions, scope apiKeyScope) (context.Context, *domain.User, *domain.UserWorkspace, error) {
 	// Validate user is a member of the workspace and has owner role
 	var user *domain.User
 	var userWorkspace *domain.UserWorkspace
@@ -1673,19 +1711,19 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 		// A non-member is an authorization failure, not a server error: the sentinel is a
 		// plain error, so translate it into the typed error handlers map to 403.
 		if errors.Is(err, domain.ErrUserNotInWorkspace) {
-			return "", "", &domain.ErrUnauthorized{Message: "user is not a member of the workspace"}
+			return ctx, nil, nil, &domain.ErrUnauthorized{Message: "user is not a member of the workspace"}
 		}
-		return "", "", fmt.Errorf("failed to authenticate user: %w", err)
+		return ctx, nil, nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
 
 	// Check if user is an owner (platform admins are synthesized as owners)
 	if userWorkspace.Role != "owner" {
 		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
-		return "", "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
+		return ctx, nil, nil, &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
 	if err := permissions.Validate(); err != nil {
-		return "", "", err
+		return ctx, nil, nil, err
 	}
 
 	// A scoped key is a granular grant, so it is licensed; a full-access key is not.
@@ -1701,7 +1739,7 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 	//
 	// Only a scope the customer chose is gated. See apiKeyScope.
 	if scope == scopeChosenByCustomer && permissions != nil && !grantsFullPermissions(permissions) && !s.isLicensedFor(domain.FeatureRBAC) {
-		return "", "", domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
+		return ctx, nil, nil, domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
 	}
 
 	// Generate an API email using the prefix
@@ -1711,7 +1749,7 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 	// owner access to every workspace, so a prefix that lands on a root address would mint a
 	// platform-admin key rather than a workspace-scoped one.
 	if s.config.IsRootEmail(apiEmail) {
-		return "", "", &domain.ErrUnauthorized{Message: "cannot create an API key for a platform admin email"}
+		return ctx, nil, nil, &domain.ErrUnauthorized{Message: "cannot create an API key for a platform admin email"}
 	}
 
 	// Create a user object for the API key
@@ -1721,18 +1759,6 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 		Type:      domain.UserTypeAPIKey,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-	}
-
-	err = s.userRepo.CreateUser(ctx, apiUser)
-	if err != nil {
-		// Check if this is a duplicate user error
-		var userExistsErr *domain.ErrUserExists
-		if errors.As(err, &userExistsErr) {
-			s.logger.WithField("workspace_id", workspaceID).WithField("user_email", apiUser.Email).Error("API user already exists")
-			return "", "", fmt.Errorf("api key email already in use: %w", userExistsErr)
-		}
-		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", apiUser.ID).WithField("error", err.Error()).Error("Failed to create API user")
-		return "", "", err
 	}
 
 	// Store a copy: domain.FullPermissions is a package-level map, and a membership row
@@ -1751,6 +1777,23 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
+	return ctx, apiUser, newUserWorkspace, nil
+}
+
+// storeAPIKey writes the users row and the membership of a new API key.
+func (s *WorkspaceService) storeAPIKey(ctx context.Context, workspaceID string, apiUser *domain.User, newUserWorkspace *domain.UserWorkspace) error {
+	err := s.userRepo.CreateUser(ctx, apiUser)
+	if err != nil {
+		// Check if this is a duplicate user error
+		var userExistsErr *domain.ErrUserExists
+		if errors.As(err, &userExistsErr) {
+			s.logger.WithField("workspace_id", workspaceID).WithField("user_email", apiUser.Email).Error("API user already exists")
+			return fmt.Errorf("api key email already in use: %w", userExistsErr)
+		}
+		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", apiUser.ID).WithField("error", err.Error()).Error("Failed to create API user")
+		return err
+	}
+
 	err = s.repo.AddUserToWorkspace(ctx, newUserWorkspace)
 	if err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", apiUser.ID).WithField("error", err.Error()).Error("Failed to add API user to workspace")
@@ -1770,15 +1813,16 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 				Error(fmt.Sprintf("failed to delete the API user after it could not be added to the workspace, its address is now unusable installation-wide: %v", deleteErr))
 		}
 
-		return "", "", err
+		return err
 	}
+	return nil
+}
 
-	// Generate the token using the auth service
-	token := s.authService.GenerateAPIAuthToken(apiUser)
-
-	// The token is never written to the log; the key's address and scope are.
+// recordAPIKeyCreation names the new key on the request's audit record. The token is never
+// written to the log; the key's address and scope are.
+func recordAPIKeyCreation(ctx context.Context, apiUser *domain.User, permissions domain.UserPermissions, scope apiKeyScope) {
 	if audit := domain.AuditFromContext(ctx); audit != nil {
-		audit.SetTarget(domain.AuditTargetAPIKey, apiUser.ID, apiEmail)
+		audit.SetTarget(domain.AuditTargetAPIKey, apiUser.ID, apiUser.Email)
 		audit.AddMetadata("scope", auditPermissionScope(permissions))
 		audit.AddMetadata("resources", auditGrantedResources(permissions))
 		source := "customer"
@@ -1787,8 +1831,6 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 		}
 		audit.AddMetadata("source", source)
 	}
-
-	return token, apiEmail, nil
 }
 
 // GetInvitationByID retrieves a workspace invitation by its ID
