@@ -34,6 +34,7 @@ func newGapMemberService(ctrl *gomock.Controller, cfg *config.Config, provider d
 		userService: mocks.NewMockUserServiceInterface(ctrl),
 		auth:        mocks.NewMockAuthService(ctrl),
 	}
+	deps.auth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	if cfg == nil {
 		cfg = &config.Config{RootEmail: "root@example.com"}
 	}
@@ -66,6 +67,7 @@ func newGapMemberService(ctrl *gomock.Controller, cfg *config.Config, provider d
 		&DNSVerificationService{},
 		&BlogService{},
 		provider,
+		WorkspaceInvitationAuth{},
 	)
 	return svc, deps
 }

@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,17 +37,28 @@ type fixture struct {
 	auth        *mocks.MockAuthService
 	workspaces  *mocks.MockWorkspaceRepository
 	contacts    *mocks.MockContactService
+	contactRows *mocks.MockContactRepository
+	memberships *mocks.MockContactListRepository
+	contactList *mocks.MockContactListService
+	events      *mocks.MockCustomEventService
+	subscribe   *subscriptionStub
 	wsService   *mocks.MockWorkspaceServiceInterface
 	timeline    *mocks.MockContactTimelineService
 	lists       *mocks.MockListService
 	segments    *mocks.MockSegmentService
+	segmentRows *mocks.MockSegmentRepository
 	templates   *mocks.MockTemplateService
 	broadcasts  *mocks.MockBroadcastService
+	bcastRows   *mocks.MockBroadcastRepository
+	queue       *mocks.MockEmailQueueRepository
 	notifs      *mocks.MockTransactionalNotificationService
+	notifRows   *mocks.MockTransactionalNotificationRepository
 	messages    *mocks.MockMessageHistoryService
 	analytics   *mocks.MockAnalyticsService
 	automations *mocks.MockAutomationService
+	autoRows    *mocks.MockAutomationRepository
 	blog        *mocks.MockBlogService
+	categories  *mocks.MockBlogCategoryRepository
 	recorder    *mocks.MockAuditLogRecorder
 	limiter     *ratelimiter.RateLimiter
 	server      *Server
@@ -63,17 +76,28 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 		auth:        mocks.NewMockAuthService(ctrl),
 		workspaces:  mocks.NewMockWorkspaceRepository(ctrl),
 		contacts:    mocks.NewMockContactService(ctrl),
+		contactRows: mocks.NewMockContactRepository(ctrl),
+		memberships: mocks.NewMockContactListRepository(ctrl),
+		contactList: mocks.NewMockContactListService(ctrl),
+		events:      mocks.NewMockCustomEventService(ctrl),
+		subscribe:   &subscriptionStub{t: t},
 		wsService:   mocks.NewMockWorkspaceServiceInterface(ctrl),
 		timeline:    mocks.NewMockContactTimelineService(ctrl),
 		lists:       mocks.NewMockListService(ctrl),
 		segments:    mocks.NewMockSegmentService(ctrl),
+		segmentRows: mocks.NewMockSegmentRepository(ctrl),
 		templates:   mocks.NewMockTemplateService(ctrl),
 		broadcasts:  mocks.NewMockBroadcastService(ctrl),
+		bcastRows:   mocks.NewMockBroadcastRepository(ctrl),
+		queue:       mocks.NewMockEmailQueueRepository(ctrl),
 		notifs:      mocks.NewMockTransactionalNotificationService(ctrl),
+		notifRows:   mocks.NewMockTransactionalNotificationRepository(ctrl),
 		messages:    mocks.NewMockMessageHistoryService(ctrl),
 		analytics:   mocks.NewMockAnalyticsService(ctrl),
 		automations: mocks.NewMockAutomationService(ctrl),
+		autoRows:    mocks.NewMockAutomationRepository(ctrl),
 		blog:        mocks.NewMockBlogService(ctrl),
+		categories:  mocks.NewMockBlogCategoryRepository(ctrl),
 		recorder:    mocks.NewMockAuditLogRecorder(ctrl),
 		limiter:     ratelimiter.NewRateLimiter(),
 		keyID:       testKeyID,
@@ -87,16 +111,27 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 		Workspaces:       f.workspaces,
 		WorkspaceService: f.wsService,
 		Contacts:         f.contacts,
+		ContactRows:      f.contactRows,
 		Timeline:         f.timeline,
 		Lists:            f.lists,
+		Subscriptions:    f.subscribe,
+		ContactLists:     f.contactList,
+		Memberships:      f.memberships,
+		CustomEvents:     f.events,
 		Segments:         f.segments,
+		SegmentRows:      f.segmentRows,
 		Templates:        f.templates,
 		Broadcasts:       f.broadcasts,
+		BroadcastRows:    f.bcastRows,
+		Queue:            f.queue,
 		Transactional:    f.notifs,
+		NotificationRows: f.notifRows,
 		Messages:         f.messages,
 		Analytics:        f.analytics,
 		Automations:      f.automations,
+		AutomationRows:   f.autoRows,
 		Blog:             f.blog,
+		BlogCategories:   f.categories,
 		Recorder:         f.recorder,
 		RateLimiter:      f.limiter,
 		Version:          "test",
@@ -117,6 +152,30 @@ func newFixture(t *testing.T, tools ...*Tool) *fixture {
 	t.Cleanup(srv.Close)
 	f.url = srv.URL
 	return f
+}
+
+// subscriptionStub stands in for the list service's
+// SubscribeToListsWithResults, which domain.ListService and its generated mock
+// do not declare. It records each request and answers with respond; a call
+// without respond fails the test.
+type subscriptionStub struct {
+	t        *testing.T
+	mu       sync.Mutex
+	requests []domain.SubscribeToListsRequest
+	bearer   []bool
+	respond  func(req *domain.SubscribeToListsRequest) ([]*domain.ContactList, error)
+}
+
+func (s *subscriptionStub) SubscribeToListsWithResults(_ context.Context, req *domain.SubscribeToListsRequest, hasBearerToken bool) ([]*domain.ContactList, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.requests = append(s.requests, *req)
+	s.bearer = append(s.bearer, hasBearerToken)
+	if s.respond == nil {
+		s.t.Errorf("unexpected call to SubscribeToListsWithResults")
+		return nil, errors.New("unexpected call")
+	}
+	return s.respond(req)
 }
 
 // nonFatalReporter reports an unexpected mock call as a failure without
@@ -146,13 +205,23 @@ func (f *fixture) reachable(permissions domain.UserPermissions) {
 
 // membership makes testWorkspaceID reachable with this membership and account.
 func (f *fixture) membership(membership *domain.UserWorkspace, user *domain.User) {
+	f.membershipIn(membership, user, testWorkspace())
+}
+
+// reachableIn is reachable with the workspace the wrapper reads, for a tool
+// that depends on its settings or integrations.
+func (f *fixture) reachableIn(permissions domain.UserPermissions, workspace *domain.Workspace) {
+	f.membershipIn(&domain.UserWorkspace{UserID: testKeyID, WorkspaceID: testWorkspaceID, Role: "member", Permissions: permissions}, apiKeyUser(), workspace)
+}
+
+func (f *fixture) membershipIn(membership *domain.UserWorkspace, user *domain.User, workspace *domain.Workspace) {
 	f.workspaces.EXPECT().GetUserWorkspaces(gomock.Any(), testKeyID).
 		Return([]*domain.UserWorkspace{{UserID: testKeyID, WorkspaceID: testWorkspaceID}}, nil).AnyTimes()
 	f.auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), testWorkspaceID).
 		DoAndReturn(func(ctx context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
 			return ctx, user, membership, nil
 		}).AnyTimes()
-	f.workspaces.EXPECT().GetByID(gomock.Any(), testWorkspaceID).Return(testWorkspace(), nil).AnyTimes()
+	f.workspaces.EXPECT().GetByID(gomock.Any(), testWorkspaceID).Return(workspace, nil).AnyTimes()
 }
 
 // switchedOff makes testWorkspaceID unreachable, as a workspace whose MCP
@@ -353,4 +422,83 @@ func catalogueTool(t *testing.T, name string) *Tool {
 	}
 	t.Fatalf("no tool %s in the catalogue", name)
 	return nil
+}
+
+// auditLog collects the audit rows a fixture's tools write.
+type auditLog struct {
+	mu   sync.Mutex
+	rows []domain.AuditLog
+}
+
+// last returns the latest row; it fails the test when there is none.
+func (a *auditLog) last(t *testing.T) domain.AuditLog {
+	t.Helper()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	require.NotEmpty(t, a.rows, "no audit row was written")
+	return a.rows[len(a.rows)-1]
+}
+
+func (a *auditLog) count() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return len(a.rows)
+}
+
+// captureAudit records every audit row the tools write.
+func (f *fixture) captureAudit() *auditLog {
+	log := &auditLog{}
+	f.recorder.EXPECT().Record(gomock.Any(), gomock.Any()).Do(func(_ context.Context, row *domain.AuditLog) {
+		log.mu.Lock()
+		defer log.mu.Unlock()
+		log.rows = append(log.rows, *row)
+	}).AnyTimes()
+	return log
+}
+
+// writeHints are the annotations spec §6.1 and §6.2 give a tool that is not
+// a read, written out as literals per tool.
+type writeHints struct {
+	destructive, openWorld, idempotent bool
+}
+
+// assertWriteTool checks the definition of a tool that is not a read: its
+// name, class, pairs, audit action, annotations and required arguments.
+func assertWriteTool(t *testing.T, tool *Tool, name string, class Class, hints writeHints, pairs []Pair, auditAction string, required []string) {
+	t.Helper()
+	assert.Nil(t, tool.ArgumentPairs)
+	assertWriteToolDefinition(t, tool, name, class, hints, pairs, auditAction, required)
+}
+
+// assertWriteToolDefinition is assertWriteTool for a tool whose arguments can
+// add pairs, which its own test checks.
+func assertWriteToolDefinition(t *testing.T, tool *Tool, name string, class Class, hints writeHints, pairs []Pair, auditAction string, required []string) {
+	t.Helper()
+	assert.Equal(t, name, tool.Name)
+	assert.Equal(t, class, tool.Class)
+	assert.Equal(t, pairs, tool.Pairs)
+	assert.Equal(t, auditAction, tool.AuditAction)
+	assert.NotEmpty(t, tool.Title)
+	assert.NotEmpty(t, tool.Description)
+
+	listed := tool.sdkTool()
+	require.NotNil(t, listed.Annotations)
+	assert.False(t, listed.Annotations.ReadOnlyHint)
+	require.NotNil(t, listed.Annotations.DestructiveHint)
+	assert.Equal(t, hints.destructive, *listed.Annotations.DestructiveHint, "destructiveHint")
+	require.NotNil(t, listed.Annotations.OpenWorldHint)
+	assert.Equal(t, hints.openWorld, *listed.Annotations.OpenWorldHint, "openWorldHint")
+	assert.Equal(t, hints.idempotent, listed.Annotations.IdempotentHint, "idempotentHint")
+
+	assert.Equal(t, required, tool.InputSchema["required"])
+	assert.Equal(t, false, tool.InputSchema["additionalProperties"])
+	assert.NotPanics(t, tool.prepare)
+}
+
+func contactsWrite() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceContacts: {Write: true}}
+}
+
+func listsAndContactsWrite() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceLists: {Write: true}, domain.PermissionResourceContacts: {Write: true}}
 }

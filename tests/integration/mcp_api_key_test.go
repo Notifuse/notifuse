@@ -310,10 +310,12 @@ func TestMCPAPIKey(t *testing.T) {
 	})
 
 	t.Run("tools/list shows the key exactly what it may call", func(t *testing.T) {
-		assert.Equal(t, allReadTools, full.toolNames())
+		assert.Equal(t, allTools, full.toolNames())
 		// The analytics tools have no static pair: the schema argument decides
 		// the permission, at call time.
-		assert.Equal(t, []string{"list_analytics_schemas", "list_lists", "list_workspaces", "query_analytics"}, listsOnly.toolNames())
+		// The subscription tools also need contacts:write.
+		assert.Equal(t, []string{"create_list", "delete_list", "list_analytics_schemas", "list_lists", "list_workspaces", "query_analytics", "update_list"},
+			listsOnly.toolNames())
 		assert.Equal(t, []string{
 			"count_contacts", "get_contact", "get_contact_timeline", "list_analytics_schemas", "list_workspaces", "query_analytics", "search_contacts",
 		}, contactsOnly.toolNames())
@@ -1099,7 +1101,7 @@ func TestMCPAPIKey(t *testing.T) {
 		for _, tool := range tools.Tools {
 			names = append(names, tool.Name)
 		}
-		assert.Equal(t, allReadTools, names)
+		assert.Equal(t, allTools, names)
 
 		result, err := session.CallTool(ctx, &sdk.CallToolParams{Name: "search_contacts", Arguments: map[string]any{"workspace_id": workspace.ID}})
 		require.NoError(t, err)
@@ -1160,13 +1162,20 @@ func TestMCPOffInDemo(t *testing.T) {
 	assert.JSONEq(t, `{"error":"MCP is not enabled on this server"}`, resp.body)
 }
 
-// allReadTools is tools/list for a key holding every permission, in its order.
-var allReadTools = []string{
-	"count_contacts", "get_automation", "get_automation_journey", "get_automation_stats", "get_blog_post", "get_broadcast",
-	"get_broadcast_report", "get_contact", "get_contact_timeline", "get_segment", "get_template", "get_transactional_notification",
-	"get_workspace_overview", "list_analytics_schemas", "list_automations", "list_blog_categories", "list_blog_posts", "list_broadcasts",
-	"list_lists", "list_segments", "list_templates", "list_transactional_notifications", "list_workspaces", "preview_segment",
-	"query_analytics", "render_template", "search_contacts", "search_messages",
+// allTools is tools/list for a key holding every permission, in its order.
+var allTools = []string{
+	"activate_automation", "cancel_broadcast", "count_contacts", "create_blog_post", "create_broadcast", "create_list",
+	"create_segment", "create_template", "create_transactional_notification", "delete_automation", "delete_blog_post",
+	"delete_broadcast", "delete_contact", "delete_list", "delete_segment", "delete_template", "delete_transactional_notification",
+	"get_automation", "get_automation_journey", "get_automation_stats", "get_blog_post", "get_broadcast", "get_broadcast_report",
+	"get_contact", "get_contact_timeline", "get_segment", "get_template", "get_transactional_notification",
+	"get_workspace_overview", "list_analytics_schemas", "list_automations", "list_blog_categories", "list_blog_posts",
+	"list_broadcasts", "list_lists", "list_segments", "list_templates", "list_transactional_notifications", "list_workspaces",
+	"pause_automation", "pause_broadcast", "preview_segment", "publish_blog_post", "query_analytics", "remove_contact_from_list",
+	"render_template", "resume_broadcast", "schedule_broadcast", "search_contacts", "search_messages", "select_broadcast_winner",
+	"send_broadcast_to_contact", "send_template_test", "send_transactional", "set_contact_list_status", "subscribe_contact_to_list",
+	"track_custom_event", "unpublish_blog_post", "update_blog_post", "update_broadcast", "update_list", "update_segment",
+	"update_template", "update_transactional_notification", "upsert_contact",
 }
 
 type bearerTransport struct {

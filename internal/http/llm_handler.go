@@ -59,21 +59,30 @@ func (h *LLMHandler) handleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Set SSE headers
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no") // Disable nginx buffering
-
-	// 4. Get flusher for streaming
+	// 3. The SSE headers go out with the first event, not before: StreamChat
+	// authenticates first, and a refusal (a dead session, a missing second factor, a
+	// missing grant) must still answer with its status and a JSON body, as the audit
+	// export does (exportWriter).
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.logger.Error("Streaming not supported")
 		WriteJSONError(w, "Streaming not supported", http.StatusInternalServerError)
 		return
 	}
+	streamStarted := false
+	startStream := func() {
+		if streamStarted {
+			return
+		}
+		streamStarted = true
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("X-Accel-Buffering", "no") // Disable nginx buffering
+		w.WriteHeader(http.StatusOK)
+	}
 
-	// 5. Stream chat response.
+	// 4. Stream chat response.
 	// Track whether a terminal event (done/error) reached the client so we can
 	// guarantee one is always sent — otherwise the frontend spinner hangs forever
 	// on any unexpected stream end (e.g. a provider panic or early return).
@@ -83,6 +92,7 @@ func (h *LLMHandler) handleChat(w http.ResponseWriter, r *http.Request) {
 		if marshalErr != nil {
 			return
 		}
+		startStream()
 		_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 		if event.Type == "done" || event.Type == "error" {
 			terminalSent = true
@@ -108,6 +118,7 @@ func (h *LLMHandler) handleChat(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to marshal event: %w", err)
 		}
 
+		startStream()
 		_, err = fmt.Fprintf(w, "data: %s\n\n", data)
 		if err != nil {
 			return fmt.Errorf("failed to write event: %w", err)
@@ -120,6 +131,11 @@ func (h *LLMHandler) handleChat(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 		return nil
 	})
+
+	// 5. Refused before anything was streamed: a status and a JSON body.
+	if err != nil && !streamStarted && writeServiceError(w, err, "Access denied") {
+		return
+	}
 
 	// 6. Always deliver a terminal event so the client stops loading.
 	if err != nil {

@@ -69,7 +69,7 @@ func TestAuditCatalogue_ExcludesTheDataPlane(t *testing.T) {
 
 func TestAuditActionCatalogue_SortedUniqueAndComplete(t *testing.T) {
 	catalogue := AuditActionCatalogue()
-	require.Len(t, catalogue, len(AuditedActions)+len(AuditLoggedReads)+len(AuditSystemActions))
+	require.Len(t, catalogue, len(AuditedActions)+len(AuditLoggedReads)+len(MCPAuditedActions)+len(AuditSystemActions))
 
 	names := make([]string, len(catalogue))
 	seen := make(map[string]struct{}, len(catalogue))
@@ -86,6 +86,20 @@ func TestAuditActionCatalogue_SortedUniqueAndComplete(t *testing.T) {
 		_, ok := seen[action]
 		assert.True(t, ok, "%s must be in the catalogue", action)
 	}
+}
+
+// The routes only an MCP tool records are in the catalogue, so the console can
+// name and filter them.
+func TestAuditActionCatalogue_ListsTheMCPOnlyActions(t *testing.T) {
+	byAction := map[string]AuditActionDescriptor{}
+	for _, descriptor := range AuditActionCatalogue() {
+		byAction[descriptor.Action] = descriptor
+	}
+	for _, action := range []string{"contacts.upsert", "customEvents.upsert", "contactLists.removeContact"} {
+		assert.Equal(t, AuditActionDescriptor{Action: action, Category: AuditCategoryContacts, TargetType: AuditTargetContact}, byAction[action], action)
+	}
+	assert.Equal(t, AuditActionDescriptor{Action: "transactional.send", Category: "transactional", TargetType: "transactional_notification"}, byAction["transactional.send"])
+	assert.Equal(t, AuditActionDescriptor{Action: "transactional.testTemplate", Category: "transactional", TargetType: "template"}, byAction["transactional.testTemplate"])
 }
 
 func TestAuditCatalogue_TargetPathsAreWellFormed(t *testing.T) {
@@ -216,7 +230,13 @@ func TestAuditCatalogue_MCPSwitchIsAuditedLikeTheOtherWorkspaceSetters(t *testin
 // unrecorded: listed in AuditExcludedRoutes and never in AuditedActions, which
 // would give the same route two specs.
 func TestMCPAuditedActions_AreExcludedAPIRoutesOnly(t *testing.T) {
-	assert.Equal(t, map[string]AuditActionSpec{}, MCPAuditedActions)
+	assert.Equal(t, map[string]AuditActionSpec{
+		"contacts.upsert":            {Category: "contacts", TargetType: "contact"},
+		"customEvents.upsert":        {Category: "contacts", TargetType: "contact"},
+		"contactLists.removeContact": {Category: "contacts", TargetType: "contact"},
+		"transactional.send":         {Category: "transactional", TargetType: "transactional_notification"},
+		"transactional.testTemplate": {Category: "transactional", TargetType: "template"},
+	}, MCPAuditedActions)
 
 	for route := range MCPAuditedActions {
 		_, excluded := AuditExcludedRoutes[route]

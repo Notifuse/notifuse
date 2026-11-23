@@ -52,12 +52,14 @@ func newSeedFixturesGraph(t *testing.T) seedFixturesGraph {
 		settingRepo:   mocks.NewMockSettingRepository(ctrl),
 		authService:   mocks.NewMockAuthService(ctrl),
 	}
+	g.authService.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	userService, err := NewUserService(UserServiceConfig{Repository: g.userRepo, Logger: log})
 	require.NoError(t, err)
 	cfg := &config.Config{RootEmail: "root@example.com"}
 	workspaceService := NewWorkspaceService(
 		g.workspaceRepo, nil, g.taskRepo, log, mocks.NewMockUserServiceInterface(ctrl), g.authService, nil, cfg,
 		mocks.NewMockContactService(ctrl), nil, nil, nil, nil, "", nil, nil, nil, nil,
+		WorkspaceInvitationAuth{},
 	)
 	g.svc = &DemoService{
 		logger:           log,

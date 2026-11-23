@@ -110,6 +110,14 @@ var AuditedActions = map[string]AuditActionSpec{
 	"user.rootSignin":    {Category: AuditCategoryAuth, TargetType: AuditTargetUser, TargetKey: "email"},
 	"user.oidc.exchange": {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
 	"user.logout":        {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	// two-factor authentication; the reset names its target in the service, since the
+	// route takes either user_id or email
+	"user.twoFactor.setup":                   {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.enable":                  {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.disable":                 {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.regenerateRecoveryCodes": {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"user.twoFactor.verify":                  {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
+	"users.resetTwoFactor":                   {Category: AuditCategoryAuth, TargetType: AuditTargetUser},
 	"setup.initialize":   {Category: AuditCategorySystem, TargetType: AuditTargetSettings},
 
 	// licence and system settings — deployment-level, root only
@@ -386,7 +394,13 @@ var AuditExcludedRoutes = map[string]struct{}{
 // route's action name, and a route the API does not audit takes its category
 // and target type from here. The audit middleware never reads this table, so
 // the same route called on /api/ stays unrecorded.
-var MCPAuditedActions = map[string]AuditActionSpec{}
+var MCPAuditedActions = map[string]AuditActionSpec{
+	"contacts.upsert":            {Category: AuditCategoryContacts, TargetType: AuditTargetContact},
+	"customEvents.upsert":        {Category: AuditCategoryContacts, TargetType: AuditTargetContact},
+	"contactLists.removeContact": {Category: AuditCategoryContacts, TargetType: AuditTargetContact},
+	"transactional.send":         {Category: AuditCategoryTransactional, TargetType: AuditTargetNotification},
+	"transactional.testTemplate": {Category: AuditCategoryTransactional, TargetType: AuditTargetTemplate},
+}
 
 // AuditSystemActions are written by the server itself, outside any request.
 var AuditSystemActions = map[string]AuditActionSpec{
@@ -406,11 +420,14 @@ const (
 )
 
 // AuditActionCatalogue lists every action the log can contain, sorted by
-// name: audited routes, logged reads under their recorded name, and the
-// system actions.
+// name: audited routes, logged reads under their recorded name, the routes
+// only an MCP tool records, and the system actions.
 func AuditActionCatalogue() []AuditActionDescriptor {
-	out := make([]AuditActionDescriptor, 0, len(AuditedActions)+len(AuditLoggedReads)+len(AuditSystemActions))
+	out := make([]AuditActionDescriptor, 0, len(AuditedActions)+len(AuditLoggedReads)+len(MCPAuditedActions)+len(AuditSystemActions))
 	for action, spec := range AuditedActions {
+		out = append(out, AuditActionDescriptor{Action: action, Category: spec.Category, TargetType: spec.TargetType})
+	}
+	for action, spec := range MCPAuditedActions {
 		out = append(out, AuditActionDescriptor{Action: action, Category: spec.Category, TargetType: spec.TargetType})
 	}
 	for _, read := range AuditLoggedReads {

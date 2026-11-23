@@ -226,6 +226,11 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 			WriteJSONError(w, notEmptyErr.Error(), http.StatusConflict)
 			return
 		}
+		// A session that is gone (401), one that has not passed the second factor the
+		// instance or the root user requires (403), or a caller who is not root (403).
+		if writeServiceError(w, err, "Only the root user can create workspaces") {
+			return
+		}
 		WriteJSONError(w, "Failed to create workspace", http.StatusInternalServerError)
 		return
 	}
@@ -669,6 +674,11 @@ func (h *WorkspaceHandler) handleCreateAPIKey(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to create API key")
 
+		// A dead session (401), a missing second factor or grant (403), a licence (402).
+		if writePermissionError(w, err) {
+			return
+		}
+
 		// The RBAC gate lives inside CreateAPIKey: a key asking for a scope narrower than
 		// FullPermissions is refused on a deployment without the rbac feature. Spelled out
 		// here, and first, because this handler runs its own error chain and calls neither
@@ -755,6 +765,9 @@ func (h *WorkspaceHandler) handleRemoveMember(w http.ResponseWriter, r *http.Req
 	// Call service to remove the member
 	err := h.workspaceService.RemoveMember(r.Context(), req.WorkspaceID, req.UserID)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
 			WriteJSONError(w, unauthorized.Message, http.StatusForbidden)
@@ -808,6 +821,11 @@ func (h *WorkspaceHandler) handleCreateIntegration(w http.ResponseWriter, r *htt
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to create integration")
 
+		// A dead session (401), a missing second factor or grant (403), a licence (402).
+		if writePermissionError(w, err) {
+			return
+		}
+
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
 			WriteJSONError(w, unauthorized.Message, http.StatusForbidden)
@@ -848,6 +866,11 @@ func (h *WorkspaceHandler) handleUpdateIntegration(w http.ResponseWriter, r *htt
 	err := h.workspaceService.UpdateIntegration(r.Context(), req)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to update integration")
+
+		// A dead session (401), a missing second factor or grant (403), a licence (402).
+		if writePermissionError(w, err) {
+			return
+		}
 
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
@@ -893,6 +916,11 @@ func (h *WorkspaceHandler) handleDeleteIntegration(w http.ResponseWriter, r *htt
 	)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to delete integration")
+
+		// A dead session (401), a missing second factor or grant (403), a licence (402).
+		if writePermissionError(w, err) {
+			return
+		}
 
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
@@ -968,6 +996,11 @@ func (h *WorkspaceHandler) handleConnectZapier(w http.ResponseWriter, r *http.Re
 	token, apiEmail, integrationID, err := h.workspaceService.ConnectZapier(r.Context(), req.WorkspaceID, req.Label)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to connect Zapier")
+
+		// A dead session (401), a missing second factor or grant (403), a licence (402).
+		if writePermissionError(w, err) {
+			return
+		}
 
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
@@ -1086,18 +1119,23 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 
 // handleAcceptInvitation processes an invitation token to create user and add to workspace
 func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http.Request) {
+	// A public route: a request that names no invitation is no action, and stays out of the
+	// audit log, so an anonymous client cannot write rows into a workspace's log.
 	if r.Method != http.MethodPost {
+		domain.AuditFromContext(r.Context()).Skip()
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var req AcceptInvitationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		domain.AuditFromContext(r.Context()).Skip()
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if req.Token == "" {
+		domain.AuditFromContext(r.Context()).Skip()
 		WriteJSONError(w, "Token is required", http.StatusBadRequest)
 		return
 	}
@@ -1116,6 +1154,12 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 
 	// Process the invitation acceptance
 	authResponse, err := h.workspaceService.AcceptInvitation(r.Context(), invitationID, workspaceID, email)
+	if err == nil && authResponse.Challenge != nil {
+		// The invitee has two-factor authentication: the invitation is accepted once the
+		// challenge passes (user.twoFactor.verify). No token yet.
+		writeChallenge(w, authResponse.Challenge)
+		return
+	}
 	if err != nil {
 		var limitErr *domain.ErrTeamMemberLimitReached
 		if errors.As(err, &limitErr) {
@@ -1132,6 +1176,7 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 	}
 
 	// Return success response with auth token
+	noStore(w)
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status":       "success",
 		"message":      "Invitation accepted successfully",
@@ -1234,6 +1279,9 @@ func (h *WorkspaceHandler) handleDeleteInvitation(w http.ResponseWriter, r *http
 	// Delete the invitation
 	err := h.workspaceService.DeleteInvitation(r.Context(), req.InvitationID)
 	if err != nil {
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		h.logger.WithField("invitation_id", req.InvitationID).WithField("error", err.Error()).Error("Failed to delete invitation")
 		WriteJSONError(w, "Failed to delete invitation", http.StatusInternalServerError)
 		return

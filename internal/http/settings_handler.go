@@ -52,13 +52,30 @@ type SystemSettingsData struct {
 	OIDCButtonLabel         string `json:"oidc_button_label"`
 	OIDCAutoCreateUsers     bool   `json:"oidc_auto_create_users"`
 	OIDCAllowedDomains      string `json:"oidc_allowed_domains"`
+	// RequireTwoFactor makes every person on the instance pass a second factor. On GET it
+	// is the value in force, REQUIRE_TWO_FACTOR included.
+	RequireTwoFactor bool `json:"require_two_factor"`
+}
+
+// TwoFactorSettings is what the Security panel shows beside the switch.
+type TwoFactorSettings struct {
+	Required bool `json:"required"`
+	// FromEnv: REQUIRE_TWO_FACTOR sets the value, and the switch is read-only.
+	FromEnv bool `json:"from_env"`
+	// UsersWithout are the people (not API keys) who have not turned it on, for the root
+	// user to warn before switching the requirement on.
+	UsersWithout []string `json:"users_without"`
 }
 
 // SystemSettingsResponse wraps settings with env override info
 type SystemSettingsResponse struct {
 	Settings     SystemSettingsData `json:"settings"`
 	EnvOverrides map[string]bool    `json:"env_overrides"`
+	TwoFactor    TwoFactorSettings  `json:"two_factor"`
 }
+
+// Error code of a root user turning on the requirement without meeting it.
+const twoFactorRequiredForRootCode = "two_factor_required_for_root"
 
 // LicenseServiceInterface is the slice of the licence service the two licence endpoints
 // need, declared here in the consuming package the way UserServiceInterface is.
@@ -126,6 +143,10 @@ type SettingsHandler struct {
 	secretKey      string
 	rootEmail      string
 	app            AppShutdowner
+	authService    domain.AuthService
+	twoFactor      TwoFactorServiceInterface
+	// requireTwoFactorEnv is REQUIRE_TWO_FACTOR: "true", "false", or "" when unset.
+	requireTwoFactorEnv string
 	// retentionDefaults serves dataRetention.getDefaults and setDefaults; nil answers 503.
 	retentionDefaults retentionDefaultsService
 }
@@ -232,6 +253,9 @@ func NewSettingsHandler(
 	rootEmail string,
 	app AppShutdowner,
 	licenseService LicenseServiceInterface,
+	authService domain.AuthService,
+	twoFactor TwoFactorServiceInterface,
+	requireTwoFactorEnv string,
 ) *SettingsHandler {
 	return &SettingsHandler{
 		setupService:   setupService,
@@ -243,6 +267,10 @@ func NewSettingsHandler(
 		secretKey:      secretKey,
 		rootEmail:      rootEmail,
 		app:            app,
+		authService:    authService,
+		twoFactor:      twoFactor,
+
+		requireTwoFactorEnv: requireTwoFactorEnv,
 	}
 }
 
@@ -283,6 +311,17 @@ func (h *SettingsHandler) requireRootUser(w http.ResponseWriter, r *http.Request
 
 	if !config.IsRootEmail(h.rootEmail, user.Email) {
 		WriteJSONError(w, "Forbidden: root user access required", http.StatusForbidden)
+		return nil
+	}
+
+	// The instance's two-factor requirement, and, for a root user who turned two-factor
+	// authentication on, a session that passed it: these routes change the root email, SMTP
+	// and single sign-on.
+	if err := h.authService.RequireCompliantRootSession(ctx); err != nil {
+		if !writePermissionError(w, err) {
+			h.logger.WithField("error", err.Error()).Error("Failed to verify the root session")
+			WriteJSONError(w, "Failed to verify session", http.StatusInternalServerError)
+		}
 		return nil
 	}
 
@@ -437,9 +476,27 @@ func (h *SettingsHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		settings.OIDCClientSecret = passwordMask
 	}
 
+	settings.RequireTwoFactor = h.twoFactor.RequireTwoFactor()
+	envOverrides["require_two_factor"] = h.requireTwoFactorEnv != ""
+	// A list for the root user's information: a failure to read it must not close the
+	// settings, which is where the root user repairs things.
+	usersWithout, err := h.twoFactor.UsersWithoutTwoFactor(ctx)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to list the people without two-factor authentication")
+		usersWithout = nil
+	}
+	if usersWithout == nil {
+		usersWithout = []string{}
+	}
+
 	response := SystemSettingsResponse{
 		Settings:     settings,
 		EnvOverrides: envOverrides,
+		TwoFactor: TwoFactorSettings{
+			Required:     settings.RequireTwoFactor,
+			FromEnv:      h.requireTwoFactorEnv != "",
+			UsersWithout: usersWithout,
+		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -479,6 +536,7 @@ func systemSettingsFromConfig(c *service.SystemConfig) SystemSettingsData {
 		OIDCButtonLabel:         c.OIDCButtonLabel,
 		OIDCAutoCreateUsers:     c.OIDCAutoCreateUsers,
 		OIDCAllowedDomains:      c.OIDCAllowedDomains,
+		RequireTwoFactor:        c.RequireTwoFactor != nil && *c.RequireTwoFactor,
 	}
 }
 
@@ -513,6 +571,11 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	//
 	// Clearing a field stays expressible: the key is present, carrying the empty value.
 	reqData := systemSettingsFromConfig(currentConfig)
+	// The value in force, as settings.get shows it: a body without the key then changes
+	// nothing, whether REQUIRE_TWO_FACTOR or the stored setting decides it.
+	if h.requireTwoFactorEnv != "" {
+		reqData.RequireTwoFactor = h.requireTwoFactorEnv == "true"
+	}
 	if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -581,6 +644,27 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		OIDCAllowedDomains:      reqData.OIDCAllowedDomains,
 	}
 
+	// The two-factor requirement: written only when the body changes it. When
+	// REQUIRE_TWO_FACTOR is set, the form shows its value: sending it back changes
+	// nothing, sending another is refused.
+	stored := currentConfig.RequireTwoFactor != nil && *currentConfig.RequireTwoFactor
+	if h.requireTwoFactorEnv != "" {
+		if reqData.RequireTwoFactor != (h.requireTwoFactorEnv == "true") {
+			WriteJSONError(w, "require_two_factor is set by REQUIRE_TWO_FACTOR", http.StatusConflict)
+			return
+		}
+	} else if reqData.RequireTwoFactor != stored {
+		next := reqData.RequireTwoFactor
+		if !h.allowRequireTwoFactorChange(w, r, stored, next) {
+			return
+		}
+		newConfig.RequireTwoFactor = &next
+	}
+	if newConfig.RequireTwoFactor == nil {
+		// Unchanged: rewritten as it is, so the audit diff shows no change.
+		newConfig.RequireTwoFactor = currentConfig.RequireTwoFactor
+	}
+
 	// Fail fast on an invalid OIDC config BEFORE persisting + restarting. Without this
 	// guard, a bad config (OIDC enabled with no issuer/client/secret, a non-https
 	// issuer, or auto-create with no allowlist) would be saved, the server would
@@ -635,6 +719,31 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 			h.logger.WithField("error", err).Error("Error during graceful shutdown")
 		}
 	}()
+}
+
+// allowRequireTwoFactorChange refuses turning the requirement on from a root session that
+// would not meet it (service.CheckRequireTwoFactorChange): the next sign-in would lock the
+// root user out.
+func (h *SettingsHandler) allowRequireTwoFactorChange(w http.ResponseWriter, r *http.Request, current, next bool) bool {
+	ctx := r.Context()
+	user, session, err := h.authService.AuthenticateSession(ctx)
+	if err != nil {
+		if !writePermissionError(w, err) {
+			WriteJSONError(w, "Failed to verify session", http.StatusInternalServerError)
+		}
+		return false
+	}
+	status, err := h.twoFactor.Status(ctx, user.ID)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to read the root user's two-factor state")
+		WriteJSONError(w, "Failed to read the two-factor state", http.StatusInternalServerError)
+		return false
+	}
+	if err := service.CheckRequireTwoFactorChange(current, &next, *session, status.Enabled); err != nil {
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": twoFactorRequiredForRootCode, "message": err.Error()})
+		return false
+	}
+	return true
 }
 
 // handleTestSMTP tests SMTP connection with the provided configuration

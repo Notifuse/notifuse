@@ -1,3 +1,4 @@
+import type { TwoFactorChallengeResponse } from './auth'
 import { api } from './client'
 import type { EmailBlock } from '../../components/email_builder/types'
 import type { UserPermissions, StoredPermissions } from './permissions'
@@ -534,7 +535,7 @@ export interface VerifyInvitationTokenResponse {
   valid: boolean
 }
 
-export interface AcceptInvitationResponse {
+export interface AcceptedInvitationResponse {
   status: string
   message: string
   workspace_id: string
@@ -543,6 +544,12 @@ export interface AcceptInvitationResponse {
   user: User
   expires_at: string
 }
+
+/**
+ * Accepting an invitation answers a sign-in challenge when the invitee has two-factor
+ * authentication: the invitation is accepted once user.twoFactor.verify passes.
+ */
+export type AcceptInvitationResponse = AcceptedInvitationResponse | TwoFactorChallengeResponse
 
 export interface DeleteInvitationRequest {
   invitation_id: string

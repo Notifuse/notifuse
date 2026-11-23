@@ -72,7 +72,7 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(ctx, sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 
 		mockAuthRepo.EXPECT().
 			GetUserByID(ctx, userID).
@@ -220,7 +220,7 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(ctx, sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 		mockAuthRepo.EXPECT().
 			GetUserByID(ctx, userID).
 			Return(&domain.User{ID: userID, Email: "key@example.com", Type: domain.UserTypeAPIKey}, nil)
@@ -246,7 +246,8 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		result, err := service.AuthenticateUserFromContext(ctx)
 
 		require.Error(t, err)
-		require.Equal(t, ErrUserNotFound, err)
+		require.ErrorIs(t, err, ErrUserNotFound)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 
@@ -260,7 +261,8 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		result, err := service.AuthenticateUserFromContext(ctx)
 
 		require.Error(t, err)
-		require.Equal(t, ErrUserNotFound, err)
+		require.ErrorIs(t, err, ErrUserNotFound)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 
@@ -278,7 +280,8 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		result, err := service.AuthenticateUserFromContext(ctx)
 
 		require.Error(t, err)
-		require.Equal(t, ErrUserNotFound, err)
+		require.ErrorIs(t, err, ErrUserNotFound)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 
@@ -296,7 +299,8 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		result, err := service.AuthenticateUserFromContext(ctx)
 
 		require.Error(t, err)
-		require.Equal(t, ErrUserNotFound, err)
+		require.ErrorIs(t, err, ErrUserNotFound)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 }
@@ -338,7 +342,7 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(ctx, sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 
 		mockAuthRepo.EXPECT().
 			GetUserByID(ctx, userID).
@@ -484,7 +488,7 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(ctx, sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 
 		mockAuthRepo.EXPECT().
 			GetUserByID(ctx, userID).
@@ -524,7 +528,7 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(context.Background(), sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 
 		mockAuthRepo.EXPECT().
 			GetUserByID(context.Background(), userID).
@@ -556,7 +560,8 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
 
 		require.Error(t, err)
-		require.Equal(t, ErrSessionExpired, err)
+		require.ErrorIs(t, err, ErrSessionExpired)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 
@@ -565,7 +570,7 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(context.Background(), sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 
 		mockLogger.EXPECT().
 			WithField(string(domain.UserIDKey), userID).
@@ -576,7 +581,7 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 			Return(mockLogger)
 
 		mockLogger.EXPECT().
-			WithField("expires_at", &expiresAt).
+			WithField("expires_at", expiresAt).
 			Return(mockLogger)
 
 		mockLogger.EXPECT().
@@ -585,7 +590,8 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
 
 		require.Error(t, err)
-		require.Equal(t, ErrSessionExpired, err)
+		require.ErrorIs(t, err, ErrSessionExpired)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 
@@ -594,7 +600,7 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(context.Background(), sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 
 		mockAuthRepo.EXPECT().
 			GetUserByID(context.Background(), userID).
@@ -610,7 +616,8 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
 
 		require.Error(t, err)
-		require.Equal(t, ErrUserNotFound, err)
+		require.ErrorIs(t, err, ErrUserNotFound)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 
@@ -619,7 +626,7 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 
 		mockAuthRepo.EXPECT().
 			GetSessionByID(context.Background(), sessionID, userID).
-			Return(&expiresAt, nil)
+			Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 		mockAuthRepo.EXPECT().
 			GetUserByID(context.Background(), userID).
 			Return(&domain.User{ID: userID, Email: "key@example.com", Type: domain.UserTypeAPIKey}, nil)
@@ -630,7 +637,8 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
 
 		require.Error(t, err)
-		require.Equal(t, ErrUserNotFound, err)
+		require.ErrorIs(t, err, ErrUserNotFound)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
 		require.Nil(t, result)
 	})
 }
@@ -1028,6 +1036,8 @@ func TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin(t *testing.T) {
 	buildService := func(t *testing.T) (*mocks.MockAuthRepository, *mocks.MockWorkspaceRepository, *AuthService) {
 		ctrl := gomock.NewController(t)
 		mockAuthRepo := mocks.NewMockAuthRepository(ctrl)
+		// A root user without two-factor authentication: the access these tests are about.
+		mockAuthRepo.EXPECT().IsTwoFactorEnabled(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 		svc := NewAuthService(AuthServiceConfig{
@@ -1050,7 +1060,7 @@ func TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin(t *testing.T) {
 			domain.UserTypeKey, string(domain.UserTypeUser),
 		)
 		expiresAt := time.Now().Add(1 * time.Hour)
-		mockAuthRepo.EXPECT().GetSessionByID(ctx, sessionID, userID).Return(&expiresAt, nil)
+		mockAuthRepo.EXPECT().GetSessionByID(ctx, sessionID, userID).Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 		mockAuthRepo.EXPECT().GetUserByID(ctx, userID).Return(&domain.User{ID: userID, Email: email, Type: domain.UserTypeUser}, nil)
 		return ctx
 	}
@@ -1137,6 +1147,8 @@ func TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin(t *testing.T) {
 func newWorkspaceAuthService(t *testing.T, rootEmail string) (*mocks.MockAuthRepository, *mocks.MockWorkspaceRepository, *AuthService) {
 	ctrl := gomock.NewController(t)
 	mockAuthRepo := mocks.NewMockAuthRepository(ctrl)
+	// A root user without two-factor authentication unless a test says otherwise first.
+	mockAuthRepo.EXPECT().IsTwoFactorEnabled(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	svc := NewAuthService(AuthServiceConfig{
 		Repository:          mockAuthRepo,
@@ -1171,7 +1183,7 @@ func TestAuthService_AuthenticateUserForWorkspace_CacheIsKeyedByWorkspace(t *tes
 		domain.UserTypeKey, string(domain.UserTypeUser),
 	)
 	expiresAt := time.Now().Add(time.Hour)
-	mockAuthRepo.EXPECT().GetSessionByID(gomock.Any(), sessionID, userID).Return(&expiresAt, nil).Times(2)
+	mockAuthRepo.EXPECT().GetSessionByID(gomock.Any(), sessionID, userID).Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil).Times(2)
 	mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), userID).
 		Return(&domain.User{ID: userID, Email: "person@example.com", Type: domain.UserTypeUser}, nil).Times(2)
 
@@ -1443,7 +1455,7 @@ func TestAuthService_AuthenticateUserForWorkspace_RootElevation(t *testing.T) {
 					domain.UserTypeKey, string(domain.UserTypeUser),
 				)
 				expiresAt := time.Now().Add(time.Hour)
-				mockAuthRepo.EXPECT().GetSessionByID(gomock.Any(), "root-session", "root-user").Return(&expiresAt, nil)
+				mockAuthRepo.EXPECT().GetSessionByID(gomock.Any(), "root-session", "root-user").Return(&domain.SessionAuth{ExpiresAt: expiresAt}, nil)
 				mockAuthRepo.EXPECT().GetUserByID(gomock.Any(), "root-user").
 					Return(&domain.User{ID: "root-user", Email: rootEmail, Type: domain.UserTypeUser}, nil)
 				mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)

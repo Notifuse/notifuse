@@ -5,6 +5,8 @@ import { InfoCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { workspaceService } from '../services/api/workspace'
 import { ApiError } from '../services/api/client'
 import { useAuth } from '../contexts/AuthContext'
+import { twoFactorErrorCode } from '../services/api/twoFactor'
+import { RootSessionRefused } from '../components/two_factor/RootSessionRefused'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { getBrowserLanguage } from '../lib/languages'
@@ -17,6 +19,8 @@ export function CreateWorkspacePage() {
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
   const { refreshWorkspaces } = useAuth()
+  // The root user has two-factor authentication and this session was opened without it.
+  const [sessionRefused, setSessionRefused] = useState(false)
   const { message } = App.useApp()
 
   // Generate workspace ID from name (alphanumeric only, cut to WORKSPACE_ID_MAX_LENGTH)
@@ -89,7 +93,9 @@ export function CreateWorkspacePage() {
       }, 100)
     } catch (error) {
       console.error('Error creating workspace:', error)
-      if (error instanceof ApiError && error.status === 403 && error.message.includes('workspace limit')) {
+      if (twoFactorErrorCode(error) === 'two_factor_required') {
+        setSessionRefused(true)
+      } else if (error instanceof ApiError && error.status === 403 && error.message.includes('workspace limit')) {
         message.error(t`Workspace limit reached. Please upgrade your plan to create more workspaces.`)
       } else {
         message.error(error instanceof Error ? error.message : t`Failed to create workspace`)
@@ -100,6 +106,16 @@ export function CreateWorkspacePage() {
 
   const handleBackToDashboard = () => {
     navigate({ to: '/console' })
+  }
+
+  if (sessionRefused) {
+    return (
+      <MainLayout>
+        <div className="mx-auto mt-16 max-w-xl">
+          <RootSessionRefused title={t`Sign in again to create a workspace`} />
+        </div>
+      </MainLayout>
+    )
   }
 
   return (

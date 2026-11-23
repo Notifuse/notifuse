@@ -238,3 +238,14 @@ func auditSpec(action string) (domain.AuditActionSpec, bool) {
 }
 
 func boolPtr(v bool) *bool { return &v }
+
+// requestFromJSON builds a service request by decoding a JSON object made of
+// the arguments, never by filling it field by field: a request type that tells
+// an omitted key from a zero value then sees only the keys the caller gave.
+func requestFromJSON(fields map[string]any, request any) error {
+	data, err := json.Marshal(fields)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, request)
+}

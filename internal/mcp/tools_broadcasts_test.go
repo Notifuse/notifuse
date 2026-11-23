@@ -1,9 +1,11 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -484,4 +486,607 @@ func TestBroadcastTools_CapTheNamesAndUTMParameters(t *testing.T) {
 		assert.Equal(t, capped, out.Variations[1].VariationName)
 		assert.Equal(t, []string{"broadcast.name", "variations[1].variation_name"}, out.TruncatedFields)
 	})
+}
+
+func broadcastsWritePermission() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceBroadcasts: {Write: true}}
+}
+
+// sendingWorkspace has a marketing and a transactional email integration.
+func sendingWorkspace() *domain.Workspace {
+	workspace := testWorkspace()
+	workspace.Settings.DefaultLanguage = "en"
+	workspace.Settings.MarketingEmailProviderID = "int-m"
+	workspace.Settings.TransactionalEmailProviderID = "int-t"
+	workspace.Integrations = []domain.Integration{
+		{ID: "int-m", Name: "Marketing", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{
+			Kind: domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{
+				{ID: "s-news", Email: "news@acme.test", IsDefault: true},
+				{ID: "s-support", Email: "support@acme.test"},
+			},
+		}},
+		{ID: "int-t", Name: "Transactional", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{{ID: "t-default", Email: "no-reply@acme.test", IsDefault: true}, {ID: "t-billing", Email: "billing@acme.test"}},
+		}},
+	}
+	return workspace
+}
+
+// storedDraft is a draft broadcast with a schedule, segments, an A/B test
+// whose variations chose senders, and the unsubscribed contacts kept.
+func storedDraft() *domain.Broadcast {
+	return &domain.Broadcast{
+		ID: "bc1", WorkspaceID: testWorkspaceID, Name: "November newsletter", ChannelType: "email",
+		Status:   domain.BroadcastStatusDraft,
+		Audience: domain.AudienceSettings{List: "newsletter", Segments: []string{"vip"}, ExcludeUnsubscribed: false},
+		Schedule: domain.ScheduleSettings{IsScheduled: true, ScheduledDate: "2026-12-01", ScheduledTime: "09:00", Timezone: "Europe/Paris"},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: true, SamplePercentage: 20,
+			Variations: []domain.BroadcastVariation{
+				{VariationName: "A", TemplateID: "tpl_a", SenderID: "s-support"},
+				{VariationName: "B", TemplateID: "tpl_b"},
+			},
+		},
+		UTMParameters: &domain.UTMParameters{Source: "notifuse"},
+		Metadata:      domain.MapOfAny{"owner": "marketing"},
+		CreatedAt:     broadcastsEpoch, UpdatedAt: broadcastsEpoch,
+	}
+}
+
+func TestBroadcastWriteTools_Definitions(t *testing.T) {
+	write := []Pair{{Resource: "broadcasts", Verb: "write"}}
+	id := []string{"workspace_id", "broadcast_id"}
+	assertWriteTool(t, catalogueTool(t, "create_broadcast"), "create_broadcast", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: false},
+		write, "broadcasts.create", []string{"workspace_id", "name", "list_id"})
+	assertWriteTool(t, catalogueTool(t, "update_broadcast"), "update_broadcast", ClassWriteOpenWorld, writeHints{destructive: false, openWorld: true, idempotent: true},
+		write, "broadcasts.update", id)
+	assertWriteTool(t, catalogueTool(t, "send_broadcast_to_contact"), "send_broadcast_to_contact", ClassSend, writeHints{destructive: true, openWorld: true, idempotent: false},
+		[]Pair{{Resource: "broadcasts", Verb: "write"}, {Resource: "templates", Verb: "read"}}, "broadcasts.sendToIndividual", []string{"workspace_id", "broadcast_id", "recipient_email"})
+	assertWriteTool(t, catalogueTool(t, "schedule_broadcast"), "schedule_broadcast", ClassSend, writeHints{destructive: true, openWorld: true, idempotent: true},
+		write, "broadcasts.schedule", []string{"workspace_id", "broadcast_id", "when"})
+	assertWriteTool(t, catalogueTool(t, "select_broadcast_winner"), "select_broadcast_winner", ClassSend, writeHints{destructive: true, openWorld: true, idempotent: true},
+		write, "broadcasts.selectWinner", []string{"workspace_id", "broadcast_id", "template_id"})
+	assertWriteTool(t, catalogueTool(t, "pause_broadcast"), "pause_broadcast", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+		write, "broadcasts.pause", id)
+	assertWriteTool(t, catalogueTool(t, "resume_broadcast"), "resume_broadcast", ClassSend, writeHints{destructive: true, openWorld: true, idempotent: true},
+		write, "broadcasts.resume", id)
+	assertWriteTool(t, catalogueTool(t, "cancel_broadcast"), "cancel_broadcast", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+		write, "broadcasts.cancel", id)
+	assertWriteTool(t, catalogueTool(t, "delete_broadcast"), "delete_broadcast", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+		write, "broadcasts.delete", id)
+
+	// The send tools and the open-world update count in mcp_send.
+	for name, counts := range map[string]bool{
+		"create_broadcast": false, "update_broadcast": true, "send_broadcast_to_contact": true, "schedule_broadcast": true,
+		"select_broadcast_winner": true, "pause_broadcast": false, "resume_broadcast": true, "cancel_broadcast": false, "delete_broadcast": false,
+	} {
+		assert.Equal(t, counts, catalogueTool(t, name).countsAsSend(), name)
+	}
+	// A variation's sender and the data feed are not offered.
+	for _, name := range []string{"create_broadcast", "update_broadcast"} {
+		properties := catalogueTool(t, name).InputSchema["properties"].(map[string]any)
+		assert.NotContains(t, properties, "data_feed", name)
+		assert.NotContains(t, properties, "schedule", name)
+		variation := properties["ab_test"].(map[string]any)["properties"].(map[string]any)["variations"].(map[string]any)["items"].(map[string]any)
+		assert.Equal(t, []string{"template_id", "variation_name"}, sortedKeys(variation["properties"].(map[string]any)), name)
+	}
+}
+
+// broadcastsWriteFixture is a fixture whose key may write broadcasts, in a
+// workspace with email integrations, with its audit rows captured.
+func broadcastsWriteFixture(t *testing.T, permissions domain.UserPermissions) (*fixture, *auditLog) {
+	f := newFixture(t)
+	f.reachableIn(permissions, sendingWorkspace())
+	return f, f.captureAudit()
+}
+
+// An omitted exclude_unsubscribed must not reach the service as false: that
+// mails the list's unsubscribed contacts.
+func TestCreateBroadcast_KeepsUnsubscribedContactsOutUnlessToldOtherwise(t *testing.T) {
+	for name, tc := range map[string]struct {
+		args    map[string]any
+		exclude bool
+	}{
+		"omitted":        {args: map[string]any{}, exclude: true},
+		"given as true":  {args: map[string]any{"exclude_unsubscribed": true}, exclude: true},
+		"given as false": {args: map[string]any{"exclude_unsubscribed": false}, exclude: false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
+			var validated *domain.Broadcast
+			f.broadcasts.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.CreateBroadcastRequest) (*domain.Broadcast, error) {
+				broadcast, err := req.Validate()
+				require.NoError(t, err)
+				validated = broadcast
+				broadcast.ID = "bc-new"
+				return broadcast, nil
+			})
+			args := map[string]any{"workspace_id": testWorkspaceID, "name": "Launch", "list_id": "newsletter", "template_id": "tpl_a"}
+			for key, value := range tc.args {
+				args[key] = value
+			}
+			require.False(t, f.callTool("create_broadcast", args).IsError)
+			require.NotNil(t, validated)
+			assert.Equal(t, tc.exclude, validated.Audience.ExcludeUnsubscribed)
+		})
+	}
+}
+
+func TestCreateBroadcast_BuildsTheRequest(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	var sent *domain.CreateBroadcastRequest
+	f.broadcasts.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.CreateBroadcastRequest) (*domain.Broadcast, error) {
+		sent = req
+		broadcast, err := req.Validate()
+		require.NoError(t, err)
+		broadcast.ID = "bc-new"
+		broadcast.CreatedAt, broadcast.UpdatedAt = broadcastsEpoch, broadcastsEpoch
+		return broadcast, nil
+	})
+
+	result := f.callTool("create_broadcast", map[string]any{
+		"workspace_id": testWorkspaceID, "name": "Launch", "list_id": "newsletter", "segment_ids": []string{"vip"},
+		"ab_test": map[string]any{
+			"sample_percentage": 10, "auto_send_winner": true, "auto_send_winner_metric": "click_rate", "test_duration_hours": 6,
+			"variations": []any{map[string]any{"template_id": "tpl_a"}, map[string]any{"template_id": "tpl_b", "variation_name": "Short"}},
+		},
+		"utm_parameters": map[string]any{"campaign": "launch"},
+		"tracking_mode":  "inherit",
+		"metadata":       map[string]any{"owner": "growth"},
+	})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	require.NotNil(t, sent)
+	assert.Equal(t, testWorkspaceID, sent.WorkspaceID)
+	assert.Equal(t, domain.AudienceSettings{List: "newsletter", Segments: []string{"vip"}, ExcludeUnsubscribed: true}, sent.Audience)
+	assert.Equal(t, domain.BroadcastTestSettings{
+		Enabled: true, SamplePercentage: 10, AutoSendWinner: true, AutoSendWinnerMetric: domain.TestWinnerMetricClickRate, TestDurationHours: 6,
+		Variations: []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tpl_a"}, {VariationName: "Short", TemplateID: "tpl_b"}},
+	}, sent.TestSettings)
+	assert.Equal(t, &domain.UTMParameters{Campaign: "launch"}, sent.UTMParameters)
+	assert.Equal(t, domain.MapOfAny{"owner": "growth"}, sent.Metadata)
+	assert.Nil(t, sent.DataFeed)
+
+	var out struct {
+		Broadcast broadcastDetail `json:"broadcast"`
+	}
+	result.decode(t, &out)
+	assert.Equal(t, "bc-new", out.Broadcast.ID)
+	assert.Equal(t, "draft", out.Broadcast.Status)
+
+	row := audit.last(t)
+	assert.Equal(t, "broadcasts.create", row.Action)
+	assert.Equal(t, domain.AuditCategoryBroadcasts, row.Category)
+	assert.Equal(t, domain.AuditTargetBroadcast, row.TargetType)
+	assert.Equal(t, "bc-new", row.TargetID)
+	assert.Equal(t, "Launch", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+func TestCreateBroadcast_OneTemplateSource(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	var created *domain.CreateBroadcastRequest
+	f.broadcasts.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.CreateBroadcastRequest) (*domain.Broadcast, error) {
+		created = req
+		broadcast, err := req.Validate()
+		require.NoError(t, err)
+		return broadcast, nil
+	})
+	require.False(t, f.callTool("create_broadcast", map[string]any{"workspace_id": testWorkspaceID, "name": "One", "list_id": "news", "template_id": "tpl_a"}).IsError)
+	assert.Equal(t, domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tpl_a"}}}, created.TestSettings)
+
+	abTest := map[string]any{"sample_percentage": 10, "variations": []any{map[string]any{"template_id": "a"}, map[string]any{"template_id": "b"}}}
+	for name, args := range map[string]map[string]any{
+		"no template":             {},
+		"both":                    {"template_id": "tpl_a", "ab_test": abTest},
+		"one variation":           {"ab_test": map[string]any{"sample_percentage": 10, "variations": []any{map[string]any{"template_id": "a"}}}},
+		"sample above 100":        {"ab_test": map[string]any{"sample_percentage": 120, "variations": abTest["variations"]}},
+		"winner without a metric": {"ab_test": map[string]any{"sample_percentage": 10, "auto_send_winner": true, "test_duration_hours": 2, "variations": abTest["variations"]}},
+		"metadata above 32 KiB":   {"template_id": "tpl_a", "metadata": map[string]any{"blob": strings.Repeat("x", 33<<10)}},
+		"a data feed":             {"template_id": "tpl_a", "data_feed": map[string]any{}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			args["workspace_id"], args["name"], args["list_id"] = testWorkspaceID, "Refused", "news"
+			assert.Equal(t, CodeValidation, f.callTool("create_broadcast", args).errorOf(t).Code)
+			assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+		})
+	}
+}
+
+// update_broadcast sends only the keys it was given: the stored schedule,
+// variations, segments and exclude_unsubscribed survive an update that
+// names one field.
+func TestUpdateBroadcast_KeepsWhatItIsNotGiven(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(storedDraft(), nil)
+	var applied *domain.Broadcast
+	f.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.UpdateBroadcastRequest) (*domain.Broadcast, error) {
+		// What the service does under its lock: apply the request to the row.
+		broadcast, err := req.Validate(storedDraft())
+		require.NoError(t, err)
+		applied = broadcast
+		return broadcast, nil
+	})
+
+	result := f.callTool("update_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "utm_parameters": map[string]any{"campaign": "dec"}})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	require.NotNil(t, applied)
+	stored := storedDraft()
+	assert.Equal(t, stored.Name, applied.Name, "the name is required by the request, and kept")
+	assert.Equal(t, stored.Schedule, applied.Schedule)
+	assert.Equal(t, stored.TestSettings, applied.TestSettings)
+	assert.Equal(t, stored.Audience, applied.Audience)
+	assert.Equal(t, stored.Metadata, applied.Metadata)
+	assert.Equal(t, &domain.UTMParameters{Campaign: "dec"}, applied.UTMParameters)
+
+	row := audit.last(t)
+	assert.Equal(t, "broadcasts.update", row.Action)
+	assert.Equal(t, "bc1", row.TargetID)
+	assert.Equal(t, "November newsletter", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+func TestUpdateBroadcast_PatchesTheAudienceAndTemplatesKeyByKey(t *testing.T) {
+	f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(storedDraft(), nil)
+	var applied *domain.Broadcast
+	f.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.UpdateBroadcastRequest) (*domain.Broadcast, error) {
+		broadcast, err := req.Validate(storedDraft())
+		require.NoError(t, err)
+		applied = broadcast
+		return broadcast, nil
+	})
+
+	require.False(t, f.callTool("update_broadcast", map[string]any{
+		"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "name": "December", "list_id": "customers", "template_id": "tpl_a",
+	}).IsError)
+	require.NotNil(t, applied)
+	assert.Equal(t, "December", applied.Name)
+	assert.Equal(t, domain.AudienceSettings{List: "customers", Segments: []string{"vip"}, ExcludeUnsubscribed: false}, applied.Audience,
+		"the segments and exclude_unsubscribed left out stay")
+	assert.Equal(t, domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tpl_a", SenderID: "s-support"}}}, applied.TestSettings,
+		"the sender the stored variation chose for the template is kept")
+	assert.Equal(t, storedDraft().Schedule, applied.Schedule)
+}
+
+func TestUpdateBroadcast_RefusalsAreTyped(t *testing.T) {
+	sending := storedDraft()
+	sending.Status = domain.BroadcastStatusProcessing
+	started := storedDraft()
+	started.Status = domain.BroadcastStatusPaused
+	startedAt := broadcastsEpoch
+	started.StartedAt = &startedAt
+
+	cases := map[string]struct {
+		stored *domain.Broadcast
+		err    error
+		args   map[string]any
+		want   ToolError
+	}{
+		"a broadcast that is sending": {stored: sending, args: map[string]any{"name": "X"},
+			want: ToolError{Code: CodeInvalidState, Message: "cannot update broadcast bc1: its status is processing", Status: "processing"}},
+		"exclude_unsubscribed once sending started": {stored: started, args: map[string]any{"exclude_unsubscribed": true},
+			want: ToolError{Code: CodeValidation, Message: "exclude_unsubscribed can only be changed on a draft or scheduled broadcast"}},
+		"a broadcast that does not exist": {err: &domain.ErrBroadcastNotFound{ID: "bc1"}, args: map[string]any{"name": "X"},
+			want: ToolError{Code: CodeNotFound, Message: "Broadcast not found with ID: bc1"}},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(tc.stored, tc.err)
+			args := map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}
+			for key, value := range tc.args {
+				args[key] = value
+			}
+			assert.Equal(t, tc.want, f.callTool("update_broadcast", args).errorOf(t))
+			assert.Equal(t, tc.want.auditStatus(), audit.last(t).StatusCode)
+		})
+	}
+
+	t.Run("arguments refused before any read", func(t *testing.T) {
+		f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
+		for name, args := range map[string]map[string]any{
+			"nothing to change": {},
+			"an empty name":     {"name": ""},
+			"both template sources": {"template_id": "a", "ab_test": map[string]any{"sample_percentage": 10, "variations": []any{
+				map[string]any{"template_id": "a"}, map[string]any{"template_id": "b"},
+			}}},
+			"a schedule": {"schedule": map[string]any{}},
+		} {
+			args["workspace_id"], args["broadcast_id"] = testWorkspaceID, "bc1"
+			assert.Equal(t, CodeValidation, f.callTool("update_broadcast", args).errorOf(t).Code, name)
+		}
+	})
+}
+
+func TestSendBroadcastToContact_SendsTheFirstTemplateByDefault(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, domain.UserPermissions{
+		domain.PermissionResourceBroadcasts: {Write: true}, domain.PermissionResourceTemplates: {Read: true},
+	})
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(storedDraft(), nil).Times(2)
+	f.broadcasts.EXPECT().SendToIndividual(gomock.Any(), &domain.SendToIndividualRequest{
+		WorkspaceID: testWorkspaceID, BroadcastID: "bc1", RecipientEmail: "jane@example.com", TemplateID: "tpl_a",
+	}).Return(nil)
+	f.broadcasts.EXPECT().SendToIndividual(gomock.Any(), &domain.SendToIndividualRequest{
+		WorkspaceID: testWorkspaceID, BroadcastID: "bc1", RecipientEmail: "jane@example.com", TemplateID: "tpl_b",
+	}).Return(nil)
+
+	result := f.callTool("send_broadcast_to_contact", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "recipient_email": " Jane@Example.com "})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"sent":true,"broadcast_id":"bc1","template_id":"tpl_a","recipient_email":"jane@example.com"}`,
+		string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "broadcasts.sendToIndividual", row.Action)
+	assert.Equal(t, domain.AuditTargetBroadcast, row.TargetType)
+	assert.Equal(t, "bc1", row.TargetID)
+	assert.Equal(t, map[string]any{"channel": "mcp", "mcp_tool": "send_broadcast_to_contact", "recipient_email": "jane@example.com", "template_id": "tpl_a"}, row.Metadata)
+
+	require.False(t, f.callTool("send_broadcast_to_contact", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "recipient_email": "jane@example.com", "template_id": "tpl_b"}).IsError)
+	assert.Equal(t, "tpl_b", audit.last(t).Metadata["template_id"])
+}
+
+func TestSendBroadcastToContact_Refusals(t *testing.T) {
+	both := domain.UserPermissions{domain.PermissionResourceBroadcasts: {Write: true}, domain.PermissionResourceTemplates: {Read: true}}
+	t.Run("an address that is not one", func(t *testing.T) {
+		f, audit := broadcastsWriteFixture(t, both)
+		toolErr := f.callTool("send_broadcast_to_contact", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "recipient_email": "jane"}).errorOf(t)
+		assert.Equal(t, ToolError{Code: CodeValidation, Message: "recipient_email must be a valid email address"}, toolErr)
+		assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+	})
+	t.Run("a key without templates:read", func(t *testing.T) {
+		f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+		toolErr := f.callTool("send_broadcast_to_contact", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "recipient_email": "jane@example.com"}).errorOf(t)
+		assert.Equal(t, CodePermissionDenied, toolErr.Code)
+		assert.Equal(t, "templates", toolErr.Resource)
+		assert.Equal(t, http.StatusForbidden, audit.last(t).StatusCode)
+	})
+	t.Run("no marketing integration", func(t *testing.T) {
+		f := newFixture(t)
+		f.reachable(both)
+		f.captureAudit()
+		toolErr := f.callTool("send_broadcast_to_contact", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "recipient_email": "jane@example.com"}).errorOf(t)
+		assert.Equal(t, CodeValidation, toolErr.Code)
+		assert.Contains(t, toolErr.Message, "no marketing email integration")
+	})
+	t.Run("a broadcast without a template", func(t *testing.T) {
+		f, _ := broadcastsWriteFixture(t, both)
+		empty := storedDraft()
+		empty.TestSettings = domain.BroadcastTestSettings{}
+		f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(empty, nil)
+		assert.Equal(t, CodeValidation, f.callTool("send_broadcast_to_contact", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "recipient_email": "jane@example.com"}).errorOf(t).Code)
+	})
+	t.Run("a template the broadcast does not send", func(t *testing.T) {
+		f, _ := broadcastsWriteFixture(t, both)
+		f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(storedDraft(), nil)
+		f.broadcasts.EXPECT().SendToIndividual(gomock.Any(), gomock.Any()).Return(&domain.ErrNotFound{Entity: "broadcast_variation", ID: "tpl_x"})
+		assert.Equal(t, CodeNotFound, f.callTool("send_broadcast_to_contact", map[string]any{
+			"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "recipient_email": "jane@example.com", "template_id": "tpl_x",
+		}).errorOf(t).Code)
+	})
+}
+
+func TestScheduleBroadcast_MapsWhen(t *testing.T) {
+	defer func(previous func() time.Time) { nowFunc = previous }(nowFunc)
+	nowFunc = func() time.Time { return time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC) }
+
+	for name, tc := range map[string]struct {
+		when string
+		want domain.ScheduleBroadcastRequest
+		out  string
+	}{
+		"now": {when: "now", want: domain.ScheduleBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1", SendNow: true},
+			out: `{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":"processing","scheduled_at":null}`},
+		"a time with an offset, to the minute": {when: "2026-12-01T09:30:45+01:00",
+			want: domain.ScheduleBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1", ScheduledDate: "2026-12-01", ScheduledTime: "08:30", Timezone: "UTC"},
+			out:  `{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":"scheduled","scheduled_at":"2026-12-01T08:30:00Z"}`},
+		"a time across midnight in UTC": {when: "2026-12-01T00:15:00+02:00",
+			want: domain.ScheduleBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1", ScheduledDate: "2026-11-30", ScheduledTime: "22:15", Timezone: "UTC"},
+			out:  `{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":"scheduled","scheduled_at":"2026-11-30T22:15:00Z"}`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+			f.broadcasts.EXPECT().ScheduleBroadcast(gomock.Any(), &tc.want).Return(nil)
+			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(storedDraft(), nil)
+			result := f.callTool("schedule_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "when": tc.when})
+			require.False(t, result.IsError, string(result.StructuredContent))
+			assert.JSONEq(t, tc.out, string(result.StructuredContent))
+
+			row := audit.last(t)
+			assert.Equal(t, "broadcasts.schedule", row.Action)
+			assert.Equal(t, "bc1", row.TargetID)
+			assert.Equal(t, "November newsletter", row.TargetName)
+			assert.Equal(t, map[string]any{
+				"channel": "mcp", "mcp_tool": "schedule_broadcast", "when": tc.when,
+				"list_id": "newsletter", "segment_ids": []string{"vip"}, "template_ids": []string{"tpl_a", "tpl_b"},
+			}, row.Metadata)
+		})
+	}
+}
+
+func TestScheduleBroadcast_Refusals(t *testing.T) {
+	defer func(previous func() time.Time) { nowFunc = previous }(nowFunc)
+	nowFunc = func() time.Time { return time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC) }
+
+	t.Run("a time that is not one, or past", func(t *testing.T) {
+		f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
+		for _, when := range []string{"tomorrow", "2026-12-01 09:00", "2026-11-23T11:59:00Z", "2026-11-23T12:00:00Z"} {
+			assert.Equal(t, CodeValidation, f.callTool("schedule_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "when": when}).errorOf(t).Code, when)
+		}
+	})
+	// The seconds are dropped before the comparison: a time later in the
+	// current minute lands on the minute's start, which is past.
+	t.Run("a time later in the current minute", func(t *testing.T) {
+		defer func(previous func() time.Time) { nowFunc = previous }(nowFunc)
+		nowFunc = func() time.Time { return time.Date(2026, 11, 23, 12, 0, 20, 0, time.UTC) }
+		f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
+		// No ScheduleBroadcast expectation: a call would fail the mock.
+		toolErr := f.callTool("schedule_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "when": "2026-11-23T12:00:45Z"}).errorOf(t)
+		assert.Equal(t, ToolError{Code: CodeValidation, Message: `when must be in a later minute than now, since the seconds are dropped: give a later time, or "now"`}, toolErr)
+	})
+	t.Run("no marketing integration", func(t *testing.T) {
+		f := newFixture(t)
+		f.reachable(broadcastsWritePermission())
+		f.captureAudit()
+		assert.Equal(t, CodeValidation, f.callTool("schedule_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "when": "now"}).errorOf(t).Code)
+	})
+	// A replay meets a broadcast that is no longer a draft.
+	t.Run("a replay", func(t *testing.T) {
+		f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+		f.broadcasts.EXPECT().ScheduleBroadcast(gomock.Any(), gomock.Any()).Return(domain.NewInvalidStateError("broadcast", "bc1", "schedule", "scheduled"))
+		toolErr := f.callTool("schedule_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "when": "now"}).errorOf(t)
+		assert.Equal(t, ToolError{Code: CodeInvalidState, Message: "cannot schedule broadcast bc1: its status is scheduled", Status: "scheduled"}, toolErr)
+		assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+	})
+}
+
+func TestSelectBroadcastWinner(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	// The second call is a replay with the same template: the service answers
+	// success and changes nothing.
+	f.broadcasts.EXPECT().SelectWinner(gomock.Any(), testWorkspaceID, "bc1", "tpl_b").Return(nil).Times(2)
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(storedDraft(), nil).Times(2)
+	for range 2 {
+		result := f.callTool("select_broadcast_winner", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "template_id": "tpl_b"})
+		assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","winning_template":"tpl_b","status":"winner_selected"}`, string(result.StructuredContent))
+	}
+	row := audit.last(t)
+	assert.Equal(t, "broadcasts.selectWinner", row.Action)
+	assert.Equal(t, "tpl_b", row.Metadata["template_id"])
+	assert.Equal(t, "newsletter", row.Metadata["list_id"])
+
+	f.broadcasts.EXPECT().SelectWinner(gomock.Any(), testWorkspaceID, "bc1", "tpl_a").Return(domain.NewInvalidStateError("broadcast", "bc1", "select_winner", "winner_selected"))
+	toolErr := f.callTool("select_broadcast_winner", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "template_id": "tpl_a"}).errorOf(t)
+	assert.Equal(t, CodeInvalidState, toolErr.Code)
+	assert.Equal(t, "winner_selected", toolErr.Status)
+}
+
+// A pause or a cancel replayed on a broadcast already in that state answers
+// success, read from the refusal the service makes under the row's lock.
+func TestPauseAndCancelBroadcast_AlreadyInTheTargetState(t *testing.T) {
+	for _, tc := range []struct {
+		tool, action, target string
+		call                 func(f *fixture) *gomock.Call
+	}{
+		{"pause_broadcast", "broadcasts.pause", "paused", func(f *fixture) *gomock.Call {
+			return f.broadcasts.EXPECT().PauseBroadcast(gomock.Any(), &domain.PauseBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"})
+		}},
+		{"cancel_broadcast", "broadcasts.cancel", "cancelled", func(f *fixture) *gomock.Call {
+			return f.broadcasts.EXPECT().CancelBroadcast(gomock.Any(), &domain.CancelBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"})
+		}},
+	} {
+		t.Run(tc.tool, func(t *testing.T) {
+			f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+			args := map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}
+
+			tc.call(f).Return(nil)
+			result := f.callTool(tc.tool, args)
+			assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":%q,"already":false}`, tc.target), string(result.StructuredContent))
+			row := audit.last(t)
+			assert.Equal(t, tc.action, row.Action)
+			assert.Equal(t, "bc1", row.TargetID)
+			assert.Equal(t, http.StatusOK, row.StatusCode)
+
+			tc.call(f).Return(fmt.Errorf("x: %w", domain.NewInvalidStateError("broadcast", "bc1", "y", tc.target)))
+			result = f.callTool(tc.tool, args)
+			assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":%q,"already":true}`, tc.target), string(result.StructuredContent))
+			row = audit.last(t)
+			assert.Equal(t, http.StatusOK, row.StatusCode)
+			assert.Equal(t, true, row.Metadata["already"])
+
+			tc.call(f).Return(domain.NewInvalidStateError("broadcast", "bc1", "y", "draft"))
+			toolErr := f.callTool(tc.tool, args).errorOf(t)
+			assert.Equal(t, CodeInvalidState, toolErr.Code)
+			assert.Equal(t, "draft", toolErr.Status)
+			assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestResumeBroadcast_ReportsWhereItWentBack(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	f.broadcasts.EXPECT().ResumeBroadcast(gomock.Any(), &domain.ResumeBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"}).Return(nil)
+	resumed := storedDraft()
+	resumed.Status = domain.BroadcastStatusTesting
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(resumed, nil)
+
+	result := f.callTool("resume_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"})
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":"testing","already":false}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "broadcasts.resume", row.Action)
+	assert.Equal(t, "newsletter", row.Metadata["list_id"])
+
+	// A replay meets a broadcast that is no longer paused.
+	f.broadcasts.EXPECT().ResumeBroadcast(gomock.Any(), gomock.Any()).Return(domain.NewInvalidStateError("broadcast", "bc1", "resume", "testing"))
+	toolErr := f.callTool("resume_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodeInvalidState, Message: "cannot resume broadcast bc1: its status is testing", Status: "testing"}, toolErr)
+}
+
+func TestDeleteBroadcast_RefusesWhatCouldStillSend(t *testing.T) {
+	for _, status := range []domain.BroadcastStatus{"processing", "paused", "testing", "test_completed", "winner_selected"} {
+		t.Run(string(status), func(t *testing.T) {
+			f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+			stored := storedDraft()
+			stored.Status = status
+			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
+			toolErr := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t)
+			assert.Equal(t, CodeInvalidState, toolErr.Code)
+			assert.Equal(t, string(status), toolErr.Status)
+			assert.Contains(t, toolErr.Message, "cancel_broadcast")
+			assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+		})
+	}
+
+	t.Run("a queue that still holds emails", func(t *testing.T) {
+		f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
+		stored := storedDraft()
+		stored.Status = domain.BroadcastStatusProcessed
+		f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
+		f.queue.EXPECT().GetSourceCounts(gomock.Any(), testWorkspaceID, domain.EmailQueueSourceBroadcast, "bc1").
+			Return(&domain.EmailQueueSourceCounts{Pending: 3, FailedRetrying: 1, FailedTerminal: 9}, nil)
+		toolErr := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t)
+		assert.Equal(t, ToolError{
+			Code:    CodeInvalidState,
+			Message: "broadcast bc1 still has 4 emails in its queue: cancel it with cancel_broadcast, or wait until they are sent, before deleting it",
+			Status:  "processed",
+		}, toolErr)
+	})
+}
+
+func TestDeleteBroadcast_DeletesThenAnswersNotFound(t *testing.T) {
+	for _, status := range []domain.BroadcastStatus{"draft", "scheduled", "processed", "failed", "cancelled"} {
+		t.Run(string(status), func(t *testing.T) {
+			f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+			stored := storedDraft()
+			stored.Status = status
+			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
+			// Rows given up on stay in the queue until its retention sweep, and send nothing.
+			f.queue.EXPECT().GetSourceCounts(gomock.Any(), testWorkspaceID, domain.EmailQueueSourceBroadcast, "bc1").
+				Return(&domain.EmailQueueSourceCounts{FailedTerminal: 2}, nil)
+			f.broadcasts.EXPECT().DeleteBroadcast(gomock.Any(), &domain.DeleteBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"}).Return(nil)
+
+			result := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"})
+			assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"deleted":true,"broadcast_id":"bc1"}`, string(result.StructuredContent))
+			row := audit.last(t)
+			assert.Equal(t, "broadcasts.delete", row.Action)
+			assert.Equal(t, domain.AuditTargetBroadcast, row.TargetType)
+			assert.Equal(t, "bc1", row.TargetID)
+			assert.Equal(t, "November newsletter", row.TargetName)
+			assert.Equal(t, http.StatusOK, row.StatusCode)
+
+			f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(nil, &domain.ErrBroadcastNotFound{ID: "bc1"})
+			assert.Equal(t, CodeNotFound, f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t).Code)
+			assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestBroadcastWriteTools_ServiceErrorsAreMapped(t *testing.T) {
+	f, _ := broadcastsWriteFixture(t, broadcastsWritePermission())
+	f.broadcasts.EXPECT().PauseBroadcast(gomock.Any(), gomock.Any()).Return(&domain.ErrBroadcastNotFound{ID: "bc1"})
+	assert.Equal(t, CodeNotFound, f.callTool("pause_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t).Code)
+	f.broadcasts.EXPECT().CancelBroadcast(gomock.Any(), gomock.Any()).Return(errors.New("pq: connection reset"))
+	assert.Equal(t, ToolError{Code: CodeInternal, Message: "internal error"}, f.callTool("cancel_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t))
+	f.broadcasts.EXPECT().ScheduleBroadcast(gomock.Any(), gomock.Any()).Return(domain.NewValidationError("sender s9 is not a sender of the marketing email integration"))
+	assert.Equal(t, CodeValidation, f.callTool("schedule_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1", "when": "now"}).errorOf(t).Code)
 }

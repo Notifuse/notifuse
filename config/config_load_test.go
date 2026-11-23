@@ -135,7 +135,7 @@ func TestLoadWithOptions_DefaultsAndEnvPrecedence(t *testing.T) {
 func TestLoadWithOptions_EnvValuesHoldOnlyTheEnvironment(t *testing.T) {
 	base := map[string]string{
 		"SECRET_KEY": loadTestSecret, "SMTP_FROM_NAME": "", "SMTP_BRIDGE_PORT": "", "SMTP_RELAY_PORT": "",
-		"TELEMETRY": "", "CHECK_FOR_UPDATES": "",
+		"TELEMETRY": "", "CHECK_FOR_UPDATES": "", "REQUIRE_TWO_FACTOR": "",
 	}
 
 	t.Run("nothing set", func(t *testing.T) {
@@ -145,6 +145,8 @@ func TestLoadWithOptions_EnvValuesHoldOnlyTheEnvironment(t *testing.T) {
 		assert.Zero(t, cfg.EnvValues.SMTPBridgePort)
 		assert.Empty(t, cfg.EnvValues.Telemetry)
 		assert.Empty(t, cfg.EnvValues.CheckForUpdates)
+		assert.Empty(t, cfg.EnvValues.RequireTwoFactor)
+		assert.False(t, cfg.RequireTwoFactor, "not installed and not set: nothing is required")
 		// The runtime still gets the built-in values.
 		assert.Equal(t, "Notifuse", cfg.SMTP.FromName)
 		assert.Equal(t, 587, cfg.SMTPBridge.Port)
@@ -159,12 +161,15 @@ func TestLoadWithOptions_EnvValuesHoldOnlyTheEnvironment(t *testing.T) {
 		env["SMTP_BRIDGE_PORT"] = "2600"
 		env["TELEMETRY"] = "1"
 		env["CHECK_FOR_UPDATES"] = "false"
+		env["REQUIRE_TWO_FACTOR"] = "1"
 		cfg, err := loadWithEnv(t, env)
 		require.NoError(t, err)
 		assert.Equal(t, "Acme", cfg.EnvValues.SMTPFromName)
 		assert.Equal(t, 2600, cfg.EnvValues.SMTPBridgePort)
 		assert.Equal(t, "true", cfg.EnvValues.Telemetry, "parsed as the runtime parses it")
 		assert.Equal(t, "false", cfg.EnvValues.CheckForUpdates)
+		assert.Equal(t, "true", cfg.EnvValues.RequireTwoFactor, "parsed as the runtime parses it")
+		assert.True(t, cfg.RequireTwoFactor)
 	})
 
 	t.Run("TELEMETRY=TRUE counts as true", func(t *testing.T) {

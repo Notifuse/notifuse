@@ -76,6 +76,18 @@ func writePermissionError(w http.ResponseWriter, err error) bool {
 		WriteJSONError(w, "API key has been revoked", http.StatusUnauthorized)
 		return true
 	}
+	// A session that is unknown, expired or not this user's: the caller is not
+	// authenticated. Only such a proven failure answers 401, never a lookup the database
+	// could not answer.
+	if errors.Is(err, domain.ErrSessionAuthFailed) {
+		WriteJSONError(w, "Session expired or invalid", http.StatusUnauthorized)
+		return true
+	}
+	// The instance requires two-factor authentication and this session did not pass it,
+	// or a step needs a recent sign-in: 403 with a code the console switches on.
+	if writeTwoFactorError(w, err) {
+		return true
+	}
 	// A licence refusal is answered before a permission denial because the two are
 	// different questions and only the status code separates them for a client: 403
 	// says the signed-in user lacks a grant, which no amount of money fixes, while

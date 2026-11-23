@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Dropdown, Tooltip, type MenuProps } from 'antd'
-import { Check, ChevronsUpDown, Languages, LogOut } from 'lucide-react'
+import { Check, ChevronsUpDown, Languages, LogOut, ShieldCheck } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { useLocale } from '../../contexts/LocaleContext'
 import { LANGUAGES, changeLanguage } from '../../i18n/languages'
@@ -16,6 +16,8 @@ export interface AccountMenuProps {
   role?: AccountRole
   collapsed: boolean
   onSignout: () => void
+  /** Opens account security (two-factor authentication). Without it, the entry is not shown. */
+  onOpenSecurity?: () => void
   /** Reports the menu opening and closing: an open menu holds the sidebar open. */
   onMenuOpenChange?: (open: boolean) => void
   getPopupContainer: () => HTMLElement
@@ -60,6 +62,7 @@ export function AccountMenu({
   role,
   collapsed,
   onSignout,
+  onOpenSecurity,
   onMenuOpenChange,
   getPopupContainer
 }: AccountMenuProps) {
@@ -80,6 +83,9 @@ export function AccountMenu({
 
   const items: MenuProps['items'] = [
     { key: 'email', label: email, disabled: true },
+    ...(onOpenSecurity
+      ? [{ key: 'security', icon: <ShieldCheck size={14} aria-hidden="true" />, label: t`Account security` }]
+      : []),
     {
       key: 'language',
       icon: <Languages size={14} aria-hidden="true" />,
@@ -106,6 +112,7 @@ export function AccountMenu({
 
   const handleClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'logout') onSignout()
+    else if (key === 'security') onOpenSecurity?.()
     else if (key.startsWith(LANGUAGE_PREFIX))
       changeLanguage(setLocale, key.slice(LANGUAGE_PREFIX.length) as Locale)
   }

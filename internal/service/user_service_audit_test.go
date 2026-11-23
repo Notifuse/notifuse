@@ -30,10 +30,9 @@ func TestUserService_LoginFailuresNameTheirReason(t *testing.T) {
 
 	t.Run("wrong magic code", func(t *testing.T) {
 		mockRepo, _, service, _ := setupUserTest(t)
-		code := "654321"
-		expires := time.Now().Add(15 * time.Minute)
 		mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "ann@example.com").Return(&domain.User{ID: "u1", Email: "ann@example.com"}, nil)
-		mockRepo.EXPECT().GetSessionsByUserID(gomock.Any(), "u1").Return([]*domain.Session{{ID: "s1", UserID: "u1", MagicCode: &code, MagicCodeExpires: &expires}}, nil)
+		expectMagicCode(txMocksOf(service), "u1", "000000", nil, nil, &domain.ErrSessionNotFound{Message: "none"})
+		txMocksOf(service).authTx.EXPECT().HasExpiredMagicCode(gomock.Any(), gomock.Any(), "u1", gomock.Any()).Return(false, nil)
 
 		record := domain.NewAuditRecord("", "", "")
 		_, err := service.VerifyCode(domain.WithAuditRecord(context.Background(), record), domain.VerifyCodeInput{Email: "ann@example.com", Code: "000000"})

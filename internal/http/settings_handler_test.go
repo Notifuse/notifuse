@@ -128,6 +128,9 @@ func setupSettingsHandlerWithRootEmail(t *testing.T, rootEmail string) (*Setting
 		rootEmail,
 		shutdowner,
 		licenseSvc,
+		&sessionViaUserService{users: userSvc},
+		&stubTwoFactor{},
+		"",
 	)
 
 	// Add root user to mock
@@ -389,6 +392,9 @@ func TestSettingsHandler_Get_EnvOverrides(t *testing.T) {
 		testRootEmail,
 		shutdowner,
 		newMockLicenseService(),
+		&sessionViaUserService{users: userSvc},
+		&stubTwoFactor{},
+		"",
 	)
 
 	userSvc.users["root-user-id"] = &domain.User{
@@ -455,6 +461,9 @@ func TestSettingsHandler_Get_EnvOverride_UsesLiveRootEmail(t *testing.T) {
 		resolvedRootEmails,
 		shutdowner,
 		newMockLicenseService(),
+		&sessionViaUserService{users: userSvc},
+		&stubTwoFactor{},
+		"",
 	)
 
 	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: testRootEmail, Type: domain.UserTypeUser}
@@ -525,6 +534,9 @@ func TestSettingsHandler_Get_EnvOverride_AllFieldsUseLiveValues(t *testing.T) {
 		envConfig.RootEmail,
 		shutdowner,
 		newMockLicenseService(),
+		&sessionViaUserService{users: userSvc},
+		&stubTwoFactor{},
+		"",
 	)
 	// Root user's email must match the env-configured root for authorization.
 	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: "env-root@example.com", Type: domain.UserTypeUser}

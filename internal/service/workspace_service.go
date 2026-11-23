@@ -40,6 +40,7 @@ type WorkspaceService struct {
 	dnsVerificationService CustomDomainVerifier
 	blogService            *BlogService
 	entitlements           domain.EntitlementProvider
+	invitationAuth         WorkspaceInvitationAuth
 	// dkimKeys drops the cached DKIM keys of a deleted workspace, so that a workspace
 	// created again under the same ID never signs with them.
 	dkimKeys interface{ Invalidate(workspaceID string) }
@@ -85,6 +86,7 @@ func NewWorkspaceService(
 	dnsVerificationService CustomDomainVerifier,
 	blogService *BlogService,
 	entitlements domain.EntitlementProvider,
+	invitationAuth WorkspaceInvitationAuth,
 ) *WorkspaceService {
 	return &WorkspaceService{
 		repo:                   repo,
@@ -105,7 +107,20 @@ func NewWorkspaceService(
 		dnsVerificationService: dnsVerificationService,
 		blogService:            blogService,
 		entitlements:           entitlements,
+		invitationAuth:         invitationAuth,
 	}
+}
+
+// WorkspaceInvitationAuth is what accepting an invitation needs to open a session in one
+// transaction, under the invitee's lock, and to hold it for the second factor when the
+// invitee has two-factor authentication.
+type WorkspaceInvitationAuth struct {
+	Tx           domain.SystemTxRunner
+	AuthTx       domain.AuthTxRepository
+	TwoFactor    domain.TwoFactorRepository
+	InvitationTx domain.InvitationTxRepository
+	// SessionExpiry is how long the session lasts; zero means 30 days.
+	SessionExpiry time.Duration
 }
 
 // isLicensedFor reports whether this deployment may use a licensed capability.
@@ -158,8 +173,12 @@ func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Worksp
 		return nil, err
 	}
 
-	// Platform admins (ROOT_EMAIL) have owner access to every workspace, so they see them all.
+	// Platform admins (ROOT_EMAIL) have owner access to every workspace, so they see them all,
+	// from a session that passed the second factor when they have two-factor authentication.
 	if s.config.IsRootEmail(user.Email) {
+		if err := s.authService.RequireCompliantRootSession(ctx); err != nil {
+			return nil, err
+		}
 		return s.repo.List(ctx)
 	}
 
@@ -256,6 +275,11 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	if !s.config.IsRootEmail(user.Email) {
 		s.logger.WithField("user_email", user.Email).WithField("root_email", s.config.RootEmail).Error("Non-root user attempted to create workspace")
 		return nil, &domain.ErrUnauthorized{Message: "only root user can create workspaces"}
+	}
+	// A root user with two-factor authentication creates workspaces only from a session
+	// that passed it, even where the instance does not require it.
+	if err := s.authService.RequireCompliantRootSession(ctx); err != nil {
+		return nil, err
 	}
 
 	if err := domain.ValidateNewWorkspaceID(id); err != nil {
@@ -1833,105 +1857,181 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		return nil, domain.ErrInvitationUnavailable
 	}
 	if err != nil {
-		// User doesn't exist, create a new one
+		// No account yet: created in the transaction below, and kept only if it commits.
+		now := time.Now().UTC()
 		user = &domain.User{
 			ID:        uuid.New().String(),
 			Email:     invitation.Email,
-			Name:      "", // User can update this later
 			Type:      domain.UserTypeUser,
-			CreatedAt: time.Now().UTC(),
-			UpdatedAt: time.Now().UTC(),
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
-
-		err = s.userRepo.CreateUser(ctx, user)
-		var userExists *domain.ErrUserExists
-		if errors.As(err, &userExists) {
-			// Created a moment ago by the same link accepted twice at once.
-			audit.Fail("already_member")
-			return nil, domain.ErrInvitationUnavailable
-		}
-		if err != nil {
-			s.logger.WithField("email", invitation.Email).WithField("error", err.Error()).Error("Failed to create user for invitation acceptance")
-			return nil, fmt.Errorf("failed to create user: %w", err)
-		}
-
-		s.logger.WithField("user_id", user.ID).WithField("email", invitation.Email).Info("Created new user from invitation acceptance")
 	} else {
 		user = existingUser
-
-		// Check if user is already a member of the workspace
-		isMember, err := s.repo.IsUserWorkspaceMember(ctx, user.ID, workspaceID)
-		if err != nil {
-			s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to check if user is already a member")
-			return nil, fmt.Errorf("failed to check workspace membership: %w", err)
-		}
-
-		if isMember {
-			s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).Info("User is already a member of the workspace")
-			// Delete the invitation since it's no longer needed
-			if err := s.repo.DeleteInvitationByEmail(ctx, workspaceID, invitation.Email); err != nil {
-				s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after finding user is already a member")
-			}
-			// Typically the same link accepted twice at once: it has nothing left to open.
-			audit.Fail("already_member")
-			return nil, domain.ErrInvitationUnavailable
-		}
 	}
 
-	// Check team member limit before adding to workspace. The invitation being accepted is
-	// left out of the count: it is deleted once the user is added — accepting converts an
-	// invitation into a member (net-zero change), so it should not block acceptance.
-	if err := s.ensureSeat(ctx, workspaceID, invitation.Email); err != nil {
+	return s.acceptInvitationTx(ctx, invitation, user, existingUser == nil)
+}
+
+// acceptInvitationTx opens the invitee's session in one transaction that takes the user's
+// row, user_totp, then the session, the invitation and the membership, in that order.
+//
+// An invitee with two-factor authentication gets no token: the session waits for the
+// second factor and carries the invitation, which user.twoFactor.verify accepts once the
+// code is right (TwoFactorService.acceptPendingInvitation). Anyone else joins now, as
+// before: a member already in the workspace is refused, the invitation is deleted.
+func (s *WorkspaceService) acceptInvitationTx(ctx context.Context, invitation *domain.WorkspaceInvitation, user *domain.User, create bool) (*domain.AuthResponse, error) {
+	audit := domain.AuditFromContext(ctx)
+	deps := s.invitationAuth
+	expiry := deps.SessionExpiry
+	if expiry <= 0 {
+		expiry = 30 * 24 * time.Hour
+	}
+
+	var session *domain.Session
+	var challenge *domain.TwoFactorChallenge
+	err := deps.Tx.WithSystemTx(ctx, func(tx domain.DBExecutor) error {
+		if create {
+			created, err := deps.AuthTx.CreateUserIfAbsent(ctx, tx, user)
+			if err != nil {
+				return fmt.Errorf("failed to create user: %w", err)
+			}
+			if !created {
+				// Created a moment ago: by the same link accepted twice at once, or by a
+				// single sign-on in another tab. Go on with that account; the membership check
+				// below tells the two apart.
+				existing, err := s.userRepo.GetUserByEmailInsensitive(ctx, user.Email)
+				if err != nil || existing.Type != domain.UserTypeUser {
+					audit.Fail("already_member")
+					return domain.ErrInvitationUnavailable
+				}
+				*user = *existing
+			}
+		}
+		if err := deps.AuthTx.LockUser(ctx, tx, user.ID); err != nil {
+			return err
+		}
+		totpRow, err := deps.TwoFactor.GetTOTPForUpdate(ctx, tx, user.ID)
+		if err != nil {
+			return err
+		}
+		now, err := deps.TwoFactor.ClockTimestamp(ctx, tx)
+		if err != nil {
+			return err
+		}
+		session = &domain.Session{
+			ID:        uuid.New().String(),
+			UserID:    user.ID,
+			ExpiresAt: now.Add(expiry),
+			CreatedAt: now,
+		}
+
+		if totpRow.Enabled() {
+			// One challenge per invitation and person: a link clicked again replaces the
+			// earlier one, and expired ones go, so the link cannot fill the sessions table.
+			if err := deps.AuthTx.PurgeExpiredPendingSessions(ctx, tx, user.ID); err != nil {
+				return err
+			}
+			if err := deps.AuthTx.DeleteInvitationChallenges(ctx, tx, user.ID, invitation.ID); err != nil {
+				return err
+			}
+			// The invitation must still open something before a challenge is issued for it.
+			_, expired, err := deps.InvitationTx.LockInvitation(ctx, tx, invitation.ID)
+			if errors.Is(err, domain.ErrInvitationNotFound) || (err == nil && expired) {
+				audit.Fail("invitation_not_found")
+				return domain.ErrInvitationUnavailable
+			}
+			if err != nil {
+				return err
+			}
+			if err := deps.AuthTx.CreateSession(ctx, tx, session); err != nil {
+				return fmt.Errorf("failed to create session: %w", err)
+			}
+			token, hash, err := NewChallenge()
+			if err != nil {
+				return err
+			}
+			expiresAt := now.Add(domain.ChallengeTTL)
+			invitationID := invitation.ID
+			if err := deps.AuthTx.SetSessionChallenge(ctx, tx, session.ID, domain.AuthMethodInvitation, hash, expiresAt, &invitationID); err != nil {
+				return err
+			}
+			challenge = &domain.TwoFactorChallenge{Token: token, ExpiresAt: expiresAt}
+			return nil
+		}
+
+		locked, expired, err := deps.InvitationTx.LockInvitation(ctx, tx, invitation.ID)
+		if errors.Is(err, domain.ErrInvitationNotFound) || (err == nil && expired) {
+			audit.Fail("invitation_not_found")
+			return domain.ErrInvitationUnavailable
+		}
+		if err != nil {
+			return err
+		}
+		member, err := deps.InvitationTx.IsUserWorkspaceMember(ctx, tx, user.ID, locked.WorkspaceID)
+		if err != nil {
+			return fmt.Errorf("failed to check workspace membership: %w", err)
+		}
+		if member {
+			// Typically the same link accepted twice at once: it has nothing left to open.
+			// The deleted invitation is committed; no session is opened.
+			if err := deps.InvitationTx.DeleteInvitationsByEmail(ctx, tx, locked.WorkspaceID, locked.Email); err != nil {
+				return err
+			}
+			audit.Fail("already_member")
+			return domain.CommitAndFail(domain.ErrInvitationUnavailable)
+		}
+		// Accepting turns an invitation into a member: its own seat is left out of the count.
+		if s.config.MaxUsers > 0 {
+			count, err := deps.InvitationTx.CountWorkspaceMembersAndInvitations(ctx, tx, locked.WorkspaceID, locked.Email)
+			if err != nil {
+				return err
+			}
+			if count >= s.config.MaxUsers {
+				return &domain.ErrTeamMemberLimitReached{Limit: s.config.MaxUsers, Current: count}
+			}
+		}
+		// A new session row is no lock anyone waits for: inserted here, after the
+		// invitation's checks, it is never left behind by a refusal that commits.
+		session.AuthMethod, session.AuthenticatedAt = domain.AuthMethodInvitation, &now
+		if err := deps.AuthTx.CreateSession(ctx, tx, session); err != nil {
+			return fmt.Errorf("failed to create session: %w", err)
+		}
+		// Every spelling of the address, so a case-variant twin does not keep holding a seat.
+		// Before the membership: workspace_invitations comes before user_workspaces in the
+		// lock order.
+		if err := deps.InvitationTx.DeleteInvitationsByEmail(ctx, tx, locked.WorkspaceID, locked.Email); err != nil {
+			return err
+		}
+		if _, err := deps.InvitationTx.AddUserToWorkspaceIfAbsent(ctx, tx, &domain.UserWorkspace{
+			UserID:      user.ID,
+			WorkspaceID: locked.WorkspaceID,
+			Role:        "member", // Always set invited users as members
+			Permissions: locked.Permissions,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}); err != nil {
+			return fmt.Errorf("failed to add user to workspace: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		s.logger.WithField("invitation_id", invitation.ID).WithField("error", err.Error()).Warn("Invitation acceptance failed")
 		return nil, err
 	}
 
-	// Add user to workspace as a member with permissions from invitation
-	userWorkspace := &domain.UserWorkspace{
-		UserID:      user.ID,
-		WorkspaceID: workspaceID,
-		Role:        "member",               // Always set invited users as members
-		Permissions: invitation.Permissions, // Use permissions from invitation
-		CreatedAt:   time.Now().UTC(),
-		UpdatedAt:   time.Now().UTC(),
-	}
-
-	err = s.repo.AddUserToWorkspace(ctx, userWorkspace)
-	if err != nil {
-		s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to add user to workspace")
-		return nil, fmt.Errorf("failed to add user to workspace: %w", err)
-	}
-
-	// Create a new session for the user
-	sessionExpiry := time.Now().Add(24 * time.Hour * 30) // 30 days
-	session := &domain.Session{
-		ID:        uuid.New().String(),
-		UserID:    user.ID,
-		ExpiresAt: sessionExpiry,
-		CreatedAt: time.Now().UTC(),
-	}
-
-	err = s.userRepo.CreateSession(ctx, session)
-	if err != nil {
-		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to create session for invitation acceptance")
-		return nil, fmt.Errorf("failed to create session: %w", err)
-	}
-
-	// Generate authentication token
-	token := s.authService.GenerateUserAuthToken(user, session.ID, session.ExpiresAt)
-
-	// Delete the invitation after successful acceptance — every spelling of the address, so a
-	// case-variant twin does not keep holding a seat.
-	err = s.repo.DeleteInvitationByEmail(ctx, workspaceID, invitation.Email)
-	if err != nil {
-		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after successful acceptance")
-		// Don't return error here as the main operation succeeded
-	}
-
-	s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("invitation_id", invitationID).Info("Successfully accepted invitation and created session")
-
 	// The invitee is the actor: this request carries no session yet.
 	audit.SetActor(user, nil, false)
+	if challenge != nil {
+		if audit != nil {
+			audit.AddMetadata("stage", "second_factor_required")
+		}
+		s.logger.WithField("user_id", user.ID).WithField("invitation_id", invitation.ID).Info("Invitation waits for the invitee's second factor")
+		return &domain.AuthResponse{User: *user, Challenge: challenge}, nil
+	}
 
+	s.logger.WithField("user_id", user.ID).WithField("workspace_id", invitation.WorkspaceID).WithField("invitation_id", invitation.ID).Info("Successfully accepted invitation and created session")
+	token := s.authService.GenerateUserAuthToken(user, session.ID, session.ExpiresAt)
 	return &domain.AuthResponse{
 		Token:     token,
 		User:      *user,
@@ -2124,6 +2224,12 @@ func (s *WorkspaceService) DeleteInvitation(ctx context.Context, invitationID st
 		// Bypass only the genuine "not a member" case for platform admins so real DB errors
 		// still surface instead of being silently treated as authorized.
 		rootBypass := errors.Is(err, domain.ErrUserNotInWorkspace) && s.config.IsRootEmail(user.Email)
+		if rootBypass {
+			// Owner access to every workspace needs the second factor when root has it.
+			if err := s.authService.RequireCompliantRootSession(ctx); err != nil {
+				return err
+			}
+		}
 		if !rootBypass {
 			s.logger.WithField("workspace_id", invitation.WorkspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("User does not have access to this workspace")
 			return &domain.ErrUnauthorized{Message: "You do not have access to this workspace"}

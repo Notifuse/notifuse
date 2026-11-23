@@ -11,7 +11,22 @@ import {
 } from "./errors";
 import { licenseRefusalFromBody, licenseRefusedMessage } from "./licenseErrors";
 
-async function handleResponse<T>(response: Response): Promise<T> {
+// Root routes answer two_factor_required for a root user's session opened without the second
+// factor; their screens explain it themselves (RootSessionRefused).
+const ROOT_ROUTE = /^\/api\/(licence\.|settings\.|auditLogs\.|workspaces\.create\b)/;
+
+// The pages a two_factor_required refusal leaves where they are: the security page itself,
+// the sign-in pages, and workspace creation (a root screen that explains it).
+const STAY_ON_TWO_FACTOR_REFUSAL = new Set([
+  "/console/account/security",
+  "/console/workspace/create",
+  "/console/signin",
+  "/console/accept-invitation",
+  "/console/logout",
+  "/console/setup",
+]);
+
+async function handleResponse<T>(response: Response, endpoint = ""): Promise<T> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
 
@@ -33,6 +48,21 @@ async function handleResponse<T>(response: Response): Promise<T> {
       if (window.location.pathname !== "/console/signin") {
         router.navigate({ to: "/console/signin" });
       }
+    }
+
+    // The instance requires two-factor authentication and this session has not passed it,
+    // say because the root user switched the requirement on while the console was open. The
+    // account security page is the one place the session can go; a 403, unlike a 401, keeps
+    // the token. Root routes answer the same code for a root user's session without a second
+    // factor, and those screens explain it themselves: only workspace routes move the page.
+    if (
+      response.status === 403 &&
+      errorData?.error === "two_factor_required" &&
+      !ROOT_ROUTE.test(endpoint) &&
+      window.location.pathname.startsWith("/console") &&
+      !STAY_ON_TWO_FACTOR_REFUSAL.has(window.location.pathname.replace(/\/$/, ""))
+    ) {
+      router.navigate({ to: "/console/account/security" });
     }
 
     // A permission denial carries the missing grant alongside its message. Swapping in a
@@ -63,9 +93,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 // A non-2xx answer is turned into the same ApiError a JSON request would throw,
 // so a refused download reads exactly like a refused request.
-async function throwIfNotOk(response: Response): Promise<void> {
+async function throwIfNotOk(response: Response, endpoint = ""): Promise<void> {
   if (response.ok) return;
-  await handleResponse<never>(response);
+  await handleResponse<never>(response, endpoint);
 }
 
 /** The address every console request goes to: API_ENDPOINT, else this page's origin. */
@@ -108,7 +138,7 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const response = await fetchWithAuth(endpoint, options);
-  return handleResponse<T>(response);
+  return handleResponse<T>(response, endpoint);
 }
 
 export const api = {
@@ -134,7 +164,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     });
-    await throwIfNotOk(response);
+    await throwIfNotOk(response, endpoint);
     return response.blob();
   },
 };

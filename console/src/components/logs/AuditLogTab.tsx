@@ -50,6 +50,8 @@ import { defaultAuditPeriod } from './period'
 import { useLogsUrl } from './useLogsUrl'
 import { TextFilter } from './TextFilter'
 import { useDebouncedUrlValue } from '../../lib/useDebouncedUrlValue'
+import { twoFactorErrorCode } from '../../services/api/twoFactor'
+import { RootSessionRefused } from '../two_factor/RootSessionRefused'
 
 const PAGE_SIZE = 50
 
@@ -548,6 +550,12 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
     body = (
       <div className="p-3.5">
         <Skeleton active title={false} paragraph={{ rows: 8 }} />
+      </div>
+    )
+  } else if (listQuery.isError && twoFactorErrorCode(listQuery.error) === 'two_factor_required') {
+    body = (
+      <div className="p-3.5">
+        <RootSessionRefused title={t`Sign in again to read the platform audit log`} />
       </div>
     )
   } else if (listQuery.isError) {

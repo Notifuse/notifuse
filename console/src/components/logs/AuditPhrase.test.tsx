@@ -7,7 +7,12 @@ import { AuditPhrase } from './AuditPhrase'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
-const renderPhrase = (entry: { action: string; target_name?: string; target_id?: string }) =>
+const renderPhrase = (entry: {
+  action: string
+  target_name?: string
+  target_id?: string
+  metadata?: Record<string, unknown>
+}) =>
   render(
     <I18nProvider i18n={i18n}>
       <App>
@@ -47,5 +52,27 @@ describe('AuditPhrase', () => {
   it('shows an action the console does not know by its route name', () => {
     renderPhrase({ action: 'contacts.merge', target_name: 'Ann' })
     expect(screen.getByText('contacts.merge').tagName).toBe('CODE')
+  })
+
+  it('says a subscription brought back a contact who had opted out', () => {
+    const { container } = renderPhrase({
+      action: 'lists.subscribe',
+      target_id: 'jane@example.com',
+      metadata: { resubscribed_list_ids: ['news'] }
+    })
+    expect(container).toHaveTextContent('Re-subscribed the contact jane@example.com after they unsubscribed')
+  })
+
+  it('writes an ordinary subscription change, which only an MCP tool records', () => {
+    const subscribe = renderPhrase({
+      action: 'lists.subscribe',
+      target_id: 'jane@example.com',
+      metadata: { channel: 'mcp' }
+    })
+    expect(subscribe.container).toHaveTextContent('Subscribed the contact jane@example.com to a list')
+    subscribe.unmount()
+
+    const status = renderPhrase({ action: 'contactLists.updateStatus', target_id: 'jane@example.com' })
+    expect(status.container).toHaveTextContent('Changed the list status of the contact jane@example.com')
   })
 })

@@ -53,6 +53,7 @@ func TestWorkspaceService_AddUserToWorkspace(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -186,6 +187,7 @@ func TestWorkspaceService_RemoveUserFromWorkspace(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Setup common logger expectations
@@ -334,6 +336,7 @@ func TestWorkspaceService_TransferOwnership(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -516,6 +519,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -739,6 +743,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		&DNSVerificationService{},
 		&BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	// Set up mockLogger to allow any calls
@@ -1202,6 +1207,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		// Set up mock expectations
@@ -1270,6 +1276,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1310,6 +1317,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1355,6 +1363,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1404,6 +1413,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1490,6 +1500,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 					&DNSVerificationService{},
 					&BlogService{},
 					fullyLicensedProvider(ctrl),
+					WorkspaceInvitationAuth{},
 				)
 
 				mockAuthSvc.EXPECT().
@@ -1546,6 +1557,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 				&DNSVerificationService{},
 				&BlogService{},
 				fullyLicensedProvider(ctrl),
+				WorkspaceInvitationAuth{},
 			), mockRepo, mockUserRepo, mockAuthSvc
 		}
 
@@ -1647,6 +1659,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1692,6 +1705,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		// The sentinel is a plain error, so it has to be translated for the handler to
@@ -1735,6 +1749,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1785,6 +1800,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1830,6 +1846,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail_PlatformAdmins(t *testing
 		mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
 		&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -1904,6 +1921,7 @@ func TestWorkspaceService_InviteMember_RejectsRootEmail(t *testing.T) {
 		mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
 		&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 
 	ctx := context.Background()
@@ -1954,6 +1972,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail_Names(t *testing.T) {
 			&DNSVerificationService{},
 			&BlogService{},
 			fullyLicensedProvider(ctrl),
+			WorkspaceInvitationAuth{},
 		)
 		return service, mockRepo, mockUserSvc, mockAuthSvc
 	}

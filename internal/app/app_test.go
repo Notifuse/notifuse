@@ -732,10 +732,52 @@ func TestAppInitSecretKey(t *testing.T) {
 		return sqlmock.NewRows([]string{"key", "value"}).AddRow(name, value)
 	}
 
+	const userTOTPs = `SELECT user_id, secret_encrypted FROM user_totp`
+	userTOTP := func(t *testing.T, key string) *sqlmock.Rows {
+		t.Helper()
+		const userID = "6f1c2a7e-0b5d-4c1e-9a3f-2d8e7b6c5a41"
+		aad, err := domain.TOTPAAD(userID)
+		require.NoError(t, err)
+		value, err := pkgCrypto.EncryptStringAAD("JBSWY3DPEHPK3PXP", key, aad)
+		require.NoError(t, err)
+		return sqlmock.NewRows([]string{"user_id", "secret_encrypted"}).AddRow(userID, value)
+	}
+
 	t.Run("a single key starts when nothing is stored", func(t *testing.T) {
 		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
 		mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"id", "key"}))
 		mock.ExpectQuery(encryptedSettings).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+		mock.ExpectQuery(userTOTPs).WillReturnRows(sqlmock.NewRows([]string{"user_id", "secret_encrypted"}))
+
+		require.NoError(t, app.InitSecretKey())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// With no workspace and no encrypted setting, the authenticator secrets are the data
+	// under the key: a key that opens none of them would lock every enrolled person out.
+	t.Run("with nothing else stored, a single key that opens no authenticator secret stops the start", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"id", "key"}))
+		mock.ExpectQuery(encryptedSettings).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+		mock.ExpectQuery(userTOTPs).WillReturnRows(userTOTP(t, previous))
+		// The other forms of the key are tried too.
+		for range 2 {
+			mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"id", "key"}))
+			mock.ExpectQuery(encryptedSettings).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+			mock.ExpectQuery(userTOTPs).WillReturnRows(userTOTP(t, previous))
+		}
+
+		err := app.InitSecretKey()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SECRET_KEY does not open the authenticator secret stored in the database")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("with nothing else stored, a single key that opens an authenticator secret starts", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"id", "key"}))
+		mock.ExpectQuery(encryptedSettings).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+		mock.ExpectQuery(userTOTPs).WillReturnRows(userTOTP(t, current))
 
 		require.NoError(t, app.InitSecretKey())
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -894,6 +936,7 @@ func TestAppInitSecretKey(t *testing.T) {
 		mock.ExpectQuery(`FROM settings`).WillReturnRows(
 			sqlmock.NewRows([]string{"key", "value"}).AddRow("encrypted_smtp_password", old))
 		mock.ExpectExec(`UPDATE settings`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(`FROM user_totp`).WillReturnRows(sqlmock.NewRows([]string{"user_id", "secret_encrypted", "pending_secret_encrypted"}))
 		mock.ExpectCommit()
 
 		require.NoError(t, app.InitSecretKey())
@@ -930,6 +973,7 @@ func TestAppInitSecretKey(t *testing.T) {
 			sqlmock.NewRows([]string{"key", "value"}).
 				AddRow("encrypted_oidc_client_secret", kept).
 				AddRow("encrypted_smtp_password", lost))
+		mock.ExpectQuery(`FROM user_totp`).WillReturnRows(sqlmock.NewRows([]string{"user_id", "secret_encrypted", "pending_secret_encrypted"}))
 		mock.ExpectCommit()
 
 		require.NoError(t, app.InitSecretKey())
@@ -959,6 +1003,7 @@ func TestAppInitSecretKey(t *testing.T) {
 		mock.ExpectQuery(`FROM workspaces`).WillReturnRows(sqlmock.NewRows([]string{"id", "settings", "integrations"}))
 		mock.ExpectQuery(`FROM settings`).WillReturnRows(
 			sqlmock.NewRows([]string{"key", "value"}).AddRow("encrypted_smtp_password", stored))
+		mock.ExpectQuery(`FROM user_totp`).WillReturnRows(sqlmock.NewRows([]string{"user_id", "secret_encrypted", "pending_secret_encrypted"}))
 		mock.ExpectCommit()
 
 		require.NoError(t, app.InitSecretKey())

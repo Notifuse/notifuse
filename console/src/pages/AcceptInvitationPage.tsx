@@ -7,6 +7,9 @@ import { MainLayout } from '../layouts/MainLayout'
 import type { VerifyInvitationTokenResponse } from '../services/api/types'
 import { useLingui } from '@lingui/react/macro'
 import dayjs from '../lib/dayjs'
+import { isTwoFactorChallenge } from '../services/api/auth'
+import type { VerifyChallengeResponse } from '../services/api/twoFactor'
+import { TwoFactorChallengeForm } from '../components/two_factor/TwoFactorChallengeForm'
 
 const { Title, Text } = Typography
 
@@ -20,6 +23,8 @@ export function AcceptInvitationPage() {
   const [accepted, setAccepted] = useState(false)
   const [invitationData, setInvitationData] = useState<VerifyInvitationTokenResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // The invitee has two-factor authentication: the invitation is accepted once the code passes.
+  const [challengeToken, setChallengeToken] = useState<string | null>(null)
   const { message } = App.useApp()
 
   // Get token from URL parameter
@@ -73,6 +78,11 @@ export function AcceptInvitationPage() {
       // Mark invitation as accepted immediately to prevent re-verification
       setAccepted(true)
 
+      if (isTwoFactorChallenge(response)) {
+        setChallengeToken(response.challenge_token)
+        return
+      }
+
       // Sign in the user with the returned token
       await signin(response.token)
 
@@ -91,8 +101,40 @@ export function AcceptInvitationPage() {
     }
   }
 
+  // The second factor passed: signed in, and the invitation's outcome said.
+  const handleSecondFactor = async (response: VerifyChallengeResponse) => {
+    await signin(response.token)
+    if (response.invitation_status === 'team_member_limit') {
+      message.warning(t`You're signed in, but the workspace has no seat left. Ask its owner to make room, then open the invitation again.`)
+    } else if (response.invitation_status === 'invitation_unavailable') {
+      message.info(t`You're signed in. This invitation was already used or has expired.`)
+    } else {
+      message.success(t`Invitation accepted successfully! Welcome to the workspace.`)
+    }
+    setTimeout(() => {
+      navigate({ to: '/console' })
+    }, 100)
+  }
+
   const handleDecline = () => {
     navigate({ to: '/console/signin' })
+  }
+
+  if (challengeToken) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-48px)]">
+          <Card title={t`Authentication code`} style={{ width: 400 }}>
+            <p className="mb-6">{t`Enter the code from your authenticator app to accept the invitation.`}</p>
+            <TwoFactorChallengeForm
+              challengeToken={challengeToken}
+              onSignedIn={handleSecondFactor}
+              onRestart={() => navigate({ to: '/console/signin' })}
+            />
+          </Card>
+        </div>
+      </MainLayout>
+    )
   }
 
   if (loading) {

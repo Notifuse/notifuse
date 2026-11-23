@@ -41,7 +41,7 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *mocks.MockUserServiceInt
 	// to. Tests that care about the licence overwrite handler.licenseService — the field is
 	// unexported and these tests are in-package, the same way the settings handler's licence
 	// tests do it. mockLicenseService is declared in settings_handler_test.go.
-	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), cfg, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
+	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), &sessionViaUserService{users: mockUserSvc}, &stubTwoFactor{}, cfg, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 	return handler, mockUserSvc, mockWorkspaceSvc, jwtSecret
 }
@@ -55,8 +55,8 @@ func TestUserHandler_SignIn(t *testing.T) {
 
 	// Create handlers with different configs
 	getJWTSecret := func() ([]byte, error) { return jwtSecret, nil }
-	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), devConfig, getJWTSecret, &pkgmocks.MockLogger{})
-	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), prodConfig, getJWTSecret, &pkgmocks.MockLogger{})
+	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), &sessionViaUserService{users: mockUserSvc}, &stubTwoFactor{}, devConfig, getJWTSecret, &pkgmocks.MockLogger{})
+	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), &sessionViaUserService{users: mockUserSvc}, &stubTwoFactor{}, prodConfig, getJWTSecret, &pkgmocks.MockLogger{})
 
 	tests := []struct {
 		name         string
@@ -483,7 +483,7 @@ func TestUserHandler_Logout(t *testing.T) {
 			Return(nil)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/user.logout", nil)
-		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx := personSession(req.Context(), mockUserSvc, userID)
 		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 
@@ -520,7 +520,7 @@ func TestUserHandler_Logout(t *testing.T) {
 			Return(fmt.Errorf("database error"))
 
 		req := httptest.NewRequest(http.MethodPost, "/api/user.logout", nil)
-		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx := personSession(req.Context(), mockUserSvc, userID)
 		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 
@@ -558,7 +558,7 @@ func TestUserHandler_UpdateLanguage(t *testing.T) {
 
 		body, _ := json.Marshal(map[string]string{"language": "fr"})
 		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
-		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, userID))
+		req = req.WithContext(personSession(req.Context(), mockUserSvc, userID))
 		rec := httptest.NewRecorder()
 
 		handler.UpdateLanguage(rec, req)
@@ -576,7 +576,7 @@ func TestUserHandler_UpdateLanguage(t *testing.T) {
 
 		body, _ := json.Marshal(map[string]string{"language": "xx"})
 		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
-		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, "test-user"))
+		req = req.WithContext(personSession(req.Context(), mockUserSvc, "test-user"))
 		rec := httptest.NewRecorder()
 
 		handler.UpdateLanguage(rec, req)
@@ -586,7 +586,7 @@ func TestUserHandler_UpdateLanguage(t *testing.T) {
 
 	t.Run("invalid request body with 400", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader([]byte("not json")))
-		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, "test-user"))
+		req = req.WithContext(personSession(req.Context(), mockUserSvc, "test-user"))
 		rec := httptest.NewRecorder()
 
 		handler.UpdateLanguage(rec, req)
@@ -613,7 +613,7 @@ func TestUserHandler_UpdateLanguage(t *testing.T) {
 
 		body, _ := json.Marshal(map[string]string{"language": "fr"})
 		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
-		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, userID))
+		req = req.WithContext(personSession(req.Context(), mockUserSvc, userID))
 		rec := httptest.NewRecorder()
 
 		handler.UpdateLanguage(rec, req)
@@ -630,7 +630,7 @@ func TestUserHandler_UpdateLanguage(t *testing.T) {
 
 		body, _ := json.Marshal(map[string]string{"language": "de"})
 		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
-		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, userID))
+		req = req.WithContext(personSession(req.Context(), mockUserSvc, userID))
 		rec := httptest.NewRecorder()
 
 		handler.UpdateLanguage(rec, req)
@@ -1245,4 +1245,44 @@ func TestUserHandler_GetCurrentUserCheckForUpdates(t *testing.T) {
 		assert.NotContains(t, body, "check_for_updates")
 		assert.NotContains(t, body, "version")
 	})
+}
+
+// personSession is the context of a console session of userID that VerifyUserSession
+// accepts.
+func personSession(ctx context.Context, users *mocks.MockUserServiceInterface, userID string) context.Context {
+	users.EXPECT().VerifyUserSession(gomock.Any(), userID, "test-session").Return(&domain.User{ID: userID}, nil).AnyTimes()
+	ctx = context.WithValue(ctx, domain.UserIDKey, userID)
+	ctx = context.WithValue(ctx, domain.SessionIDKey, "test-session")
+	return context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+}
+
+// user.logout and user.updateLanguage check the session (an API key may not use them),
+// without the instance's two-factor requirement.
+func TestUserHandler_PersonRoutesCheckTheSession(t *testing.T) {
+	routes := map[string]func(h *UserHandler) http.HandlerFunc{
+		"logout":         func(h *UserHandler) http.HandlerFunc { return h.Logout },
+		"updateLanguage": func(h *UserHandler) http.HandlerFunc { return h.UpdateLanguage },
+	}
+	for name, route := range routes {
+		t.Run(name+": an API key gets 403", func(t *testing.T) {
+			handler, _, _, _ := setupUserHandlerTest(t)
+			req := httptest.NewRequest(http.MethodPost, "/api/user."+name, bytes.NewReader([]byte(`{"language":"fr"}`)))
+			ctx := context.WithValue(req.Context(), domain.UserIDKey, "key-user")
+			ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
+			rec := httptest.NewRecorder()
+			route(handler)(rec, req.WithContext(ctx))
+			assert.Equal(t, http.StatusForbidden, rec.Code)
+		})
+		t.Run(name+": a session gone gets 401", func(t *testing.T) {
+			handler, users, _, _ := setupUserHandlerTest(t)
+			users.EXPECT().VerifyUserSession(gomock.Any(), "u1", "s1").Return(nil, fmt.Errorf("%w: expired", domain.ErrSessionAuthFailed))
+			req := httptest.NewRequest(http.MethodPost, "/api/user."+name, bytes.NewReader([]byte(`{"language":"fr"}`)))
+			ctx := context.WithValue(req.Context(), domain.UserIDKey, "u1")
+			ctx = context.WithValue(ctx, domain.SessionIDKey, "s1")
+			ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+			rec := httptest.NewRecorder()
+			route(handler)(rec, req.WithContext(ctx))
+			assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		})
+	}
 }

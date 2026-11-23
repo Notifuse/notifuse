@@ -11,6 +11,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,8 +47,8 @@ func managerOneVersionBehind(t *testing.T) (*Manager, sqlmock.Sqlmock, *sql.DB, 
 
 // latestWorkspaceMigrationVersion is the highest registered migration that updates the
 // workspace databases: these tests drive the dispatch window through that migration. A
-// migration registered after it (v45 while 45.0 is being assembled) must still be empty,
-// because the tests cannot predict its SQL; expectLaterEmptyMigrations checks it.
+// migration registered after it (v45 while 45.0 is being assembled) is expected by
+// expectLaterMigrations.
 func latestWorkspaceMigrationVersion(t *testing.T) float64 {
 	t.Helper()
 	var latest float64
@@ -60,30 +61,33 @@ func latestWorkspaceMigrationVersion(t *testing.T) float64 {
 	return latest
 }
 
-// expectLaterEmptyMigrations expects the transaction of each registered migration above
-// after: an empty one opens and commits it. Once one of them gains a system or workspace
-// part, these tests must expect its SQL, and this helper says so.
-func expectLaterEmptyMigrations(t *testing.T, mock sqlmock.Sqlmock, after float64) {
+// expectLaterMigrations fails when a migration is registered above after, the latest workspace
+// migration: the tests cannot predict its SQL, so a migration added later must be expected
+// here, case by case.
+func expectLaterMigrations(t *testing.T, mock sqlmock.Sqlmock, after float64) {
 	t.Helper()
 	for _, m := range GetRegisteredMigrations() {
-		if m.GetMajorVersion() <= after {
+		version := m.GetMajorVersion()
+		if version <= after {
 			continue
 		}
-		require.Falsef(t, m.HasSystemUpdate() || m.HasWorkspaceUpdate(),
-			"v%.0f now has a part: expect its SQL in the manager tests that run after v%.0f", m.GetMajorVersion(), after)
-		mock.ExpectBegin()
-		mock.ExpectCommit()
+		require.Failf(t, "unexpected migration", "v%.0f runs after v%.0f: expect its SQL in the manager tests", version, after)
 	}
 }
 
-// expectLatestSystemUpdate expects the system update of the latest workspace migration, v45:
-// its data retention part (one engagement backfill task per workspace). Each project that
-// adds a system part to v45 adds its statements here, in UpdateSystem's order.
+// expectLatestSystemUpdate expects the system update of the latest workspace migration, v45, in
+// UpdateSystem's order: the two-factor authentication tables (schema.TwoFactorTableDefinitions),
+// then the data retention part (one engagement backfill task per workspace). Each project that
+// adds a system part to v45 adds its statements here.
 func expectLatestSystemUpdate(t *testing.T, mock sqlmock.Sqlmock) {
 	t.Helper()
 	m, ok := GetRegisteredMigration(latestWorkspaceMigrationVersion(t))
 	require.True(t, ok)
 	require.Equal(t, 45.0, m.GetMajorVersion(), "the latest workspace migration moved: expect its system SQL here")
+	require.True(t, m.HasSystemUpdate())
+	for _, statement := range schema.TwoFactorTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
 	for _, statement := range dataRetentionSystemV45Statements() {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}

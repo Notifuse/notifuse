@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -400,4 +401,328 @@ func TestPreviewSegment_ErrorsAreMapped(t *testing.T) {
 		assert.Equal(t, CodeInternal, toolErr.Code)
 		assert.Contains(t, toolErr.Message, "10 seconds")
 	})
+}
+
+func segmentsWrite() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceSegments: {Write: true}}
+}
+
+func segmentsReadWrite() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceSegments: {Read: true, Write: true}}
+}
+
+// treeArgument is a tree as a client sends it.
+func treeArgument(t *testing.T, tree string) map[string]any {
+	t.Helper()
+	var decoded map[string]any
+	require.NoError(t, json.Unmarshal([]byte(tree), &decoded))
+	return decoded
+}
+
+const optedInTreeJSON = `{"kind":"leaf","leaf":{"source":"contact_lists","contact_list":{"operator":"in","list_id":"news"}}}`
+
+func optedInTree() *domain.TreeNode {
+	return &domain.TreeNode{Kind: "leaf", Leaf: &domain.TreeNodeLeaf{Source: "contact_lists", ContactList: &domain.ContactListCondition{Operator: "in", ListID: "news"}}}
+}
+
+func TestCreateSegment_Definition(t *testing.T) {
+	tool := catalogueTool(t, "create_segment")
+	assertWriteTool(t, tool, "create_segment", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: false},
+		[]Pair{{Resource: "segments", Verb: "write"}}, "segments.create", []string{"workspace_id", "id", "name", "tree"})
+	properties := tool.InputSchema["properties"].(map[string]any)
+	assert.Equal(t, map[string]any{"type": "object", "description": segmentTreeDescription}, properties["tree"])
+	assert.Equal(t, []string{"magenta", "red", "volcano", "orange", "gold", "lime", "green", "cyan", "blue", "geekblue", "purple", "grey"}, properties["color"].(map[string]any)["enum"])
+}
+
+// The request is decoded from JSON, with the console's default color and the
+// workspace's timezone where the arguments leave them out.
+func TestCreateSegment_BuildsTheRequest(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsWrite())
+	audit := f.captureAudit()
+	var sent *domain.CreateSegmentRequest
+	f.segments.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.CreateSegmentRequest) (*domain.Segment, error) {
+		sent = req
+		return &domain.Segment{
+			ID: req.ID, Name: req.Name, Color: req.Color, Tree: req.Tree, Timezone: req.Timezone, Version: 1, Status: "building",
+			GeneratedSQL: strPtr("SELECT 1"), DBCreatedAt: segmentsEpoch, DBUpdatedAt: segmentsEpoch,
+		}, nil
+	})
+
+	result := f.callTool("create_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip", "name": "VIP", "tree": treeArgument(t, vipTreeJSON)})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	require.NotNil(t, sent)
+	assert.Equal(t, domain.CreateSegmentRequest{WorkspaceID: testWorkspaceID, ID: "vip", Name: "VIP", Color: "blue", Timezone: "Europe/Paris", Tree: vipTree()}, *sent)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"segment":{
+		"id":"vip","name":"VIP","color":"blue","status":"building","timezone":"Europe/Paris","tree":`+vipTreeJSON+`,
+		"recomputes_daily":false,"created_at":"2026-10-02T09:14:00Z","updated_at":"2026-10-02T09:14:00Z"
+	}}`, string(result.StructuredContent))
+	assert.NotContains(t, result.Content[0].Text, "SELECT 1")
+
+	row := audit.last(t)
+	assert.Equal(t, "segments.create", row.Action)
+	assert.Equal(t, domain.AuditCategorySegments, row.Category)
+	assert.Equal(t, domain.AuditTargetSegment, row.TargetType)
+	assert.Equal(t, "vip", row.TargetID)
+	assert.Equal(t, "VIP", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+func TestCreateSegment_GivenColorAndTimezone(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsWrite())
+	f.captureAudit()
+	f.segments.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.CreateSegmentRequest) (*domain.Segment, error) {
+		assert.Equal(t, "gold", req.Color)
+		assert.Equal(t, "America/New_York", req.Timezone)
+		return &domain.Segment{ID: req.ID, Name: req.Name, Color: req.Color, Tree: req.Tree, Timezone: req.Timezone, Status: "building"}, nil
+	})
+	result := f.callTool("create_segment", map[string]any{
+		"workspace_id": testWorkspaceID, "id": "vip", "name": "VIP", "color": "gold", "timezone": "America/New_York", "tree": treeArgument(t, vipTreeJSON),
+	})
+	require.False(t, result.IsError, string(result.StructuredContent))
+}
+
+// The ID is the caller's: a replay, or an ID a deleted segment holds, meets
+// the row it made.
+func TestCreateSegment_ReplayIsAConflict(t *testing.T) {
+	for name, tc := range map[string]struct {
+		deleted bool
+		message string
+	}{
+		"a live segment":    {deleted: false, message: "segment vip already exists"},
+		"a deleted segment": {deleted: true, message: "segment vip already exists and was deleted: its identifier cannot be reused"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(segmentsWrite())
+			audit := f.captureAudit()
+			f.segments.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).
+				Return(nil, fmt.Errorf("failed to create segment: %w", domain.NewAlreadyExistsError("segment", "vip", tc.deleted)))
+			toolErr := f.callTool("create_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip", "name": "VIP", "tree": treeArgument(t, vipTreeJSON)}).errorOf(t)
+			assert.Equal(t, ToolError{Code: CodeConflict, Message: tc.message}, toolErr)
+			assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestCreateSegment_RefusesBadArgumentsBeforeTheService(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsWrite())
+	audit := f.captureAudit()
+	for name, args := range map[string]map[string]any{
+		"an uppercase ID":         {"id": "VIP", "name": "VIP", "tree": treeArgument(t, vipTreeJSON)},
+		"an ID too long":          {"id": strings.Repeat("a", 33), "name": "VIP", "tree": treeArgument(t, vipTreeJSON)},
+		"an empty name":           {"id": "vip", "name": "", "tree": treeArgument(t, vipTreeJSON)},
+		"a color off the palette": {"id": "vip", "name": "VIP", "color": "teal", "tree": treeArgument(t, vipTreeJSON)},
+		"an unknown timezone":     {"id": "vip", "name": "VIP", "timezone": "Mars/Olympus", "tree": treeArgument(t, vipTreeJSON)},
+		"a misspelt tree key":     {"id": "vip", "name": "VIP", "tree": treeArgument(t, `{"kind":"leaf","leaf":{"source":"contact_lists","contact_list":{"operator":"in","list_idd":"news"}}}`)},
+		"an empty branch":         {"id": "vip", "name": "VIP", "tree": treeArgument(t, `{"kind":"branch","branch":{"operator":"and","leaves":[]}}`)},
+		"no tree":                 {"id": "vip", "name": "VIP"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			args["workspace_id"] = testWorkspaceID
+			assert.Equal(t, CodeValidation, f.callTool("create_segment", args).errorOf(t).Code)
+			assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+		})
+	}
+}
+
+// The services return domain.ValidationError for a tree the query builder
+// refuses, which the tool answers as validation, not internal.
+func TestCreateSegment_ServiceValidationIsMapped(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsWrite())
+	audit := f.captureAudit()
+	f.segments.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).Return(nil, domain.NewValidationError("invalid segment tree: field not allowed: password"))
+	toolErr := f.callTool("create_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip", "name": "VIP", "tree": treeArgument(t, vipTreeJSON)}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodeValidation, Message: "invalid segment tree: field not allowed: password"}, toolErr)
+	assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+}
+
+func TestUpdateSegment_Definition(t *testing.T) {
+	tool := catalogueTool(t, "update_segment")
+	assertWriteTool(t, tool, "update_segment", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+		[]Pair{{Resource: "segments", Verb: "write"}, {Resource: "segments", Verb: "read"}}, "segments.update", []string{"workspace_id", "id"})
+	assert.Contains(t, tool.Description, "Every update computes the segment's contacts again, even a rename")
+}
+
+// segments.update requires every field: the tool reads the segment and sends
+// the stored value of each field not given.
+func TestUpdateSegment_KeepsTheFieldsNotGiven(t *testing.T) {
+	for name, tc := range map[string]struct {
+		args map[string]any
+		want domain.UpdateSegmentRequest
+	}{
+		"a rename": {
+			args: map[string]any{"name": "Very important"},
+			want: domain.UpdateSegmentRequest{WorkspaceID: testWorkspaceID, ID: "vip", Name: "Very important", Color: "gold", Timezone: "Europe/Paris", Tree: vipTree()},
+		},
+		"a new tree": {
+			args: map[string]any{"tree": treeArgument(t, optedInTreeJSON)},
+			want: domain.UpdateSegmentRequest{WorkspaceID: testWorkspaceID, ID: "vip", Name: "VIP", Color: "gold", Timezone: "Europe/Paris", Tree: optedInTree()},
+		},
+		"a color and a timezone": {
+			args: map[string]any{"color": "red", "timezone": "Asia/Tokyo"},
+			want: domain.UpdateSegmentRequest{WorkspaceID: testWorkspaceID, ID: "vip", Name: "VIP", Color: "red", Timezone: "Asia/Tokyo", Tree: vipTree()},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(segmentsReadWrite())
+			f.captureAudit()
+			f.segmentRows.EXPECT().GetSegmentByID(gomock.Any(), testWorkspaceID, "vip").Return(vipSegment(), nil)
+			var sent *domain.UpdateSegmentRequest
+			f.segments.EXPECT().UpdateSegment(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.UpdateSegmentRequest) (*domain.Segment, error) {
+				sent = req
+				return &domain.Segment{ID: req.ID, Name: req.Name, Color: req.Color, Tree: req.Tree, Timezone: req.Timezone, Status: "building"}, nil
+			})
+
+			tc.args["workspace_id"], tc.args["id"] = testWorkspaceID, "vip"
+			result := f.callTool("update_segment", tc.args)
+			require.False(t, result.IsError, string(result.StructuredContent))
+			require.NotNil(t, sent)
+			assert.Equal(t, tc.want, *sent)
+		})
+	}
+}
+
+func TestUpdateSegment_ReturnsTheSegmentAsWritten(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsReadWrite())
+	audit := f.captureAudit()
+	f.segmentRows.EXPECT().GetSegmentByID(gomock.Any(), testWorkspaceID, "vip").Return(vipSegment(), nil)
+	f.segments.EXPECT().UpdateSegment(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.UpdateSegmentRequest) (*domain.Segment, error) {
+		// As the service answers: the stored row with the fields applied, a new
+		// version, building, the last error cleared.
+		segment := vipSegment()
+		segment.Name, segment.Version, segment.Status = req.Name, 5, "building"
+		segment.LastError, segment.LastErrorAt = nil, nil
+		segment.DBUpdatedAt = segmentsEpoch.Add(2 * time.Hour)
+		return segment, nil
+	})
+
+	result := f.callTool("update_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip", "name": "Very important"})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"segment":{
+		"id":"vip","name":"Very important","color":"gold","status":"building","timezone":"Europe/Paris","tree":`+vipTreeJSON+`,
+		"recomputes_daily":true,"created_at":"2026-10-02T09:14:00Z","updated_at":"2026-10-02T11:14:00Z"
+	}}`, string(result.StructuredContent))
+
+	row := audit.last(t)
+	assert.Equal(t, "segments.update", row.Action)
+	assert.Equal(t, domain.AuditTargetSegment, row.TargetType)
+	assert.Equal(t, "vip", row.TargetID)
+	assert.Equal(t, "Very important", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+// A deleted segment keeps its row, and the service would update it: the tool
+// answers not_found before writing.
+func TestUpdateSegment_DeletedOrUnknownIsNotFound(t *testing.T) {
+	deleted := vipSegment()
+	deleted.Status = "deleted"
+	for name, tc := range map[string]struct {
+		segment *domain.Segment
+		err     error
+	}{
+		"a deleted segment":  {segment: deleted},
+		"an unknown segment": {err: &domain.ErrSegmentNotFound{Message: "segment not found: vip"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(segmentsReadWrite())
+			audit := f.captureAudit()
+			f.segmentRows.EXPECT().GetSegmentByID(gomock.Any(), testWorkspaceID, "vip").Return(tc.segment, tc.err)
+			toolErr := f.callTool("update_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip", "name": "X"}).errorOf(t)
+			assert.Equal(t, ToolError{Code: CodeNotFound, Message: "segment not found"}, toolErr)
+			assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+		})
+	}
+}
+
+func TestUpdateSegment_RefusesBadArgumentsBeforeTheWrite(t *testing.T) {
+	for name, args := range map[string]map[string]any{
+		"nothing to change":   {},
+		"an unknown timezone": {"timezone": "Mars/Olympus"},
+		"a misspelt tree key": {"tree": treeArgument(t, `{"kind":"leaf","leaf":{"source":"contact_lists","contact_list":{"operator":"in","list_id":"news","statuss":"active"}}}`)},
+		"an empty name":       {"name": ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(segmentsReadWrite())
+			f.captureAudit()
+			f.segmentRows.EXPECT().GetSegmentByID(gomock.Any(), testWorkspaceID, "vip").Return(vipSegment(), nil).MaxTimes(1)
+			args["workspace_id"], args["id"] = testWorkspaceID, "vip"
+			assert.Equal(t, CodeValidation, f.callTool("update_segment", args).errorOf(t).Code)
+		})
+	}
+}
+
+// The read costs segments:read, which the pairs include.
+func TestUpdateSegment_NeedsTheReadPair(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsWrite())
+	audit := f.captureAudit()
+	toolErr := f.callTool("update_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip", "name": "X"}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodePermissionDenied, Message: "this API key lacks the segments read permission", Resource: "segments", Permission: "read"}, toolErr)
+	row := audit.last(t)
+	assert.Equal(t, http.StatusForbidden, row.StatusCode)
+	assert.Equal(t, "segments", row.Metadata["resource"])
+}
+
+func TestDeleteSegment_Definition(t *testing.T) {
+	assertWriteTool(t, catalogueTool(t, "delete_segment"), "delete_segment", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+		[]Pair{{Resource: "segments", Verb: "write"}}, "segments.delete", []string{"workspace_id", "id"})
+}
+
+func TestDeleteSegment(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsWrite())
+	audit := f.captureAudit()
+	f.segmentRows.EXPECT().GetSegmentByID(gomock.Any(), testWorkspaceID, "vip").Return(vipSegment(), nil)
+	f.segments.EXPECT().DeleteSegment(gomock.Any(), &domain.DeleteSegmentRequest{WorkspaceID: testWorkspaceID, ID: "vip"}).Return(nil)
+
+	result := f.callTool("delete_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip"})
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"deleted":true,"id":"vip"}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "segments.delete", row.Action)
+	assert.Equal(t, domain.AuditTargetSegment, row.TargetType)
+	assert.Equal(t, "vip", row.TargetID)
+	assert.Equal(t, "VIP", row.TargetName)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+// The service deletes a deleted segment again and answers success: the tool
+// reads first, so a replay answers not_found and deletes nothing.
+func TestDeleteSegment_ReplayIsNotFound(t *testing.T) {
+	deleted := vipSegment()
+	deleted.Status = "deleted"
+	for name, tc := range map[string]struct {
+		segment *domain.Segment
+		err     error
+	}{
+		"a deleted segment":  {segment: deleted},
+		"an unknown segment": {err: &domain.ErrSegmentNotFound{Message: "segment not found: vip"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(segmentsWrite())
+			audit := f.captureAudit()
+			f.segmentRows.EXPECT().GetSegmentByID(gomock.Any(), testWorkspaceID, "vip").Return(tc.segment, tc.err)
+			toolErr := f.callTool("delete_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "vip"}).errorOf(t)
+			assert.Equal(t, ToolError{Code: CodeNotFound, Message: "segment not found"}, toolErr)
+			row := audit.last(t)
+			assert.Equal(t, http.StatusNotFound, row.StatusCode)
+			assert.Equal(t, "vip", row.TargetID)
+		})
+	}
+}
+
+func TestDeleteSegment_RefusesABadIDBeforeTheRead(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(segmentsWrite())
+	f.captureAudit()
+	assert.Equal(t, CodeValidation, f.callTool("delete_segment", map[string]any{"workspace_id": testWorkspaceID, "id": "VIP"}).errorOf(t).Code)
 }

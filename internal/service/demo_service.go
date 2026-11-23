@@ -394,7 +394,7 @@ func (s *DemoService) rootContext(ctx context.Context, rootUser *domain.User) (a
 		return context.WithValue(authenticatedCtx, domain.UserTypeKey, string(rootUser.Type)), func() {}, nil
 	}
 
-	session, err := s.userService.startSession(ctx, rootUser.ID, demoSessionExpiry)
+	session, err := s.userService.startSession(ctx, rootUser.ID, demoSessionExpiry, domain.AuthMethodDemo)
 	if err != nil {
 		s.logger.WithField("root_user_id", rootUser.ID).WithField("error", err.Error()).Error("Failed to open a session for the demo seed")
 		return nil, nil, err

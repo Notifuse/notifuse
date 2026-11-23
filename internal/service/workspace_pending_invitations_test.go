@@ -46,6 +46,7 @@ func newPendingInvitationService(t *testing.T, maxUsers int) (*WorkspaceService,
 		mocks.NewMockWebhookRegistrationService(ctrl),
 		"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 		fullyLicensedProvider(ctrl),
+		WorkspaceInvitationAuth{},
 	)
 	return svc, m
 }

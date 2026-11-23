@@ -322,3 +322,68 @@ describe('api.download', () => {
     expect(error.status).toBe(403)
   })
 })
+
+// The instance requires two-factor authentication and this session has not passed it: a
+// workspace page moves to the account security page, and the token stays.
+describe('api client two_factor_required', () => {
+  beforeEach(() => {
+    navigate.mockClear()
+    localStorage.clear()
+    localStorage.setItem('auth_token', 'live-token')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    goTo('/')
+  })
+
+  it('sends a workspace page to account security, keeping the token', async () => {
+    goTo('/console/workspace/demo/contacts')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.get('/api/contacts.list')).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).toHaveBeenCalledWith({ to: '/console/account/security' })
+    expect(localStorage.getItem('auth_token')).toBe('live-token')
+  })
+
+  // A root user's session without the second factor, on a root route: the screen explains it.
+  it('leaves a root route refusal to its screen', async () => {
+    goTo('/console/workspace/demo/settings/licence')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.get('/api/licence.get')).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  // A download from a root route keeps its screen too: the endpoint reaches the check.
+  it('leaves a root download refusal to its screen', async () => {
+    goTo('/console/workspace/demo/logs')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.download('/api/auditLogs.export', {})).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  // The dashboard (pending invitations) moves too.
+  it('sends the dashboard to account security', async () => {
+    goTo('/console/')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.post('/api/workspaces.joinInvitation', {})).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).toHaveBeenCalledWith({ to: '/console/account/security' })
+  })
+
+  // workspaces.create and the root screens explain the refusal themselves.
+  it('leaves the workspace creation page where it is', async () => {
+    goTo('/console/workspace/create')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.post('/api/workspaces.create', {})).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).not.toHaveBeenCalled()
+  })
+})

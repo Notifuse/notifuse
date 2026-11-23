@@ -11,6 +11,7 @@ import { workspaceService } from '../services/api/workspace'
 import { isRootUser } from '../services/api/auth'
 import { withBannerOffset } from '../components/license/bannerOffset'
 import { AppSidebar } from './app-shell/AppSidebar'
+import { AccountSecurityDrawer } from '../components/two_factor/AccountSecurityDrawer'
 import {
   activeGroup as groupOf,
   buildMenuItems,
@@ -30,6 +31,7 @@ export function WorkspaceLayout() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const navigate = useNavigate()
+  const [securityOpen, setSecurityOpen] = useState(false)
   // Keyed by the workspace: the layout stays mounted on a switch, and shows no entry until the new
   // workspace's permissions arrive.
   const {
@@ -160,6 +162,7 @@ export function WorkspaceLayout() {
           user={user}
           role={role}
           onSignout={signout}
+          onOpenAccountSecurity={() => setSecurityOpen(true)}
           home={homePage(userPermissions, loadingPermissions, workspaceId, i18n)}
         />
         <main
@@ -184,6 +187,7 @@ export function WorkspaceLayout() {
             </FileManagerProvider>
           </div>
         </main>
+        <AccountSecurityDrawer open={securityOpen} onClose={() => setSecurityOpen(false)} />
       </div>
     </ContactsCsvUploadProvider>
   )

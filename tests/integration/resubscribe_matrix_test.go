@@ -43,7 +43,14 @@ import (
 //     without and with the flag;
 //   - console resubscribe: the same with the flag, from a console session;
 //   - automation: an automation's add-to-list step;
-//   - import: contacts.import with subscribe_to_lists.
+//   - import: contacts.import with subscribe_to_lists;
+//   - mcp subscribe, mcp subscribe resubscribe: the MCP tool subscribe_contact_to_list,
+//     without and with resubscribe;
+//   - mcp status, mcp status resubscribe: the MCP tool set_contact_list_status to active,
+//     without and with resubscribe.
+//
+// An MCP call has no HTTP status of its own: the table holds the status its audit row
+// records for the outcome (200 success, 404 not_found, 409 invalid_state).
 //
 // A removed row is a membership soft-deleted through contactLists.removeContact; it keeps
 // the status it had. Every case has its own contact. The confirmation emails are read from
@@ -54,9 +61,12 @@ func TestResubscribeMatrix(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		cfg.MCP.Enabled = true
 		return app.NewApp(cfg)
 	})
 	defer suite.Cleanup()
+	// /mcp answers on the API endpoint's host, which the harness leaves empty.
+	suite.Config.APIEndpoint = suite.ServerManager.GetURL()
 
 	ctx := context.Background()
 	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(ctx))
@@ -218,7 +228,8 @@ func TestResubscribeMatrix(t *testing.T) {
 	states := []string{"none", "active", "pending", "unsubscribed", "bounced", "complained",
 		"removed active", "removed pending", "removed unsubscribed", "removed bounced", "removed complained"}
 	actions := []string{"form", "signed", "api", "api resubscribe", "status", "status resubscribe",
-		"console resubscribe", "automation", "import"}
+		"console resubscribe", "automation", "import",
+		"mcp subscribe", "mcp subscribe resubscribe", "mcp status", "mcp status resubscribe"}
 
 	type outcome struct {
 		code  int    // HTTP status, 0 where no request answers (automation)
@@ -290,6 +301,36 @@ func TestResubscribeMatrix(t *testing.T) {
 			}
 			return writeActive(before, http.StatusOK)
 
+		case "mcp subscribe", "mcp subscribe resubscribe":
+			// lists.subscribe's rules, with no confirmation email. A contact left opted out
+			// is an invalid_state answer naming their status, where the API answers 200.
+			want := writeActive(before, http.StatusOK)
+			if action == "mcp subscribe resubscribe" && (before == "unsubscribed" || before == "removed unsubscribed") {
+				want = outcome{code: http.StatusOK, after: "active"}
+			}
+			if want.after == before && domain.IsOptOutContactListStatus(domain.ContactListStatus(strings.TrimPrefix(before, "removed "))) {
+				want.code = http.StatusConflict
+			}
+			return want
+
+		case "mcp status", "mcp status resubscribe":
+			// contactLists.updateStatus's rules with an API key; a contact not on the list
+			// is not_found, where the API answers 200 with "contact not in list".
+			if before == "none" || strings.HasPrefix(before, "removed ") {
+				return same(before, http.StatusNotFound)
+			}
+			switch before {
+			case "active", "pending":
+				return outcome{code: http.StatusOK, after: "active"}
+			case "unsubscribed":
+				if action == "mcp status resubscribe" {
+					return outcome{code: http.StatusOK, after: "active"}
+				}
+				return same(before, http.StatusConflict)
+			default: // bounced and complained
+				return same(before, http.StatusConflict)
+			}
+
 		case "status", "status resubscribe", "console resubscribe":
 			// Only a row on the list changes; a missing or removed one answers 200 with
 			// "contact not in list" and stays as it is.
@@ -315,6 +356,30 @@ func TestResubscribeMatrix(t *testing.T) {
 		}
 		t.Fatalf("no outcome for %s", action)
 		return outcome{}
+	}
+
+	// The MCP calls use one key per list kind and action: the mcp_send limit is per key,
+	// and the matrix makes more subscription changes than one key may.
+	mcpKeys := map[string]*mcpClient{}
+	mcpKey := func(t *testing.T, kind *listKind, action string) *mcpClient {
+		t.Helper()
+		name := kind.name + "/" + strings.TrimSuffix(action, " resubscribe")
+		if client, ok := mcpKeys[name]; ok {
+			return client
+		}
+		key, err := factory.CreateAPIKey(workspace.ID)
+		require.NoError(t, err)
+		mcpKeys[name] = &mcpClient{t: t, url: serverURL, token: authService.GenerateAPIAuthToken(key)}
+		return mcpKeys[name]
+	}
+	// mcpStatus is the status the audit row of an MCP call records for its outcome.
+	mcpStatus := func(t *testing.T, result mcpToolResult) int {
+		t.Helper()
+		if !result.IsError {
+			return http.StatusOK
+		}
+		return map[string]int{"validation": http.StatusBadRequest, "not_found": http.StatusNotFound,
+			"invalid_state": http.StatusConflict, "permission_denied": http.StatusForbidden}[result.errorCode(t)]
 	}
 
 	// --- the cases ------------------------------------------------------------------------
@@ -382,6 +447,16 @@ func TestResubscribeMatrix(t *testing.T) {
 							"workspace_id": workspace.ID, "contacts": []map[string]interface{}{{"email": email}},
 							"subscribe_to_lists": []string{kind.list.ID},
 						})
+					case "mcp subscribe", "mcp subscribe resubscribe":
+						client := mcpKey(t, kind, action)
+						client.t = t
+						code = mcpStatus(t, client.call("subscribe_contact_to_list", fmt.Sprintf(`{"workspace_id":%q,"email":%q,"list_id":%q,"resubscribe":%t}`,
+							workspace.ID, email, kind.list.ID, action == "mcp subscribe resubscribe")))
+					case "mcp status", "mcp status resubscribe":
+						client := mcpKey(t, kind, action)
+						client.t = t
+						code = mcpStatus(t, client.call("set_contact_list_status", fmt.Sprintf(`{"workspace_id":%q,"email":%q,"list_id":%q,"status":"active","resubscribe":%t}`,
+							workspace.ID, email, kind.list.ID, action == "mcp status resubscribe")))
 					}
 
 					if want.code != 0 {

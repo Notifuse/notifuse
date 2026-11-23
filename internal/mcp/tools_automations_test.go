@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -533,4 +534,178 @@ func TestAutomationTools_CapTheNameAndTriggerText(t *testing.T) {
 		assert.Equal(t, capped, out.Journey.ExitReason)
 		assert.Equal(t, []string{"exit_reason"}, out.Journey.TruncatedFields)
 	})
+}
+
+func automationsWritePermission() domain.UserPermissions {
+	return domain.UserPermissions{domain.PermissionResourceAutomations: {Write: true}}
+}
+
+func TestAutomationWriteTools_Definitions(t *testing.T) {
+	write := []Pair{{Resource: "automations", Verb: "write"}}
+	id := []string{"workspace_id", "automation_id"}
+	assertWriteTool(t, catalogueTool(t, "activate_automation"), "activate_automation", ClassSend, writeHints{destructive: true, openWorld: true, idempotent: true},
+		write, "automations.activate", id)
+	assertWriteTool(t, catalogueTool(t, "pause_automation"), "pause_automation", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+		write, "automations.pause", id)
+	assertWriteTool(t, catalogueTool(t, "delete_automation"), "delete_automation", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+		write, "automations.delete", id)
+	// Activation arms emails, so it counts in mcp_send.
+	for name, counts := range map[string]bool{"activate_automation": true, "pause_automation": false, "delete_automation": false} {
+		assert.Equal(t, counts, catalogueTool(t, name).countsAsSend(), name)
+	}
+}
+
+func automationsWriteFixture(t *testing.T) (*fixture, *auditLog) {
+	f := newFixture(t)
+	f.reachable(automationsWritePermission())
+	return f, f.captureAudit()
+}
+
+func TestActivateAutomation_RecordsTheAudienceThenActivates(t *testing.T) {
+	f, audit := automationsWriteFixture(t)
+	stored := welcomeAutomation()
+	stored.Status = domain.AutomationStatusPaused
+	stored.Trigger.SegmentID = strPtr("vip")
+	f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "a1").Return(stored, nil)
+	f.automations.EXPECT().Activate(gomock.Any(), testWorkspaceID, "a1").Return(nil)
+
+	result := f.callTool("activate_automation", map[string]any{"workspace_id": testWorkspaceID, "automation_id": "a1"})
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"automation_id":"a1","status":"live"}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "automations.activate", row.Action)
+	assert.Equal(t, domain.AuditTargetAutomation, row.TargetType)
+	assert.Equal(t, "a1", row.TargetID)
+	assert.Equal(t, "Welcome series", row.TargetName)
+	assert.Equal(t, "newsletter", row.Metadata["list_id"])
+	assert.Equal(t, []string{"vip"}, row.Metadata["segment_ids"])
+	assert.Equal(t, []string{"welcome-1"}, row.Metadata["template_ids"])
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+// A replay meets an automation already live: the service refuses it typed,
+// and nothing is written twice.
+func TestActivateAutomation_ReplayAnswersInvalidState(t *testing.T) {
+	f, audit := automationsWriteFixture(t)
+	f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "a1").Return(welcomeAutomation(), nil)
+	f.automations.EXPECT().Activate(gomock.Any(), testWorkspaceID, "a1").Return(domain.NewInvalidStateError("automation", "a1", "activate", "live"))
+
+	toolErr := f.callTool("activate_automation", map[string]any{"workspace_id": testWorkspaceID, "automation_id": "a1"}).errorOf(t)
+	assert.Equal(t, ToolError{Code: CodeInvalidState, Message: "cannot activate automation a1: its status is live", Status: "live"}, toolErr)
+	row := audit.last(t)
+	assert.Equal(t, http.StatusConflict, row.StatusCode)
+	assert.Equal(t, "invalid_state", row.Metadata["error_code"])
+	assert.Equal(t, "newsletter", row.Metadata["list_id"])
+}
+
+func TestActivateAutomation_RefusalsAreMapped(t *testing.T) {
+	for name, tc := range map[string]struct {
+		err  error
+		want ToolError
+	}{
+		"an email step without a list": {
+			domain.NewValidationError("cannot activate automation with email nodes when list_id is not set"),
+			ToolError{Code: CodeValidation, Message: "cannot activate automation with email nodes when list_id is not set"},
+		},
+		"trigger conditions that do not compile": {
+			fmt.Errorf("failed to create automation trigger: %w", domain.NewTriggerConditionError("invalid trigger conditions: unknown field")),
+			ToolError{Code: CodeValidation, Message: "invalid trigger conditions: unknown field"},
+		},
+		"a deleted list": {
+			fmt.Errorf("failed to update automation status: %w", domain.NewAutomationDeletedListError("a1", []domain.ListRef{{ID: "old", Name: "Old list"}})),
+			ToolError{Code: CodeValidation, Message: domain.NewAutomationDeletedListError("a1", []domain.ListRef{{ID: "old", Name: "Old list"}}).Error()},
+		},
+		"a lost race": {
+			fmt.Errorf("failed to update automation status: %w", domain.NewAutomationConflictError("a1", domain.AutomationStatusPaused)),
+			ToolError{Code: CodeConflict, Message: "automation a1 was concurrently changed: it was no longer paused"},
+		},
+		"a database failure": {errors.New("pq: connection reset"), ToolError{Code: CodeInternal, Message: "internal error"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, _ := automationsWriteFixture(t)
+			f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "a1").Return(welcomeAutomation(), nil)
+			f.automations.EXPECT().Activate(gomock.Any(), testWorkspaceID, "a1").Return(tc.err)
+			assert.Equal(t, tc.want, f.callTool("activate_automation", map[string]any{"workspace_id": testWorkspaceID, "automation_id": "a1"}).errorOf(t))
+		})
+	}
+}
+
+func TestActivateAutomation_AnUnknownAutomationNeverReachesTheService(t *testing.T) {
+	f, audit := automationsWriteFixture(t)
+	f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "gone").Return(nil, &domain.ErrNotFound{Entity: "automation", ID: "gone"})
+	assert.Equal(t, CodeNotFound, f.callTool("activate_automation", map[string]any{"workspace_id": testWorkspaceID, "automation_id": "gone"}).errorOf(t).Code)
+	assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+}
+
+func TestPauseAutomation_AlreadyPausedIsASuccess(t *testing.T) {
+	f, audit := automationsWriteFixture(t)
+	args := map[string]any{"workspace_id": testWorkspaceID, "automation_id": "a1"}
+
+	f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "a1").Return(welcomeAutomation(), nil)
+	f.automations.EXPECT().Pause(gomock.Any(), testWorkspaceID, "a1").Return(nil)
+	result := f.callTool("pause_automation", args)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"automation_id":"a1","status":"paused","already":false}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "automations.pause", row.Action)
+	assert.Equal(t, "a1", row.TargetID)
+	assert.Equal(t, "Welcome series", row.TargetName)
+	assert.NotContains(t, row.Metadata, "already")
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+
+	// The replay: the service still drops a leftover trigger.
+	paused := welcomeAutomation()
+	paused.Status = domain.AutomationStatusPaused
+	f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "a1").Return(paused, nil)
+	f.automations.EXPECT().Pause(gomock.Any(), testWorkspaceID, "a1").Return(nil)
+	result = f.callTool("pause_automation", args)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"automation_id":"a1","status":"paused","already":true}`, string(result.StructuredContent))
+	row = audit.last(t)
+	assert.Equal(t, true, row.Metadata["already"])
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+}
+
+func TestPauseAutomation_ADraftAnswersInvalidState(t *testing.T) {
+	f, audit := automationsWriteFixture(t)
+	draft := welcomeAutomation()
+	draft.Status = domain.AutomationStatusDraft
+	f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "a1").Return(draft, nil)
+	f.automations.EXPECT().Pause(gomock.Any(), testWorkspaceID, "a1").Return(domain.NewInvalidStateError("automation", "a1", "pause", "draft"))
+	toolErr := f.callTool("pause_automation", map[string]any{"workspace_id": testWorkspaceID, "automation_id": "a1"}).errorOf(t)
+	assert.Equal(t, CodeInvalidState, toolErr.Code)
+	assert.Equal(t, "draft", toolErr.Status)
+	assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
+
+	f.autoRows.EXPECT().GetByID(gomock.Any(), testWorkspaceID, "gone").Return(nil, &domain.ErrNotFound{Entity: "automation", ID: "gone"})
+	assert.Equal(t, CodeNotFound, f.callTool("pause_automation", map[string]any{"workspace_id": testWorkspaceID, "automation_id": "gone"}).errorOf(t).Code)
+}
+
+func TestDeleteAutomation_DeletesThenAnswersNotFound(t *testing.T) {
+	f, audit := automationsWriteFixture(t)
+	args := map[string]any{"workspace_id": testWorkspaceID, "automation_id": "a1"}
+	f.automations.EXPECT().Delete(gomock.Any(), testWorkspaceID, "a1").Return(nil)
+	result := f.callTool("delete_automation", args)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"automation_id":"a1","deleted":true}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "automations.delete", row.Action)
+	assert.Equal(t, domain.AuditTargetAutomation, row.TargetType)
+	assert.Equal(t, "a1", row.TargetID)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+
+	f.automations.EXPECT().Delete(gomock.Any(), testWorkspaceID, "a1").Return(fmt.Errorf("failed to delete automation: %w", &domain.ErrNotFound{Entity: "automation", ID: "a1"}))
+	assert.Equal(t, CodeNotFound, f.callTool("delete_automation", args).errorOf(t).Code)
+	assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+}
+
+// A key without automations:write neither sees the write tools nor runs
+// them, and the refusal is audited.
+func TestAutomationWriteTools_NeedTheWritePair(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(automationsReadPermission())
+	audit := f.captureAudit()
+	names := f.listToolNames()
+	for _, tool := range []string{"activate_automation", "pause_automation", "delete_automation"} {
+		assert.NotContains(t, names, tool)
+		toolErr := f.callTool(tool, map[string]any{"workspace_id": testWorkspaceID, "automation_id": "a1"}).errorOf(t)
+		assert.Equal(t, ToolError{Code: CodePermissionDenied, Message: "this API key lacks the automations write permission", Resource: "automations", Permission: "write"}, toolErr, tool)
+		assert.Equal(t, http.StatusForbidden, audit.last(t).StatusCode, tool)
+	}
 }

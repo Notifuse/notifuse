@@ -244,6 +244,9 @@ func (h *BroadcastHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 	// Get the existing broadcast to pass to Validate
 	existingBroadcast, err := h.service.GetBroadcast(r.Context(), req.WorkspaceID, req.ID, domain.GetBroadcastOptions{})
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
 			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
 			return

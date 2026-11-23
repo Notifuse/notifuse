@@ -41,11 +41,14 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'broadcasts.sendToIndividual': msg({ message: 'Sent the newsletter <0>{target}</0> to one recipient' }),
   'broadcasts.unschedule': msg({ message: 'Sent the newsletter <0>{target}</0> back to draft' }),
   'broadcasts.update': msg({ message: 'Updated the newsletter <0>{target}</0>' }),
+  'contactLists.removeContact': msg({ message: 'Removed the contact <0>{target}</0> from a list' }),
   'contactLists.updateStatus': msg({ message: 'Re-subscribed the contact <0>{target}</0> after they opted out' }),
   'contacts.delete': msg({ message: 'Deleted the contact <0>{target}</0>' }),
   'contacts.export': msg({ message: 'Exported contacts' }),
   'contacts.import': msg({ message: 'Imported contacts' }),
+  'contacts.upsert': msg({ message: 'Created or updated the contact <0>{target}</0>' }),
   'customEvents.import': msg({ message: 'Imported custom events' }),
+  'customEvents.upsert': msg({ message: 'Recorded a custom event for the contact <0>{target}</0>' }),
   'dataRetention.cancelPending': msg({ message: 'Cancelled the data retention change of <0>{target}</0>' }),
   'dataRetention.purged': msg({ message: 'Applied the data retention policy of <0>{target}</0>' }),
   'dataRetention.retryBackfill': msg({ message: 'Ran the reading of past activity again in <0>{target}</0>' }),
@@ -77,13 +80,21 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'templates.update': msg({ message: 'Updated the template <0>{target}</0>' }),
   'transactional.create': msg({ message: 'Created the transactional notification <0>{target}</0>' }),
   'transactional.delete': msg({ message: 'Deleted the transactional notification <0>{target}</0>' }),
+  'transactional.send': msg({ message: 'Sent the transactional notification <0>{target}</0>' }),
+  'transactional.testTemplate': msg({ message: 'Sent a test email of the template <0>{target}</0>' }),
   'transactional.update': msg({ message: 'Updated the transactional notification <0>{target}</0>' }),
   'user.logout': msg({ message: 'Signed out' }),
   'user.oidc.callback': msg({ message: 'Signed in with single sign-on' }),
   'user.oidc.exchange': msg({ message: 'Signed in with single sign-on' }),
   'user.rootSignin': msg({ message: 'Signed in as root <0>{target}</0>' }),
   'user.signin': msg({ message: 'Asked for a sign-in code for <0>{target}</0>' }),
+  'user.twoFactor.disable': msg({ message: 'Turned off two-factor authentication' }),
+  'user.twoFactor.enable': msg({ message: 'Turned on two-factor authentication' }),
+  'user.twoFactor.regenerateRecoveryCodes': msg({ message: 'Generated new recovery codes' }),
+  'user.twoFactor.setup': msg({ message: 'Started setting up an authenticator app' }),
+  'user.twoFactor.verify': msg({ message: 'Entered a two-factor code to sign in' }),
   'user.verify': msg({ message: 'Verified the sign-in code of <0>{target}</0>' }),
+  'users.resetTwoFactor': msg({ message: 'Reset the two-factor authentication of <0>{target}</0>' }),
   'webAnalytics.backfillCancel': msg({ message: 'Cancelled the web analytics backfill' }),
   'webAnalytics.backfillStart': msg({ message: 'Started the web analytics backfill' }),
   'webhookSubscriptions.create': msg({ message: 'Created the webhook <0>{target}</0>' }),
@@ -115,4 +126,15 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'workspaces.update': msg({ message: 'Updated the workspace settings of <0>{target}</0>' }),
   'workspaces.updateIntegration': msg({ message: 'Updated the integration <0>{target}</0>' }),
   'workspaces.verifyDKIMDomain': msg({ message: 'Checked a DKIM record of <0>{target}</0>' })
+}
+
+/**
+ * The API records lists.subscribe and contactLists.updateStatus only when they re-subscribe a
+ * contact who opted out, and the service then marks the entry with resubscribed_list_ids. An MCP
+ * tool records every call, so an entry without that mark is an ordinary subscription change.
+ */
+// prettier-ignore
+export const SUBSCRIPTION_CHANGE_PHRASES: Record<string, MessageDescriptor> = {
+  'contactLists.updateStatus': msg({ message: 'Changed the list status of the contact <0>{target}</0>' }),
+  'lists.subscribe': msg({ message: 'Subscribed the contact <0>{target}</0> to a list' }),
 }

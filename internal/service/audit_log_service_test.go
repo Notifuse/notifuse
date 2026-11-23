@@ -59,6 +59,7 @@ func newAuditServiceFixtureBare(t *testing.T, licensed *bool) *auditServiceFixtu
 		settings:   mocks.NewMockSettingRepository(ctrl),
 		now:        time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC),
 	}
+	f.auth.EXPECT().RequireCompliantRootSession(gomock.Any()).Return(nil).AnyTimes()
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()

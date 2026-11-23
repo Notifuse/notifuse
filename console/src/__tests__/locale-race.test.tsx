@@ -136,6 +136,10 @@ describe('LocaleProvider with a stale stored locale', () => {
           licenseEntitlements: null,
           checkForUpdates: false,
           serverVersion: null,
+          twoFactor: null,
+          twoFactorRequired: false,
+          sessionTwoFactorPassed: true,
+          rootSessionWithoutCode: false,
         }}
       >
         <LocaleProvider>

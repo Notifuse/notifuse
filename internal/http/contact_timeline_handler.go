@@ -97,7 +97,12 @@ func (h *ContactTimelineHandler) handleList(w http.ResponseWriter, r *http.Reque
 			h.tracer.MarkSpanError(ctx, err)
 		}
 		// codecov:ignore:end
-		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		// A dead session answers 401, a refusal 403 (two_factor_required included), and
+		// anything else, such as a database that did not answer, 500: a 401 would sign
+		// the console out.
+		if !writeServiceError(w, err, "Access denied") {
+			WriteJSONError(w, "Failed to authenticate", http.StatusInternalServerError)
+		}
 		return
 	}
 

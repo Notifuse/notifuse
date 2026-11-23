@@ -3,6 +3,7 @@ package mcp
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"net/url"
@@ -17,9 +18,10 @@ import (
 
 const listTemplatesName = "list_templates"
 
-// maxRenderArgumentBytes bounds the arguments of render_template, as
-// templates.compile bounds its request body.
-const maxRenderArgumentBytes = 1 << 20
+// maxTemplateArgumentBytes bounds the arguments of render_template,
+// create_template and update_template, as templates.compile, templates.create
+// and templates.update bound their request body.
+const maxTemplateArgumentBytes = 1 << 20
 
 // renderMessageID is the message ID of a preview render, as the console sends
 // it: it names no real message.
@@ -454,8 +456,8 @@ type renderTemplateOutput struct {
 
 func (s *Server) renderTemplate(ctx context.Context, call *Call) (any, error) {
 	// templates.compile refuses a body above 1 MiB before it reads it.
-	if len(call.RawArgs) > maxRenderArgumentBytes {
-		return nil, validationError("arguments are limited to %d bytes", maxRenderArgumentBytes)
+	if len(call.RawArgs) > maxTemplateArgumentBytes {
+		return nil, validationError("arguments are limited to %d bytes", maxTemplateArgumentBytes)
 	}
 	var args renderTemplateArgs
 	if err := call.DecodeArgs(&args); err != nil {
@@ -595,4 +597,414 @@ func projectRender(workspace WorkspaceRef, resp *domain.CompileTemplateResponse,
 		}
 	}
 	return out
+}
+
+// emailTemplateCategories are the categories of an email template: all but
+// blog, which belongs to web templates.
+var emailTemplateCategories = slices.DeleteFunc(slices.Clone(templateCategories), func(category string) bool {
+	return category == string(domain.TemplateCategoryBlog)
+})
+
+// templateWriteArgs are the arguments of create_template and update_template.
+// Every field is a pointer, so update_template tells an omitted one from an
+// empty one.
+type templateWriteArgs struct {
+	ID             string         `json:"id"`
+	BaseVersion    *int64         `json:"base_version"`
+	Name           *string        `json:"name"`
+	Category       *string        `json:"category"`
+	Subject        *string        `json:"subject"`
+	SubjectPreview *string        `json:"subject_preview"`
+	MJMLSource     *string        `json:"mjml_source"`
+	Text           *string        `json:"text"`
+	SenderID       *string        `json:"sender_id"`
+	ReplyTo        *string        `json:"reply_to"`
+	TestData       map[string]any `json:"test_data"`
+}
+
+// decodeTemplateWrite applies templates.create's and templates.update's body
+// cap, which their handler checks and the service does not, then decodes the
+// arguments.
+func decodeTemplateWrite(call *Call) (templateWriteArgs, *ToolError) {
+	var args templateWriteArgs
+	if len(call.RawArgs) > maxTemplateArgumentBytes {
+		return args, validationError("arguments are limited to %d bytes", maxTemplateArgumentBytes)
+	}
+	if err := call.DecodeArgs(&args); err != nil {
+		return args, validationError("invalid arguments: %v", err)
+	}
+	return args, nil
+}
+
+// templateOutput is what create_template and update_template return: the
+// template as get_template reads it, with the MJML as the save rewrote it.
+type templateOutput struct {
+	Workspace WorkspaceRef `json:"workspace"`
+	Template  templateFull `json:"template"`
+	// TranslationsUnchanged lists the languages whose content update_template
+	// left as it was.
+	TranslationsUnchanged []string `json:"translations_unchanged,omitempty"`
+}
+
+// checkTemplateCompiles compiles a template's default email with its test
+// data, as a send would, and refuses it with the error's line and tag when it
+// does not compile: a save never compiles code-mode MJML, so a broken one
+// would fail at every send.
+func (s *Server) checkTemplateCompiles(ctx context.Context, workspaceID string, template *domain.Template) error {
+	email := template.Email
+	fields := map[string]any{
+		"workspace_id":      workspaceID,
+		"message_id":        renderMessageID,
+		"channel":           domain.ChannelEmail,
+		"tracking_settings": map[string]any{"enable_tracking": false},
+		"subject":           email.Subject,
+	}
+	if email.SubjectPreview != nil {
+		fields["subject_preview"] = *email.SubjectPreview
+	}
+	if len(template.TestData) > 0 {
+		fields["test_data"] = map[string]any(template.TestData)
+	}
+	var req domain.CompileTemplateRequest
+	if err := requestFromJSON(fields, &req); err != nil {
+		return validationError("invalid arguments: %v", err)
+	}
+	email.ApplyToCompileRequest(&req, nil)
+	if err := req.Validate(); err != nil {
+		return validationError("%v", err)
+	}
+	resp, err := s.deps.Templates.CompileTemplate(ctx, req)
+	if err != nil {
+		return err
+	}
+	if resp == nil {
+		return errors.New("template compile returned no result")
+	}
+	if resp.Success {
+		return nil
+	}
+	reason := "unknown error"
+	if resp.Error != nil {
+		parts := []string{resp.Error.Message}
+		for _, detail := range resp.Error.Details {
+			part := fmt.Sprintf("line %d", detail.Line)
+			if detail.TagName != "" {
+				part += " <" + detail.TagName + ">"
+			}
+			parts = append(parts, part+": "+detail.Message)
+		}
+		reason = strings.Join(parts, "; ")
+	}
+	message, _ := CapText("the template does not compile, so nothing was saved: " + reason)
+	return &ToolError{Code: CodeValidation, Message: message}
+}
+
+func (s *Server) createTemplateTool() *Tool {
+	return &Tool{
+		Name:  "create_template",
+		Title: "Create template",
+		Description: "Creates an email template from MJML, with the ID you choose. " +
+			"It is a code template: it opens in the console's MJML editor, not the visual builder. " +
+			"The MJML, subject and preview text are compiled with test_data first, and a template that does not compile is refused with a validation error that gives the line and tag. " +
+			"Saving sets <mj-title> to the name and <mj-preview> to the preview text, so the result returns the MJML as stored. " +
+			"Nothing is sent. The ID cannot be reused, even after the template is deleted, so a repeated call answers conflict. " +
+			"Translations are not set here. All arguments together are limited to 1 MiB.",
+		Class:       ClassWrite,
+		Idempotent:  boolPtr(false),
+		Pairs:       []Pair{{Resource: domain.PermissionResourceTemplates, Verb: domain.PermissionTypeWrite}},
+		AuditAction: "templates.create",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id":    map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"id":              map[string]any{"type": "string", "description": "Letters, digits, underscores and hyphens, 1 to 32 characters."},
+				"name":            map[string]any{"type": "string", "description": "1 to 255 characters."},
+				"category":        map[string]any{"type": "string", "enum": emailTemplateCategories, "description": "What the email is for. A marketing email should link {{ unsubscribe_url }}."},
+				"subject":         map[string]any{"type": "string", "description": "Subject with Liquid, 1 to 255 bytes."},
+				"subject_preview": map[string]any{"type": "string", "description": "Inbox preview text with Liquid, at most 255 bytes. Default: the name."},
+				"mjml_source":     map[string]any{"type": "string", "description": "The whole email as MJML with Liquid, starting with <mjml>."},
+				"text":            map[string]any{"type": "string", "description": "Custom plain-text version with Liquid, at most 64 KiB. Omit to generate it from the HTML."},
+				"sender_id":       map[string]any{"type": "string", "description": "Sender ID, as get_template shows on another template. Omit for the default sender."},
+				"reply_to":        map[string]any{"type": "string", "description": "Reply-to email address."},
+				"test_data":       map[string]any{"type": "object", "description": "Sample Liquid data for the compile check and render_template, such as {\"contact\": {\"first_name\": \"Ada\"}}."},
+			},
+			"required":             []string{"workspace_id", "id", "name", "category", "subject", "mjml_source"},
+			"additionalProperties": false,
+		},
+		Handler: s.createTemplate,
+	}
+}
+
+func (s *Server) createTemplate(ctx context.Context, call *Call) (any, error) {
+	args, toolErr := decodeTemplateWrite(call)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	call.Audit.SetTarget(domain.AuditTargetTemplate, args.ID, valueOr(args.Name, ""))
+
+	// Code mode (D9): the MJML is the template.
+	email := map[string]any{
+		"editor_mode": domain.EditorModeCode,
+		"mjml_source": valueOr(args.MJMLSource, ""),
+		"subject":     valueOr(args.Subject, ""),
+	}
+	for key, value := range map[string]*string{
+		"subject_preview": args.SubjectPreview,
+		"text":            args.Text,
+		"sender_id":       args.SenderID,
+		"reply_to":        args.ReplyTo,
+	} {
+		if value != nil && *value != "" {
+			email[key] = *value
+		}
+	}
+	fields := map[string]any{
+		"workspace_id": call.WorkspaceID,
+		"id":           args.ID,
+		"name":         valueOr(args.Name, ""),
+		"channel":      domain.ChannelEmail,
+		"category":     valueOr(args.Category, ""),
+		"email":        email,
+	}
+	if args.TestData != nil {
+		fields["test_data"] = args.TestData
+	}
+	var req domain.CreateTemplateRequest
+	if err := requestFromJSON(fields, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	// templates.create validates in its handler, not in the service.
+	template, _, err := req.Validate()
+	if err != nil {
+		return nil, validationError("%v", err)
+	}
+	if err := s.checkTemplateCompiles(ctx, call.WorkspaceID, template); err != nil {
+		return nil, err
+	}
+
+	if err := s.deps.Templates.CreateTemplate(ctx, call.WorkspaceID, template); err != nil {
+		var exists *domain.ErrTemplateExists
+		if errors.As(err, &exists) {
+			return nil, &ToolError{Code: CodeConflict, Message: domain.NewAlreadyExistsError("template", template.ID, exists.Deleted).Error()}
+		}
+		return nil, err
+	}
+	return templateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template)}, nil
+}
+
+func (s *Server) updateTemplateTool() *Tool {
+	return &Tool{
+		Name:  "update_template",
+		Title: "Update template",
+		Description: "Changes the fields you give on a code email template and keeps the others. Each update saves a new version. " +
+			"Every later send that uses it, from broadcasts, transactional notifications and automations, gets the new content, so confirm the change with the user first. " +
+			"A template made in the visual editor, or a web template, is refused with a validation error: edit it in the console, or make a new one with create_template. " +
+			"A new mjml_source, subject or subject_preview is compiled with the test data first, and a template that does not compile is refused. " +
+			"Saving sets <mj-title> to the name and <mj-preview> to the preview text, so the result returns the MJML as stored. " +
+			"Translations are not changed: translations_unchanged lists their languages. " +
+			"The template is read then written. Give base_version to refuse the update when someone saved a newer version since: it then answers conflict with latest_version. " +
+			"Without base_version, calling it again with the same arguments saves the same content as one more version; with it, a repeated call answers conflict. " +
+			"All arguments together are limited to 1 MiB.",
+		Class:      ClassWriteOpenWorld,
+		Idempotent: boolPtr(true),
+		Pairs: []Pair{
+			{Resource: domain.PermissionResourceTemplates, Verb: domain.PermissionTypeWrite},
+			{Resource: domain.PermissionResourceTemplates, Verb: domain.PermissionTypeRead},
+		},
+		AuditAction: "templates.update",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id":    map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"id":              map[string]any{"type": "string", "description": "The template's ID."},
+				"base_version":    map[string]any{"type": "integer", "description": "The version your change starts from, as get_template gives it. Omit to save over whatever is latest."},
+				"name":            map[string]any{"type": "string", "description": "1 to 255 characters."},
+				"category":        map[string]any{"type": "string", "enum": emailTemplateCategories},
+				"subject":         map[string]any{"type": "string", "description": "Subject with Liquid, 1 to 255 bytes."},
+				"subject_preview": map[string]any{"type": "string", "description": "Inbox preview text with Liquid, at most 255 bytes. An empty text clears it, and the name is used."},
+				"mjml_source":     map[string]any{"type": "string", "description": "The whole email as MJML with Liquid, replacing the stored one."},
+				"text":            map[string]any{"type": "string", "description": "Custom plain-text version with Liquid, at most 64 KiB. An empty text goes back to the one generated from the HTML."},
+				"sender_id":       map[string]any{"type": "string", "description": "Sender ID. An empty text goes back to the default sender."},
+				"reply_to":        map[string]any{"type": "string", "description": "Reply-to email address. An empty text clears it."},
+				"test_data":       map[string]any{"type": "object", "description": "Sample Liquid data, replacing the stored data."},
+			},
+			"required":             []string{"workspace_id", "id"},
+			"additionalProperties": false,
+		},
+		Handler: s.updateTemplate,
+	}
+}
+
+// codeEmailFields are a stored code-mode email as templates.update takes it
+// back: every field but the compiled preview, which the save makes again.
+func codeEmailFields(email *domain.EmailTemplate) map[string]any {
+	fields := map[string]any{"editor_mode": domain.EditorModeCode, "subject": email.Subject}
+	if email.MjmlSource != nil {
+		fields["mjml_source"] = *email.MjmlSource
+	}
+	if email.SubjectPreview != nil {
+		fields["subject_preview"] = *email.SubjectPreview
+	}
+	if email.Text != nil {
+		fields["text"] = *email.Text
+	}
+	if email.SenderID != "" {
+		fields["sender_id"] = email.SenderID
+	}
+	if email.ReplyTo != "" {
+		fields["reply_to"] = email.ReplyTo
+	}
+	if email.VisualEditorTree != nil {
+		fields["visual_editor_tree"] = email.VisualEditorTree
+	}
+	return fields
+}
+
+func (s *Server) updateTemplate(ctx context.Context, call *Call) (any, error) {
+	args, toolErr := decodeTemplateWrite(call)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	call.Audit.SetTarget(domain.AuditTargetTemplate, args.ID, "")
+	if args.Name == nil && args.Category == nil && args.Subject == nil && args.SubjectPreview == nil && args.MJMLSource == nil &&
+		args.Text == nil && args.SenderID == nil && args.ReplyTo == nil && args.TestData == nil {
+		return nil, validationError("give at least one field to change besides id and base_version")
+	}
+	if args.BaseVersion != nil && *args.BaseVersion < 1 {
+		return nil, validationError("base_version must be 1 or more")
+	}
+
+	// templates.update replaces the whole template, so the tool reads the
+	// latest version and writes it back with the given fields changed.
+	stored, toolErr, err := s.readTemplate(ctx, call.WorkspaceID, args.ID, nil)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	if err != nil {
+		return nil, err
+	}
+	call.Audit.SetTarget("", "", stored.Name)
+	if stored.Channel != domain.ChannelEmail || stored.Email == nil {
+		return nil, validationError("template %s is a %s template (a blog layout): update_template changes code email templates only", stored.ID, stored.Channel)
+	}
+	if mode := *editorMode(stored); mode != domain.EditorModeCode {
+		return nil, validationError("template %s is edited in %s mode: update_template changes code templates only. Edit it in the console, or make a new template with create_template", stored.ID, mode)
+	}
+
+	email := codeEmailFields(stored.Email)
+	for key, value := range map[string]*string{
+		"subject":         args.Subject,
+		"mjml_source":     args.MJMLSource,
+		"subject_preview": args.SubjectPreview,
+		"text":            args.Text,
+		"sender_id":       args.SenderID,
+		"reply_to":        args.ReplyTo,
+	} {
+		switch {
+		case value == nil:
+		case *value == "" && key != "subject" && key != "mjml_source":
+			delete(email, key)
+		default:
+			email[key] = *value
+		}
+	}
+	fields := map[string]any{
+		"workspace_id": call.WorkspaceID,
+		"id":           stored.ID,
+		"name":         valueOr(args.Name, stored.Name),
+		"channel":      domain.ChannelEmail,
+		"category":     valueOr(args.Category, stored.Category),
+		"email":        email,
+	}
+	if stored.TemplateMacroID != nil {
+		fields["template_macro_id"] = *stored.TemplateMacroID
+	}
+	if len(stored.Settings) > 0 {
+		fields["settings"] = map[string]any(stored.Settings)
+	}
+	switch {
+	case args.TestData != nil:
+		fields["test_data"] = args.TestData
+	case len(stored.TestData) > 0:
+		fields["test_data"] = map[string]any(stored.TestData)
+	}
+	if args.BaseVersion != nil {
+		fields["base_version"] = *args.BaseVersion
+	}
+	// Translations stay out of the request: the service keeps the stored ones.
+	var req domain.UpdateTemplateRequest
+	if err := requestFromJSON(fields, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	// templates.update validates in its handler, not in the service.
+	template, _, err := req.Validate()
+	if err != nil {
+		return nil, validationError("%v", err)
+	}
+	// Every field the compile reads: the MJML, subject and preview, the plain
+	// text, and the test data the Liquid renders with.
+	if args.MJMLSource != nil || args.Subject != nil || args.SubjectPreview != nil || args.Text != nil || args.TestData != nil {
+		if err := s.checkTemplateCompiles(ctx, call.WorkspaceID, template); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := s.deps.Templates.UpdateTemplate(ctx, call.WorkspaceID, template); err != nil {
+		return nil, err
+	}
+	call.Audit.SetTarget("", "", template.Name)
+	out := templateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template)}
+	if len(stored.Translations) > 0 {
+		out.TranslationsUnchanged = slices.Sorted(maps.Keys(stored.Translations))
+	}
+	return out, nil
+}
+
+func (s *Server) deleteTemplateTool() *Tool {
+	return &Tool{
+		Name:  "delete_template",
+		Title: "Delete template",
+		Description: "Deletes a template. Messages already sent with it still display, and its ID cannot be used again. " +
+			"Nothing checks whether broadcasts, transactional notifications or automations still use it, and this cannot be undone: confirm with the user first. " +
+			"A template managed by an integration is refused with a validation error. " +
+			"Returns not_found for a template that does not exist or is already deleted, which is also what a repeated call answers.",
+		Class:       ClassDestructive,
+		Pairs:       []Pair{{Resource: domain.PermissionResourceTemplates, Verb: domain.PermissionTypeWrite}},
+		AuditAction: "templates.delete",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
+				"id":           map[string]any{"type": "string", "description": "The template's ID."},
+			},
+			"required":             []string{"workspace_id", "id"},
+			"additionalProperties": false,
+		},
+		Handler: s.deleteTemplate,
+	}
+}
+
+type deleteTemplateOutput struct {
+	Workspace WorkspaceRef `json:"workspace"`
+	Deleted   bool         `json:"deleted"`
+	ID        string       `json:"id"`
+}
+
+func (s *Server) deleteTemplate(ctx context.Context, call *Call) (any, error) {
+	id, _ := call.Args["id"].(string)
+	call.Audit.SetTarget(domain.AuditTargetTemplate, id, "")
+	var req domain.DeleteTemplateRequest
+	if err := requestFromJSON(map[string]any{"workspace_id": call.WorkspaceID, "id": id}, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	// templates.delete validates in its handler, not in the service.
+	if _, _, err := req.Validate(); err != nil {
+		return nil, validationError("%v", err)
+	}
+	// The repository deletes only a template not yet deleted, and answers not
+	// found otherwise, so a repeated call answers not_found without a read.
+	if err := s.deps.Templates.DeleteTemplate(ctx, call.WorkspaceID, id); err != nil {
+		return nil, err
+	}
+	return deleteTemplateOutput{Workspace: call.WorkspaceRef(), Deleted: true, ID: id}, nil
 }

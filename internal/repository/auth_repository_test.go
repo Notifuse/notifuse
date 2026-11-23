@@ -25,32 +25,58 @@ func TestAuthRepository_GetSessionByID(t *testing.T) {
 
 	repo := NewSQLAuthRepository(db)
 
-	// Test case 1: Session found
+	// Test case 1: Session found, opened by a magic code and a second factor
 	sessionID := "session-id-1"
 	userID := "user-id-1"
 	expiresAt := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
+	authenticatedAt := time.Now().UTC().Truncate(time.Second)
+	query := `SELECT expires_at, auth_method, second_factor, authenticated_at
+		FROM user_sessions
+		WHERE id = \$1 AND user_id = \$2 AND challenge_hash IS NULL AND magic_code IS NULL`
 
-	rows := sqlmock.NewRows([]string{"expires_at"}).
-		AddRow(expiresAt)
-
-	mock.ExpectQuery(`SELECT expires_at FROM user_sessions WHERE id = \$1 AND user_id = \$2`).
-		WithArgs(sessionID, userID).
-		WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"expires_at", "auth_method", "second_factor", "authenticated_at"}).
+		AddRow(expiresAt, "magic_code", "totp", authenticatedAt)
+	mock.ExpectQuery(query).WithArgs(sessionID, userID).WillReturnRows(rows)
 
 	result, err := repo.GetSessionByID(context.Background(), sessionID, userID)
 	require.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, expiresAt.Unix(), result.Unix())
+	require.NotNil(t, result)
+	assert.Equal(t, expiresAt.Unix(), result.ExpiresAt.Unix())
+	assert.Equal(t, domain.AuthMethodMagicCode, result.AuthMethod)
+	assert.Equal(t, domain.SecondFactorTOTP, result.SecondFactor)
+	require.NotNil(t, result.AuthenticatedAt)
+	assert.Equal(t, authenticatedAt.Unix(), result.AuthenticatedAt.Unix())
 
-	// Test case 2: Session not found
-	mock.ExpectQuery(`SELECT expires_at FROM user_sessions WHERE id = \$1 AND user_id = \$2`).
-		WithArgs("nonexistent", userID).
-		WillReturnError(sql.ErrNoRows)
+	// Test case 2: a session opened before 45.0 has none of the new values
+	rows = sqlmock.NewRows([]string{"expires_at", "auth_method", "second_factor", "authenticated_at"}).
+		AddRow(expiresAt, nil, nil, nil)
+	mock.ExpectQuery(query).WithArgs(sessionID, userID).WillReturnRows(rows)
+	result, err = repo.GetSessionByID(context.Background(), sessionID, userID)
+	require.NoError(t, err)
+	assert.Empty(t, result.AuthMethod)
+	assert.Empty(t, result.SecondFactor)
+	assert.Nil(t, result.AuthenticatedAt)
 
+	// Test case 3: no usable session (missing, or waiting for its code or second factor)
+	mock.ExpectQuery(query).WithArgs("nonexistent", userID).WillReturnError(sql.ErrNoRows)
 	result, err = repo.GetSessionByID(context.Background(), "nonexistent", userID)
 	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Equal(t, sql.ErrNoRows, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAuthRepository_IsTwoFactorEnabled(t *testing.T) {
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+	repo := NewSQLAuthRepository(db)
+
+	mock.ExpectQuery(`SELECT EXISTS \(SELECT 1 FROM user_totp WHERE user_id = \$1 AND enabled_at IS NOT NULL AND secret_encrypted IS NOT NULL\)`).
+		WithArgs("user-1").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+	enabled, err := repo.IsTwoFactorEnabled(context.Background(), "user-1")
+	require.NoError(t, err)
+	assert.True(t, enabled)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestAuthRepository_GetUserByID(t *testing.T) {

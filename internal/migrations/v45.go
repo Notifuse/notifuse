@@ -2,8 +2,10 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
@@ -26,6 +28,17 @@ import (
 //
 // Once 45.0 is released this file is frozen like every shipped migration: a fix to a
 // database at 45 is a new major.
+//
+// Parts so far:
+//
+//   - two-factor authentication (system): the user_totp and user_recovery_codes tables, the
+//     columns of user_sessions that record how a session was opened and its pending
+//     challenge. The DDL is schema.TwoFactorTableDefinitions, shared verbatim with
+//     internal/database/init.go.
+//   - data retention, Lot 0 (workspace): the opt-out hashes of deleted contacts, their
+//     restore trigger and the bodies that honour them (v45_data_retention.go).
+//   - data retention, Lot 1 (system, after the two-factor tables): one engagement backfill
+//     task per existing workspace (v45_data_retention.go).
 type V45Migration struct{}
 
 func (m *V45Migration) GetMajorVersion() float64 { return 45.0 }
@@ -37,6 +50,11 @@ func (m *V45Migration) HasWorkspaceUpdate() bool { return true }
 func (m *V45Migration) ShouldRestartServer() bool { return false }
 
 func (m *V45Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
+	for _, query := range schema.TwoFactorTableDefinitions() {
+		if _, err := db.ExecContext(ctx, query); err != nil {
+			return fmt.Errorf("v45: failed to create the two-factor authentication tables: %w", err)
+		}
+	}
 	// Data retention, Lot 1: one engagement backfill task per existing workspace
 	// (v45_data_retention.go).
 	if err := applyDataRetentionSystemV45(ctx, db); err != nil {
