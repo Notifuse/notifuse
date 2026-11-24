@@ -353,7 +353,7 @@ func TestAutomationExecutor_EndsCountedOnlyWhenTheRowChanged(t *testing.T) {
 		},
 		"failed": func(e *AutomationExecutor, ca *domain.ContactAutomation) error {
 			ca.RetryCount = ca.MaxRetries - 1
-			return e.handleError(context.Background(), writesWorkspace, ca, errors.New("boom"), "node execution failed")
+			return e.handleError(context.Background(), writesWorkspace, ca, nil, errors.New("boom"), "node execution failed")
 		},
 	}
 	for stat, end := range ends {
@@ -448,4 +448,39 @@ func TestAutomationExecutor_Execute_FailedSaveOnACancelledRun(t *testing.T) {
 	)
 
 	require.NoError(t, h.executor.Execute(ctx, writesWorkspace, h.ca))
+}
+
+// A failed attempt is recorded on the step that failed, with that step's type: the analytics
+// group failures by node_type, and the trigger type would file every failure under the trigger.
+func TestAutomationExecutor_Execute_FailedAttemptRecordsTheStepType(t *testing.T) {
+	h := newWritesHarness(t, func(context.Context, NodeExecutionParams) (*NodeExecutionResult, error) {
+		return nil, errors.New("webhook answered 500")
+	}, nil)
+
+	h.expectProcessingRow(t, "x")
+	h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).Return(nil)
+	var failure *domain.NodeExecution
+	h.repo.EXPECT().CreateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, ne *domain.NodeExecution) error {
+			failure = ne
+			return nil
+		})
+	h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).Return(true, nil)
+
+	require.NoError(t, h.executor.Execute(context.Background(), writesWorkspace, h.ca))
+	require.NotNil(t, failure)
+	assert.Equal(t, domain.NodeActionFailed, failure.Action)
+	assert.Equal(t, "x", failure.NodeID)
+	assert.Equal(t, domain.NodeTypeWebhook, failure.NodeType)
+	assert.Nil(t, failure.CompletedAt)
+}
+
+func TestFailedNodeType(t *testing.T) {
+	automation := &domain.Automation{Nodes: []*domain.AutomationNode{{ID: "x", Type: domain.NodeTypeEmail}}}
+	x, gone := "x", "gone"
+	assert.Equal(t, domain.NodeTypeEmail, failedNodeType(automation, &x))
+	// Unknown: the automation could not be read, or no longer has the step.
+	assert.Equal(t, domain.NodeTypeTrigger, failedNodeType(nil, &x))
+	assert.Equal(t, domain.NodeTypeTrigger, failedNodeType(automation, &gone))
+	assert.Equal(t, domain.NodeTypeTrigger, failedNodeType(automation, nil))
 }

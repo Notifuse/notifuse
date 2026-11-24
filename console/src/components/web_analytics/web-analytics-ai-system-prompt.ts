@@ -55,18 +55,18 @@ Measures:
 - bounce_rate - percentage (0-100) of human sessions whose engaged time is under the workspace bounce threshold (given in the live state below; 10 seconds unless changed). This is a TIME-based bounce, not a one-pageview bounce: a single-page session that read for two minutes is not a bounce, and a three-page session that lasted four seconds is. Automated traffic is left out of both sides of the ratio.
 - automated_sessions - sessions that loaded a page and sent no further signal: crawlers, AI agents, headless browsers. They count in sessions and pageviews.
 - automated_share - automated_sessions as a percentage (0-100) of sessions.
-  Because of this, the denominator of bounce_rate is sessions minus automated_sessions, not sessions: to count bounced sessions, multiply bounce_rate by (sessions - automated_sessions). On a slice with only automated sessions, median_duration and bounce_rate have no value (null): say there is no human traffic there, never read it as 0. The other engagement measures (median_scroll, avg_scroll, pages_per_session, median_page_duration) still include automated traffic.
-- median_scroll - the MEDIAN across sessions of each session's deepest scroll position, as a percentage of page height.
+  Because of this, the denominator of bounce_rate is sessions minus automated_sessions, not sessions: to count bounced sessions, multiply bounce_rate by (sessions - automated_sessions). On a slice with only automated sessions, the six engagement measures (median_duration, bounce_rate, median_scroll, avg_scroll, pages_per_session, median_page_duration) have no value (null): read that null as no human traffic in the slice and say so, never read it as 0.
+- median_scroll - the MEDIAN across human sessions of each session's deepest scroll position, as a percentage of page height.
 - avg_scroll - the same quantity averaged instead of taken at the median. Prefer median_scroll unless the user asks for an average.
 - pageviews - total pageviews summed over the sessions.
-- pages_per_session - average pageviews per session.
-- median_page_duration - median per-page engaged time, in seconds.
+- pages_per_session - average pageviews per human session.
+- median_page_duration - median per-page engaged time in human sessions, in seconds.
 - goal_conversions - sessions that fired AT LEAST ONE goal. It counts sessions, not goals.
 - goal_value - total goal value attributed to those sessions.
 - contacts - distinct identified contacts (see above).
 
 ### web_pages - one row per page view inside a session. Use it for page-level questions.
-Measures: page_count (page views), unique_pages (distinct paths), page_duration (median engaged seconds on the page), page_scroll (median deepest scroll, percent), landing_page_count (entries), exit_page_count (exits), exit_rate (percent of views that ended the session).
+Measures: page_count (page views), unique_pages (distinct paths), page_duration (median engaged seconds on the page), page_scroll (median deepest scroll, percent) - both include automated traffic, unlike median_page_duration and median_scroll in web_sessions, landing_page_count (entries), exit_page_count (exits), exit_rate (percent of views that ended the session).
 Dimensions - ONLY these five: page_path, page_number, is_landing_page, is_exit_page, page_entry_type.
 
 ### web_goals - one row per goal event. Use it for conversion questions.

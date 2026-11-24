@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
+- **Fix**: The analytics measures for sending and completed broadcasts (`count_sending`, `completed_broadcasts_count`) looked for statuses broadcasts never have, so they returned 0. The recipient measures failed with an error and now count the emails queued by processed broadcasts, leaving out those sent before 21.0, which recorded no count. `count_with_ab_test` counts every broadcast with A/B testing on.
+
+- **Fix**: The contacts analytics schema no longer lists `count_active`, `count_unsubscribed`, `count_bounced` and `count_with_source`. They read columns the contacts table doesn't have, so every query on them failed.
+
+- **Fix**: In the `automation_node_executions` analytics schema, `count_skipped` now counts skipped emails, where it always returned 0. `count_completed` leaves them out, along with the steps that recorded an error, which the new `count_errors` counts. `count_failed` counts each failed attempt once. A failure recorded from 45.0 on carries the type of the step that failed; earlier ones keep `trigger`.
+
+- **Fix**: The `email_queue` analytics measure `count_retryable` no longer counts emails given up on after one attempt. The new `count_paused` counts the emails of paused broadcasts.
+
+- **Fix**: The web analytics `page_entry_type` dimension, the contact timeline and segments no longer count the first page of each browser tab as a landing page. In the timeline and segments, pages recorded before 45.0 keep the old value.
+
 - **Feature**: Claude, ChatGPT, Cursor and other MCP clients can read and work in a workspace at `<API_ENDPOINT>/mcp`. They connect with an API key and get exactly its access; claude.ai and ChatGPT ask for the key on a Notifuse connection page. Owners turn MCP off per workspace and see the connections in **Settings** → **AI** → **MCP**, and `MCP_ENABLED=false` turns it off for the instance.
 
 - **Change**: The AI models (Anthropic, OpenAI, Gemini) and Firecrawl moved from **Settings** → **Integrations** to **Settings** → **AI** → **Assistant**.
@@ -20,7 +30,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The web analytics dashboard opens with an Automated traffic card. It counts the sessions that load a page and never send a second signal, which is how crawlers, AI agents and headless browsers behave. The card shows their share of all sessions, its change since the comparison period, and the landing pages, browsers and countries they come from. The new Traffic Type dimension (`human` or `automated`) filters any report, and `analytics.query` gains the `automated_sessions` and `automated_share` measures. The demo workspace now has automated traffic too, with one overnight crawl.
 
-- **Improvement**: TimeScore and Bounce Rate now leave automated traffic out, while Sessions and pageviews still count it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
+- **Improvement**: TimeScore, Bounce Rate, scroll depth, pages per session and median page duration now leave automated traffic out, while Sessions and pageviews still count it. The per-page measures `page_duration` and `page_scroll` still include it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
 
 - **Feature**: `lists.subscribe` and `contactLists.updateStatus` accept `resubscribe: true` to bring back a contact who unsubscribed from a list: they become active with no confirmation email, and the audit log records it. Without the flag, `lists.subscribe` now leaves an unsubscribed contact unsubscribed and sends nothing, where it used to set them to pending with a confirmation email and make them active on a second call. If your integration re-subscribes contacts on purpose, add the flag. In the console, a list row on the contact page offers Re-subscribe, which can also clear a bounce once the address works again.
 

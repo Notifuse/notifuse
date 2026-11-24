@@ -138,6 +138,23 @@ func TestWebAnalyticsAutomatedTraffic(t *testing.T) {
 		assert.Nil(t, result.Data[0]["bounce_rate"])
 	})
 
+	// Scroll depth and time on a page read the same population as TimeScore. Counted with
+	// the two automated sessions (scroll 0, page time 0 and 0.04s), the median scroll would
+	// be 5% and the average 21.7%, the median page time 2.8s.
+	t.Run("scroll depth and time on a page count humans", func(t *testing.T) {
+		result := analyticsQuery(t, suite, workspace.ID, `{
+			"schema": "web_sessions",
+			"measures": ["median_scroll", "avg_scroll", "median_page_duration", "pages_per_session"]
+		}`)
+		require.Len(t, result.Data, 1)
+		row := result.Data[0]
+		// Humans scrolled 0, 10, 40 and 80%; their page times were 0.6, 5, 12 and 30s.
+		assert.InDelta(t, 25.0, waNumber(t, row["median_scroll"]), 0.01)
+		assert.InDelta(t, 32.5, waNumber(t, row["avg_scroll"]), 0.01)
+		assert.InDelta(t, 8.5, waNumber(t, row["median_page_duration"]), 0.01)
+		assert.InDelta(t, 1.0, waNumber(t, row["pages_per_session"]), 0.01)
+	})
+
 	// Last, because it adds sessions the counts above do not expect.
 	t.Run("the 1s bound, and a page no human reached sorts last", func(t *testing.T) {
 		edge := []waBeat{

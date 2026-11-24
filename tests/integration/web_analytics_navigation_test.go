@@ -209,6 +209,39 @@ func TestWebAnalyticsNavigationTimeline(t *testing.T) {
 		assert.Equal(t, "/signup", exitPath)
 	})
 
+	t.Run("only the first page of the visit is a landing, whatever the tab", func(t *testing.T) {
+		// Each tab numbers its pages from 1, and the ingestion first writes entry_type
+		// from that. The timeline and the segments must read the visit's landing, as
+		// the analytics do: one per visit, not one per tab.
+		const email = "tabs@example.com"
+		sessionID := waUUIDv7At(now.Add(-9*time.Minute), 0xBB)
+		beat(t, workspace.ID, sessionID, email, 1, 1, []map[string]interface{}{
+			pageview("/home", 1, 8*time.Minute, 6*time.Minute, 30),
+			pageview("/docs", 2, 6*time.Minute, 5*time.Minute, 30),
+		})
+		beat(t, workspace.ID, sessionID, email, 2, 1, []map[string]interface{}{
+			pageview("/blog", 1, 5*time.Minute, 2*time.Minute, 60),
+		})
+
+		rows, err := wsDB.Query(`
+			SELECT changes->'path'->>'new', changes->'entry_type'->>'new'
+			FROM contact_timeline WHERE email = $1 AND kind = 'web.pageview'`, email)
+		require.NoError(t, err)
+		defer rows.Close()
+		got := map[string]string{}
+		for rows.Next() {
+			var path, entryType string
+			require.NoError(t, rows.Scan(&path, &entryType))
+			got[path] = entryType
+		}
+		require.NoError(t, rows.Err())
+		assert.Equal(t, map[string]string{
+			"/home": domain.WebEntryTypeLanding,
+			"/docs": domain.WebEntryTypeNavigation,
+			"/blog": domain.WebEntryTypeNavigation,
+		}, got, "the second tab's first page is a navigation")
+	})
+
 	t.Run("a replay from a cold buffer changes nothing", func(t *testing.T) {
 		// Restart, eviction and a second replica all look like this. The buffer
 		// keeps no cursor for navigation, so idempotency has to come from the
