@@ -1030,8 +1030,9 @@ func TestMCPAPIKey(t *testing.T) {
 
 		result = full.call("get_blog_post", fmt.Sprintf(`{"workspace_id":%q,"slug":"no-such-post"}`, workspace.ID))
 		assert.Equal(t, "not_found", result.errorCode(t))
+		// An id that is not a UUID is read as a slug, never sent to the UUID column.
 		result = full.call("get_blog_post", fmt.Sprintf(`{"workspace_id":%q,"id":"not-a-uuid"}`, workspace.ID))
-		assert.Equal(t, "validation", result.errorCode(t))
+		assert.JSONEq(t, `{"error":{"code":"not_found","message":"blog post not found: not-a-uuid"}}`, string(result.StructuredContent))
 	})
 
 	t.Run("a key without the read pair is refused each tool", func(t *testing.T) {
@@ -1174,7 +1175,7 @@ var allTools = []string{
 	"pause_automation", "pause_broadcast", "preview_segment", "publish_blog_post", "query_analytics", "remove_contact_from_list",
 	"render_template", "resume_broadcast", "schedule_broadcast", "search_contacts", "search_messages", "select_broadcast_winner",
 	"send_broadcast_to_contact", "send_template_test", "send_transactional", "set_contact_list_status", "subscribe_contact_to_list",
-	"track_custom_event", "unpublish_blog_post", "update_blog_post", "update_broadcast", "update_list", "update_segment",
+	"track_custom_event", "unpublish_blog_post", "unschedule_broadcast", "update_blog_post", "update_broadcast", "update_list", "update_segment",
 	"update_template", "update_transactional_notification", "upsert_contact",
 }
 

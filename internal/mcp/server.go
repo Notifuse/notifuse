@@ -147,6 +147,7 @@ type BroadcastService interface {
 	PauseBroadcast(ctx context.Context, request *domain.PauseBroadcastRequest) error
 	ResumeBroadcast(ctx context.Context, request *domain.ResumeBroadcastRequest) error
 	CancelBroadcast(ctx context.Context, request *domain.CancelBroadcastRequest) error
+	UnscheduleBroadcast(ctx context.Context, request *domain.UnscheduleBroadcastRequest) error
 	DeleteBroadcast(ctx context.Context, request *domain.DeleteBroadcastRequest) error
 	SendToIndividual(ctx context.Context, request *domain.SendToIndividualRequest) error
 	SelectWinner(ctx context.Context, workspaceID, broadcastID, templateID string) error
@@ -170,7 +171,7 @@ type TransactionalService interface {
 	CreateNotification(ctx context.Context, workspaceID string, params domain.TransactionalNotificationCreateParams) (*domain.TransactionalNotification, error)
 	UpdateNotification(ctx context.Context, workspaceID, id string, params domain.TransactionalNotificationUpdateParams) (*domain.TransactionalNotification, error)
 	DeleteNotification(ctx context.Context, workspaceID, id string) error
-	SendNotification(ctx context.Context, workspaceID string, params domain.TransactionalNotificationSendParams) (string, error)
+	SendNotificationWithResult(ctx context.Context, workspaceID string, params domain.TransactionalNotificationSendParams) (domain.TransactionalSendResult, error)
 	TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, listID string, omitListUnsubscribeHeader bool, options domain.EmailOptions) error
 }
 
@@ -358,6 +359,7 @@ func (s *Server) catalogue() []*Tool {
 		s.pauseBroadcastTool(),
 		s.resumeBroadcastTool(),
 		s.cancelBroadcastTool(),
+		s.unscheduleBroadcastTool(),
 		s.deleteBroadcastTool(),
 		s.listTransactionalNotificationsTool(),
 		s.getTransactionalNotificationTool(),

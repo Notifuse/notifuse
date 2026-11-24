@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"testing"
@@ -3588,4 +3589,22 @@ func TestUnscheduleBroadcastRequest_Validate(t *testing.T) {
 	assert.NoError(t, (&domain.UnscheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1"}).Validate())
 	assert.EqualError(t, (&domain.UnscheduleBroadcastRequest{ID: "b1"}).Validate(), "workspace_id is required")
 	assert.EqualError(t, (&domain.UnscheduleBroadcastRequest{WorkspaceID: "w1"}).Validate(), "broadcast id is required")
+}
+
+// The API answers the error as the ValidationError it unwraps to, with the same
+// message as before the type existed.
+func TestBroadcastNotScheduledError_UnwrapsToAValidationError(t *testing.T) {
+	var err error = fmt.Errorf("unschedule: %w", &domain.BroadcastNotScheduledError{ID: "b1"})
+
+	var validation domain.ValidationError
+	require.ErrorAs(t, err, &validation)
+	assert.Equal(t, "the broadcast is not scheduled", validation.Message)
+	assert.Equal(t, "unschedule: validation error: the broadcast is not scheduled", err.Error())
+
+	var notScheduled *domain.BroadcastNotScheduledError
+	require.ErrorAs(t, err, &notScheduled)
+	assert.Equal(t, "b1", notScheduled.ID)
+
+	assert.False(t, errors.As(domain.NewValidationError("the broadcast is not scheduled"), &notScheduled),
+		"a plain ValidationError is not the typed refusal")
 }

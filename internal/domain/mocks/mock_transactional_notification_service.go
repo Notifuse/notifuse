@@ -110,6 +110,21 @@ func (mr *MockTransactionalNotificationServiceMockRecorder) SendNotification(arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendNotification", reflect.TypeOf((*MockTransactionalNotificationService)(nil).SendNotification), arg0, arg1, arg2)
 }
 
+// SendNotificationWithResult mocks base method.
+func (m *MockTransactionalNotificationService) SendNotificationWithResult(arg0 context.Context, arg1 string, arg2 domain.TransactionalNotificationSendParams) (domain.TransactionalSendResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendNotificationWithResult", arg0, arg1, arg2)
+	ret0, _ := ret[0].(domain.TransactionalSendResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SendNotificationWithResult indicates an expected call of SendNotificationWithResult.
+func (mr *MockTransactionalNotificationServiceMockRecorder) SendNotificationWithResult(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendNotificationWithResult", reflect.TypeOf((*MockTransactionalNotificationService)(nil).SendNotificationWithResult), arg0, arg1, arg2)
+}
+
 // TestTemplate mocks base method.
 func (m *MockTransactionalNotificationService) TestTemplate(arg0 context.Context, arg1, arg2, arg3, arg4, arg5, arg6, arg7 string, arg8 bool, arg9 domain.EmailOptions) error {
 	m.ctrl.T.Helper()

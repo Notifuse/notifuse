@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,6 +114,22 @@ func TestListAnalyticsSchemas_SortedWithoutSQLOrWebhookDeliveries(t *testing.T) 
 	for _, dropped := range []string{"secret_", "webhook_deliveries", "COUNT(*)", `"sql"`} {
 		assert.NotContains(t, result.Content[0].Text, dropped)
 	}
+}
+
+// A member without a description, as the web analytics ones are, shows no
+// empty description.
+func TestListAnalyticsSchemas_LeavesOutAnEmptyDescription(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
+	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(map[string]analytics.SchemaDefinition{
+		"web_pages": {Name: "web_pages", Measures: map[string]analytics.MeasureDefinition{"page_count": {Type: "count", Title: "Page Views"}}},
+	}, nil)
+
+	result := f.callTool("list_analytics_schemas", map[string]any{"workspace_id": testWorkspaceID})
+	assert.JSONEq(t, `{
+		"workspace":{"id":"ws1","name":"Acme"},
+		"schemas":[{"name":"web_pages","measures":[{"name":"page_count","type":"count","title":"Page Views"}],"dimensions":[]}]
+	}`, string(result.StructuredContent))
 }
 
 func TestListAnalyticsSchemas_AKeyWithoutAnyResourceGetsNone(t *testing.T) {
@@ -300,6 +317,41 @@ func TestQueryAnalytics_PermissionOfTheSchema(t *testing.T) {
 			Code: CodePermissionDenied, Message: fmt.Sprintf("this API key lacks the %s read permission", resource), Resource: resource, Permission: "read",
 		}, toolErr, schema)
 	}
+}
+
+// A date_range with times runs through the real query and its gap filling: the hours between
+// the bounds come back, the empty ones as zero.
+func TestQueryAnalytics_ADateRangeWithTimesFillsTheHours(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"count", "created_at_hour"}).
+		AddRow(4, time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC)))
+	schema := domain.PredefinedSchemas["message_history"]
+	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(domain.PredefinedSchemas, nil)
+	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ string, query analytics.Query) (*analytics.Response, error) {
+			return query.Query(ctx, db, schema)
+		})
+
+	result := f.callTool("query_analytics", analyticsArgs(map[string]any{
+		"time_dimensions": []map[string]any{{"dimension": "created_at", "granularity": "hour", "date_range": []string{"2026-11-20 08:30:00", "2026-11-20T10:15:00Z"}}},
+	}))
+	require.False(t, result.IsError, string(result.StructuredContent))
+	assert.JSONEq(t, `{
+		"workspace":{"id":"ws1","name":"Acme"},
+		"schema":"message_history",
+		"rows":[
+			{"count":0,"created_at_hour":"2026-11-20T08:00:00Z"},
+			{"count":4,"created_at_hour":"2026-11-20T09:00:00Z"},
+			{"count":0,"created_at_hour":"2026-11-20T10:00:00Z"}
+		],
+		"row_count":3,
+		"limit_reached":false
+	}`, string(result.StructuredContent))
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestQueryAnalytics_ATimeoutSaysToNarrowTheQuery(t *testing.T) {

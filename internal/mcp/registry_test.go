@@ -52,6 +52,7 @@ func TestCatalogue_ToolNames(t *testing.T) {
 		"pause_broadcast",
 		"resume_broadcast",
 		"cancel_broadcast",
+		"unschedule_broadcast",
 		"delete_broadcast",
 		"list_transactional_notifications",
 		"get_transactional_notification",
@@ -89,7 +90,7 @@ func TestCatalogue_DescriptionsNameOnlyExistingTools(t *testing.T) {
 	for _, tool := range s.catalogue() {
 		names[tool.Name] = true
 	}
-	toolName := regexp.MustCompile(`\b(create|update|delete|send|upsert|import|cancel|schedule|pause|resume|publish|unpublish|archive|remove|add|subscribe|set|track|activate|select)_[a-z_]+`)
+	toolName := regexp.MustCompile(`\b(create|update|delete|send|upsert|import|cancel|schedule|pause|resume|publish|unpublish|archive|remove|add|subscribe|set|track|activate|select|unschedule)_[a-z_]+`)
 	for _, tool := range s.catalogue() {
 		properties, _ := tool.InputSchema["properties"].(map[string]any)
 		var texts func(v any)
@@ -173,6 +174,7 @@ func TestCatalogue_ToolDefinitions(t *testing.T) {
 		"pause_broadcast":           {class: ClassWrite, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
 		"resume_broadcast":          {class: ClassSend, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
 		"cancel_broadcast":          {class: ClassDestructive, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
+		"unschedule_broadcast":      {class: ClassWrite, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
 		"delete_broadcast":          {class: ClassDestructive, pairs: []Pair{{Resource: "broadcasts", Verb: "write"}}},
 		// The template is read under the key's permissions.
 		"create_transactional_notification": {class: ClassWrite, pairs: []Pair{{Resource: "transactional", Verb: "write"}, {Resource: "templates", Verb: "read"}}},
@@ -317,4 +319,38 @@ func TestRegister_RefusesADuplicateName(t *testing.T) {
 func TestCall_WorkspaceRef(t *testing.T) {
 	call := &Call{WorkspaceID: "ws1", Workspace: &domain.Workspace{ID: "ws1", Name: "Acme"}}
 	assert.Equal(t, WorkspaceRef{ID: "ws1", Name: "Acme"}, call.WorkspaceRef())
+}
+
+// The descriptions state the output facts an assistant asked about in use,
+// each read from the code that produces the field.
+func TestCatalogue_DescriptionsDocumentTheirOutputs(t *testing.T) {
+	descriptions := map[string]string{}
+	for _, tool := range newBareServer(Deps{}).catalogue() {
+		descriptions[tool.Name] = tool.Description
+	}
+	for tool, facts := range map[string][]string{
+		"get_automation_stats": {
+			"errors counts runs that completed but recorded an error",
+			"failed_attempts counts every attempt that failed, retries included",
+			"failed_journeys counts the journeys that ended failed on the step",
+		},
+		"get_broadcast":        {"get_broadcast_report has each variation's results"},
+		"search_messages":      {"subject is set only when the send replaced the template's subject", "It is null for transactional emails, for automations without a list"},
+		"query_analytics":      {"both bounds are included, a date as the end covers that whole day", "a date as its end stops at midnight"},
+		"render_template":      {"subject_preview is absent when there is no preview text", "auto is generated from the HTML"},
+		"activate_automation":  {"never returns to draft", "stays paused"},
+		"get_contact_timeline": {"a custom event is dated by its occurred_at"},
+		"track_custom_event":   {"dates the event at occurred_at"},
+		"delete_blog_post":     {"The post's body template is not deleted"},
+		"get_template":         {"left out unless include_translations is true"},
+		"send_transactional":   {"already set to true"},
+	} {
+		for _, fact := range facts {
+			assert.Contains(t, descriptions[tool], fact, tool)
+		}
+	}
+	for name, description := range descriptions {
+		assert.NotContains(t, description, "\u2014", name)
+		assert.NotContains(t, description, "\u2013", name)
+	}
 }

@@ -526,7 +526,12 @@ func (s *Server) getAutomationStatsTool() *Tool {
 		Description: "Reads the results of each step of an automation, keyed by step ID. " +
 			"Each step has its visits, completions, failed attempts, skips and their reasons, errors, journeys that failed on it, journeys on it now (in progress, waiting, retrying), and the path taken at each branch, filter or A/B test. " +
 			"Email steps add their email counters (sent, delivered, opened, clicked, bounced, unsubscribed and others) when the key also has the message_history read permission. " +
+			"completed counts the runs of the step that succeeded. " +
+			"errors counts runs that completed but recorded an error, such as a list step whose list was missing: the journey went on. " +
+			"failed_attempts counts every attempt that failed, retries included, so one journey can add several. " +
+			"failed_journeys counts the journeys that ended failed on the step, after their retries. " +
 			"A step that was never reached has zeros. Give since and until together to count only executions that entered a step in that period. " +
+			"For failed_journeys the period bounds when the journey entered the automation, not when it failed. " +
 			"The journeys on a step now ignore the period.",
 		Class: ClassRead,
 		Pairs: []Pair{automationsRead},
@@ -661,6 +666,7 @@ func (s *Server) activateAutomationTool() *Tool {
 			"Contacts are not enrolled for events that happened before. " +
 			"Confirm with the user first: get_automation shows the trigger and the steps. " +
 			"An automation already live answers invalid_state with its status, so calling it again changes nothing. " +
+			"A draft that goes live never returns to draft: pause_automation stops it, and it then stays paused until it is activated again. " +
 			"A trigger that cannot be installed, an email step in an automation without a list, or a deleted list it still uses answers a validation error. " +
 			"Automations are built and edited in the console.",
 		Class:       ClassSend,

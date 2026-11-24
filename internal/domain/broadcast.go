@@ -985,6 +985,24 @@ type UnscheduleBroadcastRequest struct {
 	ID          string `json:"id"`
 }
 
+// BroadcastNotScheduledError refuses to send a broadcast back to draft when it is already a
+// draft with no send task left, so there is nothing to undo. It unwraps to a ValidationError
+// with the same message, which the API answers as before; a caller that treats a repeated
+// call as done tells it apart with errors.As.
+type BroadcastNotScheduledError struct {
+	ID string
+}
+
+func (e *BroadcastNotScheduledError) validation() ValidationError {
+	return ValidationError{Message: "the broadcast is not scheduled"}
+}
+
+// Error implements the error interface
+func (e *BroadcastNotScheduledError) Error() string { return e.validation().Error() }
+
+// Unwrap gives the ValidationError the API answers with.
+func (e *BroadcastNotScheduledError) Unwrap() error { return e.validation() }
+
 // Validate validates the unschedule broadcast request
 func (r *UnscheduleBroadcastRequest) Validate() error {
 	if r.WorkspaceID == "" {

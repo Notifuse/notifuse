@@ -2067,12 +2067,11 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 			GetByExternalID(gomock.Any(), workspace, gomock.Any(), externalID).
 			Return(existingMessage, nil)
 
-		// Call the method
-		messageID, err := service.SendNotification(ctx, workspace, params)
+		// The result says the key was already used and nothing was sent.
+		result, err := service.SendNotificationWithResult(ctx, workspace, params)
 
-		// Assertions
 		require.NoError(t, err)
-		require.Equal(t, existingMessageID, messageID)
+		assert.Equal(t, domain.TransactionalSendResult{MessageID: existingMessageID, Deduplicated: true}, result)
 	})
 
 	t.Run("Error_ContactUpsertFailed", func(t *testing.T) {
@@ -5102,9 +5101,10 @@ func TestTransactionalNotificationService_SendNotification_ExternalID(t *testing
 				return nil
 			})
 
-		messageID, err := f.service.SendNotification(ctx, workspaceID, params)
+		result, err := f.service.SendNotificationWithResult(ctx, workspaceID, params)
 		require.NoError(t, err)
-		assert.NotEmpty(t, messageID)
+		assert.NotEmpty(t, result.MessageID)
+		assert.False(t, result.Deduplicated, "a first send under a key")
 	})
 
 	t.Run("a concurrent call that wrote its message first is answered with it, without sending", func(t *testing.T) {
@@ -5117,9 +5117,9 @@ func TestTransactionalNotificationService_SendNotification_ExternalID(t *testing
 		f.history.EXPECT().GetByExternalID(gomock.Any(), workspaceID, gomock.Any(), externalID).
 			Return(&domain.MessageHistory{ID: "winner-msg", ExternalID: &externalID}, nil).After(send)
 
-		messageID, err := f.service.SendNotification(ctx, workspaceID, params)
+		result, err := f.service.SendNotificationWithResult(ctx, workspaceID, params)
 		require.NoError(t, err)
-		assert.Equal(t, "winner-msg", messageID)
+		assert.Equal(t, domain.TransactionalSendResult{MessageID: "winner-msg", Deduplicated: true}, result)
 	})
 
 	// A key is never released: a winner whose provider call failed keeps it, and the loser is

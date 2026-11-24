@@ -703,18 +703,26 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 
 	// Determine time range strategy based on granularity and data
 	var timeRange []string
-	startTime, err := time.Parse("2006-01-02", timeDim.DateRange[0])
+	timezone := query.GetDefaultTimezone()
+	startTime, err := gapFillBound(timeDim.DateRange[0], timezone)
 	if err != nil {
 		return data, fmt.Errorf("failed to parse start date: %w", err)
 	}
 
-	endTime, err := time.Parse("2006-01-02", timeDim.DateRange[1])
+	endTime, err := gapFillBound(timeDim.DateRange[1], timezone)
 	if err != nil {
 		return data, fmt.Errorf("failed to parse end date: %w", err)
 	}
 
+	sameDay := isDateOnlyBound(timeDim.DateRange[0]) && isDateOnlyBound(timeDim.DateRange[1]) && startTime.Equal(endTime)
+
+	// A bare end date names a whole day, as in the SQL, so hourly periods run to its last hour.
+	if timeDim.Granularity == "hour" && isDateOnlyBound(timeDim.DateRange[1]) && !sameDay {
+		endTime = endTime.AddDate(0, 0, 1).Add(-time.Hour)
+	}
+
 	// For hour granularity with same-day range and existing data, use data-driven approach
-	if timeDim.Granularity == "hour" && startTime.Equal(endTime) && len(data) > 0 {
+	if timeDim.Granularity == "hour" && sameDay && len(data) > 0 {
 		timeRange = generateTimeRangeFromData(data, timeDimColumn, timeDim)
 	} else {
 		// For other cases, use the full date range
@@ -786,6 +794,22 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 	}
 
 	return result, nil
+}
+
+// gapFillBound parses a dateRange bound like the SQL does (parseDateRangeBound) and returns
+// its wall clock in the query's timezone, labeled UTC. The buckets come back that way: they are
+// truncated in the query's timezone and serialized as UTC.
+func gapFillBound(value string, timezone string) (time.Time, error) {
+	parsed, err := parseDateRangeBound(value, timezone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	local := parsed.In(loc)
+	return time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), local.Minute(), local.Second(), local.Nanosecond(), time.UTC), nil
 }
 
 // maxGapFilledRows bounds the rows the gap filling may return.

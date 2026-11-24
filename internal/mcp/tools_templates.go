@@ -209,7 +209,9 @@ func (s *Server) getTemplateTool() *Tool {
 		Name:  "get_template",
 		Title: "Get template",
 		Description: "Reads one template: " +
-			"name, version, channel, category, editor mode, subject, preview text, sender, reply-to, the MJML, the custom plain-text version, the Liquid test data and each translation. " +
+			"name, version, channel, category, editor mode, subject, preview text, sender, reply-to, the MJML, the custom plain-text version and the Liquid test data. " +
+			"translation_languages lists the languages the template is translated into. " +
+			"The translations themselves (subject, preview text, MJML and plain text of each language) are left out unless include_translations is true, since each one is a whole email. " +
 			"The plain-text version is absent when the template uses the automatic one. " +
 			"For a code template, mjml is the stored source (mjml_origin source). " +
 			"For a visual template, mjml is an export of the visual design (mjml_origin export). " +
@@ -222,6 +224,10 @@ func (s *Server) getTemplateTool() *Tool {
 				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
 				"id":           map[string]any{"type": "string", "description": "Template ID: letters, digits, underscores and hyphens, 1 to 32 characters."},
 				"version":      map[string]any{"type": "integer", "description": "A past version to read, 1 or more. Omit for the latest."},
+				"include_translations": map[string]any{
+					"type":        "boolean",
+					"description": "Also return each translation's content in translations. Default false: only translation_languages lists them.",
+				},
 			},
 			"required":             []string{"workspace_id", "id"},
 			"additionalProperties": false,
@@ -231,8 +237,9 @@ func (s *Server) getTemplateTool() *Tool {
 }
 
 type getTemplateArgs struct {
-	ID      string `json:"id"`
-	Version *int64 `json:"version"`
+	ID                  string `json:"id"`
+	Version             *int64 `json:"version"`
+	IncludeTranslations bool   `json:"include_translations"`
 }
 
 // The origins of a template's mjml in get_template.
@@ -269,6 +276,7 @@ type templateFull struct {
 	Text                 *string                               `json:"text,omitempty"`
 	WebText              string                                `json:"web_text,omitempty"`
 	TestData             map[string]any                        `json:"test_data,omitempty"`
+	TranslationLanguages []string                              `json:"translation_languages"`
 	Translations         map[string]templateTranslationContent `json:"translations,omitempty"`
 	ManagedByIntegration bool                                  `json:"managed_by_integration"`
 	CreatedAt            time.Time                             `json:"created_at"`
@@ -293,7 +301,7 @@ func (s *Server) getTemplate(ctx context.Context, call *Call) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getTemplateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template)}, nil
+	return getTemplateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template, args.IncludeTranslations)}, nil
 }
 
 // readTemplate reads a template as templates.get does, with the request's own
@@ -321,7 +329,11 @@ func (s *Server) readTemplate(ctx context.Context, workspaceID, id string, versi
 	return template, nil, nil
 }
 
-func projectTemplate(template *domain.Template) templateFull {
+// projectTemplate is a template as get_template, create_template and
+// update_template return it. Each translation is a whole email, so its content
+// is there only with includeTranslations; translation_languages always lists
+// the languages.
+func projectTemplate(template *domain.Template, includeTranslations bool) templateFull {
 	out := templateFull{
 		ID:                   template.ID,
 		Version:              template.Version,
@@ -348,7 +360,11 @@ func projectTemplate(template *domain.Template) templateFull {
 	if template.Web != nil {
 		out.WebText = out.Truncation.Text("web_text", template.Web.PlainText)
 	}
-	if len(template.Translations) > 0 {
+	out.TranslationLanguages = slices.Sorted(maps.Keys(template.Translations))
+	if out.TranslationLanguages == nil {
+		out.TranslationLanguages = []string{}
+	}
+	if includeTranslations && len(template.Translations) > 0 {
 		out.Translations = make(map[string]templateTranslationContent, len(template.Translations))
 		for _, language := range slices.Sorted(maps.Keys(template.Translations)) {
 			translation := template.Translations[language]
@@ -393,6 +409,10 @@ func (s *Server) renderTemplateTool() *Tool {
 			"It returns the subject, the preview text, the plain-text version and, with include_html, the HTML. " +
 			"Give template_id to render a saved template, with version and language to pick a past version or a translation. " +
 			"Or give mjml_source to check a draft before saving it. Tracking is off, so links stay as written. " +
+			"subject_preview is absent when there is no preview text. A saved template then shows its name in the inbox when it has an <mj-preview> tag, since saving writes the name there. " +
+			"Saving always gives a code template that tag, and gives it to a visual template only when its design has a preview block. " +
+			"text_source says where the plain text comes from: custom is the template's own text rendered with Liquid, and auto is generated from the HTML. " +
+			"text_error says why a custom text was not used, and the email then gets the automatic text. " +
 			"An MJML or Liquid error still makes a successful call: success is false, with the error's message, line and tag. " +
 			"The plain text and the error messages are cut at 2000 characters. The HTML is returned whole. All arguments together are limited to 1 MiB.",
 		Class: ClassRead,
@@ -789,7 +809,7 @@ func (s *Server) createTemplate(ctx context.Context, call *Call) (any, error) {
 		}
 		return nil, err
 	}
-	return templateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template)}, nil
+	return templateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template, true)}, nil
 }
 
 func (s *Server) updateTemplateTool() *Tool {
@@ -953,7 +973,7 @@ func (s *Server) updateTemplate(ctx context.Context, call *Call) (any, error) {
 		return nil, err
 	}
 	call.Audit.SetTarget("", "", template.Name)
-	out := templateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template)}
+	out := templateOutput{Workspace: call.WorkspaceRef(), Template: projectTemplate(template, true)}
 	if len(stored.Translations) > 0 {
 		out.TranslationsUnchanged = slices.Sorted(maps.Keys(stored.Translations))
 	}

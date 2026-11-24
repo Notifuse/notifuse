@@ -40,6 +40,7 @@ func (s *Server) listAnalyticsSchemasTool() *Tool {
 		Title: "List analytics schemas",
 		Description: "Lists the analytics schemas this key may query with query_analytics. " +
 			"Each schema has its measures (counts and aggregates) and its dimensions (the fields to group or filter by, time dimensions included). " +
+			"A member has a name, a type and a title, and a description when the schema gives one. " +
 			"A schema is listed only when the key can read its resource: " +
 			"message_history and email_queue need message_history, contacts needs contacts, broadcasts needs broadcasts, automation_node_executions needs automations, and the web analytics schemas need web_analytics.",
 		Class: ClassRead,
@@ -59,7 +60,7 @@ type analyticsMember struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"`
 	Title       string `json:"title"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 }
 
 // analyticsSchema is a schema without its SQL fragments.
@@ -122,6 +123,9 @@ func (s *Server) queryAnalyticsTool() *Tool {
 		Title: "Query analytics",
 		Description: "Runs an aggregate query on one analytics schema from list_analytics_schemas. " +
 			"You pick the measures to compute and the dimensions to group by. Time dimensions group by hour, day, week, month or year over a date range. " +
+			"To count a period, give the time dimension a date_range: both bounds are included, a date as the end covers that whole day, and the bounds are read in timezone. " +
+			"An inDateRange filter compares its values as given, without the timezone argument, so a date as its end stops at midnight at the start of that day. " +
+			"beforeDate and afterDate leave out the value given. " +
 			"You can filter on dimensions, filter on measures (having), and set one sort order. " +
 			"Name members as list_analytics_schemas names them, without the schema prefix. " +
 			"A query returns at most 1000 rows (default 100) and runs for at most 10 seconds. limit_reached is true when the row limit cut the result; " +
@@ -143,7 +147,7 @@ func (s *Server) queryAnalyticsTool() *Tool {
 						"properties": map[string]any{
 							"dimension":   map[string]any{"type": "string", "description": "A time dimension of the schema."},
 							"granularity": map[string]any{"type": "string", "enum": []string{"hour", "day", "week", "month", "year"}},
-							"date_range":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Exactly two dates, [from, to], such as [\"2026-11-01\", \"2026-11-30\"]."},
+							"date_range":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Exactly two bounds, [from, to], both included, such as [\"2026-11-01\", \"2026-11-30\"]. A bound is a date, a date and time, or an RFC 3339 time, read in timezone. A date as the end covers that whole day."},
 						},
 						"required":             []string{"dimension", "granularity"},
 						"additionalProperties": false,
