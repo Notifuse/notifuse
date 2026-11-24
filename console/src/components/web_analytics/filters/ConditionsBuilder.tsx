@@ -6,9 +6,9 @@ import { useLingui } from '@lingui/react/macro'
 import { RuleValueInput } from './RuleValueInput'
 import { WebFilterCondition, WebFilterOperator } from '../../../services/api/web_analytics'
 import {
+  buildSourceFieldOptions,
   isValuelessRuleOperator,
   OPERATORS,
-  SOURCE_FIELD_OPTIONS,
   useFilterVocabulary
 } from '../lib/filterCatalog'
 import { typography } from '../../../theme/tokens'
@@ -27,6 +27,8 @@ interface ConditionRowProps {
 function ConditionRow(props: ConditionRowProps) {
   const { t } = useLingui()
   const vocabulary = useFilterVocabulary()
+  // Built on each render, in the console language: two dozen fields, cheaper than a stale label.
+  const fieldOptions = buildSourceFieldOptions()
   const selectRef = useRef<RefSelectProps | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const hasAutoFocused = useRef(false)
@@ -69,7 +71,7 @@ function ConditionRow(props: ConditionRowProps) {
           ref={handleSelectRef}
           value={props.value.field}
           onChange={(field) => props.onChange({ ...props.value, field })}
-          options={SOURCE_FIELD_OPTIONS}
+          options={fieldOptions}
           placeholder={t`Select field`}
           aria-label={t`Field`}
           style={{ width: '100%' }}

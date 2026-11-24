@@ -105,6 +105,23 @@ describe('TwoFactorChallengeForm', () => {
     )
   })
 
+  it('asks for what the field takes: the app code, then a recovery code', () => {
+    renderForm()
+    expect(screen.getByText('Enter the code from your authenticator app.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Use a recovery code instead' }))
+    expect(
+      screen.getByText('Enter one of the recovery codes you saved when you turned on two-factor authentication.')
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Enter the code from your authenticator app.')).not.toBeInTheDocument()
+  })
+
+  it('says the code accepts the invitation when it comes from one', () => {
+    render(withAuth(<TwoFactorChallengeForm invitation challengeToken="challenge" onSignedIn={vi.fn()} onRestart={vi.fn()} />))
+    expect(screen.getByText('Enter the code from your authenticator app to accept the invitation.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Use a recovery code instead' }))
+    expect(screen.getByText('Enter one of your recovery codes to accept the invitation.')).toBeInTheDocument()
+  })
+
   it('sends the person back to the email step when the challenge is gone', async () => {
     post.mockRejectedValue(refusal('two_factor_challenge_invalid', 410))
     const { onRestart } = renderForm()

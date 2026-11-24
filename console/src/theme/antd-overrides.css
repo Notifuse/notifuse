@@ -186,3 +186,17 @@ a[data-plain-link]:active {
 .ant-table-tbody a.row-title-link:hover {
   color: var(--color-ink);
 }
+
+/* A long modal title stops before the close button instead of running under it: antd
+   positions the button over the header and gives the title no room for it. */
+.ant-modal-container:has(> .ant-modal-close) .ant-modal-title {
+  padding-inline-end: 24px;
+}
+
+
+/* A link button whose text lines up with the text around it (a form's edges, a label):
+   antd's link buttons keep the default button padding and height. */
+.ant-btn.app-link-flush {
+  padding: 0;
+  height: auto;
+}

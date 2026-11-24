@@ -10,8 +10,11 @@ export interface KeyValueItem {
 
 export interface KeyValueListProps {
   items: KeyValueItem[]
-  /** Width of the label column, in px (140 by default), for the inline layout. */
-  labelWidth?: number
+  /**
+   * Width of the label column, in px (140 by default), for the inline layout. `auto` sizes it to the
+   * longest label, up to 40% of the list, for labels whose length depends on the language.
+   */
+  labelWidth?: number | 'auto'
   /** `inline` (default): label on the left, value on the right. `stacked`: label above its value. */
   layout?: 'inline' | 'stacked'
   /** Columns of the stacked layout (1 by default); one column under 560px of container. */
@@ -61,7 +64,7 @@ export function KeyValueList({ items, labelWidth = 140, layout = 'inline', colum
     <dl
       data-unreset
       className="m-0 grid gap-x-3 gap-y-2 text-sm"
-      style={{ gridTemplateColumns: `${labelWidth}px minmax(0, 1fr)` }}
+      style={{ gridTemplateColumns: `${labelWidth === 'auto' ? 'fit-content(40%)' : `${labelWidth}px`} minmax(0, 1fr)` }}
     >
       {items.map((item, index) => (
         <Fragment key={item.key ?? index}>

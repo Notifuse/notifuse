@@ -31,7 +31,8 @@ vi.mock('../services/api/twoFactor', async (importOriginal) => {
 
 // Mock the navigate function and useSearch
 const mockNavigate = vi.fn(() => ({}))
-const mockSearch: { email?: string; oidc_error?: string; return_to?: 'security' } = { email: undefined }
+// return_to is any string here: the page checks it again, whatever the route let through.
+const mockSearch: { email?: string; oidc_error?: string; return_to?: string } = { email: undefined }
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>()
@@ -201,13 +202,87 @@ describe('SignInPage', () => {
     fireEvent.click(page.getByText(/verify code/i))
 
     // No token yet: the second step.
-    expect(await page.findByRole('heading', { name: 'Authentication code' })).toBeInTheDocument()
+    expect(await page.findByRole('heading', { name: 'Two-factor authentication' })).toBeInTheDocument()
     expect(localStorage.getItem('auth_token')).toBeNull()
 
     fireEvent.change(page.getByPlaceholderText('000000'), { target: { value: '654321' } })
     fireEvent.click(page.getByRole('button', { name: 'Verify' }))
     await waitFor(() => expect(verifyChallenge).toHaveBeenCalledWith('challenge', { code: '654321' }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/account/security' }), { timeout: 2000 })
+  })
+
+  // An owner who signs in from the MCP connection page comes back to that request, and to nothing
+  // that only looks like it.
+  describe('return to the MCP connection page', () => {
+    const signInWithCode = async () => {
+      vi.mocked(authService.authService.signIn).mockResolvedValueOnce({ message: 'sent' })
+      vi.mocked(authService.authService.verifyCode).mockResolvedValueOnce({ token: 'jwt' })
+      vi.mocked(authService.authService.getCurrentUser).mockResolvedValueOnce({
+        user: { id: 'u1', email: 'owner@example.com', timezone: 'UTC', language: 'en' },
+        workspaces: []
+      })
+      const { container } = renderWithProviders(<SignInPage />)
+      const page = within(container)
+      fireEvent.change(page.getByLabelText(/email/i), { target: { value: 'owner@example.com' } })
+      fireEvent.click(page.getByText(/send magic code/i))
+      await waitFor(() => expect(page.getByText(/enter the 6-digit code/i)).toBeInTheDocument())
+      fireEvent.change(page.getByPlaceholderText('000000'), { target: { value: '123456' } })
+      fireEvent.click(page.getByText(/verify code/i))
+    }
+
+    beforeEach(() => {
+      localStorage.clear()
+      sessionStorage.clear()
+    })
+
+    it('goes back to the request it was sent from', async () => {
+      mockSearch.return_to = '/console/oauth/authorize?request=Xy_9-abcDEF'
+      await signInWithCode()
+      await waitFor(
+        () =>
+          expect(mockNavigate).toHaveBeenCalledWith({
+            to: '/console/oauth/authorize',
+            search: { request: 'Xy_9-abcDEF' }
+          }),
+        { timeout: 2000 }
+      )
+    })
+
+    it.each([
+      ['a dot segment', '/console/oauth/authorize/../x?request=abc'],
+      ['another host', 'https://evil.example/console/oauth/authorize?request=abc'],
+      ['a protocol-relative URL', '//evil.example/console/oauth/authorize?request=abc'],
+      ['an extra parameter', '/console/oauth/authorize?request=abc&next=/x'],
+      ['an encoded character', '/console/oauth/authorize?request=abc%2F..'],
+      ['a fragment', '/console/oauth/authorize?request=abc#x'],
+      ['another console page', '/console/workspace/demo?request=abc']
+    ])('refuses a look-alike with %s and lands on the console', async (_label, lookAlike) => {
+      mockSearch.return_to = lookAlike
+      await signInWithCode()
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/console' }), { timeout: 2000 })
+      expect(mockNavigate).not.toHaveBeenCalledWith(expect.objectContaining({ to: '/console/oauth/authorize' }))
+    })
+
+    it('remembers the request across single sign-on', async () => {
+      window.OIDC_ENABLED = true
+      const assignSpy = vi.fn()
+      const originalLocation = window.location
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, assign: assignSpy, hash: '' },
+        writable: true
+      })
+      mockSearch.return_to = '/console/oauth/authorize?request=req1'
+      renderWithProviders(<SignInPage />)
+      fireEvent.click(screen.getByText(/sign in with sso/i))
+      expect(sessionStorage.getItem('notifuse_signin_return_to')).toBe('/console/oauth/authorize?request=req1')
+      Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+    })
+
+    it('drops a look-alike stored for single sign-on', async () => {
+      sessionStorage.setItem('notifuse_signin_return_to', '/console/oauth/authorize?request=abc&next=/x')
+      await signInWithCode()
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/console' }), { timeout: 2000 })
+    })
   })
 
   it('submits code and navigates on success', async () => {

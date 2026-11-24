@@ -48,6 +48,13 @@ vi.mock('../components/settings/WorkspaceMembers', () => ({
     </div>
   )
 }))
+vi.mock('../components/settings/MCPSettings', () => ({
+  MCPSettings: ({ isOwner, members }: { isOwner: boolean; members: WorkspaceMember[] }) => (
+    <div>
+      mcp owner={String(isOwner)} members={members.length}
+    </div>
+  )
+}))
 vi.mock('../components/settings/WebhooksSettings', () => ({
   WebhooksSettings: ({ canManage }: { canManage: boolean }) => <div>webhooks canManage={String(canManage)}</div>
 }))
@@ -143,6 +150,14 @@ describe('WorkspaceSettingsPage', () => {
     renderPage()
     await waitFor(() => expect(state.getMembers).toHaveBeenCalled())
     expect(await screen.findByText('webhooks canManage=false')).toBeInTheDocument()
+  })
+
+  it('opens the MCP section with the members and the owner flag', async () => {
+    state.section = 'mcp'
+    state.getMembers.mockResolvedValue({ members: [me({ role: 'owner' })] })
+    renderPage()
+    expect(await screen.findByText('mcp owner=true members=1')).toBeInTheDocument()
+    expect(state.navigate).not.toHaveBeenCalled()
   })
 
   it('tells the team section when the members could not load', async () => {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Button, Form, Popconfirm, Select } from 'antd'
 import type { RefSelectProps } from 'antd/es/select'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
@@ -147,10 +147,9 @@ export function OperationsBuilder(props: OperationsBuilderProps) {
   const [focusIndex, setFocusIndex] = useState<number | null>(null)
 
   const { customDimensionLabels } = props
-  const dimensionOptions = useMemo(
-    () => buildDimensionOptions(customDimensionLabels),
-    [customDimensionLabels]
-  )
+  // Built on each render, in the console language: a memo on the labels alone would keep the
+  // group titles of the previous language.
+  const dimensionOptions = buildDimensionOptions(customDimensionLabels)
 
   const actionOptions: ActionOption[] = FILTER_ACTIONS.map((action) => ({
     value: action,

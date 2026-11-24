@@ -1,8 +1,8 @@
-import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import { App, Modal } from 'antd'
+import { App } from 'antd'
 import { SystemSettingsDrawer } from './SystemSettingsDrawer'
 import { settingsApi } from '../../services/api/settings'
 import type { SystemSettingsData, SystemSettingsResponse } from '../../types/settings'
@@ -92,13 +92,6 @@ describe('SystemSettingsDrawer — SSO section', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.ROOT_EMAIL = 'root@example.com'
-  })
-
-  // The restart confirmation is a static Modal.confirm: it mounts its own node on
-  // document.body, which RTL's cleanup never owns, so a leftover dialog would put
-  // its buttons in front of the drawer trigger for every test that follows.
-  afterEach(() => {
-    Modal.destroyAll()
   })
 
   it('renders the SSO fields populated from the loaded settings', async () => {

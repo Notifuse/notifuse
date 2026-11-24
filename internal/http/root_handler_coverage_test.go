@@ -22,6 +22,7 @@ func coverageRootHandler(repo domain.WorkspaceRepository) *RootHandler {
 		repo, nil, nil,
 		nil, "",
 		false,
+		false, false,
 	)
 }
 

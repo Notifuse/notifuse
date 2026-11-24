@@ -103,15 +103,39 @@ export const ISO3_TO_NAME: Record<string, string> = {
   ZWE: 'Zimbabwe',
 }
 
+// Built once per locale: a country table asks for a name per row.
+const regionNames = new Map<string, Intl.DisplayNames | null>()
+
+function localizedRegionName(iso2: string, locale: string): string | undefined {
+  let names = regionNames.get(locale)
+  if (names === undefined) {
+    try {
+      names = new Intl.DisplayNames(locale, { type: 'region', fallback: 'none' })
+    } catch {
+      // A runtime without DisplayNames, or a tag it rejects: the English table answers.
+      names = null
+    }
+    regionNames.set(locale, names)
+  }
+  return names?.of(iso2) ?? undefined
+}
+
 /**
  * Display name for a country code. Accepts alpha-2 (what the SDK stores) or
  * alpha-3 (what the map hands back), and returns the code unchanged when it is
  * not a country we know, so an unexpected value still renders as something.
+ *
+ * In English the names come from the table above. In another language they
+ * come from Intl, like the weekday names: country names are locale data every
+ * runtime carries, and the table stays the fallback.
  */
-export function countryName(isoCode: string): string {
+export function countryName(isoCode: string, locale = 'en'): string {
   const code = isoCode?.trim().toUpperCase() ?? ''
   if (!code) return ''
-  if (ISO3_TO_NAME[code]) return ISO3_TO_NAME[code]
-  const iso3 = ISO2_TO_ISO3[code]
-  return (iso3 && ISO3_TO_NAME[iso3]) || isoCode
+  const iso3 = ISO3_TO_NAME[code] ? code : ISO2_TO_ISO3[code]
+  const english = iso3 ? ISO3_TO_NAME[iso3] : undefined
+  if (!iso3 || !english) return isoCode
+  const tag = locale || 'en'
+  if (tag === 'en' || tag.startsWith('en-')) return english
+  return localizedRegionName(ISO3_TO_ISO2[iso3], tag) ?? english
 }

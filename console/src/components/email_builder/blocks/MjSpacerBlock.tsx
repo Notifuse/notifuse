@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { MJMLComponentType, EmailBlock, MJSpacerAttributes, MergedBlockAttributes } from '../types'
 import {
@@ -138,7 +140,7 @@ export class MjSpacerBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Spacer'
+    return i18n._(msg({ message: 'Spacer', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

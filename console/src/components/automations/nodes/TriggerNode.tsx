@@ -6,6 +6,7 @@ import { BaseNode } from './BaseNode'
 import { SourceHandle } from './handles'
 import { getNodeDescription } from './constants'
 import { useAutomation } from '../context'
+import { EVENT_KIND_CARD_LABELS } from '../describeTrigger'
 import type { AutomationFlowNode } from '../utils/flowConverter'
 import type { TimelineTriggerConfig } from '../../../services/api/automation'
 import { broadcastApi } from '../../../services/api/broadcast'
@@ -17,7 +18,7 @@ type TriggerNodeProps = NodeProps<AutomationFlowNode>
 type TriggerConfig = Partial<TimelineTriggerConfig>
 
 export const TriggerNode: React.FC<TriggerNodeProps> = ({ id, data, selected }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const { workspace, lists, segments, templates } = useAutomation()
   const config = data.config as TriggerConfig
   const linkClick = config.event_kind === 'email.link_clicked'
@@ -36,12 +37,15 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ id, data, selected }) 
   const hasEventKind = !!config.event_kind
   const frequency = config.frequency === 'every_time' ? t`Every time` : t`Once`
 
-  // Format event kind for display (e.g., "list.subscribed" -> "List Subscribed")
+  // The event kind by its translated name; a kind the console does not know yet keeps its words
+  // capitalised (e.g. "foo.bar" -> "Foo Bar").
   const formatEventKind = (eventKind: string): string => {
-    if (eventKind === 'custom_event') return t`Custom event`
-    if (eventKind === 'email.link_clicked') return t`Email Link Clicked`
-    const parts = eventKind.split('.')
-    return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+    const label = EVENT_KIND_CARD_LABELS[eventKind]
+    if (label) return i18n._(label)
+    return eventKind
+      .split('.')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
   }
 
   // Look up list/segment names

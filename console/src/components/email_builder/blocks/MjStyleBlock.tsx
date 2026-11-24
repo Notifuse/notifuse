@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { Switch, Drawer, Button } from 'antd'
 import { Editor } from '@monaco-editor/react'
@@ -180,7 +182,7 @@ export class MjStyleBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Custom CSS'
+    return i18n._(msg({ message: 'Custom CSS', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

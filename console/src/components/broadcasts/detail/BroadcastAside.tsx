@@ -72,7 +72,7 @@ function PreviewBlock({
       extra={
         template ? (
           <TemplatePreviewDrawer record={template} workspace={workspace}>
-            <Button size="small">{t`Open`}</Button>
+            <Button size="small">{t({ message: 'Open', context: 'action' })}</Button>
           </TemplatePreviewDrawer>
         ) : null
       }

@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { MJMLComponentType } from '../types'
 import {
@@ -82,7 +84,7 @@ export class MjLiquidBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Liquid'
+    return i18n._(msg({ message: 'Liquid', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {
