@@ -23,8 +23,10 @@ import (
 // reads nothing. The first run takes a SHARE lock on message_history before the two
 // UPDATEs: the build needs it anyway, and taking it first keeps a send from adding an empty
 // key or a duplicate before the build, which would fail the build and the migration. Writes
-// to message_history then wait until the workspace commits, for two reads of the table and
-// the build of an index that holds only the keyed rows. The UPDATEs write only the empty keys
+// to message_history then wait until the workspace commits: for two reads of the table, the
+// build of an index that holds only the keyed rows, and the parts that run after this one
+// (the web_sessions updated_at part reads no row: it writes a catalog entry once it has its
+// lock, which it waits for 5 seconds at most). The UPDATEs write only the empty keys
 // and the duplicates, and clearing external_id fires nothing in the message_history
 // triggers, which act on status timestamps and links. CREATE INDEX CONCURRENTLY cannot run
 // in the migration's transaction, and the migration manager has no step after the commit.

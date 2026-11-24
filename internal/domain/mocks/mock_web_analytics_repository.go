@@ -79,6 +79,21 @@ func (mr *MockWebAnalyticsRepositoryMockRecorder) BackfillPartition(arg0, arg1, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BackfillPartition", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).BackfillPartition), arg0, arg1, arg2, arg3)
 }
 
+// BuildWebSessionsUpdatedAtIndex mocks base method.
+func (m *MockWebAnalyticsRepository) BuildWebSessionsUpdatedAtIndex(arg0 context.Context, arg1 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BuildWebSessionsUpdatedAtIndex", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BuildWebSessionsUpdatedAtIndex indicates an expected call of BuildWebSessionsUpdatedAtIndex.
+func (mr *MockWebAnalyticsRepositoryMockRecorder) BuildWebSessionsUpdatedAtIndex(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuildWebSessionsUpdatedAtIndex", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).BuildWebSessionsUpdatedAtIndex), arg0, arg1)
+}
+
 // EnsureMonthlyPartitions mocks base method.
 func (m *MockWebAnalyticsRepository) EnsureMonthlyPartitions(arg0 context.Context, arg1 string, arg2 []time.Time) error {
 	m.ctrl.T.Helper()

@@ -161,12 +161,12 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					DateRange:   &[2]string{"2024-01-01", "2024-12-31"},
 				}},
 			},
-			expectedSQL: "SELECT (COUNT(*)) AS count, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE created_at >= $1 AND created_at <= $2 GROUP BY created_at_day",
-			// A bare end date covers its whole day, so the bound is the last
-			// instant of 2024-12-31 rather than its midnight.
+			expectedSQL: "SELECT (COUNT(*)) AS count, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE created_at >= $1 AND created_at < $2 GROUP BY created_at_day",
+			// A bare end date covers its whole day, so the bound is the midnight
+			// after 2024-12-31, excluded.
 			expectedArgs: []interface{}{
 				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2024, 12, 31, 23, 59, 59, int(999*time.Millisecond), time.UTC),
+				time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
 		{
@@ -212,11 +212,11 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 				},
 				Limit: intPtr(100),
 			},
-			expectedSQL: "SELECT (COUNT(*)) AS count, (COUNT(*) FILTER (WHERE sent_at IS NOT NULL)) AS count_sent, contact_email AS contact_email, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE broadcast_id <> $1 AND created_at >= $2 AND created_at <= $3 GROUP BY contact_email, created_at_day ORDER BY created_at_day DESC LIMIT 100",
+			expectedSQL: "SELECT (COUNT(*)) AS count, (COUNT(*) FILTER (WHERE sent_at IS NOT NULL)) AS count_sent, contact_email AS contact_email, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE broadcast_id <> $1 AND created_at >= $2 AND created_at < $3 GROUP BY contact_email, created_at_day ORDER BY created_at_day DESC LIMIT 100",
 			expectedArgs: []interface{}{
 				"test-broadcast",
 				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2024, 12, 31, 23, 59, 59, int(999*time.Millisecond), time.UTC),
+				time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
 		{
@@ -325,8 +325,12 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					Values:   []string{"2024-01-01", "2024-03-31"},
 				}},
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE (created_at >= $1 AND created_at <= $2)",
-			expectedArgs: []interface{}{"2024-01-01", "2024-03-31"},
+			// Read as a time dimension's dateRange: the bare end date covers its whole day.
+			expectedSQL: "SELECT (COUNT(*)) AS count FROM message_history WHERE (created_at >= $1 AND created_at < $2)",
+			expectedArgs: []interface{}{
+				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
+			},
 		},
 		{
 			name: "query with beforeDate filter",
@@ -340,7 +344,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 				}},
 			},
 			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE created_at < $1",
-			expectedArgs: []interface{}{"2024-01-01"},
+			expectedArgs: []interface{}{time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)},
 		},
 		{
 			name: "query with multiple new operators",
@@ -365,8 +369,9 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					},
 				},
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE broadcast_id IS NOT NULL AND contact_email LIKE $1 ESCAPE '\\' AND created_at > $2",
-			expectedArgs: []interface{}{"%.com", "2024-01-01"},
+			expectedSQL: "SELECT (COUNT(*)) AS count FROM message_history WHERE broadcast_id IS NOT NULL AND contact_email LIKE $1 ESCAPE '\\' AND created_at >= $2",
+			// After the day named: from the next midnight.
+			expectedArgs: []interface{}{"%.com", time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -2938,7 +2943,7 @@ func TestEmptyMeasureValue(t *testing.T) {
 	for _, measureType := range []string{"count", "sum", "count_distinct", "count_distinct_approx", "", "custom"} {
 		assert.Equal(t, 0, emptyMeasureValue(measureType), measureType)
 	}
-	for _, measureType := range []string{"max", "min", "avg"} {
+	for _, measureType := range []string{"max", "min", "avg", "number"} {
 		assert.Nil(t, emptyMeasureValue(measureType), measureType)
 	}
 }

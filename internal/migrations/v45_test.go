@@ -97,9 +97,10 @@ func TestV45Migration_UpdateSystem_StopsAtTheFirstFailureWithAPrefix(t *testing.
 // Each project's part, in full: sqlmock fails on any statement it was not told to expect.
 // The system part is two-factor authentication, then data retention, then the OAuth tables, in
 // UpdateSystem's order.
-// The workspace part is data retention, then the unique external_id part
-// (v45_data_retention_test.go and v45_external_id_test.go pin their statements). Each project
-// adds its expectations here.
+// The workspace part is data retention, then the unique external_id part, then the
+// web_sessions updated_at index (v45_data_retention_test.go, v45_external_id_test.go and
+// v45_web_sessions_updated_at_test.go pin their statements). Each project adds its
+// expectations here.
 func TestV45Migration_Parts(t *testing.T) {
 	m := &V45Migration{}
 	assert.True(t, m.HasSystemUpdate())
@@ -122,6 +123,9 @@ func TestV45Migration_Parts(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	for _, statement := range externalIDWorkspaceV45Statements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	for _, statement := range webSessionsUpdatedAtWorkspaceV45Statements() {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	require.NoError(t, m.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))

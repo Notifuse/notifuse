@@ -158,8 +158,8 @@ func TestWebAnalyticsSchemas(t *testing.T) {
 
 	t.Run("cyclic time dimensions use EXTRACT on the schema's time column", func(t *testing.T) {
 		schemas := WebAnalyticsSchemas(nil, "UTC")
-		assert.Contains(t, schemas["web_sessions"].Dimensions["hour_of_day"].SQL, "EXTRACT(HOUR FROM created_at)")
-		assert.Contains(t, schemas["web_goals"].Dimensions["hour_of_day"].SQL, "EXTRACT(HOUR FROM goal_at)")
+		assert.Contains(t, schemas["web_sessions"].Dimensions["hour_of_day"].SQL, "EXTRACT(HOUR FROM (created_at AT TIME ZONE 'UTC'))")
+		assert.Contains(t, schemas["web_goals"].Dimensions["hour_of_day"].SQL, "EXTRACT(HOUR FROM (goal_at AT TIME ZONE 'UTC'))")
 		assert.Contains(t, schemas["web_sessions"].Dimensions["is_weekend"].SQL, "ISODOW")
 	})
 }
@@ -201,10 +201,16 @@ func TestWebAnalyticsSchemasTimezone(t *testing.T) {
 			Dimensions["hour_of_day"].SQL, "goal_at AT TIME ZONE", "goals extract from their own clock")
 	})
 
-	t.Run("UTC and unusable timezones leave the column bare", func(t *testing.T) {
+	t.Run("UTC and unusable timezones name UTC rather than leave the column bare", func(t *testing.T) {
+		// EXTRACT on a bare timestamptz reads it in the database session's zone: on a server
+		// not set to UTC, a UTC report would get the server's hours and days.
+		dims := WebAnalyticsSchemas(nil, "UTC")["web_sessions"].Dimensions
+		for _, name := range []string{"hour_of_day", "day_of_week", "is_weekend", "year", "month", "day", "week_number"} {
+			assert.Contains(t, dims[name].SQL, "(created_at AT TIME ZONE 'UTC')", name)
+		}
 		for _, timezone := range []string{"UTC", "", "'; DROP TABLE web_sessions; --"} {
 			sql := WebAnalyticsSchemas(nil, timezone)["web_sessions"].Dimensions["hour_of_day"].SQL
-			assert.Equal(t, "(EXTRACT(HOUR FROM created_at))::int", sql, timezone)
+			assert.Equal(t, "(EXTRACT(HOUR FROM (created_at AT TIME ZONE 'UTC')))::int", sql, timezone)
 		}
 	})
 
@@ -219,8 +225,41 @@ func TestWebAnalyticsSchemasTimezone(t *testing.T) {
 		// equality with ''. Left raw, the anonymous bucket would be a NULL that
 		// no filter the console can build is able to select again.
 		for _, schema := range []string{"web_sessions", "web_pages", "web_goals"} {
-			assert.Equal(t, "COALESCE(contact_email, '')",
-				WebAnalyticsSchemas(nil, "UTC")[schema].Dimensions["contact_email"].SQL, schema)
+			dimension := WebAnalyticsSchemas(nil, "UTC")[schema].Dimensions["contact_email"]
+			assert.Equal(t, "COALESCE(contact_email, '')", dimension.SQL, schema)
+			// set, notSet and an equality to an address compare the column itself.
+			assert.Equal(t, "contact_email", dimension.NullableColumn, schema)
 		}
+	})
+
+	t.Run("set and notSet on contact_email mean identified and anonymous", func(t *testing.T) {
+		schema := WebAnalyticsSchemas(nil, "UTC")["web_sessions"]
+		for operator, where := range map[string]string{
+			"set":    "WHERE contact_email <> $1",
+			"notSet": "WHERE (contact_email IS NULL OR contact_email = $1)",
+		} {
+			sqlStr, _, err := analytics.NewSQLBuilder().BuildSQL(analytics.Query{
+				Schema: "web_sessions", Measures: []string{"sessions"},
+				Filters: []analytics.Filter{{Member: "contact_email", Operator: operator}},
+			}, schema)
+			require.NoError(t, err)
+			assert.True(t, strings.HasSuffix(sqlStr, where), "%s: %s", operator, sqlStr)
+		}
+	})
+
+	t.Run("goal values are summed exactly, as a number", func(t *testing.T) {
+		schemas := WebAnalyticsSchemas(nil, "UTC")
+		for _, measure := range []analytics.MeasureDefinition{
+			schemas["web_sessions"].Measures["goal_value"], schemas["web_goals"].Measures["sum_goal_value"],
+		} {
+			assert.Equal(t, "sum", measure.Type, "an empty period still totals 0")
+			assert.Equal(t, "goal_value::text::numeric", measure.SQL)
+			assert.Equal(t, "float8", measure.Cast)
+		}
+		sqlStr, _, err := analytics.NewSQLBuilder().BuildSQL(analytics.Query{
+			Schema: "web_goals", Measures: []string{"sum_goal_value"},
+		}, schemas["web_goals"])
+		require.NoError(t, err)
+		assert.Equal(t, "SELECT ((SUM(goal_value::text::numeric))::float8) AS sum_goal_value FROM web_goals", sqlStr)
 	})
 }

@@ -462,3 +462,11 @@ func TestQueryAnalytics_AFailedQueryIsInternal(t *testing.T) {
 	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).Return(nil, errors.New("pq: relation message_history on db-host-7"))
 	assert.Equal(t, ToolError{Code: CodeInternal, Message: "internal error"}, f.callTool("query_analytics", analyticsArgs(nil)).errorOf(t))
 }
+
+// The time_dimensions argument says what a period without data holds, as the engine fills it
+// (emptyMeasureValue): 0 for counts and sums, null for the other measures.
+func TestQueryAnalyticsTool_DescribesFilledPeriods(t *testing.T) {
+	properties := catalogueTool(t, "query_analytics").InputSchema["properties"].(map[string]any)
+	description := properties["time_dimensions"].(map[string]any)["description"].(string)
+	assert.Contains(t, description, "counts and sums with 0, other measures (medians, rates, averages) with null")
+}

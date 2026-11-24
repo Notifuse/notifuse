@@ -206,6 +206,12 @@ type MeasureDefinition struct {
 	SQL         string          `json:"sql,omitempty"`
 	Description string          `json:"description"`
 	Filters     []MeasureFilter `json:"filters,omitempty"`
+
+	// Cast is the SQL type the measure's aggregate is cast to, after its filters:
+	// (SUM(x) FILTER (WHERE ...))::float8. A cast written at the end of SQL would come before
+	// the FILTER clause, which PostgreSQL refuses.
+	// Internal query-planning metadata: not exposed through analytics.schemas.
+	Cast string `json:"-"`
 }
 
 // DimensionDefinition defines an analytics dimension
@@ -214,6 +220,13 @@ type DimensionDefinition struct {
 	Title       string `json:"title"`
 	SQL         string `json:"sql,omitempty"`
 	Description string `json:"description"`
+
+	// NullableColumn names the bare column of a dimension whose SQL reads its NULL as the
+	// empty string (COALESCE(column, '')). The filters that can compare the column itself do
+	// (nullableColumnCondition): set and notSet then mean a non-empty and an empty value, as
+	// they would on the dimension's values, and an equality can use an index on the column.
+	// Internal query-planning metadata: not exposed through analytics.schemas.
+	NullableColumn string `json:"-"`
 }
 
 // GetDefaultTimezone returns the timezone of the query, UTC when it names none. An empty

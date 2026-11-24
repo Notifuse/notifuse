@@ -55,16 +55,16 @@ func TestSargableTimeRanges(t *testing.T) {
 		whereClause := sqlStr[strings.Index(sqlStr, "WHERE"):]
 		assert.NotContains(t, whereClause, "AT TIME ZONE", "range filter must stay sargable")
 		assert.Contains(t, whereClause, "created_at >= $")
-		assert.Contains(t, whereClause, "created_at <= $")
+		assert.Contains(t, whereClause, "created_at < $")
 
 		// Paris midnight of Aug 1 (UTC+2) is 22:00 UTC on Jul 31, and the
-		// range covers all of Aug 8 in Paris.
+		// range covers all of Aug 8 in Paris: it stops before Paris midnight of Aug 9.
 		require.Len(t, args, 2)
 		start, ok := args[0].(time.Time)
 		require.True(t, ok, "bounds must be bound as instants")
 		assert.Equal(t, time.Date(2026, 7, 31, 22, 0, 0, 0, time.UTC), start.UTC())
 		end := args[1].(time.Time)
-		assert.Equal(t, time.Date(2026, 8, 8, 21, 59, 59, int(999*time.Millisecond), time.UTC), end.UTC())
+		assert.Equal(t, time.Date(2026, 8, 8, 22, 0, 0, 0, time.UTC), end.UTC())
 	})
 
 	t.Run("DST boundary is handled by the location database", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestSargableTimeRanges(t *testing.T) {
 		start := args[0].(time.Time).UTC()
 		end := args[1].(time.Time).UTC()
 		assert.Equal(t, time.Date(2026, 3, 27, 23, 0, 0, 0, time.UTC), start, "before the switch: UTC+1")
-		assert.Equal(t, time.Date(2026, 3, 30, 21, 59, 59, int(999*time.Millisecond), time.UTC), end,
+		assert.Equal(t, time.Date(2026, 3, 30, 22, 0, 0, 0, time.UTC), end,
 			"the end of Mar 30, after the switch: UTC+2")
 	})
 
@@ -104,9 +104,12 @@ func TestSargableTimeRanges(t *testing.T) {
 		assert.Contains(t, sqlStr, "DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')")
 		whereClause := sqlStr[strings.Index(sqlStr, "WHERE"):]
 		assert.NotContains(t, whereClause, "AT TIME ZONE")
+		// Up to the next midnight, excluded: the last microsecond of Aug 8 is in, where an
+		// inclusive end at 23:59:59.999 left out the instants of its last millisecond.
+		assert.Contains(t, whereClause, "created_at < $2")
 		assert.Equal(t, []interface{}{
 			time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
-			time.Date(2026, 8, 8, 23, 59, 59, int(999*time.Millisecond), time.UTC),
+			time.Date(2026, 8, 9, 0, 0, 0, 0, time.UTC),
 		}, args)
 	})
 

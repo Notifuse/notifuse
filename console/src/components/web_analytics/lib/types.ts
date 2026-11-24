@@ -109,13 +109,12 @@ export interface WebMetricFilter {
 /**
  * A date range resolved to concrete bounds.
  *
- * Two representations, because the analytics engine treats them differently:
- * `startDay`/`endDay` are local calendar days for `timeDimensions`, which the
- * server converts to instants using the query timezone (and which its
- * gap-filler insists on parsing as YYYY-MM-DD); `startUtc`/`endUtc` are the
- * same bounds already converted, for plain `inDateRange` filters, which the
- * server compares verbatim. Both cover the same span, so a KPI card and the
- * chart above it always agree.
+ * Two representations of the same span: `startDay`/`endDay` are local calendar
+ * days for `timeDimensions`, whose periods the gap filler builds from those
+ * days; `startUtc`/`endUtc` are the instants (ISO 8601 with `Z`) for plain
+ * `inDateRange` filters. The server reads both forms in the query timezone, a
+ * bare end date covering its whole day, and an instant with `Z` stays that
+ * instant whatever the timezone, so a KPI card and the chart above it agree.
  */
 export interface ResolvedRange {
   startDay: string

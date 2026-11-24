@@ -39,6 +39,9 @@ import (
 //     restore trigger and the bodies that honour them (v45_data_retention.go).
 //   - data retention, Lot 1 (system, after the two-factor tables): one engagement backfill
 //     task per existing workspace (v45_data_retention.go).
+//   - web analytics (workspace, last): the BRIN index on web_sessions.updated_at that the
+//     live views read, created on the parent alone and completed on the partitions by the
+//     web analytics maintenance worker (v45_web_sessions_updated_at.go).
 type V45Migration struct{}
 
 func (m *V45Migration) GetMajorVersion() float64 { return 45.0 }
@@ -76,6 +79,13 @@ func (m *V45Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	// MCP access: external_id made unique, so that transactional.send deduplicates
 	// concurrent calls too (v45_external_id.go).
 	if err := applyExternalIDWorkspaceV45(ctx, db); err != nil {
+		return err
+	}
+	// Web analytics: the BRIN index on web_sessions.updated_at that the live views read,
+	// created on the parent alone; the maintenance worker builds it on the partitions
+	// (v45_web_sessions_updated_at.go). Last, so that its lock on web_sessions is held only
+	// for the commit.
+	if err := applyWebSessionsUpdatedAtWorkspaceV45(ctx, db); err != nil {
 		return err
 	}
 	return nil

@@ -652,6 +652,142 @@ func (r *webAnalyticsRepository) AnalyzePartitions(ctx context.Context, workspac
 	return nil
 }
 
+// webSessionsUpdatedAtIndexLockKey is the advisory lock that keeps two Notifuse nodes from
+// building the same partition's index at once.
+const webSessionsUpdatedAtIndexLockKey = "notifuse.web_sessions_updated_at_index"
+
+// BuildWebSessionsUpdatedAtIndex brings schema.WebSessionsUpdatedAtIndexName to valid on a
+// workspace whose parent index was created alone (v45, ON ONLY). For each web_sessions
+// partition with no index attached to it, it builds the partition's index with CREATE INDEX
+// CONCURRENTLY, which lets the sessions be written meanwhile, and attaches it; PostgreSQL marks
+// the parent index valid once every partition has one. A partition index left invalid by an
+// interrupted build is dropped and built again. It reports whether the parent index is valid.
+//
+// It runs on one connection outside any transaction, as CREATE INDEX CONCURRENTLY requires,
+// with no statement_timeout, since a build cut short leaves an invalid index to build again,
+// and under an advisory lock: another node already building returns false without waiting.
+// A missing parent index is created alone first. Idempotent: on a valid index it reads one
+// catalog row.
+func (r *webAnalyticsRepository) BuildWebSessionsUpdatedAtIndex(ctx context.Context, workspaceID string) (bool, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+	valid, exists, err := indexValidity(ctx, db, schema.WebSessionsUpdatedAtIndexName)
+	if err != nil {
+		return false, err
+	}
+	if valid {
+		return true, nil
+	}
+
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get a connection: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	var locked bool
+	if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock(hashtext($1))`, webSessionsUpdatedAtIndexLockKey).Scan(&locked); err != nil {
+		return false, fmt.Errorf("failed to take the index build lock: %w", err)
+	}
+	if !locked {
+		return false, nil
+	}
+	defer func() {
+		_, _ = conn.ExecContext(context.WithoutCancel(ctx), `SELECT pg_advisory_unlock(hashtext($1))`, webSessionsUpdatedAtIndexLockKey)
+	}()
+	if _, err := conn.ExecContext(ctx, `SET statement_timeout = 0`); err != nil {
+		return false, fmt.Errorf("failed to lift statement_timeout: %w", err)
+	}
+	defer func() { _, _ = conn.ExecContext(context.WithoutCancel(ctx), `RESET statement_timeout`) }()
+
+	if !exists {
+		if _, err := conn.ExecContext(ctx, schema.WebSessionsUpdatedAtParentIndex); err != nil {
+			return false, fmt.Errorf("failed to create %s: %w", schema.WebSessionsUpdatedAtIndexName, err)
+		}
+	}
+
+	partitions, err := unindexedWebSessionsPartitions(ctx, conn)
+	if err != nil {
+		return false, err
+	}
+	for _, partition := range partitions {
+		if _, _, ok := schema.ParseWebAnalyticsPartitionName(partition); !ok {
+			return false, fmt.Errorf("invalid partition name: %s", partition)
+		}
+		index := schema.WebSessionsUpdatedAtPartitionIndexName(partition)
+		indexValid, indexExists, err := indexValidity(ctx, conn, index)
+		if err != nil {
+			return false, err
+		}
+		if indexExists && !indexValid {
+			if _, err := conn.ExecContext(ctx, `DROP INDEX CONCURRENTLY IF EXISTS `+pq.QuoteIdentifier(index)); err != nil {
+				return false, fmt.Errorf("failed to drop the invalid index %s: %w", index, err)
+			}
+		}
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf(`CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s USING BRIN (updated_at)`,
+			pq.QuoteIdentifier(index), pq.QuoteIdentifier(partition))); err != nil {
+			return false, fmt.Errorf("failed to build %s: %w", index, err)
+		}
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf(`ALTER INDEX %s ATTACH PARTITION %s`,
+			schema.WebSessionsUpdatedAtIndexName, pq.QuoteIdentifier(index))); err != nil {
+			return false, fmt.Errorf("failed to attach %s: %w", index, err)
+		}
+	}
+
+	valid, _, err = indexValidity(ctx, conn, schema.WebSessionsUpdatedAtIndexName)
+	return valid, err
+}
+
+// queryRower is what indexValidity and unindexedWebSessionsPartitions read through: a pool or
+// one of its connections.
+type queryRower interface {
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+}
+
+// indexValidity reports whether an index exists and whether it is valid.
+func indexValidity(ctx context.Context, db queryRower, index string) (valid, exists bool, err error) {
+	err = db.QueryRowContext(ctx, `SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass($1)`, index).Scan(&valid)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, false, nil
+	}
+	if err != nil {
+		return false, false, fmt.Errorf("failed to read index %s: %w", index, err)
+	}
+	return valid, true, nil
+}
+
+// unindexedWebSessionsPartitions lists the web_sessions partitions that have no index attached
+// to schema.WebSessionsUpdatedAtIndexName.
+func unindexedWebSessionsPartitions(ctx context.Context, db queryRower) ([]string, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT c.relname
+		FROM pg_inherits t
+		JOIN pg_class c ON c.oid = t.inhrelid
+		WHERE t.inhparent = 'web_sessions'::regclass
+		AND NOT EXISTS (
+			SELECT 1 FROM pg_inherits x
+			JOIN pg_index i ON i.indexrelid = x.inhrelid
+			WHERE x.inhparent = to_regclass($1) AND i.indrelid = c.oid
+		)
+		ORDER BY c.relname`, schema.WebSessionsUpdatedAtIndexName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list the web_sessions partitions to index: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
+}
+
 // SetPartitionAutovacuum applies (aggressive) or resets the autovacuum storage
 // parameters of one partition. The aggressive profile keeps up with the
 // upsert-per-beat churn of the current month.
