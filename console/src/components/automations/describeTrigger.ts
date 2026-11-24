@@ -64,6 +64,30 @@ export const EVENT_KIND_OPTIONS: { value: string; label: MessageDescriptor; chil
   { value: 'custom_event', label: msg`Custom event` }
 ]
 
+/** The event on the trigger's canvas card, one whole message per kind (the form's group and event in one). */
+export const EVENT_KIND_CARD_LABELS: Record<string, MessageDescriptor> = {
+  'contact.created': msg`Contact Created`,
+  'contact.updated': msg`Contact Updated`,
+  'contact.deleted': msg`Contact Deleted`,
+  'list.subscribed': msg`List Subscribed`,
+  'list.unsubscribed': msg`List Unsubscribed`,
+  'list.confirmed': msg`List Confirmed`,
+  'list.resubscribed': msg`List Resubscribed`,
+  'list.bounced': msg`List Bounced`,
+  'list.complained': msg`List Complained`,
+  'list.pending': msg`List Pending`,
+  'list.removed': msg`List Removed`,
+  'segment.joined': msg`Segment Joined`,
+  'segment.left': msg`Segment Left`,
+  'email.opened': msg`Email Opened`,
+  'email.clicked': msg`Email Clicked`,
+  'email.link_clicked': msg`Email Link Clicked`,
+  'email.bounced': msg`Email Bounced`,
+  'email.complained': msg`Email Complained`,
+  'email.unsubscribed': msg`Email Unsubscribed`,
+  custom_event: msg`Custom event`
+}
+
 const nameOf = (items: { id: string; name: string }[] | undefined, id: string) =>
   items?.find((item) => item.id === id)?.name || id
 

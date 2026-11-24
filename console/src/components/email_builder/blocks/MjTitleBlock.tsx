@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import type { MJMLComponentType } from '../types'
 import { BaseEmailBlock } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
@@ -14,7 +16,7 @@ export class MjTitleBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Email Title'
+    return i18n._(msg({ message: 'Email Title', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

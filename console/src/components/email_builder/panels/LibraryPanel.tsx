@@ -162,7 +162,9 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           icon: instance.getIcon()
         }
       }),
-    []
+    // The block names follow the console's language
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [i18n.locale]
   )
 
   const refusalFor = (block: EmailBlock) =>

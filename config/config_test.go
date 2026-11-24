@@ -507,20 +507,29 @@ func TestLoadWithOptions_LicenseKey(t *testing.T) {
 	assert.Equal(t, "", cfg.LicenseKey, "unset means no key, not a stale one")
 }
 
-// MCP stays off until the console can manage it, and its origin list accepts
-// what an operator types: spaces, trailing slashes and stray commas.
+// MCP is on unless the operator turns it off, and its origin list accepts what
+// an operator types: spaces, trailing slashes and stray commas.
 func TestLoad_MCPSettings(t *testing.T) {
 	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
 	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
 
-	t.Run("off with no extra origin by default", func(t *testing.T) {
+	t.Run("on with no extra origin by default", func(t *testing.T) {
 		_ = os.Unsetenv("MCP_ENABLED")
 		_ = os.Unsetenv("MCP_ALLOWED_ORIGINS")
 
 		cfg, err := LoadWithOptions(LoadOptions{})
 		require.NoError(t, err)
-		assert.False(t, cfg.MCP.Enabled)
+		assert.True(t, cfg.MCP.Enabled)
 		assert.Empty(t, cfg.MCP.AllowedOrigins)
+	})
+
+	t.Run("switched off by the environment", func(t *testing.T) {
+		_ = os.Setenv("MCP_ENABLED", "false")
+		defer func() { _ = os.Unsetenv("MCP_ENABLED") }()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.False(t, cfg.MCP.Enabled)
 	})
 
 	t.Run("switched on and given origins by the environment", func(t *testing.T) {

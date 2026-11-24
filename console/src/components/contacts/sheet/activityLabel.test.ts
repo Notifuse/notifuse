@@ -55,4 +55,22 @@ describe('activityLabel', () => {
     ).toBe('Event · order')
     expect(activityLabel(entry({ entity_type: 'web_session' }), i18n)).toBe('Site visit')
   })
+
+  it('labels a provider event by its type, never by the raw value', () => {
+    const webhook = (type: string, template_name?: string) =>
+      activityLabel(entry({ entity_type: 'inbound_webhook_event', entity_data: { type, template_name } as never }), i18n)
+    expect(webhook('delivered', 'Newsletter')).toBe('Delivered · Newsletter')
+    expect(webhook('delivered')).toBe('Delivered')
+    expect(webhook('bounce')).toBe('Bounce')
+    expect(webhook('complaint')).toBe('Complaint')
+    expect(webhook('opened')).toBe('Open')
+    expect(webhook('clicked', 'Newsletter')).toBe('Click · Newsletter')
+    expect(webhook('something_new')).toBe('Email')
+    expect(
+      activityLabel(
+        entry({ entity_type: 'inbound_webhook_event', changes: { type: { new: 'reply' } } as never }),
+        i18n
+      )
+    ).toBe('Reply')
+  })
 })

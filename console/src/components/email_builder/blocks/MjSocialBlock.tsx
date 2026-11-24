@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { EmailBlock, MJMLComponentType, MJSocialAttributes, MergedBlockAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
@@ -309,7 +311,7 @@ export class MjSocialBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Social'
+    return i18n._(msg({ message: 'Social', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons'
 import type { MJMLComponentType } from '../types'
@@ -17,7 +19,7 @@ export class MjmlBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Email'
+    return i18n._(msg({ message: 'Email', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

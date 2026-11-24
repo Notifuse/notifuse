@@ -103,6 +103,7 @@ export function ProofModal({ open, title, description, okText, danger, onSubmit,
       </Form>
       <Button
         type="link"
+        className="app-link-flush"
         onClick={() => {
           setUseRecovery(!useRecovery)
           setError(null)

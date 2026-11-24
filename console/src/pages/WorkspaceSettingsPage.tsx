@@ -7,6 +7,8 @@ import { WorkspaceMembers } from '../components/settings/WorkspaceMembers'
 import { GeneralSettings } from '../components/settings/GeneralSettings'
 import { SMTPBridgeSettings } from '../components/settings/SMTPBridgeSettings'
 import { Integrations } from '../components/settings/Integrations'
+import { AIAssistantSettings } from '../components/settings/AIAssistantSettings'
+import { MCPSettings } from '../components/settings/MCPSettings'
 import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
 import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
@@ -51,6 +53,8 @@ const DEPENDS_ON_ROLE: ReadonlySet<SettingsSection> = new Set<SettingsSection>([
   'webhooks',
   'blog',
   'web-analytics',
+  'ai-assistant',
+  'mcp',
   'audit-logs',
   'data-retention',
   'danger-zone'
@@ -206,6 +210,17 @@ export function WorkspaceSettingsPage() {
             loading={false}
             onSave={handleWorkspaceUpdate}
             isOwner={isOwner}
+          />
+        )
+      case 'ai-assistant':
+        return <AIAssistantSettings workspace={workspace} onSave={handleWorkspaceUpdate} isOwner={isOwner} />
+      case 'mcp':
+        return (
+          <MCPSettings
+            workspace={workspace}
+            members={members}
+            isOwner={isOwner}
+            onWorkspaceUpdate={handleWorkspaceUpdate}
           />
         )
       case 'domains':

@@ -43,12 +43,13 @@ func TestNewRootHandler(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	// Assert fields are set correctly
@@ -65,7 +66,8 @@ func TestServeConfigJS_OIDC(t *testing.T) {
 			false, "", 0, "off",
 			nil, nil, nil,
 			enabled, label,
-			false, // webhookAllowPrivateHosts
+			false,        // webhookAllowPrivateHosts
+			false, false, // mcpEnabled, isDemo
 		)
 	}
 	always := func(v bool) func() bool { return func() bool { return v } }
@@ -143,6 +145,7 @@ func TestServeConfigJS_WebhookPrivateHosts(t *testing.T) {
 			nil, nil, nil,
 			nil, "",
 			allowPrivateHosts,
+			false, false, // mcpEnabled, isDemo
 		)
 		rec := httptest.NewRecorder()
 		h.serveConfigJS(rec, httptest.NewRequest("GET", "/config.js", nil))
@@ -151,6 +154,74 @@ func TestServeConfigJS_WebhookPrivateHosts(t *testing.T) {
 
 	assert.Contains(t, serve(false), "window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = false;")
 	assert.Contains(t, serve(true), "window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = true;")
+}
+
+func TestServeConfigJS_MCP(t *testing.T) {
+	isInstalled := true
+	serve := func(apiEndpoint string, mcpEnabled, isDemo bool) string {
+		h := NewRootHandler(
+			"console_test", "notification_center_test", logger.NewLogger(),
+			apiEndpoint, "1.0", "root@example.com", &isInstalled,
+			false, "", 0, "off",
+			nil, nil, nil,
+			nil, "",
+			false,
+			mcpEnabled, isDemo,
+		)
+		rec := httptest.NewRecorder()
+		h.serveConfigJS(rec, httptest.NewRequest("GET", "/config.js", nil))
+		return rec.Body.String()
+	}
+
+	t.Run("enabled on an https endpoint", func(t *testing.T) {
+		body := serve("https://API.Example.com:443/", true, false)
+		assert.Contains(t, body, "window.MCP_ENABLED = true;")
+		assert.Contains(t, body, `window.MCP_DISABLED_REASON = "";`)
+		assert.Contains(t, body, `window.MCP_URL = "https://api.example.com/mcp";`)
+		assert.Contains(t, body, `window.MCP_OAUTH_UNAVAILABLE_REASON = "";`)
+	})
+
+	t.Run("off when MCP_ENABLED is off", func(t *testing.T) {
+		body := serve("https://api.example.com", false, false)
+		assert.Contains(t, body, "window.MCP_ENABLED = false;")
+		assert.Contains(t, body, `window.MCP_DISABLED_REASON = "instance";`)
+		assert.Contains(t, body, `window.MCP_URL = "https://api.example.com/mcp";`)
+	})
+
+	t.Run("off on a demo deployment", func(t *testing.T) {
+		body := serve("https://api.example.com", true, true)
+		assert.Contains(t, body, "window.MCP_ENABLED = false;")
+		assert.Contains(t, body, `window.MCP_DISABLED_REASON = "demo";`)
+	})
+
+	t.Run("demo wins over MCP_ENABLED off", func(t *testing.T) {
+		body := serve("https://api.example.com", false, true)
+		assert.Contains(t, body, `window.MCP_DISABLED_REASON = "demo";`)
+	})
+
+	t.Run("http endpoint has no OAuth", func(t *testing.T) {
+		body := serve("http://notifuse.example.com", true, false)
+		assert.Contains(t, body, `window.MCP_URL = "http://notifuse.example.com/mcp";`)
+		assert.Contains(t, body, `window.MCP_OAUTH_UNAVAILABLE_REASON = "API_ENDPOINT is not https";`)
+	})
+
+	t.Run("endpoint with a path has no OAuth", func(t *testing.T) {
+		body := serve("https://example.com/notifuse/", true, false)
+		assert.Contains(t, body, `window.MCP_URL = "https://example.com/notifuse/mcp";`)
+		assert.Contains(t, body, `window.MCP_OAUTH_UNAVAILABLE_REASON = "API_ENDPOINT has a path";`)
+	})
+
+	t.Run("loopback http endpoint keeps OAuth", func(t *testing.T) {
+		body := serve("http://localhost:4000", true, false)
+		assert.Contains(t, body, `window.MCP_URL = "http://localhost:4000/mcp";`)
+		assert.Contains(t, body, `window.MCP_OAUTH_UNAVAILABLE_REASON = "";`)
+	})
+
+	t.Run("endpoint that does not parse leaves the URL empty", func(t *testing.T) {
+		body := serve("not a url", true, false)
+		assert.Contains(t, body, `window.MCP_URL = "";`)
+		assert.Contains(t, body, `window.MCP_OAUTH_UNAVAILABLE_REASON = "API_ENDPOINT is not an http(s) URL";`)
+	})
 }
 
 func TestRootHandler_Handle(t *testing.T) {
@@ -169,12 +240,13 @@ func TestRootHandler_Handle(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	// Create a test request
@@ -214,12 +286,13 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 	mux := http.NewServeMux()
 
@@ -265,12 +338,13 @@ func TestRootHandler_RegisterRoutesWithNotificationCenter(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	mux := http.NewServeMux()
@@ -309,12 +383,13 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	// Create a request to /config.js
@@ -368,12 +443,13 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	// Create a request to /config.js
@@ -430,12 +506,13 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -510,12 +587,13 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -570,14 +648,18 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 	})
 
 	// No console page may be framed by another site; the OAuth authorization
-	// page alone also keeps its URL, which names a request, out of the Referer.
+	// page and the sign-in page, whose return_to can name a request, also keep
+	// their URL out of the Referer.
 	t.Run("FramingAndReferrerHeaders", func(t *testing.T) {
 		for path, referrerPolicy := range map[string]string{
 			"/console":                  "",
 			"/console/style.css":        "",
 			"/console/workspace/w1":     "",
+			"/console/signin/extra":     "",
 			"/console/oauth/authorize":  "no-referrer",
 			"/console/oauth/authorize/": "no-referrer",
+			"/console/signin":           "no-referrer",
+			"/console/signin/":          "no-referrer",
 		} {
 			rr := httptest.NewRecorder()
 			handler.Handle(rr, httptest.NewRequest(http.MethodGet, path+"?request=abc", nil))
@@ -625,12 +707,13 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil,   // workspaceRepo
-		nil,   // blogService
-		nil,   // cache
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // workspaceRepo
+		nil,          // blogService
+		nil,          // cache
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	t.Run("NotFoundAPIPath", func(t *testing.T) {
@@ -746,12 +829,13 @@ func TestRootHandler_CacheIntegration(t *testing.T) {
 			"",
 			0,
 			"off",
-			nil,   // workspaceRepo
-			nil,   // blogService
-			nil,   // cache - nil is allowed
-			nil,   // oidcEnabled
-			"",    // oidcButtonLabel
-			false, // webhookAllowPrivateHosts
+			nil,          // workspaceRepo
+			nil,          // blogService
+			nil,          // cache - nil is allowed
+			nil,          // oidcEnabled
+			"",           // oidcButtonLabel
+			false,        // webhookAllowPrivateHosts
+			false, false, // mcpEnabled, isDemo
 		)
 
 		// Verify handler is created successfully
@@ -819,9 +903,10 @@ func setupBlogHandlerTest(t *testing.T) (*mocks.MockBlogService, *pkgmocks.MockL
 		nil, // workspaceRepo
 		mockBlogService,
 		testCache,
-		nil,   // oidcEnabled
-		"",    // oidcButtonLabel
-		false, // webhookAllowPrivateHosts
+		nil,          // oidcEnabled
+		"",           // oidcButtonLabel
+		false,        // webhookAllowPrivateHosts
+		false, false, // mcpEnabled, isDemo
 	)
 
 	return mockBlogService, mockLogger, testCache, workspace, handler

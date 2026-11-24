@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Button } from 'antd'
 import { ArrowLeft, LogOut } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
@@ -27,6 +27,10 @@ export function AccountSecurityPage() {
     void refreshWorkspaces().catch(() => undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // True while new recovery codes are on screen and not yet marked as saved: the ways out of
+  // the page (back to a workspace, logout) wait, as the drawer stays open, so the person does
+  // not leave with codes they never saved.
+  const [codesPending, setCodesPending] = useState(false)
   const firstWorkspace = twoFactorRequired || rootSessionWithoutCode ? undefined : workspaces[0]
   const workspaceName = firstWorkspace?.name ?? ''
 
@@ -39,12 +43,12 @@ export function AccountSecurityPage() {
           ) : (
             <span className="text-sm font-semibold text-ink">Notifuse</span>
           )}
-          {!twoFactorRequired && !rootSessionWithoutCode && !firstWorkspace ? (
+          {!codesPending && !twoFactorRequired && !rootSessionWithoutCode && !firstWorkspace ? (
             <Button type="text" icon={<ArrowLeft size={14} aria-hidden="true" />} onClick={() => navigate({ to: '/console' })}>
               {t`Back to ${brand}`}
             </Button>
           ) : null}
-          {firstWorkspace ? (
+          {!codesPending && firstWorkspace ? (
             <Button
               type="text"
               icon={<ArrowLeft size={14} aria-hidden="true" />}
@@ -58,9 +62,11 @@ export function AccountSecurityPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-ink-2">{user?.email}</span>
-          <Button type="text" icon={<LogOut size={14} aria-hidden="true" />} onClick={() => navigate({ to: '/console/logout' })}>
-            {t`Logout`}
-          </Button>
+          {codesPending ? null : (
+            <Button type="text" icon={<LogOut size={14} aria-hidden="true" />} onClick={() => navigate({ to: '/console/logout' })}>
+              {t`Logout`}
+            </Button>
+          )}
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-8">
@@ -76,11 +82,11 @@ export function AccountSecurityPage() {
             type="warning"
             showIcon
             message={t`Your ${brand} administrator requires two-factor authentication.`}
-            description={t`Turn it on to open your workspaces again. Until then, this page is the only one you can use.`}
+            description={t`Turn it on to open your workspaces. Until then, this page is the only one you can use.`}
           />
         ) : null}
-        <div className="rounded-lg border border-line-soft bg-surface px-5">
-          <AccountSecurityPanel />
+        <div className="rounded-lg border border-line-soft bg-surface p-5">
+          <AccountSecurityPanel onLockChange={setCodesPending} />
         </div>
       </main>
     </div>

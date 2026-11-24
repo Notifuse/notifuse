@@ -31,6 +31,11 @@ describe('KeyValueList', () => {
     expect((container.firstChild as HTMLElement).style.gridTemplateColumns).toBe('100px minmax(0, 1fr)')
   })
 
+  it('sizes the label column to the longest label, up to 40% of the list, with labelWidth auto', () => {
+    const { container } = render(<KeyValueList labelWidth="auto" items={[{ label: 'A', value: 'B' }]} />)
+    expect((container.firstChild as HTMLElement).style.gridTemplateColumns).toBe('fit-content(40%) minmax(0, 1fr)')
+  })
+
   it('adds a hint under a value', () => {
     render(<KeyValueList items={[{ label: 'Opens', value: '52%', hint: 'Partial tracking' }]} />)
     expect(screen.getByText('Partial tracking')).toBeInTheDocument()

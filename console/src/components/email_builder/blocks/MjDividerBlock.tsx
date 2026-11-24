@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { Select } from 'antd'
 import type { MJMLComponentType, EmailBlock, MJDividerAttributes, MergedBlockAttributes } from '../types'
@@ -186,7 +188,7 @@ export class MjDividerBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Divider'
+    return i18n._(msg({ message: 'Divider', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

@@ -218,7 +218,8 @@ function FilterPicker(props: {
           (candidate) =>
             getDimensionLabel(candidate.name, context.customDimensionLabels)
               .toLowerCase()
-              .includes(term) || candidate.category.toLowerCase().includes(term)
+              .includes(term) ||
+            (categoryLabels[candidate.category] ?? candidate.category).toLowerCase().includes(term)
         )
       : available
     return groupByCategory(matching)

@@ -16,13 +16,20 @@ export interface TwoFactorChallengeFormProps {
   onSignedIn: (response: VerifyChallengeResponse) => Promise<void> | void
   /** Back to the email step: the challenge is gone or the person gives up. */
   onRestart: () => void
+  /** The challenge comes from accepting an invitation: the intro says so. */
+  invitation?: boolean
 }
 
 /**
  * The second step of a sign-in: a code from the authenticator app, or a recovery code. A dead
  * challenge sends the person back to the email step; the other errors stay on this step.
  */
-export function TwoFactorChallengeForm({ challengeToken, onSignedIn, onRestart }: TwoFactorChallengeFormProps) {
+export function TwoFactorChallengeForm({
+  challengeToken,
+  onSignedIn,
+  onRestart,
+  invitation = false
+}: TwoFactorChallengeFormProps) {
   const { t } = useLingui()
   const brand = useBrandName()
   const errorMessage = useTwoFactorErrorMessage()
@@ -71,8 +78,17 @@ export function TwoFactorChallengeForm({ challengeToken, onSignedIn, onRestart }
     )
   }
 
+  const intro = useRecovery
+    ? invitation
+      ? t`Enter one of your recovery codes to accept the invitation.`
+      : t`Enter one of the recovery codes you saved when you turned on two-factor authentication.`
+    : invitation
+      ? t`Enter the code from your authenticator app to accept the invitation.`
+      : t`Enter the code from your authenticator app.`
+
   return (
     <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
+      <p className="mt-0 mb-6">{intro}</p>
       {error ? (
         <div className="mb-4">
           <Alert type="error" showIcon message={error} />
@@ -104,22 +120,23 @@ export function TwoFactorChallengeForm({ challengeToken, onSignedIn, onRestart }
           />
         </Form.Item>
       )}
-      <Form.Item>
+      {/* The links sit flush with the form's edges, and wrap rather than overflow the card. */}
+      <div className="flex flex-col gap-4">
         <Button type="primary" htmlType="submit" block loading={loading}>
           {t`Verify`}
         </Button>
-      </Form.Item>
-      <div className="flex justify-between gap-3">
-        <Button type="link" onClick={() => switchMode(!useRecovery)}>
-          {useRecovery ? t`Use your authenticator app instead` : t`Use a recovery code instead`}
-        </Button>
-        <Button type="link" onClick={onRestart}>
-          {t`Use another email`}
-        </Button>
+        <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
+          <Button type="link" className="app-link-flush" onClick={() => switchMode(!useRecovery)}>
+            {useRecovery ? t`Use your authenticator app instead` : t`Use a recovery code instead`}
+          </Button>
+          <Button type="link" className="app-link-flush" onClick={onRestart}>
+            {t`Use another email`}
+          </Button>
+        </div>
+        <p className="m-0 text-xs text-ink-3">
+          {t`Lost your phone and your recovery codes? Your ${brand} administrator can reset two-factor authentication for your account.`}
+        </p>
       </div>
-      <p className="mt-4 mb-0 text-xs text-ink-3">
-        {t`Lost your phone and your recovery codes? Your ${brand} administrator can reset two-factor authentication for your account.`}
-      </p>
     </Form>
   )
 }

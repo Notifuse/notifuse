@@ -8,6 +8,8 @@ export interface IntegrationDrawerProps {
   title: string
   /** Right side of the bar: Send a test email, Save. */
   topActions?: ReactNode
+  /** The page the bar's way back returns to (default: Integrations). */
+  backLabel?: string
   children: ReactNode
 }
 
@@ -16,13 +18,13 @@ export interface IntegrationDrawerProps {
  * the integration every time. Its panels are centred at 820px, where the settings rows keep their
  * two columns.
  */
-export function IntegrationDrawer({ onClose, title, topActions, children }: IntegrationDrawerProps) {
+export function IntegrationDrawer({ onClose, title, topActions, backLabel, children }: IntegrationDrawerProps) {
   const { t } = useLingui()
   return (
     <FullDrawer
       open
       onClose={onClose}
-      backLabel={t`Integrations`}
+      backLabel={backLabel ?? t`Integrations`}
       copyLink={false}
       ariaLabel={title}
       barTitle={

@@ -5,8 +5,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { authService, isTwoFactorChallenge } from '../services/api/auth'
 import { TwoFactorChallengeForm } from '../components/two_factor/TwoFactorChallengeForm'
 import {
-  SIGN_IN_RETURN_PATHS,
+  parseSignInReturnTo,
   rememberReturnTo,
+  signInDestination,
   takeReturnTo
 } from '../components/two_factor/signInAgain'
 import { ApiUnreachableError } from '../services/api/errors'
@@ -36,19 +37,19 @@ export function SignInPage() {
   )
   // The email code was right and the account has two-factor authentication: the second step.
   const [challengeToken, setChallengeToken] = useState<string | null>(null)
-  // Where a sign-in goes: back to the page that sent the person here, from a fixed list.
-  const returnTo = search.return_to
+  // Where a sign-in goes: back to the page that sent the person here, from a fixed list. The
+  // route checked it already; checked again here, where it is used.
+  const returnTo = parseSignInReturnTo(search.return_to)
 
   const completeSignIn = useCallback(
     async (token: string) => {
       await signin(token)
       message.success(t`Successfully signed in`)
       // The return point of this page, or the one single sign-on carried across.
-      const back = returnTo ?? takeReturnTo()
-      const destination = back ? SIGN_IN_RETURN_PATHS[back] : '/console'
+      const destination = signInDestination(returnTo ?? takeReturnTo())
       // Add a small delay to ensure auth state is updated before navigation
       setTimeout(() => {
-        navigate({ to: destination })
+        navigate(destination)
       }, 100)
     },
     [signin, message, navigate, t, returnTo]
@@ -277,7 +278,7 @@ export function SignInPage() {
             <InstanceLogo variant="full" maxWidth={150} maxHeight={64} notifuseHeight={32} />
           </div>
           <h1 className="mb-6 text-center text-title font-semibold text-ink">
-            {challengeToken ? t`Authentication code` : t`Sign In`}
+            {challengeToken ? t`Two-factor authentication` : t`Sign In`}
           </h1>
           {unreachable && (
             <Alert
@@ -302,17 +303,14 @@ export function SignInPage() {
             />
           )}
           {challengeToken ? (
-            <>
-              <p className="mb-6">{t`Enter the code from your authenticator app.`}</p>
-              <TwoFactorChallengeForm
-                challengeToken={challengeToken}
-                onSignedIn={(response) => completeSignIn(response.token)}
-                onRestart={() => {
-                  setChallengeToken(null)
-                  setShowCodeInput(false)
-                }}
-              />
-            </>
+            <TwoFactorChallengeForm
+              challengeToken={challengeToken}
+              onSignedIn={(response) => completeSignIn(response.token)}
+              onRestart={() => {
+                setChallengeToken(null)
+                setShowCodeInput(false)
+              }}
+            />
           ) : !showCodeInput ? (
             <Form
               form={form}

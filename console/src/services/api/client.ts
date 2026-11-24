@@ -24,7 +24,14 @@ const STAY_ON_TWO_FACTOR_REFUSAL = new Set([
   "/console/accept-invitation",
   "/console/logout",
   "/console/setup",
+  // The MCP connection page: creating a key needs the second factor, pasting one does not, so
+  // the page explains the refusal and keeps the request open.
+  "/console/oauth/authorize",
 ]);
+
+// Pages a 401 leaves where they are: the sign-in page itself, and the MCP connection page, which
+// needs no session and offers to sign in again without losing its request.
+const STAY_ON_UNAUTHORIZED = new Set(["/console/signin", "/console/oauth/authorize"]);
 
 async function handleResponse<T>(response: Response, endpoint = ""): Promise<T> {
   if (!response.ok) {
@@ -45,7 +52,7 @@ async function handleResponse<T>(response: Response, endpoint = ""): Promise<T> 
       // link. The visitor lands on an empty form, and only the next attempt works,
       // because this handler has meanwhile cleared the token. Already being on the
       // sign-in route means there is nowhere to send them anyway.
-      if (window.location.pathname !== "/console/signin") {
+      if (!STAY_ON_UNAUTHORIZED.has(window.location.pathname.replace(/\/$/, ""))) {
         router.navigate({ to: "/console/signin" });
       }
     }
