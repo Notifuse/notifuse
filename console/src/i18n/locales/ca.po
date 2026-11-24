@@ -7996,6 +7996,15 @@ msgstr "Personalitzat (px)"
 msgid "Custom background size"
 msgstr "Mida de fons personalitzada"
 
+#: src/components/settings/LicenseSettings.tsx:141
+#: src/services/api/licenseErrors.ts:55
+msgid "Custom branding"
+msgstr "Marca personalitzada"
+
+#: src/components/license/LicenceGateNotice.tsx:59
+msgid "Custom branding requires a Notifuse {tier} licence."
+msgstr "La marca personalitzada requereix una llicència {tier} de Notifuse."
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:139
 #: src/components/email_builder/blocks/MjRawBlock.tsx:334
@@ -14175,12 +14184,8 @@ msgstr "Instal·lar el fragment de seguiment"
 
 #: src/components/settings/LicenseSettings.tsx:141
 #: src/services/api/licenseErrors.ts:55
-msgid "Instance branding"
-msgstr "Identitat de la instància"
 
 #: src/components/license/LicenceGateNotice.tsx:59
-msgid "Instance branding requires a Notifuse {tier} licence."
-msgstr "La identitat de la instància requereix una llicència {tier} de Notifuse."
 
 #: src/components/integrations/FirecrawlIntegration.tsx:87
 #: src/components/integrations/LLMIntegration.tsx:176

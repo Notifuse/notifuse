@@ -7996,6 +7996,15 @@ msgstr "Personalizzato (px)"
 msgid "Custom background size"
 msgstr "Dimensione dello sfondo personalizzata"
 
+#: src/components/settings/LicenseSettings.tsx:141
+#: src/services/api/licenseErrors.ts:55
+msgid "Custom branding"
+msgstr "Marchio personalizzato"
+
+#: src/components/license/LicenceGateNotice.tsx:59
+msgid "Custom branding requires a Notifuse {tier} licence."
+msgstr "Il marchio personalizzato richiede una licenza Notifuse {tier}."
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:139
 #: src/components/email_builder/blocks/MjRawBlock.tsx:334
@@ -14175,12 +14184,8 @@ msgstr "Installa lo snippet di tracciamento"
 
 #: src/components/settings/LicenseSettings.tsx:141
 #: src/services/api/licenseErrors.ts:55
-msgid "Instance branding"
-msgstr "Identità dell'istanza"
 
 #: src/components/license/LicenceGateNotice.tsx:59
-msgid "Instance branding requires a Notifuse {tier} licence."
-msgstr "L'identità dell'istanza richiede una licenza Notifuse {tier}."
 
 #: src/components/integrations/FirecrawlIntegration.tsx:87
 #: src/components/integrations/LLMIntegration.tsx:176

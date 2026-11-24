@@ -315,7 +315,7 @@ func NewFeatureNotLicensedError(f Feature) *ErrFeatureNotLicensed {
 		return &ErrFeatureNotLicensed{
 			Feature:      f,
 			RequiredTier: tierAgency,
-			Message:      "Instance branding requires a Notifuse licence (Agency or above).",
+			Message:      "Custom branding requires a Notifuse licence (Agency or above).",
 		}
 	default:
 		return &ErrFeatureNotLicensed{

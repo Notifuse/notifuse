@@ -47,11 +47,11 @@ describe('LicenceGateNotice', () => {
     ).toBeInTheDocument()
   })
 
-  it('sells instance branding from the Agency plan and says the saved brand is kept', () => {
+  it('sells custom branding from the Agency plan and says the saved brand is kept', () => {
     renderNotice('branding', { entitlements: entitlements(['rbac', 'template_i18n']) })
 
     expect(
-      screen.getByText('Instance branding requires a Notifuse Agency licence.')
+      screen.getByText('Custom branding requires a Notifuse Agency licence.')
     ).toBeInTheDocument()
     expect(screen.getByText(/saved brand comes back/i)).toBeInTheDocument()
   })

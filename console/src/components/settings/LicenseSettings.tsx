@@ -138,7 +138,7 @@ export function LicenseSettings() {
     audit_logs: t`Audit logs`,
     template_i18n: t`Template translations`,
     data_retention: t`Data retention`,
-    branding: t`Instance branding`
+    branding: t`Custom branding`
   }
 
   const quota =

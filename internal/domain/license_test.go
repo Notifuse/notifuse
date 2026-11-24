@@ -257,10 +257,10 @@ func TestErrFeatureNotLicensed(t *testing.T) {
 			message:      "Data retention policies require a Notifuse Enterprise licence. A policy already saved keeps running, and switching a category off is always allowed.",
 		},
 		{
-			name:         "instance branding is sold from the agency plan",
+			name:         "custom branding is sold from the agency plan",
 			feature:      FeatureBranding,
 			requiredTier: "Agency",
-			message:      "Instance branding requires a Notifuse licence (Agency or above).",
+			message:      "Custom branding requires a Notifuse licence (Agency or above).",
 		},
 	}
 

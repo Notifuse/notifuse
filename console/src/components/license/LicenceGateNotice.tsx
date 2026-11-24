@@ -56,7 +56,7 @@ export function LicenceGateNotice({
     audit_logs: t`Audit logs require a Notifuse ${tier} licence.`,
     template_i18n: t`Template translations require a Notifuse ${tier} licence.`,
     data_retention: t`Data retention policies require a Notifuse ${tier} licence.`,
-    branding: t`Instance branding requires a Notifuse ${tier} licence.`
+    branding: t`Custom branding requires a Notifuse ${tier} licence.`
   }
 
   // What the deployment keeps. Each mirrors the rule the backend actually enforces: a full
