@@ -1947,6 +1947,10 @@ msgstr "900 - 最太"
 msgid "A branch condition is required..."
 msgstr "分岐条件が必要です..."
 
+#: src/components/settings/BrandingSettings.tsx:217
+msgid "A brand name is required when a logo or an icon is set."
+msgstr "ロゴまたはアイコンを設定する場合は、ブランド名が必要です。"
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:476
 msgid "A brief description of this notification's purpose"
 msgstr "この通知の目的の簡単な説明"
@@ -2179,6 +2183,14 @@ msgstr "配送業者と追跡リンクを含む発送のお知らせ。"
 #: src/components/settings/GeneralSettings.tsx:181
 msgid "A square image, shown next to the workspace name"
 msgstr "ワークスペース名の横に表示される正方形の画像"
+
+#: src/components/settings/BrandingSettings.tsx:263
+msgid "A square PNG works best. Shown in the folded menu and as the browser icon."
+msgstr "正方形の PNG が最適です。折りたたんだメニューとブラウザーのアイコンに表示されます。"
+
+#: src/components/settings/BrandingSettings.tsx:252
+msgid "A transparent PNG works best. Shown in the menu, on the sign-in page and while the console loads."
+msgstr "透過 PNG が最適です。メニュー、サインインページ、コンソールの読み込み中に表示されます。"
 
 #: src/components/segment/button_upsert.tsx:510
 #~ msgid "A tree is required"
@@ -3231,7 +3243,7 @@ msgstr "MCP 接続を許可"
 msgid "Allowed domains"
 msgstr "許可するドメイン"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:688
+#: src/components/settings/SystemSettingsDrawer.tsx:729
 #: src/components/setup/SsoPanel.tsx:165
 #: src/components/setup/SsoPanel.tsx:178
 msgid "Allowed email domains"
@@ -3584,7 +3596,7 @@ msgstr "APIドキュメント"
 msgid "API endpoint"
 msgstr "APIエンドポイント"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:303
+#: src/components/settings/SystemSettingsDrawer.tsx:334
 msgid "API Endpoint"
 msgstr "APIエンドポイント"
 
@@ -3704,7 +3716,7 @@ msgstr "すべてのアイコンに適用されます。アイコン個別の枠
 msgid "Applies to every icon; an icon's own settings win."
 msgstr "すべてのアイコンに適用されます。アイコン個別の設定が優先されます。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:747
+#: src/components/settings/SystemSettingsDrawer.tsx:788
 msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
 msgstr "独自の保持期間を設定していないすべてのワークスペースと、サインインなどのデプロイメントレベルの項目に適用されます。0はすべての項目を永久に保持します。"
 
@@ -4009,7 +4021,7 @@ msgstr "自動作成が有効な場合、少なくとも1つのドメインが�
 msgid "At least one operation is required"
 msgstr "少なくとも1つの操作が必要です"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:102
+#: src/components/settings/SystemSettingsDrawer.tsx:130
 #: src/components/setup/AdministratorPanel.tsx:37
 msgid "At least one root email is required"
 msgstr "少なくとも1つのルートメールアドレスが必要です"
@@ -4071,7 +4083,7 @@ msgstr "監査エントリ"
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
 #: src/components/settings/SettingsSidebar.tsx:65
-#: src/components/settings/SystemSettingsDrawer.tsx:741
+#: src/components/settings/SystemSettingsDrawer.tsx:782
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
 msgstr "監査ログ"
@@ -4177,7 +4189,7 @@ msgstr "自動"
 msgid "Auto-create accounts on first sign-in"
 msgstr "初回サインイン時にアカウントを自動作成"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:678
+#: src/components/settings/SystemSettingsDrawer.tsx:719
 msgid "Auto-create users"
 msgstr "ユーザーを自動作成"
 
@@ -4524,7 +4536,7 @@ msgstr "ベースURL"
 #~ msgid "Base URL (Optional)"
 #~ msgstr "ベースURL (オプション)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:544
+#: src/components/settings/SystemSettingsDrawer.tsx:585
 msgid "Base64 encoded TLS certificate"
 msgstr "Base64エンコードされたTLS証明書"
 
@@ -4532,7 +4544,7 @@ msgstr "Base64エンコードされたTLS証明書"
 #~ msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 #~ msgstr "Base64エンコードされたTLS証明書。実行: cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:559
+#: src/components/settings/SystemSettingsDrawer.tsx:600
 msgid "Base64 encoded TLS private key"
 msgstr "Base64エンコードされたTLS秘密鍵"
 
@@ -5085,6 +5097,19 @@ msgstr "分岐"
 msgid "Branch Logic"
 msgstr "分岐ロジック"
 
+#: src/components/settings/BrandingSettings.tsx:262
+msgid "Brand icon URL"
+msgstr "ブランドアイコンの URL"
+
+#: src/components/settings/BrandingSettings.tsx:200
+#: src/components/settings/BrandingSettings.tsx:231
+msgid "Brand name"
+msgstr "ブランド名"
+
+#: src/components/settings/BrandingSettings.tsx:176
+msgid "Branding"
+msgstr "ブランディング"
+
 #: src/components/file_manager/FileExplorer.tsx:684
 msgid "Breadcrumb"
 msgstr "パンくずリスト"
@@ -5123,11 +5148,11 @@ msgstr "ブレークポイントの幅"
 #~ msgid "Breakpoint Width"
 #~ msgstr "ブレークポイント幅"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:499
+#: src/components/settings/SystemSettingsDrawer.tsx:540
 msgid "Bridge Domain"
 msgstr "リレードメイン"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:513
+#: src/components/settings/SystemSettingsDrawer.tsx:554
 msgid "Bridge Port"
 msgstr "リレーポート"
 
@@ -5351,6 +5376,10 @@ msgstr "ログ → 監査ログ で閲覧、絞り込み、エクスポートで
 msgid "Browser"
 msgstr "ブラウザ"
 
+#: src/components/settings/BrandingSettings.tsx:285
+msgid "Browser tab"
+msgstr "ブラウザーのタブ"
+
 #: src/components/web_analytics/lib/dimensions.ts:94
 #: src/components/web_analytics/lib/filterCatalog.ts:86
 msgid "Browser Type"
@@ -5448,7 +5477,7 @@ msgstr "ボタンの高さ"
 msgid "Button label"
 msgstr "ボタンのラベル"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:650
+#: src/components/settings/SystemSettingsDrawer.tsx:691
 msgid "Button Label"
 msgstr "ボタンのラベル"
 
@@ -5598,7 +5627,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/settings/integrations/TestEmailModal.tsx:68
 #: src/components/settings/integrations/useIntegrationActions.ts:109
 #: src/components/settings/MCPSettings.tsx:218
-#: src/components/settings/SystemSettingsDrawer.tsx:192
+#: src/components/settings/SystemSettingsDrawer.tsx:210
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:576
 #: src/components/settings/WebhookDetail.tsx:595
@@ -5721,7 +5750,7 @@ msgstr "キャンセルしました。{name} に戻ります…"
 msgid "Cannot be changed, used by the API and forms."
 msgstr "変更できません。APIとフォームで使われます。"
 
-#: src/pages/SignInPage.tsx:275
+#: src/pages/SignInPage.tsx:286
 msgid "Cannot reach the configured API endpoint"
 msgstr "設定されたAPIエンドポイントに接続できません"
 
@@ -5935,7 +5964,7 @@ msgstr "変更: {section}"
 msgid "Changes"
 msgstr "変更内容"
 
-#: src/pages/SignInPage.tsx:286
+#: src/pages/SignInPage.tsx:297
 msgid "Changing your domain"
 msgstr "ドメインの変更"
 
@@ -5987,7 +6016,7 @@ msgstr "チャネル"
 msgid "Check for updates"
 msgstr "アップデートを確認"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:729
+#: src/components/settings/SystemSettingsDrawer.tsx:770
 msgid "Check for Updates"
 msgstr "アップデートを確認"
 
@@ -6180,12 +6209,17 @@ msgstr "claude.ai と ChatGPT に必要です。"
 #: src/components/contacts/InlineEditableField.tsx:306
 #: src/components/email_builder/ui/fields/ColorField.tsx:175
 #: src/components/file_manager/FileExplorer.tsx:764
+#: src/components/settings/BrandingSettings.tsx:122
 msgid "Clear"
 msgstr "クリア"
 
 #: src/components/email_builder/ui/fields/ColorField.tsx:174
 msgid "Clear {ariaLabel}"
 msgstr "{ariaLabel}をクリア"
+
+#: src/components/settings/BrandingSettings.tsx:120
+msgid "Clear {label}"
+msgstr "{label}をクリア"
 
 #: src/components/logs/AuditLogTab.tsx:415
 #: src/components/logs/InboundWebhooksTab.tsx:188
@@ -6431,7 +6465,7 @@ msgstr "クリックは計測されていません"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:648
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:664
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:666
-#: src/components/settings/SystemSettingsDrawer.tsx:603
+#: src/components/settings/SystemSettingsDrawer.tsx:644
 #: src/components/setup/SsoPanel.tsx:78
 msgid "Client ID"
 msgstr "クライアントID"
@@ -6449,7 +6483,7 @@ msgid "Client secret"
 msgstr "クライアントシークレット"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:673
-#: src/components/settings/SystemSettingsDrawer.tsx:613
+#: src/components/settings/SystemSettingsDrawer.tsx:654
 msgid "Client Secret"
 msgstr "クライアントシークレット"
 
@@ -6657,7 +6691,7 @@ msgstr "コンタクトのフィールドと同じ名前の列は自動で対応
 msgid "Comma-separated values"
 msgstr "カンマ区切りの値"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:699
+#: src/components/settings/SystemSettingsDrawer.tsx:740
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "カンマ区切り。これらのドメインのみがアカウントを自動作成できます。"
 
@@ -6665,7 +6699,7 @@ msgstr "カンマ区切り。これらのドメインのみがアカウントを
 msgid "Common ports: 587 (STARTTLS), 465 (implicit TLS), 25 (unencrypted)."
 msgstr "一般的なポート: 587 (STARTTLS)、465 (暗黙的TLS)、25 (暗号化なし)。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:371
+#: src/components/settings/SystemSettingsDrawer.tsx:412
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "一般的なポート: 587 (TLS)、465 (SSL)、25 (暗号化なし)"
 
@@ -8544,7 +8578,7 @@ msgstr "カスタムフォント"
 msgid "Custom header"
 msgstr "カスタムヘッダー"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:464
+#: src/components/settings/SystemSettingsDrawer.tsx:505
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr "SMTPのEHLO/HELOコマンドで使用するカスタムホスト名。空欄の場合はデフォルトを使用します。"
 
@@ -8881,7 +8915,7 @@ msgstr "マーケティングの既定"
 msgid "Default periods for every workspace. A workspace that sets its own period keeps it. A default that deletes more waits 7 days, and the owners of the workspaces it reaches get an email."
 msgstr "すべてのワークスペースに適用されるデフォルトの期間です。独自の期間を設定したワークスペースはその期間のままです。より多く削除するデフォルトは7日間待機し、対象のワークスペースのオーナーにメールが送られます。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:745
+#: src/components/settings/SystemSettingsDrawer.tsx:786
 msgid "Default retention (days)"
 msgstr "デフォルトの保持期間（日）"
 
@@ -9907,7 +9941,7 @@ msgstr "このファイルをストレージから完全に削除しますか？
 #~ msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 #~ msgstr "「{0}」をすぐに送信しますか、それとも後でスケジュールしますか？"
 
-#: src/layouts/app-shell/HelpMenu.tsx:51
+#: src/layouts/app-shell/HelpMenu.tsx:56
 msgid "Documentation"
 msgstr "ドキュメント"
 
@@ -10610,7 +10644,7 @@ msgstr "エディターモード"
 msgid "EHLO hostname"
 msgstr "EHLOホスト名"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:462
+#: src/components/settings/SystemSettingsDrawer.tsx:503
 msgid "EHLO Hostname"
 msgstr "EHLOホスト名"
 
@@ -10646,8 +10680,8 @@ msgstr "経過時間"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:310
-#: src/pages/SignInPage.tsx:317
+#: src/pages/SignInPage.tsx:321
+#: src/pages/SignInPage.tsx:328
 msgid "Email"
 msgstr "メール"
 
@@ -11110,7 +11144,7 @@ msgstr "このルールを有効にしますか？"
 msgid "Enable this translation to edit it."
 msgstr "編集するには、この翻訳を有効にしてください。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:385
+#: src/components/settings/SystemSettingsDrawer.tsx:426
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "SMTP接続のTLS暗号化を有効化"
 
@@ -11134,8 +11168,8 @@ msgstr "Webhookを有効化"
 #: src/components/settings/BlogSettings.tsx:241
 #: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
-#: src/components/settings/SystemSettingsDrawer.tsx:489
-#: src/components/settings/SystemSettingsDrawer.tsx:574
+#: src/components/settings/SystemSettingsDrawer.tsx:530
+#: src/components/settings/SystemSettingsDrawer.tsx:615
 #: src/components/settings/WebAnalyticsSettings.tsx:216
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
@@ -11406,7 +11440,7 @@ msgstr "{name} の件名を入力してください"
 msgid "Enter the 6-digit code from your app"
 msgstr "アプリの6桁のコードを入力してください"
 
-#: src/pages/SignInPage.tsx:347
+#: src/pages/SignInPage.tsx:358
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "{email}に送信された6桁のコードを入力"
 
@@ -12321,7 +12355,7 @@ msgstr "ブロードキャストの読み込みに失敗しました"
 msgid "Failed to load contact lists"
 msgstr "コンタクトリストの読み込みに失敗しました"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:75
+#: src/components/settings/SystemSettingsDrawer.tsx:103
 msgid "Failed to load settings"
 msgstr "設定の読み込みに失敗しました"
 
@@ -12401,7 +12435,7 @@ msgstr "プレビューのレンダリングに失敗しました"
 msgid "Failed to resend invitation"
 msgstr "招待の再送信に失敗しました"
 
-#: src/pages/SignInPage.tsx:257
+#: src/pages/SignInPage.tsx:258
 msgid "Failed to resend magic code"
 msgstr "マジックコードの再送信に失敗しました"
 
@@ -12446,7 +12480,7 @@ msgstr "連携の保存に失敗しました"
 msgid "Failed to save LLM integration"
 msgstr "LLM連携の保存に失敗しました"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:231
+#: src/components/settings/SystemSettingsDrawer.tsx:261
 msgid "Failed to save settings"
 msgstr "設定の保存に失敗しました"
 
@@ -12495,7 +12529,7 @@ msgstr "勝者の選択に失敗しました"
 msgid "Failed to send broadcast"
 msgstr "ブロードキャストの送信に失敗しました"
 
-#: src/pages/SignInPage.tsx:125
+#: src/pages/SignInPage.tsx:126
 msgid "Failed to send magic code"
 msgstr "マジックコードの送信に失敗しました"
 
@@ -12628,7 +12662,7 @@ msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "ワークスペース設定の更新に失敗しました: {errorMessage}"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:62
-#: src/pages/SignInPage.tsx:96
+#: src/pages/SignInPage.tsx:97
 msgid "Failed to verify code"
 msgstr "コードの検証に失敗しました"
 
@@ -12666,7 +12700,7 @@ msgstr "アイキャッチ画像"
 #~ msgid "Featured Image URL"
 #~ msgstr "アイキャッチ画像URL"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:716
+#: src/components/settings/SystemSettingsDrawer.tsx:757
 msgid "Features"
 msgstr "機能"
 
@@ -13001,6 +13035,10 @@ msgstr "テンプレートの保存後は変更できません"
 #~ msgid "Flow Stats: {0}"
 #~ msgstr "フロー統計: {0}"
 
+#: src/components/settings/BrandingSettings.tsx:282
+msgid "Folded menu"
+msgstr "折りたたんだメニュー"
+
 #: src/components/file_manager/FileGrid.tsx:48
 #: src/components/file_manager/FilePreview.tsx:60
 msgid "Folder"
@@ -13247,7 +13285,7 @@ msgstr "console.anthropic.comで取得"
 msgid "From email"
 msgstr "送信元メール"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:429
+#: src/components/settings/SystemSettingsDrawer.tsx:470
 msgid "From Email"
 msgstr "差出人メール"
 
@@ -13267,7 +13305,7 @@ msgstr "Google AI Studioで取得"
 msgid "From name"
 msgstr "送信者名"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:445
+#: src/components/settings/SystemSettingsDrawer.tsx:486
 msgid "From Name"
 msgstr "差出人名"
 
@@ -13392,7 +13430,7 @@ msgstr "gemini-4-argonまたはカスタムのモデルID"
 
 #: src/components/settings/GeneralSettings.tsx:156
 #: src/components/settings/SettingsSidebar.tsx:54
-#: src/components/settings/SystemSettingsDrawer.tsx:276
+#: src/components/settings/SystemSettingsDrawer.tsx:307
 msgid "General"
 msgstr "一般"
 
@@ -13882,9 +13920,9 @@ msgstr "高さ"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:734
 #: src/components/templates/CreateTemplateDrawer.tsx:139
-#: src/layouts/app-shell/HelpMenu.tsx:25
-#: src/layouts/app-shell/HelpMenu.tsx:31
-#: src/layouts/app-shell/HelpMenu.tsx:71
+#: src/layouts/app-shell/HelpMenu.tsx:30
+#: src/layouts/app-shell/HelpMenu.tsx:36
+#: src/layouts/app-shell/HelpMenu.tsx:76
 msgid "Help"
 msgstr "ヘルプ"
 
@@ -13920,6 +13958,10 @@ msgstr "非表示"
 #: src/components/analytics/GetStartedChecklist.tsx:345
 msgid "Hide done steps"
 msgstr "完了したステップを非表示"
+
+#: src/components/settings/BrandingSettings.tsx:237
+msgid "Hide help menu"
+msgstr "ヘルプメニューを非表示にする"
 
 #: src/components/integrations/LLMIntegration.tsx:264
 msgid "High"
@@ -14892,7 +14934,7 @@ msgstr "連携"
 msgid "Invalid display condition"
 msgstr "無効な表示条件"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:433
+#: src/components/settings/SystemSettingsDrawer.tsx:474
 msgid "Invalid email"
 msgstr "無効なメールアドレス"
 
@@ -14901,7 +14943,7 @@ msgid "Invalid email format"
 msgstr "無効なメール形式です"
 
 #. placeholder {0}: invalid.join(', ')
-#: src/components/settings/SystemSettingsDrawer.tsx:107
+#: src/components/settings/SystemSettingsDrawer.tsx:135
 #: src/components/setup/AdministratorPanel.tsx:20
 msgid "Invalid email: {0}"
 msgstr "無効なメールアドレス: {0}"
@@ -15146,7 +15188,7 @@ msgstr "分離済み"
 msgid "isolation requested but not provisioned"
 msgstr "分離が要求されましたが、プロビジョニングされていません"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:584
+#: src/components/settings/SystemSettingsDrawer.tsx:625
 #: src/components/setup/SsoPanel.tsx:66
 msgid "Issuer URL"
 msgstr "発行者URL"
@@ -15680,7 +15722,7 @@ msgstr "ログインなしでメールを受け付けるサーバーの場合は
 msgid "Leave empty for full container width"
 msgstr "コンテナ全幅にするには空のままにしてください"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:634
+#: src/components/settings/SystemSettingsDrawer.tsx:675
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "空欄のままにするとAPIエンドポイントから導出されます。コールバックがプロキシや独自ドメイン経由で到達される場合に設定してください。"
 
@@ -16501,7 +16543,7 @@ msgstr "Lumen"
 msgid "Magenta"
 msgstr "マゼンタ"
 
-#: src/pages/SignInPage.tsx:123
+#: src/pages/SignInPage.tsx:124
 msgid "Magic code sent to your email"
 msgstr "マジックコードをメールに送信しました"
 
@@ -16541,7 +16583,11 @@ msgstr "Mailjetは購読解除リンクを書き換えるため、トランザ�
 #~ msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 #~ msgstr "ブログのメインロゴ。推奨サイズ: 200x50pxまたは同様のアスペクト比"
 
-#: src/layouts/app-shell/AppSidebar.tsx:293
+#: src/components/settings/BrandingSettings.tsx:251
+msgid "Main logo URL"
+msgstr "メインロゴの URL"
+
+#: src/layouts/app-shell/AppSidebar.tsx:297
 msgid "Main navigation"
 msgstr "メインナビゲーション"
 
@@ -17266,8 +17312,8 @@ msgstr "よく見られたページ"
 msgid "Moved block {blockId} to {newParentId}"
 msgstr "ブロック {blockId} を {newParentId} に移動しました"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:588
-#: src/components/settings/SystemSettingsDrawer.tsx:630
+#: src/components/settings/SystemSettingsDrawer.tsx:629
+#: src/components/settings/SystemSettingsDrawer.tsx:671
 #: src/components/setup/SsoPanel.tsx:70
 msgid "Must be a valid https URL"
 msgstr "有効なhttps URLである必要があります"
@@ -17519,7 +17565,7 @@ msgstr "新しいキー"
 msgid "New list"
 msgstr "新しいリスト"
 
-#: src/pages/SignInPage.tsx:255
+#: src/pages/SignInPage.tsx:256
 msgid "New magic code sent to your email"
 msgstr "新しいマジックコードをメールに送信しました"
 
@@ -18142,7 +18188,7 @@ msgstr "一致する通知はありません"
 #~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 #~ msgstr "そのIDに紐づくNotifuseアカウントはありません。まず管理者に招待を依頼してください。"
 
-#: src/pages/SignInPage.tsx:149
+#: src/pages/SignInPage.tsx:150
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "そのIDに紐づくNotifuseアカウントはありません。招待を受けている場合は、招待メールのリンクを開いてください。そうでない場合は、管理者に招待を依頼してください。"
 
@@ -19369,6 +19415,10 @@ msgstr "連携を開く"
 msgid "Open its page"
 msgstr "ページを開く"
 
+#: src/components/settings/BrandingSettings.tsx:279
+msgid "Open menu"
+msgstr "開いたメニュー"
+
 #: src/components/blog/PostsTable.tsx:246
 msgid "Open on web"
 msgstr "Webで開く"
@@ -19623,9 +19673,9 @@ msgstr "任意"
 #: src/components/analytics/GetStartedChecklist.tsx:367
 #: src/components/analytics/GetStartedChecklist.tsx:387
 #: src/components/contacts/csv-import/ColumnsStep.tsx:215
-#: src/components/settings/SystemSettingsDrawer.tsx:407
-#: src/components/settings/SystemSettingsDrawer.tsx:420
-#: src/components/settings/SystemSettingsDrawer.tsx:475
+#: src/components/settings/SystemSettingsDrawer.tsx:448
+#: src/components/settings/SystemSettingsDrawer.tsx:461
+#: src/components/settings/SystemSettingsDrawer.tsx:516
 #: src/components/setup/SmtpPanel.tsx:195
 #: src/components/setup/SmtpPanel.tsx:204
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
@@ -19677,7 +19727,7 @@ msgstr "オプション"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:247
-#: src/pages/SignInPage.tsx:328
+#: src/pages/SignInPage.tsx:339
 msgid "or"
 msgstr "または"
 
@@ -20485,7 +20535,7 @@ msgstr "URLを入力してください"
 #: src/components/two_factor/ProofModal.tsx:93
 #: src/components/two_factor/SetupWizard.tsx:216
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:109
-#: src/pages/SignInPage.tsx:355
+#: src/pages/SignInPage.tsx:366
 msgid "Please enter a valid 6-digit code!"
 msgstr "有効な6桁のコードを入力してください！"
 
@@ -20494,7 +20544,7 @@ msgstr "有効な6桁のコードを入力してください！"
 msgid "Please enter a valid email"
 msgstr "有効なメールアドレスを入力してください"
 
-#: src/pages/SignInPage.tsx:314
+#: src/pages/SignInPage.tsx:325
 msgid "Please enter a valid email!"
 msgstr "有効なメールアドレスを入力してください！"
 
@@ -20565,11 +20615,11 @@ msgstr "APIキーを入力してください"
 msgid "Please fill in all required fields before testing"
 msgstr "テストする前に、すべての必須項目を入力してください"
 
-#: src/pages/SignInPage.tsx:352
+#: src/pages/SignInPage.tsx:363
 msgid "Please input the magic code!"
 msgstr "マジックコードを入力してください！"
 
-#: src/pages/SignInPage.tsx:313
+#: src/pages/SignInPage.tsx:324
 msgid "Please input your email!"
 msgstr "メールアドレスを入力してください！"
 
@@ -20693,8 +20743,8 @@ msgstr "ポート"
 #~ msgid "Port for the SMTP bridge server (default: 587)"
 #~ msgstr "SMTPリレーサーバーのポート（デフォルト: 587）"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:367
-#: src/components/settings/SystemSettingsDrawer.tsx:520
+#: src/components/settings/SystemSettingsDrawer.tsx:408
+#: src/components/settings/SystemSettingsDrawer.tsx:561
 msgid "Port must be 1-65535"
 msgstr "ポートは1〜65535である必要があります"
 
@@ -20838,6 +20888,7 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/components/file_manager/FileExplorer.tsx:1154
 #: src/components/segment/SegmentCountCard.tsx:132
 #: src/components/seo/SeoPreview.tsx:36
+#: src/components/settings/BrandingSettings.tsx:273
 #: src/components/templates/TemplateSelectorInput.tsx:244
 #: src/components/templates/TemplateSelectorInput.tsx:292
 #: src/components/templates/TemplateSelectorModal.tsx:368
@@ -21760,7 +21811,7 @@ msgstr "リカバリーコードをコピーしました"
 msgid "Red"
 msgstr "赤"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:628
+#: src/components/settings/SystemSettingsDrawer.tsx:669
 #: src/components/setup/SsoPanel.tsx:101
 #: src/components/setup/SsoPanel.tsx:107
 #: src/components/setup/SsoPanel.tsx:114
@@ -22116,13 +22167,37 @@ msgstr "メンバーを削除"
 msgid "Remove sender {0}"
 msgstr "送信者 {0} を削除"
 
+#: src/components/settings/BrandingSettings.tsx:69
+msgid "Remove the backslashes from this URL."
+msgstr "この URL からバックスラッシュを削除してください。"
+
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:81
 msgid "Remove the condition"
 msgstr "条件を削除"
 
+#: src/components/settings/BrandingSettings.tsx:67
+msgid "Remove the control characters from this URL."
+msgstr "この URL から制御文字を削除してください。"
+
+#: src/components/settings/BrandingSettings.tsx:63
+msgid "Remove the control or invisible characters."
+msgstr "制御文字または不可視文字を削除してください。"
+
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:75
 msgid "Remove the display condition?"
 msgstr "表示条件を削除しますか？"
+
+#: src/components/settings/BrandingSettings.tsx:70
+msgid "Remove the part after # from this URL."
+msgstr "この URL から # 以降の部分を削除してください。"
+
+#: src/components/settings/BrandingSettings.tsx:68
+msgid "Remove the spaces from this URL."
+msgstr "この URL からスペースを削除してください。"
+
+#: src/components/settings/BrandingSettings.tsx:72
+msgid "Remove the user name or password from this URL."
+msgstr "この URL からユーザー名またはパスワードを削除してください。"
 
 #: src/components/blog/AuthorsField.tsx:152
 msgid "Remove this author?"
@@ -22189,6 +22264,10 @@ msgstr "メンバー <0>{target}</0> を削除しました"
 #: src/components/contacts/BulkUpdateDrawer.tsx:312
 msgid "Removes the contacts and their history. Cannot be undone."
 msgstr "コンタクトとその履歴を削除します。元に戻せません。"
+
+#: src/components/settings/BrandingSettings.tsx:240
+msgid "Removes the Help menu, whose links lead to Notifuse, from the sidebar."
+msgstr "リンク先が Notifuse のヘルプメニューを、サイドバーから外します。"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:103
 #: src/components/settings/CustomFieldsConfiguration.tsx:211
@@ -22337,7 +22416,7 @@ msgstr "返信先: {replyTo}"
 msgid "Report — {dimensions}"
 msgstr "レポート — {dimensions}"
 
-#: src/layouts/app-shell/HelpMenu.tsx:60
+#: src/layouts/app-shell/HelpMenu.tsx:65
 msgid "Report an issue"
 msgstr "問題を報告"
 
@@ -22380,10 +22459,10 @@ msgid "Require two-factor authentication for everyone"
 msgstr "全員に二要素認証を必須にする"
 
 #: src/components/contacts/csv-import/ColumnsStep.tsx:87
-#: src/components/settings/SystemSettingsDrawer.tsx:305
-#: src/components/settings/SystemSettingsDrawer.tsx:348
-#: src/components/settings/SystemSettingsDrawer.tsx:362
-#: src/components/settings/SystemSettingsDrawer.tsx:432
+#: src/components/settings/SystemSettingsDrawer.tsx:336
+#: src/components/settings/SystemSettingsDrawer.tsx:389
+#: src/components/settings/SystemSettingsDrawer.tsx:403
+#: src/components/settings/SystemSettingsDrawer.tsx:473
 msgid "Required"
 msgstr "必須"
 
@@ -22396,19 +22475,19 @@ msgstr "必須"
 msgid "Required to create the notification"
 msgstr "通知の作成に必要です"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:693
+#: src/components/settings/SystemSettingsDrawer.tsx:734
 msgid "Required when auto-create is enabled"
 msgstr "自動作成が有効な場合は必須です"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:501
-#: src/components/settings/SystemSettingsDrawer.tsx:538
-#: src/components/settings/SystemSettingsDrawer.tsx:553
+#: src/components/settings/SystemSettingsDrawer.tsx:542
+#: src/components/settings/SystemSettingsDrawer.tsx:579
+#: src/components/settings/SystemSettingsDrawer.tsx:594
 msgid "Required when bridge is enabled"
 msgstr "リレーが有効な場合は必須です"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:587
-#: src/components/settings/SystemSettingsDrawer.tsx:605
-#: src/components/settings/SystemSettingsDrawer.tsx:615
+#: src/components/settings/SystemSettingsDrawer.tsx:628
+#: src/components/settings/SystemSettingsDrawer.tsx:646
+#: src/components/settings/SystemSettingsDrawer.tsx:656
 msgid "Required when SSO is enabled"
 msgstr "SSOが有効な場合は必須です"
 
@@ -22416,7 +22495,7 @@ msgstr "SSOが有効な場合は必須です"
 msgid "Requires a padding"
 msgstr "パディングが必要です"
 
-#: src/pages/SignInPage.tsx:388
+#: src/pages/SignInPage.tsx:399
 msgid "Resend code"
 msgstr "コードを再送"
 
@@ -22457,6 +22536,10 @@ msgstr "送信タスクをリセットし、ブロードキャストを最初か
 #: src/services/api/permissions.ts:1037
 msgid "Reset an integration sync task so it re-runs from the start"
 msgstr "連携の同期タスクをリセットし、最初から再実行させる"
+
+#: src/components/settings/BrandingSettings.tsx:275
+msgid "Reset branding"
+msgstr "ブランディングをリセット"
 
 #: src/components/blog_editor/menus/block-actions/TransformOptionsGroup.tsx:46
 msgid "Reset formatting"
@@ -22530,7 +22613,7 @@ msgstr "レスポンス"
 msgid "Responsive breakpoint"
 msgstr "レスポンシブのブレークポイント"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:183
+#: src/components/settings/SystemSettingsDrawer.tsx:201
 msgid "Restart Server?"
 msgstr "サーバーを再起動しますか？"
 
@@ -22776,7 +22859,7 @@ msgstr "管理者"
 msgid "Root email"
 msgstr "ルートメール"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:280
+#: src/components/settings/SystemSettingsDrawer.tsx:311
 msgid "Root Email"
 msgstr "ルートメール"
 
@@ -23038,13 +23121,13 @@ msgstr "サンドボックスモード"
 #: src/components/settings/Integrations.tsx:400
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:853
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:994
-#: src/components/settings/SystemSettingsDrawer.tsx:262
+#: src/components/settings/SystemSettingsDrawer.tsx:293
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 msgid "Save"
 msgstr "保存"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:191
+#: src/components/settings/SystemSettingsDrawer.tsx:209
 msgid "Save & Restart"
 msgstr "保存して再起動"
 
@@ -23236,7 +23319,7 @@ msgstr "保存しました。より多く削除する変更は7日後に適用�
 msgid "Saved. The defaults that delete more take effect in 7 days."
 msgstr "保存しました。より多く削除するデフォルトは7日後に適用されます。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:173
+#: src/components/settings/SystemSettingsDrawer.tsx:191
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "設定を保存するとサーバーが再起動します。再度サインインが必要になります。"
 
@@ -23319,7 +23402,7 @@ msgstr "ニュースレター <0>{target}</0> を予約しました"
 msgid "Scheduled today"
 msgstr "今日予約"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:663
+#: src/components/settings/SystemSettingsDrawer.tsx:704
 #: src/components/setup/SsoPanel.tsx:136
 msgid "Scopes"
 msgstr "スコープ"
@@ -24142,7 +24225,7 @@ msgstr "招待を送信"
 #~ msgid "Send Invitation"
 #~ msgstr "招待を送信"
 
-#: src/pages/SignInPage.tsx:322
+#: src/pages/SignInPage.tsx:333
 msgid "Send Magic Code"
 msgstr "マジックコードを送信"
 
@@ -24526,15 +24609,15 @@ msgstr "サーバー"
 #~ msgid "Server is restarting with new configuration..."
 #~ msgstr "新しい設定でサーバーを再起動中..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:199
+#: src/components/settings/SystemSettingsDrawer.tsx:217
 msgid "Server is restarting..."
 msgstr "サーバーを再起動中..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:224
+#: src/components/settings/SystemSettingsDrawer.tsx:246
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "サーバー再起動がタイムアウトしました。手動でページを更新してください。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:211
+#: src/components/settings/SystemSettingsDrawer.tsx:233
 msgid "Server restarted successfully!"
 msgstr "サーバーが正常に再起動しました！"
 
@@ -24677,7 +24760,7 @@ msgstr "{integrationName} により設定されています。内容を変更す
 msgid "Set by environment"
 msgstr "環境で設定済み"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:116
+#: src/components/settings/SystemSettingsDrawer.tsx:144
 msgid "Set by environment variable"
 msgstr "環境変数で設定済み"
 
@@ -25044,6 +25127,10 @@ msgstr "記事一覧に表示され、メタディスクリプションがない
 msgid "Shown in the assistant's model picker"
 msgstr "アシスタントのモデル選択欄に表示されます"
 
+#: src/components/settings/BrandingSettings.tsx:203
+msgid "Shown in the browser tab, in the menu when there is no logo, and in the emails this instance sends."
+msgstr "ブラウザーのタブ、ロゴがない場合のメニュー、このインスタンスが送るメールに表示されます。"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:786
 msgid "Shown next to the API key"
 msgstr "APIキーの横に表示されます"
@@ -25076,7 +25163,7 @@ msgstr "ポインターを画像に重ねたときに表示されます（title�
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Notifuseの新しいバージョンとセキュリティ修正をワークスペース一覧に表示します。"
 
-#: src/pages/SignInPage.tsx:269
+#: src/pages/SignInPage.tsx:279
 msgid "Sign In"
 msgstr "サインイン"
 
@@ -25085,7 +25172,7 @@ msgstr "サインイン"
 msgid "Sign in again"
 msgstr "もう一度サインイン"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:268
+#: src/components/settings/SystemSettingsDrawer.tsx:299
 msgid "Sign in again to change system settings"
 msgstr "システム設定を変更するには、もう一度サインインしてください"
 
@@ -25117,9 +25204,9 @@ msgstr "二要素認証をリセットするには、もう一度サインイン
 msgid "Sign in with {rootEmail}."
 msgstr "{rootEmail} でサインインしてください。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:656
+#: src/components/settings/SystemSettingsDrawer.tsx:697
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:340
+#: src/pages/SignInPage.tsx:351
 msgid "Sign in with SSO"
 msgstr "SSOでサインイン"
 
@@ -25236,12 +25323,12 @@ msgstr "シングルサインオン (OpenID Connect)"
 msgid "Single sign-on (SSO)"
 msgstr "シングルサインオン (SSO)"
 
-#: src/pages/SignInPage.tsx:151
+#: src/pages/SignInPage.tsx:152
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "シングルサインオンでは、お使いのメールドメインのアカウントを作成できません。招待を受けている場合は、招待メールのリンクを開いてください。そうでない場合は、管理者に招待を依頼してください。"
 
-#: src/pages/SignInPage.tsx:161
-#: src/pages/SignInPage.tsx:174
+#: src/pages/SignInPage.tsx:162
+#: src/pages/SignInPage.tsx:175
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "シングルサインオンに失敗しました。もう一度お試しいただくか、マジックコードをご利用ください。"
 
@@ -25249,7 +25336,7 @@ msgstr "シングルサインオンに失敗しました。もう一度お試し
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "シングルサインオンがオンになっていますが、このデプロイメントのライセンスには含まれていません。"
 
-#: src/pages/SignInPage.tsx:157
+#: src/pages/SignInPage.tsx:158
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "シングルサインオンは一時的に利用できません。マジックコードをお試しください。"
 
@@ -25348,7 +25435,7 @@ msgstr "SMTP"
 msgid "SMTP bridge"
 msgstr "SMTPリレー"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:485
+#: src/components/settings/SystemSettingsDrawer.tsx:526
 msgid "SMTP Bridge"
 msgstr "SMTPリレー"
 
@@ -25376,11 +25463,11 @@ msgstr "トランザクションメール転送用SMTPリレーサーバー"
 #~ msgid "SMTP connection successful!"
 #~ msgstr "SMTP接続に成功しました！"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:135
+#: src/components/settings/SystemSettingsDrawer.tsx:163
 msgid "SMTP connection test failed"
 msgstr "SMTP接続テストに失敗しました"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:133
+#: src/components/settings/SystemSettingsDrawer.tsx:161
 msgid "SMTP connection test successful"
 msgstr "SMTP接続テストに成功しました"
 
@@ -25400,7 +25487,7 @@ msgstr "SMTPガイド:"
 msgid "SMTP host"
 msgstr "SMTPホスト"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:346
+#: src/components/settings/SystemSettingsDrawer.tsx:387
 msgid "SMTP Host"
 msgstr "SMTPホスト"
 
@@ -25408,7 +25495,7 @@ msgstr "SMTPホスト"
 msgid "SMTP host is required"
 msgstr "SMTPホストは必須です"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:414
+#: src/components/settings/SystemSettingsDrawer.tsx:455
 msgid "SMTP Password"
 msgstr "SMTPパスワード"
 
@@ -25416,7 +25503,7 @@ msgstr "SMTPパスワード"
 msgid "SMTP port"
 msgstr "SMTPポート"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:359
+#: src/components/settings/SystemSettingsDrawer.tsx:400
 msgid "SMTP Port"
 msgstr "SMTPポート"
 
@@ -25454,7 +25541,7 @@ msgstr "SMTPユーザー"
 #~ msgid "SMTP User"
 #~ msgstr "SMTPユーザー"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:401
+#: src/components/settings/SystemSettingsDrawer.tsx:442
 msgid "SMTP Username"
 msgstr "SMTPユーザー名"
 
@@ -25665,7 +25752,7 @@ msgstr "分割"
 msgid "SQL Arguments:"
 msgstr "SQL引数:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:569
+#: src/components/settings/SystemSettingsDrawer.tsx:610
 msgid "SSO (OpenID Connect)"
 msgstr "SSO (OpenID Connect)"
 
@@ -26182,7 +26269,7 @@ msgstr "成功"
 #~ msgid "Successfully processed {successful} contacts"
 #~ msgstr "{successful}件のコンタクトを正常に処理しました"
 
-#: src/pages/SignInPage.tsx:44
+#: src/pages/SignInPage.tsx:45
 msgid "Successfully signed in"
 msgstr "正常にサインインしました"
 
@@ -26281,12 +26368,12 @@ msgstr "システムフォント"
 #~ msgid "System Fonts"
 #~ msgstr "システムフォント"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:243
-#: src/components/settings/SystemSettingsDrawer.tsx:254
+#: src/components/settings/SystemSettingsDrawer.tsx:274
+#: src/components/settings/SystemSettingsDrawer.tsx:285
 msgid "System Settings"
 msgstr "システム設定"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:332
+#: src/components/settings/SystemSettingsDrawer.tsx:373
 msgid "System SMTP"
 msgstr "システムSMTP"
 
@@ -26361,7 +26448,7 @@ msgstr "チームメンバーの上限に達しました。メンバーを追加
 msgid "Technical performance insights"
 msgstr "技術的なパフォーマンスの分析"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:720
+#: src/components/settings/SystemSettingsDrawer.tsx:761
 msgid "Telemetry"
 msgstr "テレメトリー"
 
@@ -26642,7 +26729,7 @@ msgstr "テスト完了"
 msgid "Test connection"
 msgstr "接続をテスト"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:340
+#: src/components/settings/SystemSettingsDrawer.tsx:381
 msgid "Test Connection"
 msgstr "接続テスト"
 
@@ -26927,7 +27014,7 @@ msgstr "アシスタントに渡すアドレスです。"
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "AIアシスタント: ワークスペースに設定されたLLM連携を介したチャットと、それが呼び出し得るサーバー側のツール。"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:177
+#: src/components/settings/SystemSettingsDrawer.tsx:195
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "APIエンドポイントが変更されました。再起動後、コンソールは次のURLで利用できます:"
 
@@ -27508,6 +27595,10 @@ msgstr "トークンの上限に達したため、応答が途中で打ち切ら
 msgid "The rows sent so far stay imported. Drop the same file again to resume where it stopped."
 msgstr "ここまでに送信した行はインポートされたままです。同じファイルを再度ドロップすると、停止した位置から再開します。"
 
+#: src/components/settings/BrandingSettings.tsx:189
+msgid "The saved branding cannot be read"
+msgstr "保存されたブランディングを読み取れません"
+
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:131
 msgid "The saved column mapping does not fit this file: map the columns, then import."
 msgstr "保存された列の対応付けはこのファイルに合いません。列を対応付けてからインポートしてください。"
@@ -27819,7 +27910,7 @@ msgstr "すべての場所でサインアウトされます。"
 msgid "Thinking"
 msgstr "思考中"
 
-#: src/pages/SignInPage.tsx:155
+#: src/pages/SignInPage.tsx:156
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "このアカウントはすでに別のシングルサインオンのIDに紐づけられています。"
 
@@ -27855,6 +27946,10 @@ msgstr "この操作は元に戻せません。確認のため、リストIDを�
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:382
 msgid "This address has a % not followed by two hexadecimal digits. The server cannot read it and stores an empty landing domain and path, as filled here."
 msgstr "このアドレスには、後ろに2桁の16進数が続かない % が含まれています。サーバーはこれを読み取れず、ここに入力されたとおり、空のランディングドメインとパスを保存します。"
+
+#: src/components/settings/BrandingSettings.tsx:75
+msgid "This address is private or reserved. Use a public one."
+msgstr "このアドレスはプライベートまたは予約済みです。公開アドレスを使ってください。"
 
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This annotation was created automatically when a broadcast started. Deleting it will not affect the broadcast."
@@ -28029,10 +28124,18 @@ msgstr "このIDはURLとAPIリクエストで使用されます。小文字と�
 #~ msgid "This ID will be used when triggering the notification via API"
 #~ msgstr "このIDはAPI経由で通知をトリガーする際に使用されます"
 
+#: src/components/settings/BrandingSettings.tsx:180
+msgid "This identity applies to the whole instance and to everyone who uses it."
+msgstr "このブランディングはインスタンス全体と、その利用者全員に適用されます。"
+
 #: src/components/file_manager/FilePreview.tsx:85
 #: src/components/settings/LogoInput.tsx:116
 msgid "This image couldn't be loaded"
 msgstr "この画像を読み込めませんでした"
+
+#: src/components/settings/BrandingSettings.tsx:146
+msgid "This image did not load in your browser. You can still save it."
+msgstr "この画像はお使いのブラウザーで読み込めませんでした。このまま保存することもできます。"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:835
 msgid "This integration is not created yet."
@@ -28141,7 +28244,7 @@ msgstr "Notifuseエクスポートのこのnotifuse:conditionマークには、�
 msgid "This page cannot be previewed here"
 msgstr "このページはここでプレビューできません"
 
-#: src/pages/SignInPage.tsx:279
+#: src/pages/SignInPage.tsx:290
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "このページは {pageOrigin} から配信されていますが、このインスタンスはリクエストを {unreachableEndpoint} に送信しており、応答がありませんでした。Notifuseを {pageOrigin} に移行した場合は、環境変数API_ENDPOINTをそのアドレスに設定してサーバーを再起動してください。"
 
@@ -28302,6 +28405,14 @@ msgstr "このトークンは一度だけ表示され、再度取得すること
 #: src/components/settings/WorkspaceMembers.tsx:736
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "このトークンは一度だけ表示されます。安全な場所に保存してください。再度取得することはできません。"
+
+#: src/components/settings/BrandingSettings.tsx:79
+msgid "This URL is not valid."
+msgstr "この URL は無効です。"
+
+#: src/components/settings/BrandingSettings.tsx:66
+msgid "This URL is too long."
+msgstr "この URL は長すぎます。"
 
 #: src/services/api/permissions.ts:986
 msgid "This verb gates nothing today. /api/llm.chat is the only LLM endpoint and it answers to LLM write, so there is nothing left for read to govern. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
@@ -28568,7 +28679,7 @@ msgstr "TLS"
 msgid "TLS certificate (Base64)"
 msgstr "TLS証明書 (Base64)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:536
+#: src/components/settings/SystemSettingsDrawer.tsx:577
 msgid "TLS Certificate (Base64)"
 msgstr "TLS証明書（Base64）"
 
@@ -28580,7 +28691,7 @@ msgstr "TLS証明書は必須です"
 #~ msgid "TLS Enabled"
 #~ msgstr "TLS有効"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:551
+#: src/components/settings/SystemSettingsDrawer.tsx:592
 msgid "TLS Key (Base64)"
 msgstr "TLSキー (Base64)"
 
@@ -28615,6 +28726,10 @@ msgstr "ドラッグせずにブロックを挿入するには、挿入ボタン
 #: src/components/transactional/ApiCommandDrawer.tsx:169
 msgid "to prevent duplicate sends"
 msgstr "重複送信を防ぐため"
+
+#: src/components/settings/BrandingSettings.tsx:190
+msgid "To replace it, save new branding values or clear them. Saving other settings leaves it as it is."
+msgstr "置き換えるには、新しいブランディングの値を保存するか、値をクリアしてください。ほかの設定を保存しても、そのまま残ります。"
 
 #: src/components/license/LicenseBanner.tsx:137
 #~ msgid "To restore write access without paying: set OIDC_ENABLED=false, or turn SSO off in Settings › Authentication."
@@ -28682,7 +28797,7 @@ msgstr "トークン"
 msgid "Too many attempts from this address. Wait a minute, then try again."
 msgstr "このアドレスからの試行が多すぎます。1 分待ってから、もう一度お試しください。"
 
-#: src/pages/SignInPage.tsx:159
+#: src/pages/SignInPage.tsx:160
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "サインインの試行回数が多すぎます。しばらく待ってからもう一度お試しください。"
 
@@ -29179,7 +29294,7 @@ msgstr "オンに戻すと既存の接続が復元されます。何も取り消
 #: src/components/two_factor/AccountSecurityPanel.tsx:143
 #: src/components/two_factor/AccountSecurityPanel.tsx:159
 #: src/pages/AcceptInvitationPage.tsx:127
-#: src/pages/SignInPage.tsx:269
+#: src/pages/SignInPage.tsx:279
 msgid "Two-factor authentication"
 msgstr "二要素認証"
 
@@ -29794,7 +29909,7 @@ msgid "Use"
 msgstr "使用"
 
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:109
-#: src/components/settings/SystemSettingsDrawer.tsx:755
+#: src/components/settings/SystemSettingsDrawer.tsx:796
 msgid "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS} and {AUDIT_LOG_MAX_RETENTION_DAYS}"
 msgstr "永久に保持するには0、または {AUDIT_LOG_MIN_RETENTION_DAYS} から {AUDIT_LOG_MAX_RETENTION_DAYS} の値を指定してください"
 
@@ -29802,9 +29917,13 @@ msgstr "永久に保持するには0、または {AUDIT_LOG_MIN_RETENTION_DAYS} 
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "永久に保持するには 0、または 30 から 3650 の値を指定してください"
 
-#: src/pages/SignInPage.tsx:380
+#: src/pages/SignInPage.tsx:391
 msgid "Use a different email"
 msgstr "別のメールを使用"
+
+#: src/components/settings/BrandingSettings.tsx:78
+msgid "Use a public domain name."
+msgstr "公開ドメイン名を使ってください。"
 
 #: src/components/two_factor/ProofModal.tsx:113
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:128
@@ -29815,6 +29934,10 @@ msgstr "代わりにリカバリーコードを使う"
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "自分で管理するテナントを使用します。AWS側で関連付けられたコンフィギュレーションセットが必要です。"
 
+#: src/components/settings/BrandingSettings.tsx:71
+msgid "Use an absolute https:// URL."
+msgstr "https:// で始まる絶対 URL を使ってください。"
+
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:131
 msgid "Use another email"
 msgstr "別のメールアドレスを使う"
@@ -29822,6 +29945,10 @@ msgstr "別のメールアドレスを使う"
 #: src/components/file_manager/context.tsx:218
 msgid "Use Anyway"
 msgstr "そのまま使用"
+
+#: src/components/settings/BrandingSettings.tsx:62
+msgid "Use at most {MAX_BRAND_NAME_CODE_POINTS} characters."
+msgstr "{MAX_BRAND_NAME_CODE_POINTS} 文字以内にしてください。"
 
 #: src/components/templates/TemplateStartModal.tsx:157
 msgid "Use cases"
@@ -29855,6 +29982,10 @@ msgstr "パススタイルURLを使用（サブドメインではなくパスに
 #~ msgid "Use recipient timezone"
 #~ msgstr "受信者のタイムゾーンを使用"
 
+#: src/components/settings/BrandingSettings.tsx:76
+msgid "Use the ASCII form of the domain (it starts with xn--)."
+msgstr "ドメインの ASCII 形式 (xn-- で始まる形式) を使ってください。"
+
 #: src/components/email_builder/panels/TextVersionPanel.tsx:139
 msgid "Use the automatic version"
 msgstr "自動版を使用"
@@ -29867,6 +29998,10 @@ msgstr "自動版を使用しますか？"
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:220
 msgid "Use the default ({0})"
 msgstr "デフォルトを使用（{0}）"
+
+#: src/components/settings/BrandingSettings.tsx:73
+msgid "Use the default HTTPS port."
+msgstr "HTTPS の既定のポートを使ってください。"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:77
 msgid "Use the font name in text elements:"
@@ -29901,7 +30036,7 @@ msgstr "このテンプレートを使用"
 #~ msgstr "このテーマを使用"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:593
-#: src/components/settings/SystemSettingsDrawer.tsx:384
+#: src/components/settings/SystemSettingsDrawer.tsx:425
 #: src/components/setup/SmtpPanel.tsx:180
 #: src/components/setup/SmtpPanel.tsx:184
 msgid "Use TLS"
@@ -30250,7 +30385,7 @@ msgstr "<0>{target}</0> のサインインコードを確認しました"
 msgid "Verify"
 msgstr "確認"
 
-#: src/pages/SignInPage.tsx:370
+#: src/pages/SignInPage.tsx:381
 msgid "Verify Code"
 msgstr "コードを確認"
 
@@ -31366,6 +31501,14 @@ msgstr "書き込みには、完全な削除と一括上書きが含まれます
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Liquidのテンプレートタグを使ってMJMLマークアップを記述します。このコンテンツはメールに直接挿入され、MJMLのコンパイル前にLiquidエンジンによって処理されます。forループ、条件分岐、変数を使って、動的な構造コンテンツを生成できます。"
 
+#: src/components/settings/BrandingSettings.tsx:77
+msgid "Write the IPv4 address as four numbers from 0 to 255."
+msgstr "IPv4 アドレスは 0 から 255 の 4 つの数で書いてください。"
+
+#: src/components/settings/BrandingSettings.tsx:74
+msgid "Write the IPv6 address in its short form, without a zone."
+msgstr "IPv6 アドレスはゾーンなしの短縮形で書いてください。"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:98
 msgid "Writes"
 msgstr "書き込み"
@@ -31775,7 +31918,7 @@ msgstr "ファイルは任意のS3互換ストレージにアップロードで�
 msgid "Your Firecrawl key, or your own Firecrawl server"
 msgstr "Firecrawlのキー、または独自のFirecrawlサーバー"
 
-#: src/pages/SignInPage.tsx:153
+#: src/pages/SignInPage.tsx:154
 msgid "Your identity provider has not verified your email address."
 msgstr "お使いのIDプロバイダーはあなたのメールアドレスを検証していません。"
 

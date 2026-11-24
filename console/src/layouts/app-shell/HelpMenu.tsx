@@ -3,6 +3,7 @@ import { Dropdown, Tooltip } from 'antd'
 import { BookOpen, Bug, CircleHelp } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { useFocusBack } from './useFocusBack'
+import { getInstanceBranding } from '../../components/brand/instanceBranding'
 
 export interface HelpMenuProps {
   collapsed: boolean
@@ -11,11 +12,15 @@ export interface HelpMenuProps {
   getPopupContainer: () => HTMLElement
 }
 
-/** Documentation and issue tracker, opened above the button. */
+/**
+ * Documentation and issue tracker, opened above the button. A licensed instance brand can hide it
+ * (Hide help menu in the system settings): its links lead to Notifuse.
+ */
 export function HelpMenu({ collapsed, onMenuOpenChange, getPopupContainer }: HelpMenuProps) {
   const { t } = useLingui()
   const [menuOpen, setMenuOpen] = useState(false)
   const { ref, focusBack } = useFocusBack<HTMLButtonElement>()
+  if (getInstanceBranding().hide_help_menu) return null
   const button = (
     <button
       ref={ref}

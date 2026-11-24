@@ -4,15 +4,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="robots" content="noindex">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-  <link rel="manifest" href="/site.webmanifest" />
-  <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
+  <!-- No icon or manifest link here: the bootstrap below adds them for the identity config.js
+       resolved, so a branded instance never flashes the Notifuse icon. -->
   <meta name="msapplication-TileColor" content="#da532c" />
   <meta name="theme-color" content="#ffffff" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Console | Notifuse</title>
+  <title>Console</title>
   <style>
     body {
       margin: 0;
@@ -24,11 +21,30 @@
       padding-bottom: 64px;
     }
 
+    .preload-splash-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 80px;
+      padding: 64px 16px;
+    }
+
     .preload-splash-logo {
       display: block;
-      margin: 0 auto;
-      padding: 64px 0;
-      width: 150px;
+      max-width: 150px;
+      max-height: 80px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .preload-splash-name {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font: 600 20px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #374151;
     }
 
     .preload-splash-content {
@@ -66,12 +82,107 @@
     // Load config.js with cache-busting to ensure fresh configuration after setup
     document.write('<script src="/config.js?_t=' + Date.now() + '"><\/script>');
   </script>
+  <script>
+    // Paints the instance identity before React: title, icons, manifest, then the splash.
+    // config.js resolved it (window.INSTANCE_BRANDING), licence included; a config.js that
+    // predates branding, or did not load, leaves the Notifuse identity. Plain ES5 on purpose:
+    // it runs before any bundle. src/components/brand/InstanceLogo.tsx follows the same rules.
+    (function () {
+      var defaults = {
+        custom: false,
+        name: 'Notifuse',
+        icon_url: '',
+        splash_logo_src: '/console/logo.png',
+        favicon_src: '/console/favicon-32x32.png'
+      };
+      var served = window.INSTANCE_BRANDING;
+      var brand = served && typeof served === 'object' ? served : {};
+      function get(key) {
+        return brand[key] !== undefined && brand[key] !== null ? brand[key] : defaults[key];
+      }
+      var custom = get('custom') === true;
+      var name = get('name') || defaults.name;
+      document.title = 'Console | ' + name;
+
+      function addLink(rel, href, attributes) {
+        var link = document.createElement('link');
+        link.rel = rel;
+        link.href = href;
+        for (var key in attributes || {}) link.setAttribute(key, attributes[key]);
+        document.head.appendChild(link);
+        return link;
+      }
+
+      // A custom brand starts on the neutral icon (favicon_src): a browser does not reliably
+      // report a favicon that fails, so the configured icon replaces it only once it loaded.
+      var favicon = addLink('icon', get('favicon_src'), custom ? {} : { type: 'image/png', sizes: '32x32' });
+      if (custom) {
+        addLink('apple-touch-icon', get('icon_url') || '/console/neutral-icon.png');
+      } else {
+        addLink('icon', '/console/favicon-16x16.png', { type: 'image/png', sizes: '16x16' });
+        addLink('apple-touch-icon', '/console/apple-touch-icon.png', { sizes: '180x180' });
+        addLink('mask-icon', '/console/safari-pinned-tab.svg', { color: '#5bbad5' });
+      }
+      addLink('manifest', '/console/instance.webmanifest');
+
+      var iconUrl = custom ? get('icon_url') : '';
+      if (iconUrl) {
+        var settled = false;
+        var probe = new Image();
+        var timer = setTimeout(function () {
+          settled = true;
+        }, 5000);
+        probe.referrerPolicy = 'no-referrer';
+        probe.onload = function () {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          favicon.href = iconUrl;
+        };
+        probe.onerror = function () {
+          settled = true;
+          clearTimeout(timer);
+        };
+        probe.src = iconUrl;
+      }
+
+      function nameText() {
+        var text = document.createElement('span');
+        text.className = 'preload-splash-name';
+        text.textContent = name;
+        return text;
+      }
+
+      // Called by the script right after the splash container, before the React module runs.
+      window.hydrateInstanceSplash = function () {
+        var box = document.getElementById('preload-brand');
+        if (!box || box.firstChild) return;
+        var src = get('splash_logo_src');
+        if (!src) {
+          box.appendChild(nameText());
+          return;
+        }
+        var logo = document.createElement('img');
+        logo.className = 'preload-splash-logo';
+        logo.alt = name;
+        logo.referrerPolicy = 'no-referrer';
+        logo.onerror = function () {
+          if (logo.parentNode === box) box.replaceChild(nameText(), logo);
+        };
+        logo.src = src;
+        box.appendChild(logo);
+      };
+    })();
+  </script>
 </head>
 
 <body>
   <div id="root">
     <div class="preload-splash">
-      <img src="/logo.png" alt="Notifuse" class="preload-splash-logo">
+      <div id="preload-brand" class="preload-splash-brand"></div>
+      <script>
+        window.hydrateInstanceSplash && window.hydrateInstanceSplash();
+      </script>
 
       <div class="preload-splash-content">
         <i aria-label="icon: loading" class="preload-icon preload-icon-loading"><svg viewBox="0 0 1024 1024"

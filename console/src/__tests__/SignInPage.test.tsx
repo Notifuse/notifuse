@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { SignInPage } from '../pages/SignInPage'
 import { AuthProvider } from '../contexts/AuthContext'
 import * as authService from '../services/api/auth'
 import { ApiUnreachableError } from '../services/api/errors'
 import { App } from 'antd'
+import { resetBrandImageFailures } from '../components/brand/instanceBranding'
 
 // Mock the auth service
 vi.mock('../services/api/auth', () => ({
@@ -201,7 +202,7 @@ describe('SignInPage', () => {
     fireEvent.click(page.getByText(/verify code/i))
 
     // No token yet: the second step.
-    expect(await page.findByText('Two-factor authentication', { selector: '.ant-card-head-title' })).toBeInTheDocument()
+    expect(await page.findByRole('heading', { name: 'Two-factor authentication' })).toBeInTheDocument()
     expect(localStorage.getItem('auth_token')).toBeNull()
 
     fireEvent.change(page.getByPlaceholderText('000000'), { target: { value: '654321' } })
@@ -660,4 +661,67 @@ describe('SignInPage', () => {
       expect(mockNavigate).not.toHaveBeenCalledWith({ to: '/console' })
     })
   })
+
+  describe('instance logo above the form', () => {
+    const brand = (overrides: Partial<InstanceBrandingGlobal> = {}): InstanceBrandingGlobal => ({
+      custom: true,
+      name: 'Acme',
+      logo_url: 'https://cdn.example.com/acme.png',
+      icon_url: '',
+      hide_help_menu: false,
+      splash_logo_src: 'https://cdn.example.com/acme.png',
+      favicon_src: '/console/neutral-icon.png',
+      revision: 'r1',
+      ...overrides
+    })
+    const logoBlock = () => screen.getByTestId('signin-brand')
+
+    afterEach(() => {
+      resetBrandImageFailures()
+      delete window.INSTANCE_BRANDING
+    })
+
+    it('shows the Notifuse logo without a brand', () => {
+      renderWithProviders(<SignInPage />)
+      expect(within(logoBlock()).getByRole('img', { name: 'Notifuse' })).toBeInTheDocument()
+    })
+
+    it('shows the brand logo above the title, without a session or a workspace', () => {
+      window.INSTANCE_BRANDING = brand()
+      renderWithProviders(<SignInPage />)
+      const logo = within(logoBlock()).getByRole('img', { name: 'Acme' })
+      expect(logo).toHaveAttribute('src', 'https://cdn.example.com/acme.png')
+      const title = screen.getByText('Sign In')
+      expect(logo.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(authService.authService.signIn).not.toHaveBeenCalled()
+    })
+
+    it('shows the name when there is no logo, and when the logo fails until a new URL', () => {
+      window.INSTANCE_BRANDING = brand({ logo_url: '' })
+      const { unmount } = renderWithProviders(<SignInPage />)
+      expect(within(logoBlock()).getByText('Acme')).toBeInTheDocument()
+      unmount()
+
+      window.INSTANCE_BRANDING = brand()
+      renderWithProviders(<SignInPage />)
+      fireEvent.error(within(logoBlock()).getByRole('img', { name: 'Acme' }))
+      expect(within(logoBlock()).getByText('Acme')).toBeInTheDocument()
+      // The form stays usable whatever the image does.
+      expect(screen.getByLabelText(/email/i)).toBeEnabled()
+    })
+
+    it('stays above the form at the code step, beside SSO and with an error', async () => {
+      window.INSTANCE_BRANDING = brand()
+      window.OIDC_ENABLED = true
+      vi.mocked(authService.authService.signIn).mockResolvedValueOnce({ message: 'Magic code sent' })
+      renderWithProviders(<SignInPage />)
+      expect(within(logoBlock()).getByRole('img', { name: 'Acme' })).toBeInTheDocument()
+
+      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } })
+      fireEvent.click(screen.getByText(/send magic code/i))
+      await waitFor(() => expect(screen.getByPlaceholderText('000000')).toBeInTheDocument())
+      expect(within(logoBlock()).getByRole('img', { name: 'Acme' })).toBeInTheDocument()
+    })
+  })
 })
+
