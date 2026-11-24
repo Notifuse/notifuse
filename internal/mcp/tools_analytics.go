@@ -293,26 +293,14 @@ func (s *Server) queryAnalytics(ctx context.Context, call *Call) (any, error) {
 	ctx, cancel := context.WithTimeout(ctx, analyticsTimeout)
 	defer cancel()
 
-	// analytics.query refuses an invalid query with an untyped error, so the
-	// query is validated here first against the schemas the key may read.
-	schemas, err := s.deps.Analytics.GetSchemas(ctx, call.WorkspaceID)
-	if err != nil {
-		return nil, timeoutOr(ctx, err)
-	}
-	if _, ok := schemas[query.Schema]; !ok {
-		return nil, validationError("unknown schema %q: list_analytics_schemas names the schemas this key may query", args.Schema)
-	}
-	if err := analytics.DefaultValidate(query, schemas); err != nil {
-		return nil, validationError("invalid query: %v", err)
-	}
-
+	// The service validates the query against the workspace's schemas and refuses an invalid
+	// one with a validation error, which reaches the client as validation_error.
 	resp, err := s.deps.Analytics.Query(ctx, call.WorkspaceID, query)
 	if err != nil {
 		return nil, timeoutOr(ctx, err)
 	}
 
-	// The generated SQL, its parameters and the execution time in resp.Meta
-	// are never returned.
+	// Only the rows of resp are returned, never its meta.
 	out := queryAnalyticsOutput{Workspace: call.WorkspaceRef(), Schema: query.Schema, Rows: []map[string]any{}}
 	var data []map[string]any
 	if resp != nil {

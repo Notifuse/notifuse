@@ -31,7 +31,7 @@ vi.mock('../useWebAnalytics', () => ({
 
 const sessions = (count: number): AnalyticsResponse => ({
   data: [{ sessions: count }],
-  meta: { total: 1, query: '', params: [] }
+  meta: { total: 1 }
 })
 
 const wrapper = ({ children }: { children: ReactNode }) => {

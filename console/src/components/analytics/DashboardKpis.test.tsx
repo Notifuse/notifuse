@@ -114,7 +114,7 @@ const totals = (overrides: Partial<Record<MessageOrigin, Partial<MessageTotals>>
 
 const row = (data: Record<string, unknown>) => ({
   data: [data],
-  meta: { total: 1, query: '', params: [] }
+  meta: { total: 1 }
 })
 
 /** Answers each query of the strip from its schema and bounds. */

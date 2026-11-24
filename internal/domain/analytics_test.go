@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Notifuse/notifuse/pkg/analytics"
+	"github.com/asaskevich/govalidator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -679,4 +680,22 @@ func TestBroadcastsStatusMeasures(t *testing.T) {
 	// phase went through, those whose email failed to queue included.
 	assert.Contains(t, schema.Measures["winner_recipients"].Description, "Contacts processed in the winner phase")
 	assert.NotContains(t, schema.Measures["winner_recipients"].Description, "Emails queued")
+}
+
+// The valid tags of MeasureDefinition.Type and DimensionDefinition.Type list the types the
+// SQL builder handles. Every schema's members have to pass them, so that a type the builder
+// learns shows up in the tag too.
+func TestSchemaMemberTypesPassTheirValidTags(t *testing.T) {
+	schemas := ResolveAnalyticsSchemas(&WebAnalyticsSettings{BounceThresholdSeconds: 10}, "UTC")
+	require.Contains(t, schemas, "web_sessions", "the web analytics schemas are checked too")
+	for schemaName, schema := range schemas {
+		for name, measure := range schema.Measures {
+			_, err := govalidator.ValidateStruct(measure)
+			assert.NoError(t, err, "%s.%s (type %q)", schemaName, name, measure.Type)
+		}
+		for name, dimension := range schema.Dimensions {
+			_, err := govalidator.ValidateStruct(dimension)
+			assert.NoError(t, err, "%s.%s (type %q)", schemaName, name, dimension.Type)
+		}
+	}
 }

@@ -69,7 +69,7 @@ beforeEach(() => {
   context.toggleFilter.mockReset()
   query.mockReset().mockResolvedValue({
     data: [{ day_of_week: 1, hour_of_day: 14, sessions: 12, median_duration: 40 }],
-    meta: { total: 1, query: '', params: [] }
+    meta: { total: 1 }
   })
 })
 
@@ -112,7 +112,7 @@ describe('TrafficHeatmapWidget', () => {
   })
 
   it('shows the empty state with no traffic', async () => {
-    query.mockResolvedValue({ data: [], meta: { total: 0, query: '', params: [] } })
+    query.mockResolvedValue({ data: [], meta: { total: 0 } })
     renderWidget()
     expect(await screen.findByText('No data available')).toBeInTheDocument()
   })

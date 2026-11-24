@@ -79,7 +79,7 @@ beforeEach(() => {
   context.range = { start: dayjs.utc('2026-11-10'), end: dayjs.utc('2026-11-16') }
   query.mockReset().mockImplementation(async (q: AnalyticsQuery) => ({
     data: q.timeDimensions?.length ? [] : (ANSWERS[q.dimensions.join(',')] ?? []),
-    meta: { total: 0, query: '', params: [] }
+    meta: { total: 0 }
   }))
 })
 

@@ -93,7 +93,7 @@ beforeEach(() => {
       : q.timeDimensions?.length
         ? SERIES
         : [isCompare(q) ? PREVIOUS_TOTALS : TOTALS],
-    meta: { total: 0, query: '', params: [] }
+    meta: { total: 0 }
   }))
 })
 
@@ -168,7 +168,7 @@ describe('AutomatedTrafficWidget', () => {
     const empty = { sessions: 0, automated_sessions: 0, automated_share: null }
     query.mockImplementation(async (q: AnalyticsQuery) => ({
       data: q.timeDimensions?.length ? [] : [empty],
-      meta: { total: 0, query: '', params: [] }
+      meta: { total: 0 }
     }))
     context.showComparison = true
     context.resolvedCompare = COMPARE
@@ -185,7 +185,7 @@ describe('AutomatedTrafficWidget', () => {
       data: q.timeDimensions?.length
         ? SERIES
         : [isCompare(q) ? { sessions: 0, automated_sessions: 0, automated_share: null } : TOTALS],
-      meta: { total: 0, query: '', params: [] }
+      meta: { total: 0 }
     }))
     context.showComparison = true
     context.resolvedCompare = COMPARE

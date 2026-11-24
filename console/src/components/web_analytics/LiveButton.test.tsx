@@ -39,7 +39,7 @@ import { LiveButton } from './LiveButton'
 beforeEach(() => {
   query.mockReset().mockResolvedValue({
     data: [{ sessions: 42 }],
-    meta: { total: 1, query: '', params: [] }
+    meta: { total: 1 }
   })
 })
 

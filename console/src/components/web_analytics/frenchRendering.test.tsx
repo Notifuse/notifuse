@@ -109,7 +109,7 @@ beforeEach(() => {
   answer.mockReset().mockReturnValue([])
   query.mockReset().mockImplementation(async (q: AnalyticsQuery) => ({
     data: answer(q),
-    meta: { total: 0, query: '', params: [] }
+    meta: { total: 0 }
   }))
 })
 

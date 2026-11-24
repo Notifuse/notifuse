@@ -145,7 +145,7 @@ describe('PostsTable', () => {
     vi.mocked(blogPostsApi.list).mockResolvedValue(page(1, 3, 3))
     vi.mocked(analyticsService.query).mockResolvedValue({
       data: [],
-      meta: { total: 0, query: '', params: [] }
+      meta: { total: 0 }
     })
   })
 
@@ -439,7 +439,7 @@ describe('PostsTable', () => {
     })
     vi.mocked(analyticsService.query).mockResolvedValue({
       data: [{ page_path: '/news/post-1', page_count: 1234 }],
-      meta: { total: 1, query: '', params: [] }
+      meta: { total: 1 }
     })
     renderTable({ showViews: true })
     await screen.findByText('Post 1')

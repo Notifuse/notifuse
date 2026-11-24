@@ -58,9 +58,6 @@ export interface AnalyticsResponse {
   data: Array<Record<string, unknown>>
   meta: {
     total: number
-    executionTime?: number
-    query: string // Generated SQL for debugging
-    params: unknown[] // Database parameters for debugging
   }
 }
 

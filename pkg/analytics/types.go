@@ -167,10 +167,13 @@ type Response struct {
 
 // Meta contains metadata about the query execution
 type Meta struct {
-	Total         int           `json:"total"`
-	ExecutionTime time.Duration `json:"executionTime"`
-	Query         string        `json:"query"`
-	Params        []interface{} `json:"params"`
+	Total int `json:"total"`
+
+	// Query and Params are the generated SQL and its bind values. They stay on the server, for
+	// its debug log: the SQL names the schema's internals, and the values can hold the contact
+	// emails or paths a filter compares.
+	Query  string        `json:"-"`
+	Params []interface{} `json:"-"`
 }
 
 // SchemaDefinition defines the structure of an analytics schema
@@ -199,13 +202,14 @@ type MeasureFilter struct {
 	SQL string `json:"sql"`
 }
 
-// MeasureDefinition defines an analytics measure
+// MeasureDefinition defines an analytics measure. Its SQL and its filters are query-planning
+// metadata, not exposed through analytics.schemas: a caller names the measure, never its SQL.
 type MeasureDefinition struct {
-	Type        string          `json:"type" valid:"in(count|sum|avg|min|max)"`
+	Type        string          `json:"type" valid:"in(count|count_distinct|count_distinct_approx|sum|avg|min|max|number)"`
 	Title       string          `json:"title"`
-	SQL         string          `json:"sql,omitempty"`
+	SQL         string          `json:"-"`
 	Description string          `json:"description"`
-	Filters     []MeasureFilter `json:"filters,omitempty"`
+	Filters     []MeasureFilter `json:"-"`
 
 	// Cast is the SQL type the measure's aggregate is cast to, after its filters:
 	// (SUM(x) FILTER (WHERE ...))::float8. A cast written at the end of SQL would come before
@@ -214,11 +218,12 @@ type MeasureDefinition struct {
 	Cast string `json:"-"`
 }
 
-// DimensionDefinition defines an analytics dimension
+// DimensionDefinition defines an analytics dimension. Its SQL is query-planning metadata, not
+// exposed through analytics.schemas.
 type DimensionDefinition struct {
 	Type        string `json:"type" valid:"in(string|number|time)"`
 	Title       string `json:"title"`
-	SQL         string `json:"sql,omitempty"`
+	SQL         string `json:"-"`
 	Description string `json:"description"`
 
 	// NullableColumn names the bare column of a dimension whose SQL reads its NULL as the
@@ -345,7 +350,6 @@ func (q *Query) Query(ctx context.Context, db Querier, schema SchemaDefinition) 
 		return nil, err
 	}
 
-	// Create response with debug information
 	response := &Response{
 		Data: data,
 		Meta: Meta{

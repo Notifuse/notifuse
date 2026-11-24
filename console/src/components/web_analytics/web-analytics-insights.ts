@@ -401,8 +401,7 @@ async function runTotals(
       timezone: snapshot.timezone
     })
   )
-  // `data` only. meta.query is the rendered SQL and meta.params the bind values;
-  // neither may ever reach a model.
+  // `data` only: nothing of the response's meta reaches a model.
   return response.data?.[0] ?? {}
 }
 

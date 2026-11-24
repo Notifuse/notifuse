@@ -77,7 +77,7 @@ beforeEach(() => {
           { goal_at_day: '2026-11-02T00:00:00Z', goals: 7, sum_goal_value: 150, median_goal_value: 75 }
         ]
       : [],
-    meta: { total: 0, query: '', params: [] }
+    meta: { total: 0 }
   }))
 })
 

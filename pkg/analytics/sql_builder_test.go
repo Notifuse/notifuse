@@ -2706,6 +2706,35 @@ func TestBuildMeasureSQL_EdgeCases(t *testing.T) {
 			expected:    "SUM(COALESCE(amount, 0))",
 			description: "Should wrap complex expressions properly",
 		},
+		// A column name that holds an aggregate's name or FILTER is a column, not an aggregate.
+		{
+			name:        "count of a column whose name ends in count",
+			measureType: "count",
+			sql:         "enqueued_count",
+			expected:    "COUNT(enqueued_count)",
+			description: "A column named like an aggregate is still wrapped",
+		},
+		{
+			name:        "sum of a column whose name holds filter",
+			measureType: "sum",
+			sql:         "filter_id",
+			expected:    "SUM(filter_id)",
+			description: "A column named like FILTER is still wrapped",
+		},
+		{
+			name:        "an aggregate written with a space before its parenthesis",
+			measureType: "avg",
+			sql:         "max (score)",
+			expected:    "max (score)",
+			description: "An aggregate is kept as written, whatever its case and spacing",
+		},
+		{
+			name:        "another aggregate with its own FILTER clause",
+			measureType: "avg",
+			sql:         "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms) FILTER (WHERE duration_ms > 0)",
+			expected:    "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms) FILTER (WHERE duration_ms > 0)",
+			description: "A FILTER clause follows an aggregate, so the expression is kept as written",
+		},
 	}
 
 	for _, tt := range tests {

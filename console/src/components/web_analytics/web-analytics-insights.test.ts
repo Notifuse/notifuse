@@ -28,11 +28,10 @@ const COMPARE: ResolvedRange = {
 type Window = 'current' | 'previous'
 
 /**
- * Every stubbed response carries a meta block, and its contents are recognisable
- * strings: meta.query is the rendered SQL and meta.params the bind values, so a
- * packer that ever reads them leaks internal schema into a model payload. Keeping
- * them here means every assertion in this file runs against a response that HAS
- * something to leak.
+ * Every stubbed response carries a meta block with recognisable strings beyond the
+ * total the API sends, so a packer that ever reads meta shows up in the model
+ * payload. Keeping them here means every assertion in this file runs against a
+ * response that HAS something to leak.
  */
 const META = {
   total: 0,
@@ -534,7 +533,6 @@ describe('buildPeriodSummary', () => {
     const { run } = makeRun()
     const summary = await buildPeriodSummary(snapshotOf(run))
 
-    // meta.query is the fully rendered SQL and meta.params the bind values.
     expect(summary).not.toContain('sensitive_sql_marker')
     expect(summary).not.toContain('bind-value-marker')
     expect(summary).not.toContain('executionTime')

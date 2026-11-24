@@ -38,7 +38,7 @@ import { WebAnalyticsLivePage } from './WebAnalyticsLivePage'
 
 describe('WebAnalyticsLivePage', () => {
   it('draws the map inside a flush panel above the live widgets', async () => {
-    query.mockResolvedValue({ data: [{ sessions: 3 }], meta: { total: 1, query: '', params: [] } })
+    query.mockResolvedValue({ data: [{ sessions: 3 }], meta: { total: 1 } })
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <WebAnalyticsLivePage />

@@ -90,7 +90,7 @@ beforeEach(() => {
     data: q.timeDimensions?.length
       ? SERIES
       : [{ sessions: 60, median_duration: 75, bounce_rate: 42, median_scroll: 50 }],
-    meta: { total: 0, query: '', params: [] }
+    meta: { total: 0 }
   }))
 })
 
@@ -140,7 +140,7 @@ describe('DashboardTab', () => {
   it('shows an alert when the series cannot load', async () => {
     query.mockImplementation(async (q: AnalyticsQuery) => {
       if (q.timeDimensions?.length) throw new Error('boom')
-      return { data: [{ sessions: 1 }], meta: { total: 0, query: '', params: [] } }
+      return { data: [{ sessions: 1 }], meta: { total: 0 } }
     })
     renderTab()
     expect(await screen.findByText('Could not load the dashboard')).toBeInTheDocument()

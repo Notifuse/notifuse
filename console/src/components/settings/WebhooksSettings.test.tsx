@@ -139,7 +139,7 @@ describe('WebhooksSettings', () => {
     setList(subscriptions)
     vi.mocked(analyticsService.query).mockResolvedValue({
       data: [],
-      meta: { total: 0, query: '', params: [] }
+      meta: { total: 0 }
     })
     vi.mocked(webhookSubscriptionApi.getEventTypes).mockResolvedValue({
       event_types: ['contact.created', 'list.subscribed']
@@ -274,7 +274,7 @@ const rates = (rows: Array<{ id: string; delivered: number; failed: number }>) =
       count_delivered: row.delivered,
       count_failed: row.failed
     })),
-    meta: { total: rows.length, query: '', params: [] }
+    meta: { total: rows.length }
   })
 }
 

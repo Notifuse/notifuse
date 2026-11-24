@@ -122,7 +122,7 @@ beforeEach(() => {
   context.filters = []
   context.range = { start: dayjs.utc('2026-11-10'), end: dayjs.utc('2026-11-16') }
   query.mockReset().mockImplementation(async (q: AnalyticsQuery) => {
-    if (q.timeDimensions?.length) return { data: SERIES, meta: { total: 0, query: '', params: [] } }
+    if (q.timeDimensions?.length) return { data: SERIES, meta: { total: 0 } }
     if (q.dimensions.includes('device') && failDevice) throw new Error('boom')
     const data = q.dimensions.includes('landing_path')
       ? LANDING_PATHS
@@ -131,7 +131,7 @@ beforeEach(() => {
         : q.dimensions.includes('browser')
           ? [{ browser: 'Safari', sessions: 900, median_duration: 60, bounce_rate: 30, median_scroll: 50 }]
           : []
-    return { data, meta: { total: 0, query: '', params: [] } }
+    return { data, meta: { total: 0 } }
   })
 })
 

@@ -3,6 +3,7 @@ package analytics
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -115,6 +116,12 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 				// a time dimension does. Breakdowns carry their range this way because
 				// a granularity would split every row per bucket, and without this
 				// they would scan the whole history instead of one partition.
+				//
+				// Only inDateRange prunes, on purpose: it is what the console sends. A
+				// one-sided bound (gte, afterDate, beforeDate...) leaves every partition
+				// in the plan, and each partition's BRIN index on the time column then
+				// skips the blocks outside the bound, so such a query costs a BRIN probe
+				// per partition rather than a full scan.
 				if filter.Operator == "inDateRange" {
 					start, end := bounds.start, bounds.last()
 					if pruneStart == nil || start.Before(*pruneStart) {
@@ -631,18 +638,19 @@ func (sb *SQLBuilder) measureSQL(name string, measureDef MeasureDefinition) stri
 	return aggregate
 }
 
+// aggregateSQLRe matches a measure SQL that is already an aggregate: a call to one of the
+// aggregates the measure types wrap with, or a FILTER clause, which PostgreSQL takes only
+// after an aggregate call (such as PERCENTILE_CONT(...) WITHIN GROUP (...) FILTER (...)).
+// Whole words followed by a parenthesis, so that a column such as enqueued_count or
+// filter_id is wrapped like any other column.
+var aggregateSQLRe = regexp.MustCompile(`(?i)\b(COUNT|SUM|AVG|MIN|MAX|FILTER)\s*\(`)
+
 // buildMeasureSQL wraps the SQL expression with the appropriate aggregate function based on measure type
 // and applies any measure filters using PostgreSQL FILTER clause
 func (sb *SQLBuilder) buildMeasureSQL(measureType, sql string, filters []MeasureFilter) string {
-	// If the SQL already contains an aggregate function (has parentheses and common functions),
-	// return it as-is to support complex expressions, but still apply filters if present
-	upperSQL := strings.ToUpper(sql)
-	if strings.Contains(upperSQL, "COUNT(") ||
-		strings.Contains(upperSQL, "SUM(") ||
-		strings.Contains(upperSQL, "AVG(") ||
-		strings.Contains(upperSQL, "MIN(") ||
-		strings.Contains(upperSQL, "MAX(") ||
-		strings.Contains(upperSQL, "FILTER") {
+	// An expression that is already an aggregate is kept as written: wrapping it again would
+	// nest two aggregates, which PostgreSQL refuses. Its filters still apply.
+	if aggregateSQLRe.MatchString(sql) {
 		return sb.applyMeasureFilters(sql, filters)
 	}
 
@@ -650,12 +658,7 @@ func (sb *SQLBuilder) buildMeasureSQL(measureType, sql string, filters []Measure
 	var baseSQL string
 	switch measureType {
 	case "count":
-		// For count, if it's just a column name, wrap with COUNT()
-		if !strings.Contains(upperSQL, "COUNT") {
-			baseSQL = fmt.Sprintf("COUNT(%s)", sql)
-		} else {
-			baseSQL = sql
-		}
+		baseSQL = fmt.Sprintf("COUNT(%s)", sql)
 	case "sum":
 		baseSQL = fmt.Sprintf("SUM(%s)", sql)
 	case "avg":

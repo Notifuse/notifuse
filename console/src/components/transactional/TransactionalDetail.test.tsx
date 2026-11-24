@@ -176,7 +176,7 @@ beforeEach(() => {
       { created_at_day: '2026-11-10T00:00:00Z', count_sent: 10, count_delivered: 9, count_bounced: 0, count_failed: 1 },
       { created_at_day: '2026-11-11T00:00:00Z', count_sent: 10, count_delivered: 7, count_bounced: 0, count_failed: 3 }
     ],
-    meta: { total: 2, query: '', params: [] }
+    meta: { total: 2 }
   })
   listMessages.mockReset()
   listMessages.mockResolvedValue({ messages: [], has_more: false })
@@ -328,7 +328,7 @@ describe('TransactionalDetail', () => {
       q.dimensions.includes('transactional_notification_id')
         ? Promise.resolve({
             data: [{ transactional_notification_id: 'reset', count_sent: 1234, count_failed: 7 }],
-            meta: { total: 1, query: '', params: [] }
+            meta: { total: 1 }
           })
         : daily?.(q)
     )
@@ -352,7 +352,7 @@ describe('TransactionalDetail', () => {
       q.dimensions.includes('transactional_notification_id')
         ? Promise.resolve({
             data: [{ transactional_notification_id: 'reset', count_sent: 1234 }],
-            meta: { total: 1, query: '', params: [] }
+            meta: { total: 1 }
           })
         : daily?.(q)
     )
