@@ -62,7 +62,7 @@ export function AIAssistantChat({
     })
   }))
 
-  // Render setup prompt when no LLM integration
+  // Render setup prompt when no AI model is connected
   if (!llmIntegration) {
     return (
       <>
@@ -136,17 +136,17 @@ export function AIAssistantChat({
               </div>
               <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>{t`AI Assistant Not Configured`}</h3>
               <p style={{ margin: '0 0 16px', color: '#666', fontSize: 14, lineHeight: 1.5 }}>
-                {t`To use the ${config.title}, you need to configure the Anthropic integration in your workspace settings.`}
+                {t`To use the ${config.title}, connect an AI model from Anthropic, OpenAI or Gemini in Settings › AI › Assistant.`}
               </p>
               <Button
                 type="primary"
-                href={`/console/workspace/${workspace.id}/settings/integrations`}
+                href={`/console/workspace/${workspace.id}/settings/ai-assistant`}
                 style={{
                   background: config.notConfiguredGradient,
                   borderColor: 'transparent'
                 }}
               >
-                {t`Configure Integration`}
+                {t`Connect an AI model`}
               </Button>
             </div>
           </div>

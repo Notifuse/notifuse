@@ -52,6 +52,10 @@ type RootHandler struct {
 	// error to show and a save to block. The server enforces the setting itself, on
 	// save and at dial time, whatever the console shows.
 	webhookAllowPrivateHosts bool
+	// mcpEnabled is MCP_ENABLED and isDemo the demo flag: /mcp answers only when
+	// the first is on and the second off, and the console's MCP tab says so.
+	mcpEnabled bool
+	isDemo     bool
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
@@ -73,6 +77,8 @@ func NewRootHandler(
 	oidcEnabled func() bool,
 	oidcButtonLabel string,
 	webhookAllowPrivateHosts bool,
+	mcpEnabled bool,
+	isDemo bool,
 ) *RootHandler {
 	return &RootHandler{
 		consoleDir:               consoleDir,
@@ -92,6 +98,8 @@ func NewRootHandler(
 		oidcEnabled:              oidcEnabled,
 		oidcButtonLabel:          oidcButtonLabel,
 		webhookAllowPrivateHosts: webhookAllowPrivateHosts,
+		mcpEnabled:               mcpEnabled,
+		isDemo:                   isDemo,
 	}
 }
 
@@ -185,8 +193,35 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		webhookAllowPrivateHostsStr = "true"
 	}
 
+	// The MCP tab shows the URL clients connect to and, when the OAuth
+	// authorization server cannot run on this API_ENDPOINT, why. Both come from
+	// the canonical endpoint /mcp and /oauth/* use, so the tab and the server
+	// agree. An API_ENDPOINT that does not parse leaves the URL empty.
+	// MCP_DISABLED_REASON says why MCP is off, so the console points the
+	// administrator at MCP_ENABLED only when that setting is what turns it off:
+	// "" when on, "instance" when MCP_ENABLED is off, "demo" on a demo
+	// deployment, where MCP stays off whatever MCP_ENABLED says.
+	mcpEnabledStr := "false"
+	mcpDisabledReason := ""
+	switch {
+	case h.isDemo:
+		mcpDisabledReason = "demo"
+	case !h.mcpEnabled:
+		mcpDisabledReason = "instance"
+	default:
+		mcpEnabledStr = "true"
+	}
+	mcpURL := ""
+	mcpOAuthUnavailableReason := ""
+	if endpoint, err := domain.CanonicalAPIEndpoint(h.apiEndpoint); err == nil {
+		mcpURL = endpoint.MCPURL()
+		mcpOAuthUnavailableReason = endpoint.OAuthUnavailableReason()
+	} else {
+		mcpOAuthUnavailableReason = err.Error()
+	}
+
 	configJS := fmt.Sprintf(
-		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_BRIDGE_ENABLED = %s;\nwindow.SMTP_BRIDGE_DOMAIN = %q;\nwindow.SMTP_BRIDGE_PORT = %d;\nwindow.SMTP_BRIDGE_TLS_MODE = %q;\nwindow.OIDC_ENABLED = %s;\nwindow.OIDC_BUTTON_LABEL = %q;\nwindow.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = %s;",
+		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_BRIDGE_ENABLED = %s;\nwindow.SMTP_BRIDGE_DOMAIN = %q;\nwindow.SMTP_BRIDGE_PORT = %d;\nwindow.SMTP_BRIDGE_TLS_MODE = %q;\nwindow.OIDC_ENABLED = %s;\nwindow.OIDC_BUTTON_LABEL = %q;\nwindow.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = %s;\nwindow.MCP_ENABLED = %s;\nwindow.MCP_DISABLED_REASON = %q;\nwindow.MCP_URL = %q;\nwindow.MCP_OAUTH_UNAVAILABLE_REASON = %q;",
 		h.apiEndpoint,
 		h.version,
 		h.rootEmail,
@@ -199,22 +234,32 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		oidcEnabledStr,
 		oidcButtonLabel,
 		webhookAllowPrivateHostsStr,
+		mcpEnabledStr,
+		mcpDisabledReason,
+		mcpURL,
+		mcpOAuthUnavailableReason,
 	)
 	_, _ = w.Write([]byte(configJS))
 }
 
-// consoleOAuthAuthorizePath is the console's OAuth authorization page, whose
-// URL carries the request ID.
-const consoleOAuthAuthorizePath = "/console/oauth/authorize"
+// noReferrerConsolePaths are the console pages whose URL can carry an OAuth
+// request ID: the authorization page, and the sign-in page, whose return_to
+// names it. After sign-in the console reaches the authorization page by
+// client-side navigation, which keeps the sign-in document's policy.
+var noReferrerConsolePaths = map[string]bool{
+	"/console/oauth/authorize":  true,
+	"/console/oauth/authorize/": true,
+	"/console/signin":           true,
+	"/console/signin/":          true,
+}
 
 // serveConsole handles serving static files, with a fallback for SPA routing.
-// No console page may be framed by another site, and the OAuth authorization
-// page never sends its URL, which names an authorization request, in a
-// Referer.
+// No console page may be framed by another site, and a page whose URL names an
+// OAuth authorization request never sends it in a Referer.
 func (h *RootHandler) serveConsole(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
 	w.Header().Set("X-Frame-Options", "DENY")
-	if r.URL.Path == consoleOAuthAuthorizePath || r.URL.Path == consoleOAuthAuthorizePath+"/" {
+	if noReferrerConsolePaths[r.URL.Path] {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 	}
 	if r.Method != http.MethodGet {

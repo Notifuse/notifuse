@@ -436,10 +436,10 @@ describe('Integrations — blocks', () => {
     const catalogue = await screen.findByRole('dialog', { name: 'Add integration' })
 
     expect(within(catalogue).getByText('Email sending')).toBeInTheDocument()
-    expect(within(catalogue).getByText('AI assistant')).toBeInTheDocument()
     expect(within(catalogue).getByText('Connected apps')).toBeInTheDocument()
-    // The 7 email providers, the 3 AI models, Firecrawl, Supabase and Zapier.
-    expect(catalogue.querySelectorAll('[data-catalogue-entry]')).toHaveLength(13)
+    // The 7 email providers, Supabase and Zapier: the AI models and Firecrawl are added from
+    // Settings › AI › Assistant.
+    expect(catalogue.querySelectorAll('[data-catalogue-entry]')).toHaveLength(9)
     // The server refuses Mailjet for marketing: the catalogue says so before it is picked.
     expect(within(catalogue).getByRole('button', { name: /^Mailjet/ })).toHaveTextContent('Transactional only')
   })
@@ -485,6 +485,42 @@ describe('Integrations — blocks', () => {
   })
 })
 
+describe('Integrations — AI models and Firecrawl', () => {
+  // Both are listed in Settings › AI › Assistant, which has the only way to add them.
+  it('shows no AI model nor Firecrawl, and keeps the other integrations', async () => {
+    const llm = {
+      ...zapierIntegration,
+      id: 'int_llm',
+      name: 'Claude',
+      type: 'llm',
+      llm_provider: { kind: 'anthropic', anthropic: { model: 'claude-sonnet-5-5' } }
+    } as unknown as Integration
+    const firecrawl = {
+      ...zapierIntegration,
+      id: 'int_fc',
+      name: 'Crawler',
+      type: 'firecrawl',
+      firecrawl_settings: { base_url: 'https://crawl.acme.com' }
+    } as unknown as Integration
+    renderIntegrations({ integrations: [llm, firecrawl, zapierIntegration] })
+
+    expect(await screen.findByText(ZAPIER_KEY_EMAIL)).toBeInTheDocument()
+    expect(screen.queryByText('Claude')).toBeNull()
+    expect(screen.queryByText('Crawler')).toBeNull()
+    expect(screen.queryByText('AI assistant')).toBeNull()
+    expect(document.querySelector('[data-integrations-block="ai"]')).toBeNull()
+  })
+
+  it('shows no Connected apps block when the only other integrations are AI ones', async () => {
+    const llm = { ...zapierIntegration, id: 'int_llm', name: 'Claude', type: 'llm' } as unknown as Integration
+    renderIntegrations({ integrations: [llm] })
+
+    expect(await screen.findByText('No email provider yet')).toBeInTheDocument()
+    expect(screen.queryByText('Connected apps')).toBeNull()
+    expect(screen.queryByText('Claude')).toBeNull()
+  })
+})
+
 describe('Integrations — dates', () => {
   afterEach(() => {
     activateDayjsLocale('en')
@@ -505,8 +541,6 @@ describe('Integrations — drawer titles', () => {
     ['Mailgun', 'Add Mailgun integration'],
     ['Amazon SES', 'Add Amazon SES integration'],
     ['Supabase', 'Add Supabase integration'],
-    ['OpenAI', 'Add OpenAI integration'],
-    ['Firecrawl', 'Add Firecrawl integration'],
     ['Zapier', 'Connect Zapier']
   ])('names %s in the title of its drawer', async (item, title) => {
     const user = userEvent.setup()

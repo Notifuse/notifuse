@@ -1,8 +1,10 @@
+import type React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import type { Entitlements } from '../../types/license'
 import { WorkspaceMembers } from './WorkspaceMembers'
@@ -28,6 +30,27 @@ const api = vi.hoisted(() => ({
 
 vi.mock('../../services/api/workspace', () => ({ workspaceService: api }))
 
+// The MCP connections of the keys come through the API client.
+const apiGet = vi.hoisted(() => vi.fn())
+// Without the real client, which imports the router and through it every page.
+vi.mock('../../services/api/client', async () => ({
+  ApiError: (await vi.importActual<typeof import('../../services/api/errors')>('../../services/api/errors')).ApiError,
+  api: { get: apiGet, post: vi.fn() }
+}))
+// The table renders outside a router: a link shows the path it would open.
+vi.mock('@tanstack/react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-router')>()),
+  Link: ({
+    children,
+    to,
+    params
+  }: {
+    children: React.ReactNode
+    to: string
+    params: { workspaceId: string; section: string }
+  }) => <a href={to.replace('$workspaceId', params.workspaceId).replace('$section', params.section)}>{children}</a>
+}))
+
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
 beforeEach(() => {
@@ -37,6 +60,8 @@ beforeEach(() => {
   api.inviteMember.mockResolvedValue({ status: 'ok', message: '' })
   // Carries a trailing path segment so the normalisation is exercised, not just the host.
   window.API_ENDPOINT = 'https://api.example.com/'
+  window.MCP_ENABLED = undefined
+  apiGet.mockResolvedValue({ grants: [] })
 })
 
 const apiKeyRow = (permissions: WorkspaceMember['permissions']): WorkspaceMember => ({
@@ -65,36 +90,38 @@ const renderMembers = (
   options: RenderOptions = {}
 ) =>
   render(
-    <I18nProvider i18n={i18n}>
-      <App>
-        <LicenseContext.Provider
-          value={{
-            ...UNKNOWN_LICENSE,
-            entitlements: licensedFor
-              ? {
-                  tier: 'Studio',
-                  org: 'ACME SAS',
-                  sub: 'billing@acme.com',
-                  max_workspaces: 5,
-                  features: licensedFor,
-                  state: 'active',
-                  expires_at: '2027-01-01T00:00:00Z'
-                }
-              : null
-          }}
-        >
-          <WorkspaceMembers
-            workspaceId="ws1"
-            members={members}
-            loading={false}
-            error={options.error ?? false}
-            onMembersChange={options.onMembersChange ?? vi.fn()}
-            isOwner={options.isOwner ?? true}
-            currentUserId={options.currentUserId}
-          />
-        </LicenseContext.Provider>
-      </App>
-    </I18nProvider>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <I18nProvider i18n={i18n}>
+        <App>
+          <LicenseContext.Provider
+            value={{
+              ...UNKNOWN_LICENSE,
+              entitlements: licensedFor
+                ? {
+                    tier: 'Studio',
+                    org: 'ACME SAS',
+                    sub: 'billing@acme.com',
+                    max_workspaces: 5,
+                    features: licensedFor,
+                    state: 'active',
+                    expires_at: '2027-01-01T00:00:00Z'
+                  }
+                : null
+            }}
+          >
+            <WorkspaceMembers
+              workspaceId="ws1"
+              members={members}
+              loading={false}
+              error={options.error ?? false}
+              onMembersChange={options.onMembersChange ?? vi.fn()}
+              isOwner={options.isOwner ?? true}
+              currentUserId={options.currentUserId}
+            />
+          </LicenseContext.Provider>
+        </App>
+      </I18nProvider>
+    </QueryClientProvider>
   )
 
 // A member row shows the email; an API key row shows its name, the part before "@".
@@ -789,5 +816,69 @@ describe('invite member drawer', () => {
     for (const resource of ALL_PERMISSION_RESOURCES) {
       expect(drawer.querySelector(`tr[data-row-key="${resource}"]`)).not.toBeNull()
     }
+  })
+})
+
+describe('API keys: connected applications', () => {
+  const LIST_GRANTS = '/api/oauth.listWorkspaceGrants?workspace_id=ws1'
+  const zapierKey: WorkspaceMember = {
+    ...apiKeyRow(createFullPermissions()),
+    user_id: 'key-2',
+    email: 'zapier@api.example.com'
+  }
+  const grant = (id: string, clientName: string, clientId: string, status: 'active' | 'revoked' = 'active') => ({
+    id,
+    api_key_user_id: 'key-1',
+    api_key_email: 'sender@api.example.com',
+    workspace_id: 'ws1',
+    client_id: clientId,
+    client_name: clientName,
+    resource: 'https://api.example.com/mcp',
+    created_via: 'key',
+    created_at: '2026-11-14T10:00:00Z',
+    status
+  })
+
+  beforeEach(() => {
+    window.MCP_ENABLED = true
+    apiGet.mockResolvedValue({
+      grants: [
+        grant('g1', 'Claude', 'https://claude.ai/oauth/mcp-oauth-client-metadata'),
+        grant('g2', 'n8n local', 'https://tools.example.dev/client.json'),
+        grant('g3', 'Old ChatGPT', 'https://chatgpt.com/client.json', 'revoked')
+      ]
+    })
+  })
+
+  it('shows an owner the applications connected with each key', async () => {
+    renderMembers([apiKeyRow(createFullPermissions()), zapierKey])
+
+    expect(screen.getByRole('columnheader', { name: 'Connected applications' })).toBeInTheDocument()
+    const sender = within(rowFor(apiKeyRow(createFullPermissions())))
+    expect(await sender.findByText('Claude')).toBeInTheDocument()
+    expect(apiGet).toHaveBeenCalledWith(LIST_GRANTS)
+    // An application Notifuse does not know stands out; a revoked connection is gone.
+    expect(sender.getByText('n8n local').closest('[class*="bg-warning-bg"]')).not.toBeNull()
+    expect(sender.getByText('Claude').closest('[class*="bg-warning-bg"]')).toBeNull()
+    expect(sender.queryByText('Old ChatGPT')).toBeNull()
+    expect(within(rowFor(zapierKey)).getByText('None')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Manage connections' })).toHaveAttribute(
+      'href',
+      '/console/workspace/ws1/settings/mcp'
+    )
+  })
+
+  it('shows a member no connections and asks the server nothing', () => {
+    renderMembers([apiKeyRow(createFullPermissions())], undefined, { isOwner: false })
+    expect(screen.queryByRole('columnheader', { name: 'Connected applications' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Manage connections' })).toBeNull()
+    expect(apiGet).not.toHaveBeenCalled()
+  })
+
+  it('shows no connections while MCP is turned off on the instance', () => {
+    window.MCP_ENABLED = false
+    renderMembers([apiKeyRow(createFullPermissions())])
+    expect(screen.queryByRole('columnheader', { name: 'Connected applications' })).toBeNull()
+    expect(apiGet).not.toHaveBeenCalled()
   })
 })

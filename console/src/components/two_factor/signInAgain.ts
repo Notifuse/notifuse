@@ -1,10 +1,45 @@
 import { handOffSignInEmail } from '../setup/signInHandoff'
 
-/** Where a sign-in may send the person back to: a fixed list, never a URL from the address bar. */
-export type SignInReturnTo = 'security'
+/** The MCP connection page an owner signs in from to create a key there. */
+export type OAuthAuthorizeReturnPath = `/console/oauth/authorize?request=${string}`
 
-export const SIGN_IN_RETURN_PATHS: Record<SignInReturnTo, string> = {
-  security: '/console/account/security'
+/**
+ * Where a sign-in may send the person back to: the account security page, or the MCP connection
+ * page of one request. Never any other path or URL from the address bar.
+ */
+export type SignInReturnTo = 'security' | OAuthAuthorizeReturnPath
+
+/** A request ID as the server mints it (base64url), bounded. */
+const OAUTH_REQUEST_ID = /^[A-Za-z0-9_-]{1,128}$/
+
+// The whole string: one path, one parameter, nothing before or after. A dot segment, another
+// host, a second parameter or an encoded character fail it.
+const OAUTH_RETURN_PATH = /^\/console\/oauth\/authorize\?request=([A-Za-z0-9_-]{1,128})$/
+
+/** The return path to the connection page of a request, or undefined for an ID it cannot carry. */
+export function oauthAuthorizeReturnPath(requestId: string): OAuthAuthorizeReturnPath | undefined {
+  return OAUTH_REQUEST_ID.test(requestId) ? `/console/oauth/authorize?request=${requestId}` : undefined
+}
+
+/** A return point read from the address bar or storage, or undefined when it is not one of the list. */
+export function parseSignInReturnTo(value: unknown): SignInReturnTo | undefined {
+  if (value === 'security') return value
+  if (typeof value !== 'string') return undefined
+  const match = OAUTH_RETURN_PATH.exec(value)
+  return match ? oauthAuthorizeReturnPath(match[1]) : undefined
+}
+
+/** Where the router goes after a sign-in. */
+export type SignInDestination =
+  | { to: '/console' }
+  | { to: '/console/account/security' }
+  | { to: '/console/oauth/authorize'; search: { request: string } }
+
+/** The page a return point names, checked again; the console home without one. */
+export function signInDestination(returnTo: SignInReturnTo | undefined): SignInDestination {
+  if (returnTo === 'security') return { to: '/console/account/security' }
+  const match = returnTo ? OAUTH_RETURN_PATH.exec(returnTo) : null
+  return match ? { to: '/console/oauth/authorize', search: { request: match[1] } } : { to: '/console' }
 }
 
 // Single sign-on leaves the console for the identity provider and comes back without the query
@@ -24,7 +59,7 @@ export function takeReturnTo(): SignInReturnTo | undefined {
   try {
     const value = sessionStorage.getItem(RETURN_KEY)
     sessionStorage.removeItem(RETURN_KEY)
-    return value === 'security' ? value : undefined
+    return parseSignInReturnTo(value)
   } catch {
     return undefined
   }

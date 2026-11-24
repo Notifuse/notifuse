@@ -40,6 +40,7 @@ describe('SETTINGS_GROUPS', () => {
       ['general', 'team'],
       ['integrations', 'domains', 'webhooks', 'smtp-bridge'],
       ['custom-fields', 'blog', 'web-analytics'],
+      ['ai-assistant', 'mcp'],
       ['audit-logs', 'data-retention', 'licence', 'danger-zone']
     ])
     expect(SETTINGS_SECTIONS).toEqual([
@@ -52,6 +53,8 @@ describe('SETTINGS_GROUPS', () => {
       'custom-fields',
       'blog',
       'web-analytics',
+      'ai-assistant',
+      'mcp',
       'audit-logs',
       'data-retention',
       'licence',
@@ -61,9 +64,9 @@ describe('SETTINGS_GROUPS', () => {
 })
 
 describe('SettingsSidebar', () => {
-  it('groups the entries under Workspace, Sending, Content and Security', () => {
+  it('groups the entries under Workspace, Sending, Content, AI and Security', () => {
     renderSidebar()
-    for (const title of ['Workspace', 'Sending', 'Content', 'Security']) {
+    for (const title of ['Workspace', 'Sending', 'Content', 'AI', 'Security']) {
       expect(screen.getByText(title)).toBeInTheDocument()
     }
     const labels = screen.getAllByRole('button').map((button) => button.textContent)
@@ -77,6 +80,8 @@ describe('SettingsSidebar', () => {
       'Custom fields',
       'Blog',
       'Web analytics',
+      'Assistant',
+      'MCP',
       'Audit log',
       'Data retention',
       'Licence',
@@ -109,6 +114,17 @@ describe('SettingsSidebar', () => {
     const onSectionChange = renderSidebar()
     fireEvent.click(screen.getByText('Integrations'))
     expect(onSectionChange).toHaveBeenCalledWith('integrations')
+    fireEvent.click(screen.getByText('Assistant'))
+    expect(onSectionChange).toHaveBeenLastCalledWith('ai-assistant')
+    fireEvent.click(screen.getByText('MCP'))
+    expect(onSectionChange).toHaveBeenLastCalledWith('mcp')
+  })
+
+  it('offers the AI assistant and MCP to a member who is not owner', () => {
+    renderSidebar({ isOwner: false, isRoot: false })
+    expect(screen.getByText('AI')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Assistant' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'MCP' })).toBeInTheDocument()
   })
 
   // Retention and deletion are an owner's decisions; the licence covers the deployment, root only.

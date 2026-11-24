@@ -51,7 +51,7 @@ msgstr "- cancel·lat"
 msgid "· applies to the whole Web Analytics section. Click a row or a country to add one."
 msgstr "· s'aplica a tota la secció Analítica web. Fes clic en una fila o en un país per afegir-ne un."
 
-#: src/components/settings/WorkspaceMembers.tsx:111
+#: src/components/settings/WorkspaceMembers.tsx:114
 msgid "· read only"
 msgstr "· només lectura"
 
@@ -128,7 +128,7 @@ msgstr "(original: {original})"
 msgid "(unknown)"
 msgstr "(desconegut)"
 
-#: src/components/settings/WorkspaceMembers.tsx:257
+#: src/components/settings/WorkspaceMembers.tsx:274
 msgid "(you)"
 msgstr "(vós)"
 
@@ -699,13 +699,17 @@ msgstr "{action} exactament {count} vegades"
 msgid "{active, plural, one {# active} other {# active}}"
 msgstr "{active, plural, one {# actiu} other {# actius}}"
 
-#: src/components/settings/WorkspaceMembers.tsx:113
+#: src/components/settings/WorkspaceMembers.tsx:116
 msgid "{active} of {total} permissions granted"
 msgstr "{active} de {total} permisos concedits"
 
 #: src/components/analytics/GetStartedChecklist.tsx:279
 msgid "{apiKeys, plural, one {# API key} other {# API keys}}"
 msgstr "{apiKeys, plural, one {# clau API} other {# claus API}}"
+
+#: src/components/settings/MCPSettings.tsx:215
+msgid "{application} loses the access it has through the key {key}. The key keeps working."
+msgstr "{application} perd l'accés que té amb la clau {key}. La clau continua funcionant."
 
 #: src/components/email_builder/ui/fields/NumberUnitField.tsx:162
 msgid "{ariaLabel} mode"
@@ -894,7 +898,7 @@ msgstr "{days, plural, one {+{0} en # d} other {+{1} en # d}}"
 msgid "{days, plural, one {Added in the last # day, today included} other {Added in the last # days, today included}}"
 msgstr "{days, plural, one {Afegits en l'últim # dia, avui inclòs} other {Afegits en els últims # dies, avui inclòs}}"
 
-#: src/components/settings/WorkspaceMembers.tsx:240
+#: src/components/settings/WorkspaceMembers.tsx:257
 msgid "{days, plural, one {expires in # day} other {expires in # days}}"
 msgstr "{days, plural, one {caduca d'aquí a # dia} other {caduca d'aquí a # dies}}"
 
@@ -1251,6 +1255,10 @@ msgstr "{n} variants, prova sobre el {p} % durant {h} h"
 msgid "{name} ({weight} %)"
 msgstr "{name} ({weight} %)"
 
+#: src/pages/OAuthAuthorizePage.tsx:161
+msgid "{name} asked to return to an address that is not a web page."
+msgstr "{name} ha demanat tornar a una adreça que no és una pàgina web."
+
 #: src/components/analytics/GetStartedChecklist.tsx:252
 msgid "{name} connected"
 msgstr "{name} connectat"
@@ -1282,6 +1290,14 @@ msgstr "{name} no s’ha deixat anar sobre el correu."
 #: src/components/email_builder/dnd/LibraryDnd.tsx:139
 msgid "{name} was not inserted: {reason}."
 msgstr "{name} no s’ha inserit: {reason}."
+
+#: src/pages/OAuthAuthorizePage.tsx:337
+msgid "{name} will work with an API key of its own. Create it here, or paste one you already have."
+msgstr "{name} treballarà amb una clau API pròpia. Creeu-la aquí, o enganxeu-ne una que ja tingueu."
+
+#: src/pages/OAuthAuthorizePage.tsx:338
+msgid "{name} will work with the API key you give here, in that key's workspace and with that key's access."
+msgstr "{name} treballarà amb la clau API que doneu aquí, a l'espai de treball d'aquesta clau i amb el seu accés."
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:282
 msgid "{named} of {total} slots named"
@@ -1726,6 +1742,11 @@ msgstr "<{tag}> no està tancat."
 msgid "</{tag}> closes no open tag."
 msgstr "</{tag}> no tanca cap etiqueta oberta."
 
+#. placeholder {0}: window.API_ENDPOINT
+#: src/components/settings/MCPSettings.tsx:376
+msgid "<0>API_ENDPOINT</0> must use https and have no path. It is <1>{0}</1>."
+msgstr "<0>API_ENDPOINT</0> ha d'usar https i no tenir cap camí. Ara és <1>{0}</1>."
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:970
 #: src/components/settings/integrations/providerDetails.ts:170
 msgid "≈ {perHour} per hour · ≈ {perDay} per day"
@@ -2027,6 +2048,10 @@ msgstr "una capçalera del feed de dades global no té nom o valor"
 msgid "a header of the per-recipient data feed has no name or value"
 msgstr "una capçalera del feed de dades per destinatari no té nom o valor"
 
+#: src/components/settings/MCPSettings.tsx:404
+msgid "A key with full access lets the assistant send emails, change templates and delete contacts."
+msgstr "Una clau amb accés complet permet a l'assistent enviar correus, canviar plantilles i eliminar contactes."
+
 #: src/components/templates/gallery/labels.ts:17
 msgid "A limited offer: a visual, a promo code and featured products."
 msgstr "Una oferta limitada: una imatge, un codi promocional i productes destacats."
@@ -2092,7 +2117,7 @@ msgstr "Un codi d'un sol ús per iniciar la sessió o confirmar una acció."
 msgid "A period is shorter than its category allows"
 msgstr "Un període és més curt del que permet la seva categoria"
 
-#: src/components/settings/WorkspaceMembers.tsx:279
+#: src/components/settings/WorkspaceMembers.tsx:296
 msgid "A platform admin reaches every workspace without joining it"
 msgstr "Un administrador de la plataforma accedeix a tots els espais de treball sense unir-s'hi"
 
@@ -2183,6 +2208,10 @@ msgstr "Un webinar o un esdeveniment: data, programa, inscripció."
 msgctxt "newsletter status"
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
 msgstr "S'ha seleccionat un guanyador. S'estan enviant els correus a la resta de destinataris."
+
+#: src/pages/OAuthAuthorizePage.tsx:679
+msgid "A workspace with MCP off can't be picked. Switch it on in Settings › AI › MCP first."
+msgstr "No es pot triar un espai de treball amb MCP desactivat. Activeu-lo primer a Configuració › IA › MCP."
 
 #: src/components/analytics/UpcomingSends.tsx:157
 #: src/components/broadcasts/BroadcastsTable.tsx:309
@@ -2336,8 +2365,9 @@ msgstr "Acceptar invitació"
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Ha acceptat la invitació <0>{target}</0>"
 
-#: src/components/settings/WorkspaceMembers.tsx:271
-#: src/components/settings/WorkspaceMembers.tsx:302
+#: src/components/settings/MCPSettings.tsx:253
+#: src/components/settings/WorkspaceMembers.tsx:288
+#: src/components/settings/WorkspaceMembers.tsx:319
 msgid "Access"
 msgstr "Accés"
 
@@ -2387,7 +2417,7 @@ msgstr "Acció"
 #: src/components/automations/nodeTypes.ts:42
 #: src/components/blog/RecentThemesTable.tsx:173
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
-#: src/components/settings/WorkspaceMembers.tsx:227
+#: src/components/settings/WorkspaceMembers.tsx:244
 #: src/components/transactional/TransactionalTable.tsx:274
 msgid "Actions"
 msgstr "Accions"
@@ -2505,7 +2535,8 @@ msgstr "Afegir {0}"
 msgid "Add {name}"
 msgstr "Afegir {name}"
 
-#: src/components/settings/Integrations.tsx:596
+#: src/components/settings/AIAssistantSettings.tsx:233
+#: src/components/settings/Integrations.tsx:396
 msgid "Add {name} integration"
 msgstr "Afegir la integració amb {name}"
 
@@ -2530,6 +2561,10 @@ msgstr "Afegir un filtre"
 #: src/components/segment/SegmentDrawer.tsx:360
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "Afegeix una primera condició: una propietat del contacte, una llista, una activitat o un objectiu."
+
+#: src/components/settings/AIAssistantSettings.tsx:174
+msgid "Add a model"
+msgstr "Afegir un model"
 
 #: src/components/segment/input_event_property_filters.tsx:137
 msgid "Add a property"
@@ -2677,8 +2712,8 @@ msgstr "Afegir filtre"
 msgid "Add filter conditions"
 msgstr "Afegir condicions de filtre"
 
-#: src/components/settings/Integrations.tsx:579
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:162
+#: src/components/settings/Integrations.tsx:391
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:125
 msgid "Add integration"
 msgstr "Afegir integració"
 
@@ -2754,6 +2789,10 @@ msgstr "Afegiu el domini dels vostres remitents per signar els seus correus amb 
 #: src/components/analytics/GetStartedChecklist.tsx:230
 msgid "Add the script to your site to count visits and see which emails bring people back."
 msgstr "Afegeix l'script al teu lloc per comptar les visites i veure quins correus fan tornar la gent."
+
+#: src/components/settings/MCPSettings.tsx:202
+msgid "Add the server below to <0>.cursor/mcp.json</0> in your project, or to <1>~/.cursor/mcp.json</1> for every project, with the key in place of <2>YOUR_API_KEY</2>."
+msgstr "Afegiu el servidor següent a <0>.cursor/mcp.json</0> del vostre projecte, o a <1>~/.cursor/mcp.json</1> per a tots els projectes, amb la clau en lloc de <2>YOUR_API_KEY</2>."
 
 #: src/components/automations/nodeTypes.ts:30
 #: src/components/contacts/BulkActionsBar.tsx:88
@@ -2965,9 +3004,13 @@ msgstr "Agregar"
 #~ msgid "Aggregated across all A/B variations."
 #~ msgstr ""
 
-#: src/components/settings/Integrations.tsx:438
-#: src/components/settings/Integrations.tsx:747
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:166
+#: src/components/settings/SettingsSidebar.tsx:17
+msgid "AI"
+msgstr "IA"
+
+#: src/components/settings/AIAssistantSettings.tsx:249
+#: src/components/settings/AIAssistantSettings.tsx:274
+#: src/components/settings/AIAssistantSettings.tsx:297
 msgid "AI assistant"
 msgstr "Assistent d'IA"
 
@@ -2983,9 +3026,13 @@ msgstr "Assistent de blog IA"
 msgid "AI Email Designer"
 msgstr "Dissenyador de correus amb IA"
 
-#: src/components/settings/Integrations.tsx:553
+#: src/components/settings/Integrations.tsx:365
 msgid "AI model"
 msgstr "Model d'IA"
+
+#: src/components/settings/AIAssistantSettings.tsx:304
+msgid "AI models"
+msgstr "Models d'IA"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:282
 msgid "Align"
@@ -3170,6 +3217,11 @@ msgstr "Tots els correus transaccionals (notificacions, restabliments de contras
 msgid "All variants must be connected. Missing: {missing}"
 msgstr "Totes les variants han d'estar connectades. Falten: {missing}"
 
+#: src/components/settings/MCPSettings.tsx:300
+#: src/components/settings/MCPSettings.tsx:306
+msgid "Allow MCP connections"
+msgstr "Permetre connexions MCP"
+
 #: src/pages/SetupWizard.tsx:583
 #~ msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 #~ msgstr "Permet rebre correus per activar notificacions transaccionals. Requereix certificats TLS."
@@ -3298,6 +3350,10 @@ msgstr "Una crida a l'API pot triar un altre remitent amb email_options.sender_i
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "Una crida a l'API pot definir email_options.reply_to. Una traducció pot fer servir una altra adreça."
 
+#: src/pages/OAuthAuthorizePage.tsx:584
+msgid "An API key already uses this name, here or in another workspace. Pick another name."
+msgstr "Una clau API ja fa servir aquest nom, aquí o en un altre espai de treball. Trieu un altre nom."
+
 #: src/components/contacts/sheet/describeActivity.tsx:424
 msgid "an automation"
 msgstr "una automatització"
@@ -3342,6 +3398,10 @@ msgstr "Una adreça IP i un ID de destinació han de coincidir exactament; un co
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:394
 msgid "An open never counts. Clicks, replies, confirmations, a contact's own subscriptions and identified visits always do."
 msgstr "Una obertura no compta mai. Els clics, les respostes, les confirmacions, les subscripcions fetes pel mateix contacte i les visites identificades sempre compten."
+
+#: src/components/settings/MCPSettings.tsx:317
+msgid "An owner turned off MCP for this workspace. Connected assistants get no answer until it is turned back on."
+msgstr "Un propietari ha desactivat MCP en aquest espai de treball. Els assistents connectats no reben resposta fins que es torni a activar."
 
 #: src/components/contacts/sheet/describeActivity.tsx:398
 msgid "an unknown page"
@@ -3418,6 +3478,10 @@ msgstr "Telemetria anònima"
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Hi ha un altre canvi de la biblioteca en curs. Torna-ho a provar d’aquí a un moment."
 
+#: src/components/settings/AIAssistantSettings.tsx:228
+msgid "Answers questions about your traffic"
+msgstr "Respon preguntes sobre el teu trànsit"
+
 #: src/components/logs/AuditLogTab.tsx:305
 #: src/components/logs/AuditLogTab.tsx:332
 #: src/components/logs/AuditLogTab.tsx:362
@@ -3469,7 +3533,7 @@ msgstr "Qualsevol membre"
 msgid "Any send"
 msgstr "Qualsevol enviament"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:54
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:46
 msgid "Any SMTP server, basic or OAuth2 login"
 msgstr "Qualsevol servidor SMTP, inici de sessió bàsic o OAuth2"
 
@@ -3490,7 +3554,7 @@ msgstr "en qualsevol moment"
 msgid "API"
 msgstr "API"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:58
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:50
 msgid "API and secret keys"
 msgstr "Claus API i secreta"
 
@@ -3551,17 +3615,17 @@ msgstr "L'identificador API ha de tenir com a màxim {TRANSACTIONAL_ID_MAX_LENGT
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:751
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:778
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:801
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:59
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:51
 #: src/components/settings/integrations/providerDetails.ts:34
 #: src/components/settings/integrations/providerDetails.ts:36
 #: src/components/settings/integrations/providerDetails.ts:37
 #: src/components/settings/integrations/providerDetails.ts:39
+#: src/components/settings/MCPSettings.tsx:231
 #: src/components/settings/ZapierSettings.tsx:259
+#: src/pages/OAuthAuthorizePage.tsx:478
 msgid "API key"
 msgstr "Clau API"
 
-#: src/components/settings/Integrations.tsx:465
-#: src/components/settings/Integrations.tsx:490
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:717
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:754
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:782
@@ -3572,7 +3636,7 @@ msgstr "Clau API"
 msgid "API Key (starts with SG.)"
 msgstr "Clau API (comença per SG.)"
 
-#: src/components/settings/Integrations.tsx:537
+#: src/components/settings/Integrations.tsx:349
 msgid "API key address"
 msgstr "Adreça de la clau API"
 
@@ -3580,11 +3644,11 @@ msgstr "Adreça de la clau API"
 msgid "API key created"
 msgstr "Clau API creada"
 
-#: src/components/settings/WorkspaceMembers.tsx:361
+#: src/components/settings/WorkspaceMembers.tsx:405
 msgid "API key created successfully"
 msgstr "Clau API creada correctament"
 
-#: src/components/settings/WorkspaceMembers.tsx:672
+#: src/components/settings/WorkspaceMembers.tsx:735
 msgid "API Key Created Successfully"
 msgstr "Clau API creada correctament"
 
@@ -3592,7 +3656,7 @@ msgstr "Clau API creada correctament"
 #~ msgid "API key name"
 #~ msgstr "Nom de la clau API"
 
-#: src/components/settings/WorkspaceMembers.tsx:636
+#: src/components/settings/WorkspaceMembers.tsx:699
 msgid "API Key Name"
 msgstr "Nom de la clau API"
 
@@ -3600,16 +3664,16 @@ msgstr "Nom de la clau API"
 msgid "API key token"
 msgstr "Token de la clau API"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:55
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:47
 msgid "API key, US or EU"
 msgstr "Clau API, US o EU"
 
 #: src/components/logs/labels.ts:11
-#: src/components/settings/WorkspaceMembers.tsx:517
+#: src/components/settings/WorkspaceMembers.tsx:561
 msgid "API keys"
 msgstr "Claus API"
 
-#: src/components/settings/WorkspaceMembers.tsx:679
+#: src/components/settings/WorkspaceMembers.tsx:742
 msgid "API Token"
 msgstr "Token API"
 
@@ -3618,6 +3682,11 @@ msgstr "Token API"
 #: src/components/settings/ZapierSettings.tsx:190
 msgid "API URL"
 msgstr "URL de l'API"
+
+#: src/components/settings/MCPSettings.tsx:236
+#: src/pages/OAuthAuthorizePage.tsx:298
+msgid "Application"
+msgstr "Aplicació"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:650
 msgid "Application (Client) ID"
@@ -3696,7 +3765,7 @@ msgstr "Esteu segur que voleu eliminar la categoria"
 #~ msgid "Are you sure you want to delete the invitation for {0}?"
 #~ msgstr "Esteu segur que voleu eliminar la invitació per a {0}?"
 
-#: src/components/settings/WorkspaceMembers.tsx:202
+#: src/components/settings/WorkspaceMembers.tsx:219
 msgid "Are you sure you want to delete the invitation for {email}?"
 msgstr "Esteu segur que voleu eliminar la invitació de {email}?"
 
@@ -3747,11 +3816,11 @@ msgstr "Esteu segur que voleu publicar el tema v{0}? Això el farà visible al v
 #~ msgid "Are you sure you want to remove {0}?{1}"
 #~ msgstr "Esteu segur que voleu treure {0}?{1}"
 
-#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:207
 msgid "Are you sure you want to remove {email}?"
 msgstr "Esteu segur que voleu treure {email}?"
 
-#: src/components/settings/WorkspaceMembers.tsx:189
+#: src/components/settings/WorkspaceMembers.tsx:206
 msgid "Are you sure you want to remove {email}? This API key will be permanently deleted."
 msgstr "Esteu segur que voleu treure {email}? Aquesta clau API s'eliminarà definitivament."
 
@@ -3889,6 +3958,18 @@ msgstr "Ha demanat un codi d'inici de sessió per a <0>{target}</0>"
 msgid "Assets"
 msgstr "Recursos"
 
+#: src/components/settings/SettingsSidebar.tsx:63
+msgid "Assistant"
+msgstr "Assistent"
+
+#: src/components/settings/MCPSettings.tsx:461
+msgid "Assistants connected through the connection page. Revoking one keeps its key; deleting the key ends all its connections."
+msgstr "Assistents connectats des de la pàgina de connexió. Revocar-ne un conserva la seva clau; eliminar la clau tanca totes les seves connexions."
+
+#: src/components/settings/MCPSettings.tsx:458
+msgid "Assistants that send the key in a header (Claude Code, Cursor) are not listed here: they use the key directly."
+msgstr "Els assistents que envien la clau en una capçalera (Claude Code, Cursor) no surten aquí: fan servir la clau directament."
+
 #: src/components/broadcasts/compose/SendingCard.tsx:89
 msgid "At a date and time you choose"
 msgstr "En la data i l'hora que trieu"
@@ -3989,7 +4070,7 @@ msgstr "Entrada d'auditoria"
 
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
-#: src/components/settings/SettingsSidebar.tsx:60
+#: src/components/settings/SettingsSidebar.tsx:65
 #: src/components/settings/SystemSettingsDrawer.tsx:740
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
@@ -4021,7 +4102,7 @@ msgstr "Correu d'autenticació"
 #~ msgid "Auth Email"
 #~ msgstr "Correu d'autenticació"
 
-#: src/components/settings/Integrations.tsx:381
+#: src/components/settings/Integrations.tsx:272
 msgid "Auth Email Hook"
 msgstr "Ganxo de correu d'autenticació"
 
@@ -4029,7 +4110,7 @@ msgstr "Ganxo de correu d'autenticació"
 #~ msgid "Auth Email Hook Secret"
 #~ msgstr "Secret del ganxo de correu d'autenticació"
 
-#: src/components/settings/Integrations.tsx:369
+#: src/components/settings/Integrations.tsx:257
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:604
 #: src/components/settings/integrations/providerDetails.ts:66
 msgid "Authentication"
@@ -4037,7 +4118,7 @@ msgstr "Autenticació"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:90
 #: src/pages/AcceptInvitationPage.tsx:127
-#: src/pages/SignInPage.tsx:268
+#: src/pages/SignInPage.tsx:269
 msgid "Authentication code"
 msgstr "Codi d'autenticació"
 
@@ -4123,7 +4204,7 @@ msgstr "Resposta automàtica a un correu"
 #~ msgid "Auto-send Winner"
 #~ msgstr "Enviar guanyador automàticament"
 
-#: src/components/settings/Integrations.tsx:399
+#: src/components/settings/Integrations.tsx:290
 msgid "Auto-subscribe to Lists"
 msgstr "Subscripció automàtica a llistes"
 
@@ -4236,6 +4317,10 @@ msgstr "L'escriptura d'Automatitzacions és una lectura indirecta de contactes q
 msgid "available"
 msgstr "disponible"
 
+#: src/components/settings/MCPSettings.tsx:366
+msgid "Available"
+msgstr "Disponible"
+
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
 msgstr "Disponible després de desar"
@@ -4292,7 +4377,7 @@ msgstr "Compte d'AWS"
 msgid "AWS bills per tenant per month. Turning it on asks to confirm, then creates the tenant after saving."
 msgstr "AWS factura per tenant i per mes. En activar-ho es demana confirmació i el tenant es crea en desar."
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:53
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:45
 msgid "AWS keys, optional tenant isolation"
 msgstr "Claus d'AWS, aïllament de tenant opcional"
 
@@ -4434,8 +4519,6 @@ msgstr "Tipus de fons"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:113
 #: src/components/integrations/LLMIntegration.tsx:242
-#: src/components/settings/Integrations.tsx:453
-#: src/components/settings/Integrations.tsx:500
 msgid "Base URL"
 msgstr "URL base"
 
@@ -4530,7 +4613,7 @@ msgstr "Abans d'importar"
 msgid "Before User Created hook"
 msgstr "Hook abans de crear usuari"
 
-#: src/components/settings/Integrations.tsx:389
+#: src/components/settings/Integrations.tsx:280
 msgid "Before User Created Hook"
 msgstr "Ganxo abans de crear usuari"
 
@@ -4705,12 +4788,13 @@ msgstr "Blocs"
 #: src/components/blog/CategoryDrawer.tsx:218
 #: src/components/blog/PostDrawer.tsx:836
 #: src/components/logs/labels.ts:20
+#: src/components/settings/AIAssistantSettings.tsx:215
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
 #: src/components/settings/BlogSettings.tsx:298
 #: src/components/settings/BlogSettings.tsx:312
 #: src/components/settings/permissionLabels.ts:14
-#: src/components/settings/SettingsSidebar.tsx:58
+#: src/components/settings/SettingsSidebar.tsx:61
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:245
 #: src/pages/BlogPage.tsx:89
@@ -5394,6 +5478,10 @@ msgstr "Per defecte, Notifuse guarda durant 3 anys un rastre codificat de les ll
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "Crideu identify() un cop sapigueu qui és el visitant. La signatura s'ha de calcular al vostre servidor amb la clau secreta del vostre espai de treball — l'endpoint de seguiment és públic, de manera que una adreça sense signar s'ignora."
 
+#: src/components/settings/MCPSettings.tsx:326
+msgid "Calls to this workspace answer \"not found\" while the switch is off."
+msgstr "Les crides a aquest espai de treball responen \"no trobat\" mentre l'interruptor està desactivat."
+
 #: src/pages/WebAnalyticsLivePage.tsx:207
 msgid "Campaign"
 msgstr "Campanya"
@@ -5506,20 +5594,21 @@ msgstr "No es pot provar al navegador"
 #: src/components/settings/DomainsSettings.tsx:140
 #: src/components/settings/DomainsSettings.tsx:443
 #: src/components/settings/EditPermissionsDrawer.tsx:129
-#: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:929
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:991
 #: src/components/settings/integrations/TestEmailModal.tsx:68
+#: src/components/settings/integrations/useIntegrationActions.ts:109
+#: src/components/settings/MCPSettings.tsx:218
 #: src/components/settings/SystemSettingsDrawer.tsx:193
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:576
 #: src/components/settings/WebhookDetail.tsx:595
 #: src/components/settings/WebhooksSettings.tsx:510
-#: src/components/settings/WorkspaceMembers.tsx:192
-#: src/components/settings/WorkspaceMembers.tsx:204
-#: src/components/settings/WorkspaceMembers.tsx:557
-#: src/components/settings/WorkspaceMembers.tsx:619
+#: src/components/settings/WorkspaceMembers.tsx:209
+#: src/components/settings/WorkspaceMembers.tsx:221
+#: src/components/settings/WorkspaceMembers.tsx:620
+#: src/components/settings/WorkspaceMembers.tsx:682
 #: src/components/templates/CreateTemplateDrawer.tsx:928
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:319
@@ -5540,6 +5629,9 @@ msgstr "No es pot provar al navegador"
 #: src/components/web_analytics/filters/FilterTable.tsx:356
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
+#: src/pages/OAuthAuthorizePage.tsx:512
+#: src/pages/OAuthAuthorizePage.tsx:617
+#: src/pages/OAuthAuthorizePage.tsx:749
 msgid "Cancel"
 msgstr "Cancel·lar"
 
@@ -5623,11 +5715,15 @@ msgstr "Ha cancel·lat el butlletí <0>{target}</0>"
 msgid "Cancelled the web analytics backfill"
 msgstr "Ha cancel·lat l'emplenament de l'analítica web"
 
+#: src/pages/OAuthAuthorizePage.tsx:136
+msgid "Cancelled. Returning you to {name}…"
+msgstr "Cancel·lat. Tornant a {name}…"
+
 #: src/components/lists/ListDrawer.tsx:488
 msgid "Cannot be changed, used by the API and forms."
 msgstr "No es pot canviar; el fan servir l'API i els formularis."
 
-#: src/pages/SignInPage.tsx:274
+#: src/pages/SignInPage.tsx:275
 msgid "Cannot reach the configured API endpoint"
 msgstr "No es pot accedir al punt final API configurat"
 
@@ -5841,7 +5937,7 @@ msgstr "Canviat: {section}"
 msgid "Changes"
 msgstr "Canvis"
 
-#: src/pages/SignInPage.tsx:285
+#: src/pages/SignInPage.tsx:286
 msgid "Changing your domain"
 msgstr "Canviar de domini"
 
@@ -5904,6 +6000,10 @@ msgstr "Comproveu la jerarquia MJML i que cada etiqueta estigui tancada."
 #: src/components/setup/SetupRestartView.tsx:88
 msgid "Check the server logs, then reload this page. Your configuration is already saved."
 msgstr "Reviseu els registres del servidor i després torneu a carregar aquesta pàgina. La configuració ja està desada."
+
+#: src/pages/OAuthAuthorizePage.tsx:210
+msgid "Check your connection, then try again."
+msgstr "Comproveu la connexió i torneu-ho a provar."
 
 #. placeholder {0}: listName || config.list_id
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:37
@@ -6062,9 +6162,21 @@ msgstr "La ciutat està desactivada: les coordenades es desen amb precisió regi
 msgid "City precision needs City on"
 msgstr "La precisió de ciutat requereix la ciutat activada"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:62
+#: src/components/settings/MCPSettings.tsx:381
+msgid "Claude Code and Cursor can still connect with the key in a header."
+msgstr "Claude Code i Cursor es poden connectar igualment amb la clau en una capçalera."
+
+#: src/components/settings/MCPSettings.tsx:427
+msgid "Claude Code and Cursor send the key in a header instead:"
+msgstr "Claude Code i Cursor envien la clau en una capçalera:"
+
+#: src/components/settings/AIAssistantSettings.tsx:80
 msgid "Claude models"
 msgstr "Models Claude"
+
+#: src/components/settings/MCPSettings.tsx:356
+msgid "claude.ai and ChatGPT need it."
+msgstr "claude.ai i ChatGPT la necessiten."
 
 #: src/components/contacts/ContactsFilters.tsx:240
 #: src/components/contacts/InlineEditableField.tsx:306
@@ -6389,7 +6501,7 @@ msgstr "Clonar plantilla"
 #: src/components/logs/MessageDetail.tsx:96
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/settings/WebhookDetail.tsx:592
-#: src/components/settings/WorkspaceMembers.tsx:615
+#: src/components/settings/WorkspaceMembers.tsx:678
 #: src/components/templates/ImportErrorsModal.tsx:36
 #: src/components/transactional/ApiCommandDrawer.tsx:212
 #: src/components/updates/UpdateDrawer.tsx:31
@@ -6780,8 +6892,8 @@ msgstr "Configureu un domini personalitzat per a enllaços de correu, centre de 
 #~ msgstr "Configureu com es generen els feeds RSS i JSON del vostre blog."
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:149
-msgid "Configure Integration"
-msgstr "Configurar integració"
+#~ msgid "Configure Integration"
+#~ msgstr "Configurar integració"
 
 #: src/components/file_manager/FileExplorer.tsx:1036
 #: src/components/file_manager/FileExplorer.tsx:1042
@@ -6806,9 +6918,7 @@ msgstr "Configurar proveïdor"
 #~ msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 #~ msgstr "Configureu l'estil i els paràmetres SEO per al vostre blog. Aquests paràmetres s'aplicaran a totes les pàgines del blog."
 
-#: src/components/settings/Integrations.tsx:297
-#: src/components/settings/Integrations.tsx:307
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:107
+#: src/components/settings/Integrations.tsx:211
 msgid "Configured"
 msgstr "Configurat"
 
@@ -6849,10 +6959,26 @@ msgstr "Ha confirmat la subscripció a {name}"
 msgid "Confirms an unsubscription and links to the preferences."
 msgstr "Confirma una baixa i enllaça a les preferències."
 
-#: src/components/settings/Integrations.tsx:881
-#: src/components/settings/Integrations.tsx:1309
-#~ msgid "Connect"
-#~ msgstr "Connectar"
+#: src/components/settings/AIAssistantSettings.tsx:333
+#: src/pages/OAuthAuthorizePage.tsx:515
+msgid "Connect"
+msgstr "Connectar"
+
+#: src/pages/OAuthAuthorizePage.tsx:361
+msgid "Connect \"{name}\" to Notifuse"
+msgstr "Connectar «{name}» a Notifuse"
+
+#: src/pages/OAuthAuthorizePage.tsx:361
+msgid "Connect {name} to Notifuse"
+msgstr "Connectar {name} a Notifuse"
+
+#: src/components/ai-assistant/AIAssistantChat.tsx:149
+msgid "Connect an AI model"
+msgstr "Connectar un model d'IA"
+
+#: src/components/settings/MCPSettings.tsx:390
+msgid "Connect an assistant"
+msgstr "Connectar un assistent"
 
 #: src/components/analytics/GetStartedChecklist.tsx:136
 #: src/components/analytics/GetStartedChecklist.tsx:141
@@ -6872,18 +6998,29 @@ msgstr "Connecta un bucket compatible amb S3 per pujar imatges per als teus corr
 #~ msgid "Connect Notifuse to more than 8,000 apps with Zapier"
 #~ msgstr "Connecteu Notifuse amb més de 8.000 aplicacions gràcies a Zapier"
 
-#: src/components/settings/Integrations.tsx:689
+#: src/components/settings/Integrations.tsx:448
 #: src/components/settings/ZapierSettings.tsx:291
 msgid "Connect Zapier"
 msgstr "Connectar Zapier"
 
-#: src/components/settings/Integrations.tsx:520
-#: src/components/settings/Integrations.tsx:540
+#: src/components/settings/AIAssistantSettings.tsx:137
+#: src/components/settings/Integrations.tsx:330
+#: src/components/settings/Integrations.tsx:352
+#: src/components/settings/MCPSettings.tsx:261
 msgid "Connected"
 msgstr "Connectat el"
 
-#: src/components/settings/Integrations.tsx:748
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:167
+#: src/components/settings/AIAssistantSettings.tsx:205
+msgctxt "status"
+msgid "Connected"
+msgstr "Connectat"
+
+#: src/components/settings/WorkspaceMembers.tsx:329
+msgid "Connected applications"
+msgstr "Aplicacions connectades"
+
+#: src/components/settings/Integrations.tsx:508
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:128
 msgid "Connected apps"
 msgstr "Aplicacions connectades"
 
@@ -6903,6 +7040,10 @@ msgstr "Ha connectat Zapier com a integració <0>{target}</0>"
 #~ msgid "Connected Zapier with the API key <0>{target}</0>"
 #~ msgstr "Ha connectat Zapier amb la clau API <0>{target}</0>"
 
+#: src/pages/OAuthAuthorizePage.tsx:136
+msgid "Connected. Returning you to {name}…"
+msgstr "Connectat. Tornant a {name}…"
+
 #: src/components/settings/ZapierSettings.tsx:171
 #~ msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
 #~ msgstr "Connectar Zapier permet que un Zap reaccioni als esdeveniments de Notifuse — un contacte nou, una subscripció a una llista, un segment al qual s'ha incorporat un contacte — i que un Zap creï o actualitzi contactes i els subscrigui a les vostres llistes. Cada Zap que activeu registra la seva pròpia subscripció de webhook, que podeu veure a Configuració → Webhooks."
@@ -6921,10 +7062,22 @@ msgstr "Connexió"
 msgid "Connection Details"
 msgstr "Detalls de connexió"
 
+#: src/components/settings/MCPSettings.tsx:353
+msgid "Connection page"
+msgstr "Pàgina de connexió"
+
+#: src/components/settings/MCPSettings.tsx:117
+msgid "Connection revoked"
+msgstr "Connexió revocada"
+
 #: src/components/web_analytics/lib/dimensions.ts:96
 #: src/components/web_analytics/lib/filterCatalog.ts:89
 msgid "Connection Type"
 msgstr "Tipus de connexió"
+
+#: src/components/settings/MCPSettings.tsx:452
+msgid "Connections"
+msgstr "Connexions"
 
 #: src/components/settings/WebhookDetail.tsx:448
 msgid "Consecutive delivery failures: {consecutiveFailures}"
@@ -7130,6 +7283,10 @@ msgstr "Contactes que no han fet clic, respost, confirmat ni visitat durant aque
 msgid "Contacts without recorded consent"
 msgstr "Contactes sense consentiment registrat"
 
+#: src/components/settings/MCPSettings.tsx:493
+msgid "Contacts, lists, segments, templates, broadcasts, message history and analytics."
+msgstr "Contactes, llistes, segments, plantilles, difusions, historial de missatges i analítiques."
+
 #: src/components/transactional/TransactionalDetail.tsx:372
 msgid "Contacts' tracking consent still applies"
 msgstr "El consentiment de seguiment dels contactes continua aplicant-se"
@@ -7250,6 +7407,9 @@ msgstr "Precisió de les coordenades"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:23
 #: src/components/logs/CodeBlock.tsx:21
+#: src/components/settings/MCPSettings.tsx:340
+#: src/components/settings/MCPSettings.tsx:432
+#: src/components/settings/MCPSettings.tsx:438
 msgid "Copied"
 msgstr "Copiat"
 
@@ -7258,6 +7418,8 @@ msgstr "Copiat"
 #: src/components/layout/Mono.tsx:36
 #: src/components/lists/ListDrawer.tsx:485
 #: src/components/logs/CodeBlock.tsx:33
+#: src/components/settings/MCPSettings.tsx:69
+#: src/components/settings/MCPSettings.tsx:342
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
 #: src/components/settings/ZapierSettings.tsx:260
@@ -7303,6 +7465,18 @@ msgstr "Copia l'enllaç"
 #: src/components/settings/WebhookDetail.tsx:384
 msgid "Copy secret"
 msgstr "Copia el secret"
+
+#: src/components/settings/MCPSettings.tsx:437
+msgid "Copy the command"
+msgstr "Copiar l'ordre"
+
+#: src/components/settings/MCPSettings.tsx:431
+msgid "Copy the configuration"
+msgstr "Copiar la configuració"
+
+#: src/components/settings/MCPSettings.tsx:339
+msgid "Copy the MCP server URL"
+msgstr "Copiar l'URL del servidor MCP"
 
 #: src/pages/BroadcastsPage.tsx:1846
 #~ msgid "Copy to clipboard"
@@ -7418,9 +7592,21 @@ msgstr "No s'ha pogut carregar aquest informe"
 msgid "Could not read the licence state"
 msgstr "No s'ha pogut llegir l'estat de la llicència"
 
+#: src/pages/OAuthAuthorizePage.tsx:289
+msgid "Couldn't cancel the request. Try again."
+msgstr "No s'ha pogut cancel·lar la sol·licitud. Torneu-ho a provar."
+
 #: src/components/templates/DeleteTemplateModal.tsx:57
 msgid "Couldn't check where this template is used"
 msgstr "No s'ha pogut comprovar on s'utilitza aquesta plantilla"
+
+#: src/pages/OAuthAuthorizePage.tsx:466
+msgid "Couldn't connect. Try again in a moment."
+msgstr "No s'ha pogut connectar. Torneu-ho a provar d'aquí a un moment."
+
+#: src/pages/OAuthAuthorizePage.tsx:595
+msgid "Couldn't create the key. Try again."
+msgstr "No s'ha pogut crear la clau. Torneu-ho a provar."
 
 #: src/components/blog/PostsTable.tsx:397
 #: src/components/broadcasts/CouldntLoad.tsx:8
@@ -7459,6 +7645,10 @@ msgstr "No s'han pogut carregar les automatitzacions"
 msgid "Couldn't load the broadcasts"
 msgstr "No s'han pogut carregar les difusions"
 
+#: src/components/settings/MCPSettings.tsx:287
+msgid "Couldn't load the connections."
+msgstr "No s'han pogut carregar les connexions."
+
 #: src/components/logs/OutgoingWebhooksTab.tsx:228
 msgid "Couldn't load the deliveries"
 msgstr "No s'han pogut carregar els lliuraments"
@@ -7475,7 +7665,7 @@ msgstr "No s'han pogut carregar els dominis"
 msgid "Couldn't load the files"
 msgstr "No s'han pogut carregar els fitxers"
 
-#: src/components/settings/WorkspaceMembers.tsx:495
+#: src/components/settings/WorkspaceMembers.tsx:539
 msgid "Couldn't load the members"
 msgstr "No s'han pogut carregar els membres"
 
@@ -7526,6 +7716,10 @@ msgstr "No s'han pogut carregar els webhooks"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 msgid "Couldn't load this broadcast"
 msgstr "No s'ha pogut carregar aquesta difusió"
+
+#: src/pages/OAuthAuthorizePage.tsx:207
+msgid "Couldn't load this connection request"
+msgstr "No s'ha pogut carregar aquesta sol·licitud de connexió"
 
 #: src/pages/TemplatesPage.tsx:208
 msgid "Couldn't load this template"
@@ -7681,6 +7875,11 @@ msgstr "Crear un informe personalitzat"
 msgid "Create a folder in the workspace's storage (Templates or Blog write allows it)"
 msgstr "Crear una carpeta a l'emmagatzematge de l'espai de treball (l'escriptura de Plantilles o Blog ho permet)"
 
+#: src/pages/OAuthAuthorizePage.tsx:390
+#: src/pages/OAuthAuthorizePage.tsx:632
+msgid "Create a key for this agent"
+msgstr "Crear una clau per a aquest agent"
+
 #: src/services/api/permissions.ts:343
 msgid "Create a list"
 msgstr "Crear una llista"
@@ -7725,6 +7924,14 @@ msgstr "Crear una notificació transaccional (triar-ne la plantilla també neces
 #~ msgid "Create a Zapier API key"
 #~ msgstr "Crear una clau API per a Zapier"
 
+#: src/components/settings/MCPSettings.tsx:188
+msgid "Create an API key for Claude Code in <0>Team & API keys</0>."
+msgstr "Creeu una clau API per a Claude Code a <0>Equip i claus API</0>."
+
+#: src/components/settings/MCPSettings.tsx:199
+msgid "Create an API key for Cursor in <0>Team & API keys</0>."
+msgstr "Creeu una clau API per a Cursor a <0>Equip i claus API</0>."
+
 #: src/services/api/permissions.ts:746
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Crear una automatització, inclosos nodes de webhook, de correu i de llista"
@@ -7741,8 +7948,8 @@ msgstr "Voleu crear un tenant SES per a aquesta integració?"
 #~ msgid "Create and manage your blog content"
 #~ msgstr "Creeu i gestioneu el contingut del vostre blog"
 
-#: src/components/settings/WorkspaceMembers.tsx:602
-#: src/components/settings/WorkspaceMembers.tsx:626
+#: src/components/settings/WorkspaceMembers.tsx:665
+#: src/components/settings/WorkspaceMembers.tsx:689
 msgid "Create API Key"
 msgstr "Crear clau API"
 
@@ -7769,6 +7976,11 @@ msgstr "Crear primer tema"
 #: src/components/settings/DomainsSettings.tsx:442
 msgid "Create key"
 msgstr "Crear clau"
+
+#: src/pages/OAuthAuthorizePage.tsx:616
+#: src/pages/OAuthAuthorizePage.tsx:757
+msgid "Create key and connect"
+msgstr "Crear la clau i connectar"
 
 #: src/components/lists/ListDrawer.tsx:582
 msgid "Create list"
@@ -7823,6 +8035,14 @@ msgstr "Crear la notificació"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:90
 msgid "Create Notification"
 msgstr "Crear notificació"
+
+#: src/pages/OAuthAuthorizePage.tsx:503
+msgid "Create one in Settings › Team & API keys. Give {name} a key of its own, with only the permissions it needs. Notifuse never shows this key to {name}."
+msgstr "Creeu-ne una a Configuració › Equip i claus API. Doneu a {name} una clau pròpia, només amb els permisos que necessita. Notifuse no mostra mai aquesta clau a {name}."
+
+#: src/pages/OAuthAuthorizePage.tsx:504
+msgid "Create one in Settings › Team & API keys. The application gets this key's workspace and access. Give it a key of its own."
+msgstr "Creeu-ne una a Configuració › Equip i claus API. L'aplicació obté l'espai de treball i l'accés d'aquesta clau. Doneu-li una clau pròpia."
 
 #: src/components/blog/PostDrawer.tsx:823
 msgid "Create post"
@@ -7929,7 +8149,7 @@ msgstr "Creeu la vostra primera plantilla per començar"
 #: src/components/logs/OutgoingWebhooksTab.tsx:408
 #: src/components/settings/DomainsSettings.tsx:346
 #: src/components/settings/WebhookDetail.tsx:503
-#: src/components/settings/WorkspaceMembers.tsx:304
+#: src/components/settings/WorkspaceMembers.tsx:321
 #: src/components/transactional/TransactionalDetail.tsx:431
 msgid "Created"
 msgstr "Creat"
@@ -8296,7 +8516,7 @@ msgstr "Etiqueta de camp personalitzat desada correctament"
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
 #: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:275
-#: src/components/settings/SettingsSidebar.tsx:57
+#: src/components/settings/SettingsSidebar.tsx:60
 msgid "Custom fields"
 msgstr "Camps personalitzats"
 
@@ -8466,7 +8686,7 @@ msgid "Daily"
 msgstr "Diari"
 
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/SettingsSidebar.tsx:63
+#: src/components/settings/SettingsSidebar.tsx:68
 msgid "Danger zone"
 msgstr "Zona de perill"
 
@@ -8503,7 +8723,7 @@ msgstr "Fluxos de dades"
 #: src/components/segment/input.tsx:68
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:46
 #: src/components/settings/LicenseSettings.tsx:140
-#: src/components/settings/SettingsSidebar.tsx:61
+#: src/components/settings/SettingsSidebar.tsx:66
 #: src/services/api/licenseErrors.ts:54
 msgid "Data retention"
 msgstr "Conservació de dades"
@@ -8604,7 +8824,6 @@ msgid "default"
 msgstr "Per defecte"
 
 #: src/components/integrations/LLMIntegration.tsx:259
-#: src/components/settings/Integrations.tsx:339
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:903
 #: src/components/templates/TemplateTranslationsTab.tsx:453
 msgid "Default"
@@ -8783,16 +9002,16 @@ msgstr "El node de retard ha de tenir una durada superior a 0"
 #: src/components/segment/input.tsx:313
 #: src/components/settings/DomainsSettings.tsx:139
 #: src/components/settings/DomainsSettings.tsx:356
-#: src/components/settings/Integrations.tsx:271
-#: src/components/settings/Integrations.tsx:290
+#: src/components/settings/Integrations.tsx:259
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
 #: src/components/settings/integrations/EmailProviderCard.tsx:229
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:928
+#: src/components/settings/integrations/useIntegrationActions.ts:108
 #: src/components/settings/WebhookDetail.tsx:337
 #: src/components/settings/WebhookDetail.tsx:345
 #: src/components/settings/WebhookDetail.tsx:352
-#: src/components/settings/WorkspaceMembers.tsx:191
-#: src/components/settings/WorkspaceMembers.tsx:203
+#: src/components/settings/WorkspaceMembers.tsx:208
+#: src/components/settings/WorkspaceMembers.tsx:220
 #: src/components/transactional/TransactionalDetail.tsx:333
 #: src/components/transactional/TransactionalTable.tsx:306
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:84
@@ -8998,12 +9217,12 @@ msgstr "Eliminar carpeta (Mode de només lectura)"
 msgid "Delete header"
 msgstr "Eliminar capçalera"
 
-#: src/components/settings/WorkspaceMembers.tsx:201
-#: src/components/settings/WorkspaceMembers.tsx:215
+#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:232
 msgid "Delete invitation"
 msgstr "Eliminar invitació"
 
-#: src/components/settings/WorkspaceMembers.tsx:220
+#: src/components/settings/WorkspaceMembers.tsx:237
 msgid "Delete key"
 msgstr "Elimina la clau"
 
@@ -9074,7 +9293,7 @@ msgstr "Eliminar la clau de {domain}?"
 msgid "Delete the notification?"
 msgstr "Eliminar la notificació?"
 
-#: src/components/settings/WorkspaceMembers.tsx:186
+#: src/components/settings/WorkspaceMembers.tsx:203
 msgid "Delete this API key?"
 msgstr "Voleu eliminar aquesta clau API?"
 
@@ -9082,12 +9301,13 @@ msgstr "Voleu eliminar aquesta clau API?"
 msgid "Delete this condition?"
 msgstr "Eliminar aquesta condició?"
 
-#: src/components/settings/Integrations.tsx:525
+#: src/components/settings/Integrations.tsx:336
 msgid "Delete this connection?"
 msgstr "Eliminar aquesta connexió?"
 
-#: src/components/settings/Integrations.tsx:291
+#: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:182
+#: src/components/settings/integrations/useIntegrationActions.ts:106
 msgid "Delete this integration?"
 msgstr "Eliminar aquesta integració?"
 
@@ -9236,9 +9456,17 @@ msgstr "Ha eliminat el webhook <0>{target}</0>"
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Ha eliminat l'espai de treball <0>{target}</0>"
 
-#: src/components/settings/Integrations.tsx:526
+#: src/components/settings/WorkspaceMembers.tsx:565
+msgid "Deleting a key also ends the assistant connections made with it."
+msgstr "Eliminar una clau també tanca les connexions d'assistents fetes amb ella."
+
+#: src/components/settings/Integrations.tsx:337
 msgid "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
 msgstr "En eliminar-la es revoca la clau API que va crear aquesta connexió, de manera que qualsevol Zap que encara la faci servir deixarà de funcionar. Aquesta acció no es pot desfer."
+
+#: src/pages/OAuthAuthorizePage.tsx:343
+msgid "Deleting the key in Notifuse ends this connection. An owner can also revoke it in Settings › AI › MCP."
+msgstr "Eliminar la clau a Notifuse acaba aquesta connexió. Un propietari també la pot revocar a Configuració › IA › MCP."
 
 #: src/components/settings/WebhookDetail.tsx:579
 msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
@@ -9475,7 +9703,7 @@ msgid "Disable webhook"
 msgstr "Desactivar webhook"
 
 #: src/components/settings/BlogSettings.tsx:246
-#: src/components/settings/Integrations.tsx:408
+#: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
@@ -9531,7 +9759,7 @@ msgstr "Descartar els canvis no desats?"
 msgid "Discard your changes?"
 msgstr "Voleu descartar els canvis?"
 
-#: src/components/settings/Integrations.tsx:524
+#: src/components/settings/Integrations.tsx:334
 msgid "Disconnect"
 msgstr "Desconnecta"
 
@@ -9698,7 +9926,7 @@ msgstr "no és igual a"
 msgid "Domain"
 msgstr "Domini"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:57
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:49
 msgid "Domain and API key, US or EU"
 msgstr "Domini i clau API, US o EU"
 
@@ -9715,7 +9943,7 @@ msgid "Domain the visitor arrived from"
 msgstr "Domini d'on prové el visitant"
 
 #: src/components/settings/DomainsSettings.tsx:392
-#: src/components/settings/SettingsSidebar.tsx:54
+#: src/components/settings/SettingsSidebar.tsx:57
 msgid "Domains"
 msgstr "Dominis"
 
@@ -9833,11 +10061,19 @@ msgstr "Esborrany"
 msgid "Draft restored from local storage"
 msgstr "Esborrany restaurat des de l'emmagatzematge local"
 
+#: src/components/settings/MCPSettings.tsx:501
+msgid "Draft templates and broadcasts, update contacts and list subscriptions."
+msgstr "Redactar plantilles i difusions, actualitzar contactes i subscripcions a llistes."
+
 #: src/components/blog/PostsTable.tsx:435
 #: src/pages/AutomationsPage.tsx:140
 #: src/pages/BroadcastsPage.tsx:186
 msgid "Drafts"
 msgstr "Esborranys"
+
+#: src/components/settings/AIAssistantSettings.tsx:216
+msgid "Drafts and edits posts"
+msgstr "Redacta i edita entrades"
 
 #: src/components/automations/NodePalette.tsx:55
 msgid "Drag a step onto the canvas, or use + under a step."
@@ -10062,7 +10298,8 @@ msgstr "Cada variació conserva el remitent de la seva plantilla, tret que en tr
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
 #: src/components/segment/input.tsx:394
 #: src/components/segment/input.tsx:398
-#: src/components/settings/Integrations.tsx:261
+#: src/components/settings/AIAssistantSettings.tsx:91
+#: src/components/settings/Integrations.tsx:189
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
 #: src/components/templates/TemplateSettingsAside.tsx:144
@@ -10093,7 +10330,8 @@ msgstr "Editar la traducció {0}"
 msgid "Edit {name}"
 msgstr "Editar {name}"
 
-#: src/components/settings/Integrations.tsx:596
+#: src/components/settings/AIAssistantSettings.tsx:233
+#: src/components/settings/Integrations.tsx:396
 msgid "Edit {name} integration"
 msgstr "Editar la integració amb {name}"
 
@@ -10217,7 +10455,7 @@ msgstr "Editar notificació"
 msgid "Edit Notification"
 msgstr "Editar notificació"
 
-#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:235
 msgid "Edit permissions"
 msgstr "Editar permisos"
 
@@ -10325,7 +10563,7 @@ msgstr "Editar webhook"
 #~ msgid "Edit Webhook"
 #~ msgstr "Editar webhook"
 
-#: src/components/settings/Integrations.tsx:689
+#: src/components/settings/Integrations.tsx:448
 msgid "Edit Zapier connection"
 msgstr "Editar la connexió de Zapier"
 
@@ -10391,12 +10629,12 @@ msgstr "Transcorregut"
 #: src/components/logs/MessagesTab.tsx:300
 #: src/components/logs/MessagesTab.tsx:485
 #: src/components/segment/segmentLabels.ts:17
-#: src/components/settings/Integrations.tsx:549
+#: src/components/settings/Integrations.tsx:361
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:312
-#: src/pages/SignInPage.tsx:319
+#: src/pages/SignInPage.tsx:313
+#: src/pages/SignInPage.tsx:320
 msgid "Email"
 msgstr "Correu electrònic"
 
@@ -10409,7 +10647,7 @@ msgstr "Correu"
 #~ msgid "Email (Required)"
 #~ msgstr "Correu (obligatori)"
 
-#: src/components/settings/WorkspaceMembers.tsx:572
+#: src/components/settings/WorkspaceMembers.tsx:635
 msgid "Email address"
 msgstr "Adreça de correu electrònic"
 
@@ -10496,6 +10734,10 @@ msgstr "Correu lliurat: {name}"
 #: src/components/setup/setupHooks.ts:44
 msgid "Email delivery"
 msgstr "Enviament de correus"
+
+#: src/components/settings/AIAssistantSettings.tsx:221
+msgid "Email editor"
+msgstr "Editor de correu"
 
 #: src/components/contacts/sheet/describeActivity.tsx:145
 msgid "Email failed: {name}"
@@ -10592,12 +10834,12 @@ msgstr "Proveïdor de correu obligatori"
 #~ msgid "Email providers"
 #~ msgstr "Proveïdors de correu"
 
-#: src/components/settings/Integrations.tsx:713
+#: src/components/settings/Integrations.tsx:472
 msgid "Email providers and connected services"
 msgstr "Proveïdors de correu i serveis connectats"
 
 #: src/components/settings/integrations/EmailRoles.tsx:78
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:164
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:127
 msgid "Email sending"
 msgstr "Enviament de correus"
 
@@ -10877,7 +11119,7 @@ msgid "Enable webhook"
 msgstr "Activar webhook"
 
 #: src/components/settings/BlogSettings.tsx:241
-#: src/components/settings/Integrations.tsx:408
+#: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/SystemSettingsDrawer.tsx:490
 #: src/components/settings/SystemSettingsDrawer.tsx:575
@@ -11052,7 +11294,7 @@ msgid "Enter duration"
 msgstr "Introduïu durada"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:541
-#: src/components/settings/WorkspaceMembers.tsx:577
+#: src/components/settings/WorkspaceMembers.tsx:640
 msgid "Enter email address"
 msgstr "Introduïu adreça de correu"
 
@@ -11143,7 +11385,7 @@ msgstr "Introdueix l'assumpte ({name})"
 msgid "Enter the 6-digit code from your app"
 msgstr "Introdueix el codi de 6 xifres de l'aplicació"
 
-#: src/pages/SignInPage.tsx:349
+#: src/pages/SignInPage.tsx:350
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Introdueix el codi de 6 dígits enviat a {email}"
 
@@ -11151,7 +11393,7 @@ msgstr "Introdueix el codi de 6 dígits enviat a {email}"
 msgid "Enter the code from your authenticator app to accept the invitation."
 msgstr "Introdueix el codi de la teva aplicació d'autenticació per acceptar la invitació."
 
-#: src/pages/SignInPage.tsx:293
+#: src/pages/SignInPage.tsx:294
 msgid "Enter the code from your authenticator app."
 msgstr "Introdueix el codi de la teva aplicació d'autenticació."
 
@@ -11422,6 +11664,10 @@ msgstr "S'eliminen els esdeveniments més antics que aquest període. Abans, un 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:81
 msgid "Every \"set\" operation needs a value"
 msgstr "Cada operació \"set\" necessita un valor"
+
+#: src/components/settings/MCPSettings.tsx:393
+msgid "Every assistant needs an API key. Create one per assistant in <0>Team & API keys</0>, with only the permissions it needs."
+msgstr "Cada assistent necessita una clau API. Creeu-ne una per assistent a <0>Equip i claus API</0>, només amb els permisos que necessita."
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:158
 msgid "Every condition and every operation has a value"
@@ -11711,7 +11957,6 @@ msgid "External ID copied"
 msgstr "ID extern copiat"
 
 #: src/components/integrations/LLMIntegration.tsx:265
-#: src/components/settings/Integrations.tsx:345
 msgid "Extra high"
 msgstr "Molt alta"
 
@@ -11802,6 +12047,10 @@ msgstr "No s'ha pogut afegir a la llista: {0}"
 msgid "Failed to cancel broadcast"
 msgstr "No s'ha pogut cancel·lar la difusió"
 
+#: src/components/settings/MCPSettings.tsx:110
+msgid "Failed to change MCP access"
+msgstr "No s'ha pogut canviar l'accés MCP"
+
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:120
 msgid "Failed to change the sender"
 msgstr "No s'ha pogut canviar el remitent"
@@ -11833,6 +12082,7 @@ msgstr "No s'ha pogut connectar Zapier"
 #: src/components/layout/DrawerControls.tsx:88
 #: src/components/layout/Mono.tsx:24
 #: src/components/logs/CodeBlock.tsx:22
+#: src/components/settings/MCPSettings.tsx:161
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:41
 #: src/components/transactional/ApiCommandDrawer.tsx:97
@@ -11841,7 +12091,7 @@ msgstr "No s'ha pogut connectar Zapier"
 msgid "Failed to copy to clipboard"
 msgstr "No s'ha pogut copiar al porta-retalls"
 
-#: src/components/settings/WorkspaceMembers.tsx:367
+#: src/components/settings/WorkspaceMembers.tsx:411
 msgid "Failed to create API key"
 msgstr "No s'ha pogut crear la clau API"
 
@@ -11919,11 +12169,11 @@ msgstr "No s'ha pogut eliminar el fitxer: "
 msgid "Failed to delete folder: "
 msgstr "No s'ha pogut suprimir la carpeta: "
 
-#: src/components/settings/Integrations.tsx:137
+#: src/components/settings/integrations/useIntegrationActions.ts:100
 msgid "Failed to delete integration"
 msgstr "No s'ha pogut eliminar la integració"
 
-#: src/components/settings/WorkspaceMembers.tsx:418
+#: src/components/settings/WorkspaceMembers.tsx:462
 msgid "Failed to delete invitation"
 msgstr "No s'ha pogut eliminar la invitació"
 
@@ -12018,7 +12268,7 @@ msgstr "No s'han pogut obtenir les dades: {0}"
 msgid "Failed to fetch setup status"
 msgstr "No s'ha pogut obtenir l'estat de configuració"
 
-#: src/pages/WorkspaceSettingsPage.tsx:160
+#: src/pages/WorkspaceSettingsPage.tsx:164
 msgid "Failed to fetch workspace members"
 msgstr "No s'han pogut obtenir els membres de l'espai de treball"
 
@@ -12034,7 +12284,7 @@ msgstr "No s'ha pogut importar la plantilla. Si us plau, comproveu el format del
 msgid "Failed to install the licence key"
 msgstr "No s'ha pogut instal·lar la clau de llicència"
 
-#: src/components/settings/WorkspaceMembers.tsx:337
+#: src/components/settings/WorkspaceMembers.tsx:381
 msgid "Failed to invite member"
 msgstr "No s'ha pogut convidar el membre"
 
@@ -12114,7 +12364,7 @@ msgstr "No s'han pogut registrar els webhooks"
 msgid "Failed to remove custom field label"
 msgstr "No s'ha pogut treure l'etiqueta de camp personalitzat"
 
-#: src/components/settings/WorkspaceMembers.tsx:399
+#: src/components/settings/WorkspaceMembers.tsx:443
 msgid "Failed to remove member"
 msgstr "No s'ha pogut treure el membre"
 
@@ -12126,11 +12376,11 @@ msgstr "No s’ha pogut reanomenar el bloc"
 msgid "Failed to render preview"
 msgstr "No s'ha pogut renderitzar la previsualització"
 
-#: src/components/settings/WorkspaceMembers.tsx:451
+#: src/components/settings/WorkspaceMembers.tsx:495
 msgid "Failed to resend invitation"
 msgstr "No s'ha pogut reenviar la invitació"
 
-#: src/pages/SignInPage.tsx:256
+#: src/pages/SignInPage.tsx:257
 msgid "Failed to resend magic code"
 msgstr "Error en reenviar el codi màgic"
 
@@ -12146,6 +12396,10 @@ msgstr "No s'ha pogut reprendre la difusió"
 msgid "Failed to retry the recipients"
 msgstr "No s'han pogut reintentar els destinataris"
 
+#: src/components/settings/MCPSettings.tsx:124
+msgid "Failed to revoke the connection"
+msgstr "No s'ha pogut revocar la connexió"
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:328
 msgid "Failed to save contact"
 msgstr "No s'ha pogut desar el contacte"
@@ -12158,7 +12412,7 @@ msgstr "No s'ha pogut desar el contacte. Si us plau, torneu-ho a provar."
 msgid "Failed to save field"
 msgstr "No s'ha pogut desar el camp"
 
-#: src/components/settings/Integrations.tsx:656
+#: src/components/settings/AIAssistantSettings.tsx:283
 msgid "Failed to save Firecrawl integration"
 msgstr "No s'ha pogut desar la integració de Firecrawl"
 
@@ -12167,7 +12421,7 @@ msgstr "No s'ha pogut desar la integració de Firecrawl"
 msgid "Failed to save integration"
 msgstr "No s'ha pogut desar la integració"
 
-#: src/components/settings/Integrations.tsx:635
+#: src/components/settings/AIAssistantSettings.tsx:259
 msgid "Failed to save LLM integration"
 msgstr "No s'ha pogut desar la integració LLM"
 
@@ -12175,7 +12429,7 @@ msgstr "No s'ha pogut desar la integració LLM"
 msgid "Failed to save settings"
 msgstr "No s'ha pogut desar la configuració"
 
-#: src/components/settings/Integrations.tsx:677
+#: src/components/settings/Integrations.tsx:435
 msgid "Failed to save Supabase integration"
 msgstr "No s'ha pogut desar la integració de Supabase"
 
@@ -12199,7 +12453,7 @@ msgstr "No s'ha pogut desar la subscripció del webhook"
 msgid "Failed to save webhook subscription: {detail}"
 msgstr "No s'ha pogut desar la subscripció del webhook: {detail}"
 
-#: src/components/settings/Integrations.tsx:241
+#: src/components/settings/Integrations.tsx:169
 msgid "Failed to save Zapier integration"
 msgstr "No s'ha pogut desar la integració de Zapier"
 
@@ -12220,7 +12474,7 @@ msgstr "No s'ha pogut seleccionar el guanyador"
 msgid "Failed to send broadcast"
 msgstr "No s'ha pogut enviar la difusió"
 
-#: src/pages/SignInPage.tsx:124
+#: src/pages/SignInPage.tsx:125
 msgid "Failed to send magic code"
 msgstr "Error en enviar el codi màgic"
 
@@ -12239,7 +12493,7 @@ msgstr "No s'ha pogut enviar el webhook de prova"
 msgid "Failed to send the broadcast back to draft"
 msgstr "No s'ha pogut tornar la difusió a esborrany"
 
-#: src/components/settings/Integrations.tsx:126
+#: src/components/settings/Integrations.tsx:107
 msgid "Failed to set default provider"
 msgstr "No s'ha pogut establir el proveïdor per defecte"
 
@@ -12353,7 +12607,7 @@ msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball: {errorMessage}"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:55
-#: src/pages/SignInPage.tsx:95
+#: src/pages/SignInPage.tsx:96
 msgid "Failed to verify code"
 msgstr "Error en verificar el codi"
 
@@ -12617,6 +12871,10 @@ msgstr "Trobeu-ho a Google Cloud Console > APIs i serveis > Credencials"
 msgid "Finer precision needs Region or City on"
 msgstr "Més precisió requereix la regió o la ciutat"
 
+#: src/pages/OAuthAuthorizePage.tsx:147
+msgid "Finish connecting in the browser you started in"
+msgstr "Acabeu la connexió al navegador on la vau començar"
+
 #: src/components/settings/data_retention/categoryText.ts:22
 msgid "Finished journeys older than this are deleted. Contacts are never enrolled twice in a one-time automation."
 msgstr "S'eliminen els recorreguts acabats més antics que aquest període. Un contacte no s'inscriu mai dues vegades en una automatització d'una sola execució."
@@ -12629,7 +12887,7 @@ msgstr "Llançar una sol·licitud de prova del feed de dades per a un destinatar
 msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 msgstr "Llançar un lliurament de prova a l'URL de la subscripció — escriptura, no lectura, perquè fa que el servidor faci una crida sortint"
 
-#: src/components/settings/Integrations.tsx:655
+#: src/components/settings/AIAssistantSettings.tsx:282
 msgid "Firecrawl integration saved successfully"
 msgstr "Integració de Firecrawl desada correctament"
 
@@ -13017,7 +13275,7 @@ msgstr "A partir de demà"
 #~ msgid "From:"
 #~ msgstr "De:"
 
-#: src/components/settings/WorkspaceMembers.tsx:95
+#: src/components/settings/WorkspaceMembers.tsx:98
 msgid "Full access"
 msgstr "Accés complet"
 
@@ -13091,7 +13349,7 @@ msgstr "Galeria · {languages}"
 msgid "gap {gutter}"
 msgstr "espai {gutter}"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:64
+#: src/components/settings/AIAssistantSettings.tsx:82
 msgid "Gemini models"
 msgstr "Models Gemini"
 
@@ -13112,7 +13370,7 @@ msgid "gemini-4-argon or a custom model ID"
 msgstr "gemini-4-argon o un ID de model personalitzat"
 
 #: src/components/settings/GeneralSettings.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:51
+#: src/components/settings/SettingsSidebar.tsx:54
 #: src/components/settings/SystemSettingsDrawer.tsx:277
 msgid "General"
 msgstr "General"
@@ -13187,6 +13445,14 @@ msgstr "Geografia"
 msgid "Get started"
 msgstr "Primers passos"
 
+#: src/pages/OAuthAuthorizePage.tsx:614
+msgid "Give {name} full access?"
+msgstr "Donar accés complet a {name}?"
+
+#: src/components/settings/WorkspaceMembers.tsx:586
+msgid "Give each AI assistant its own key, so you can tell its actions apart and revoke it alone."
+msgstr "Doneu a cada assistent d'IA la seva pròpia clau, així podreu distingir les seves accions i revocar-la sola."
+
 #: src/components/analytics/GetStartedChecklist.tsx:147
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "Dona al proveïdor una adreça de remitent per defecte i fes-lo servir tant per als correus de màrqueting com per als transaccionals."
@@ -13227,6 +13493,19 @@ msgstr "Resposta del feed global"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:423
 #~ msgid "Global feed URL is required when enabled"
 #~ msgstr "L'URL del feed global és requerida quan està habilitat"
+
+#: src/pages/OAuthAuthorizePage.tsx:151
+msgid "Go back to {name} and connect again from this browser."
+msgstr "Torneu a {name} i connecteu-vos de nou des d'aquest navegador."
+
+#: src/pages/OAuthAuthorizePage.tsx:162
+#: src/pages/OAuthAuthorizePage.tsx:178
+msgid "Go back to {name} and connect again."
+msgstr "Torneu a {name} i connecteu-vos de nou."
+
+#: src/pages/OAuthAuthorizePage.tsx:185
+msgid "Go back to your application and connect again."
+msgstr "Torneu a la vostra aplicació i connecteu-vos de nou."
 
 #: src/components/setup/SetupRestartView.tsx:106
 msgid "Go to sign in"
@@ -13622,7 +13901,6 @@ msgid "Hide done steps"
 msgstr "Amaga els passos fets"
 
 #: src/components/integrations/LLMIntegration.tsx:264
-#: src/components/settings/Integrations.tsx:344
 msgid "High"
 msgstr "Alta"
 
@@ -14291,6 +14569,18 @@ msgstr "En fila"
 msgid "In any of: {segmentNames}"
 msgstr "En algun de: {segmentNames}"
 
+#: src/components/settings/MCPSettings.tsx:181
+msgid "In ChatGPT, open the connector settings and create a connector."
+msgstr "A ChatGPT, obriu la configuració de connectors i creeu un connector."
+
+#: src/components/settings/MCPSettings.tsx:194
+msgid "In Claude Code, run <0>/mcp</0> to check that notifuse is connected."
+msgstr "A Claude Code, executeu <0>/mcp</0> per comprovar que notifuse està connectat."
+
+#: src/components/settings/MCPSettings.tsx:174
+msgid "In claude.ai, open the connector settings and add a custom connector."
+msgstr "A claude.ai, obriu la configuració de connectors i afegiu un connector personalitzat."
+
 #: src/components/segment/segmentLabels.ts:313
 msgid "in date range"
 msgstr "en rang de dates"
@@ -14319,6 +14609,10 @@ msgstr "En curs"
 #: src/pages/BroadcastsPage.tsx:1182
 #~ msgid "in recipients timezone"
 #~ msgstr "en el fus horari dels destinataris"
+
+#: src/components/settings/MCPSettings.tsx:206
+msgid "In the Cursor settings, check that notifuse is listed under MCP."
+msgstr "A la configuració de Cursor, comproveu que notifuse apareix a MCP."
 
 #: src/components/settings/BlogSettings.tsx:395
 msgid "In the header. Without one, the workspace logo"
@@ -14535,7 +14829,7 @@ msgstr "Integració"
 msgid "Integration created successfully"
 msgstr "Integració creada correctament"
 
-#: src/components/settings/Integrations.tsx:134
+#: src/components/settings/integrations/useIntegrationActions.ts:97
 msgid "Integration deleted successfully"
 msgstr "Integració eliminada correctament"
 
@@ -14554,7 +14848,7 @@ msgstr "ID de la integració"
 #~ msgid "Integration Name"
 #~ msgstr "Nom de la integració"
 
-#: src/components/settings/Integrations.tsx:144
+#: src/components/settings/Integrations.tsx:114
 msgid "Integration not found or not an email provider"
 msgstr "Integració no trobada o no és un proveïdor de correu"
 
@@ -14563,9 +14857,9 @@ msgid "Integration updated successfully"
 msgstr "Integració actualitzada correctament"
 
 #: src/components/logs/labels.ts:12
-#: src/components/settings/Integrations.tsx:712
-#: src/components/settings/integrations/IntegrationDrawer.tsx:25
-#: src/components/settings/SettingsSidebar.tsx:53
+#: src/components/settings/Integrations.tsx:471
+#: src/components/settings/integrations/IntegrationDrawer.tsx:27
+#: src/components/settings/SettingsSidebar.tsx:56
 msgid "Integrations"
 msgstr "Integracions"
 
@@ -14669,15 +14963,15 @@ msgstr "URL de YouTube invàlida"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitació acceptada correctament! Benvingut a l'espai de treball."
 
-#: src/components/settings/WorkspaceMembers.tsx:414
+#: src/components/settings/WorkspaceMembers.tsx:458
 msgid "Invitation deleted successfully"
 msgstr "Invitació eliminada correctament"
 
-#: src/components/settings/WorkspaceMembers.tsx:237
+#: src/components/settings/WorkspaceMembers.tsx:254
 msgid "Invitation expired"
 msgstr "Invitació caducada"
 
-#: src/components/settings/WorkspaceMembers.tsx:444
+#: src/components/settings/WorkspaceMembers.tsx:488
 msgid "Invitation resent to {email}"
 msgstr "Invitació reenviada a {email}"
 
@@ -14685,19 +14979,19 @@ msgstr "Invitació reenviada a {email}"
 #~ msgid "Invitation sent"
 #~ msgstr "Invitació enviada"
 
-#: src/components/settings/WorkspaceMembers.tsx:241
+#: src/components/settings/WorkspaceMembers.tsx:258
 msgid "Invitation sent {sent}, {expires}"
 msgstr "Invitació enviada {sent}, {expires}"
 
-#: src/components/settings/WorkspaceMembers.tsx:327
+#: src/components/settings/WorkspaceMembers.tsx:371
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitació enviada a {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:487
+#: src/components/settings/WorkspaceMembers.tsx:531
 msgid "Invite"
 msgstr "Convida"
 
-#: src/components/settings/WorkspaceMembers.tsx:548
+#: src/components/settings/WorkspaceMembers.tsx:611
 msgid "Invite member"
 msgstr "Convidar membre"
 
@@ -14844,6 +15138,14 @@ msgstr "Es publica al teu blog; el tema publicat actualment es despublicarà aut
 msgid "It is generated from the HTML at every send, so there is nothing to maintain. Its links are the links of the HTML, tracked the same way."
 msgstr "Es genera a partir de l'HTML a cada enviament, així que no cal mantenir res. Els seus enllaços són els de l'HTML, amb el mateix seguiment."
 
+#: src/pages/OAuthAuthorizePage.tsx:176
+msgid "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with {name}."
+msgstr "Té més de 10 minuts, o ja s'ha fet servir o s'ha cancel·lat. No s'ha compartit res amb {name}."
+
+#: src/pages/OAuthAuthorizePage.tsx:183
+msgid "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with the application."
+msgstr "Té més de 10 minuts, o ja s'ha fet servir o s'ha cancel·lat. No s'ha compartit res amb l'aplicació."
+
 #: src/components/broadcasts/useBroadcastActions.tsx:135
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "No s’envia a l’hora prevista. La podreu modificar i tornar a programar; se’n conserva la data."
@@ -14897,7 +15199,7 @@ msgstr "Cursiva"
 #~ msgid "Items per feed"
 #~ msgstr "Elements per feed"
 
-#: src/components/settings/Integrations.tsx:374
+#: src/components/settings/Integrations.tsx:264
 msgid "Its 6 templates and 6 transactional notifications are deleted with it, and Supabase's hooks stop working. This cannot be undone."
 msgstr "Les seves 6 plantilles i 6 notificacions transaccionals s'eliminen amb ella, i els hooks de Supabase deixen de funcionar. Això no es pot desfer."
 
@@ -14942,7 +15244,7 @@ msgstr "Unir-se"
 #~ msgstr "s'ha unit"
 
 #: src/components/automations/describeTrigger.ts:48
-#: src/components/settings/WorkspaceMembers.tsx:273
+#: src/components/settings/WorkspaceMembers.tsx:290
 msgid "Joined"
 msgstr "Unit"
 
@@ -15080,6 +15382,10 @@ msgstr "Clau copiada"
 #: src/components/settings/DomainsSettings.tsx:68
 #~ msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
 #~ msgstr "Clau creada per a {createdDomain}. Publiqueu el seu registre DNS per començar a signar."
+
+#: src/pages/OAuthAuthorizePage.tsx:707
+msgid "Key name"
+msgstr "Nom de la clau"
 
 #: src/components/settings/DomainsSettings.tsx:146
 msgid "Key of {domain} deleted"
@@ -15291,6 +15597,10 @@ msgstr "Últim èxit"
 msgid "Last updated first"
 msgstr "Les actualitzades més recentment primer"
 
+#: src/components/settings/MCPSettings.tsx:266
+msgid "Last used"
+msgstr "Últim ús"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:368
 msgid "Latitude and longitude, rounded: lower is more private"
 msgstr "Latitud i longitud arrodonides: com més baix, més privat"
@@ -15426,6 +15736,14 @@ msgstr "més petit que"
 msgid "less than or equal to"
 msgstr "més petit o igual que"
 
+#: src/components/settings/MCPSettings.tsx:136
+msgid "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol."
+msgstr "Permeteu que un assistent d'IA com Claude, ChatGPT o Cursor llegeixi i treballi en aquest espai de treball amb el Model Context Protocol."
+
+#: src/components/settings/MCPSettings.tsx:294
+msgid "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol. Each assistant connects with an API key and gets exactly that key's access."
+msgstr "Permeteu que un assistent d'IA com Claude, ChatGPT o Cursor llegeixi i treballi en aquest espai de treball amb el Model Context Protocol. Cada assistent es connecta amb una clau API i té exactament l'accés d'aquesta clau."
+
 #: src/pages/SetupWizard.tsx:688
 #~ msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 #~ msgstr "Permet als usuaris iniciar sessió amb un proveïdor d'identitat extern (Google Workspace, Keycloak, Okta, …) a més dels codis màgics."
@@ -15435,8 +15753,8 @@ msgid "Let's take a quick tour to help you get started with building beautiful e
 msgstr "Fem un ràpid recorregut per ajudar-vos a començar a construir correus bonics utilitzant MJML."
 
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:104
-msgid "Lets the assistant read web pages and search"
-msgstr "Permet a l'assistent llegir pàgines web i cercar"
+#~ msgid "Lets the assistant read web pages and search"
+#~ msgstr "Permet a l'assistent llegir pàgines web i cercar"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:265
 msgid "Letter spacing"
@@ -15465,7 +15783,7 @@ msgstr "Biblioteca"
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:66
 #: src/components/settings/LicenseSettings.tsx:163
-#: src/components/settings/SettingsSidebar.tsx:62
+#: src/components/settings/SettingsSidebar.tsx:67
 msgid "Licence"
 msgstr "Llicència"
 
@@ -15962,7 +16280,7 @@ msgstr "En directe"
 msgid "LLM"
 msgstr "LLM"
 
-#: src/components/settings/Integrations.tsx:634
+#: src/components/settings/AIAssistantSettings.tsx:258
 msgid "LLM integration saved successfully"
 msgstr "Integració LLM desada correctament"
 
@@ -16052,7 +16370,7 @@ msgstr "Carregant plantilla..."
 #: src/components/blog_editor/NotifuseEditor.tsx:490
 #: src/components/templates/CreateTemplateDrawer.tsx:1013
 #: src/components/templates/TemplateSelectorInput.tsx:162
-#: src/layouts/RootLayout.tsx:124
+#: src/layouts/RootLayout.tsx:128
 #: src/pages/ContactsPage.tsx:462
 msgid "Loading..."
 msgstr "Carregant..."
@@ -16126,7 +16444,6 @@ msgid "Lost your phone and your recovery codes? Your Notifuse administrator can 
 msgstr "Has perdut el telèfon i els codis de recuperació? L'administrador de Notifuse pot restablir l'autenticació de doble factor del teu compte."
 
 #: src/components/integrations/LLMIntegration.tsx:262
-#: src/components/settings/Integrations.tsx:342
 msgid "Low"
 msgstr "Baixa"
 
@@ -16159,7 +16476,7 @@ msgstr "Lumen"
 msgid "Magenta"
 msgstr "Magenta"
 
-#: src/pages/SignInPage.tsx:122
+#: src/pages/SignInPage.tsx:123
 msgid "Magic code sent to your email"
 msgstr "Codi màgic enviat al teu correu"
 
@@ -16230,6 +16547,10 @@ msgstr "Fa que el contenidor ocupi tota l'amplada de la vista del correu, ignora
 #: src/components/contacts/sheet/ContactProfileFields.tsx:162
 msgid "Manage"
 msgstr "Gestiona"
+
+#: src/components/settings/WorkspaceMembers.tsx:571
+msgid "Manage connections"
+msgstr "Gestionar les connexions"
 
 #: src/components/contacts/ContactsViewHeader.tsx:102
 msgid "Manage custom fields"
@@ -16428,6 +16749,48 @@ msgstr "L'interval màxim és de 2 anys"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "L'interval màxim és de 2 anys. Les dates es llegeixen en {timezone}."
 
+#: src/components/settings/MCPSettings.tsx:135
+#: src/components/settings/MCPSettings.tsx:293
+#: src/components/settings/SettingsSidebar.tsx:64
+msgid "MCP"
+msgstr "MCP"
+
+#: src/components/settings/MCPSettings.tsx:144
+msgid "MCP is not available on the demo."
+msgstr "MCP no està disponible a la demo."
+
+#: src/pages/OAuthAuthorizePage.tsx:197
+msgid "MCP is not available on this server"
+msgstr "MCP no està disponible en aquest servidor"
+
+#: src/pages/OAuthAuthorizePage.tsx:462
+msgid "MCP is switched off in this key's workspace. An owner can switch it on in Settings › AI › MCP."
+msgstr "MCP està desactivat a l'espai de treball d'aquesta clau. Un propietari el pot activar a Configuració › IA › MCP."
+
+#: src/pages/OAuthAuthorizePage.tsx:587
+msgid "MCP is switched off in this workspace. Switch it on in Settings › AI › MCP, or pick another workspace."
+msgstr "MCP està desactivat en aquest espai de treball. Activeu-lo a Configuració › IA › MCP, o trieu un altre espai de treball."
+
+#: src/components/settings/MCPSettings.tsx:146
+msgid "MCP is turned off on this instance. The administrator enables it with <0>MCP_ENABLED=true</0>."
+msgstr "MCP està desactivat en aquesta instància. L'administrador l'activa amb <0>MCP_ENABLED=true</0>."
+
+#: src/pages/OAuthAuthorizePage.tsx:697
+msgid "MCP off"
+msgstr "MCP desactivat"
+
+#: src/components/settings/MCPSettings.tsx:322
+msgid "MCP server URL"
+msgstr "URL del servidor MCP"
+
+#: src/components/settings/MCPSettings.tsx:106
+msgid "MCP turned off for this workspace"
+msgstr "MCP desactivat en aquest espai de treball"
+
+#: src/components/settings/MCPSettings.tsx:106
+msgid "MCP turned on for this workspace"
+msgstr "MCP activat en aquest espai de treball"
+
 #: src/components/logs/AuditLogTab.tsx:189
 msgid "Me"
 msgstr "Jo"
@@ -16488,7 +16851,6 @@ msgid "Median Value"
 msgstr "Valor mediana"
 
 #: src/components/integrations/LLMIntegration.tsx:263
-#: src/components/settings/Integrations.tsx:343
 msgid "Medium"
 msgstr "Mitjana"
 
@@ -16498,17 +16860,17 @@ msgid "Mediums"
 msgstr "Mitjans"
 
 #: src/components/logs/auditDisplay.ts:20
-#: src/components/settings/WorkspaceMembers.tsx:246
+#: src/components/settings/WorkspaceMembers.tsx:263
 #: src/layouts/app-shell/AccountMenu.tsx:80
 msgid "Member"
 msgstr "Membre"
 
-#: src/components/settings/WorkspaceMembers.tsx:395
+#: src/components/settings/WorkspaceMembers.tsx:439
 msgid "Member removed successfully"
 msgstr "Membre tret correctament"
 
 #: src/components/logs/labels.ts:10
-#: src/components/settings/WorkspaceMembers.tsx:478
+#: src/components/settings/WorkspaceMembers.tsx:522
 msgid "Members"
 msgstr "Membres"
 
@@ -16632,7 +16994,6 @@ msgid "Min. sessions: {minSessions}"
 msgstr "Sessions mín.: {minSessions}"
 
 #: src/components/integrations/LLMIntegration.tsx:261
-#: src/components/settings/Integrations.tsx:341
 msgid "Minimal"
 msgstr "Mínim"
 
@@ -16774,7 +17135,7 @@ msgstr "Vista mòbil (400px)"
 #: src/components/integrations/LLMIntegration.tsx:219
 #: src/components/integrations/LLMIntegration.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:275
-#: src/components/settings/Integrations.tsx:451
+#: src/components/settings/AIAssistantSettings.tsx:128
 msgid "Model"
 msgstr "Model"
 
@@ -16837,7 +17198,7 @@ msgstr "Mesos"
 #: src/components/contacts/ContactsViewHeader.tsx:134
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
 #: src/components/file_manager/FileExplorer.tsx:1129
-#: src/components/settings/Integrations.tsx:282
+#: src/components/settings/Integrations.tsx:202
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:348
@@ -16927,6 +17288,7 @@ msgstr "N/D"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:404
+#: src/components/settings/AIAssistantSettings.tsx:102
 #: src/components/settings/DomainsSettings.tsx:332
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
@@ -16934,7 +17296,7 @@ msgstr "N/D"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:871
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1009
 #: src/components/settings/WebhooksSettings.tsx:531
-#: src/components/settings/WorkspaceMembers.tsx:293
+#: src/components/settings/WorkspaceMembers.tsx:310
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:204
@@ -17043,6 +17405,7 @@ msgid "Network"
 msgstr "Xarxa"
 
 #: src/components/settings/DomainsSettings.tsx:207
+#: src/components/settings/MCPSettings.tsx:268
 msgid "Never"
 msgstr "Mai"
 
@@ -17118,7 +17481,7 @@ msgstr "Nova carpeta"
 msgid "New folder (Read-only mode)"
 msgstr "Nova carpeta (mode de només lectura)"
 
-#: src/components/settings/WorkspaceMembers.tsx:521
+#: src/components/settings/WorkspaceMembers.tsx:579
 msgid "New key"
 msgstr "Clau nova"
 
@@ -17131,7 +17494,7 @@ msgstr "Clau nova"
 msgid "New list"
 msgstr "Llista nova"
 
-#: src/pages/SignInPage.tsx:254
+#: src/pages/SignInPage.tsx:255
 msgid "New magic code sent to your email"
 msgstr "Nou codi màgic enviat al teu correu"
 
@@ -17295,7 +17658,7 @@ msgstr "No"
 msgid "No {0} content to preview"
 msgstr "No hi ha contingut {0} per previsualitzar"
 
-#: src/components/settings/WorkspaceMembers.tsx:89
+#: src/components/settings/WorkspaceMembers.tsx:92
 msgid "No access"
 msgstr "Sense accés"
 
@@ -17320,12 +17683,11 @@ msgstr "Encara no hi ha anotacions"
 msgid "No answer was returned. Please try again."
 msgstr "No s'ha retornat cap resposta. Torneu-ho a provar."
 
-#: src/components/settings/Integrations.tsx:309
-#: src/components/settings/Integrations.tsx:313
+#: src/components/settings/AIAssistantSettings.tsx:85
 msgid "No API key"
 msgstr "Sense clau API"
 
-#: src/components/settings/WorkspaceMembers.tsx:532
+#: src/components/settings/WorkspaceMembers.tsx:595
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "Encara no hi ha claus API. Creeu-ne una per cridar l'API o connectar Zapier."
 
@@ -17414,6 +17776,10 @@ msgstr "Sense comparació"
 #: src/components/automations/nodes/FilterNode.tsx:45
 msgid "No conditions"
 msgstr "Sense condicions"
+
+#: src/components/settings/MCPSettings.tsx:475
+msgid "No connections yet"
+msgstr "Encara no hi ha connexions"
 
 #: src/components/segment/form_leaf.tsx:894
 msgid "No contact is deleted as inactive in this workspace: until a period is set in Settings > Data retention, this condition matches nobody."
@@ -17539,7 +17905,7 @@ msgstr "sense adreça de correu"
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "No hi ha integracions de correu disponibles. Si us plau, configureu-ne una a Configuració."
 
-#: src/components/settings/Integrations.tsx:726
+#: src/components/settings/Integrations.tsx:485
 #: src/components/settings/integrations/EmailRoles.tsx:71
 msgid "No email provider yet"
 msgstr "Encara no hi ha cap proveïdor de correu"
@@ -17699,7 +18065,7 @@ msgstr "Cap proveïdor de correu de màrqueting"
 msgid "No match"
 msgstr "Cap coincidència"
 
-#: src/components/settings/WorkspaceMembers.tsx:510
+#: src/components/settings/WorkspaceMembers.tsx:554
 msgid "No members found"
 msgstr "No s'han trobat membres"
 
@@ -17727,6 +18093,10 @@ msgstr "Sense meta títol"
 msgid "No MJML content to export"
 msgstr "No hi ha contingut MJML per exportar"
 
+#: src/components/settings/AIAssistantSettings.tsx:317
+msgid "No model yet"
+msgstr "Encara no hi ha cap model"
+
 #: src/components/blog/AuthorsField.tsx:137
 msgid "No name"
 msgstr "Sense nom"
@@ -17747,7 +18117,7 @@ msgstr "Cap notificació coincideix"
 #~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 #~ msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Demaneu a un administrador que us convidi primer."
 
-#: src/pages/SignInPage.tsx:148
+#: src/pages/SignInPage.tsx:149
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Si us han convidat, obriu l'enllaç del correu d'invitació; si no, demaneu a un administrador que us convidi."
 
@@ -18088,6 +18458,10 @@ msgstr "Encara no hi ha webhooks"
 msgid "No workspaces"
 msgstr "Cap espai de treball"
 
+#: src/pages/OAuthAuthorizePage.tsx:634
+msgid "Nobody sees this key. It serves only this connection, and you can delete it later in Team & API keys."
+msgstr "Ningú no veu aquesta clau. Només serveix per a aquesta connexió, i la podeu eliminar més tard a Equip i claus API."
+
 #: src/components/automations/NodePalette.tsx:21
 #~ msgid "Nodes"
 #~ msgstr "Nodes"
@@ -18114,9 +18488,13 @@ msgstr "cap"
 #: src/components/email_builder/ui/fields/ColorField.tsx:93
 #: src/components/integrations/LLMIntegration.tsx:260
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:388
-#: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
+msgid "None"
+msgstr "Cap"
+
+#: src/components/settings/WorkspaceMembers.tsx:335
+msgctxt "connected applications"
 msgid "None"
 msgstr "Cap"
 
@@ -18185,12 +18563,13 @@ msgid "Not clicked"
 msgstr "No clicat"
 
 #: src/components/analytics/SendingCard.tsx:82
-#: src/components/settings/Integrations.tsx:334
-#: src/components/settings/Integrations.tsx:451
+#: src/components/settings/AIAssistantSettings.tsx:132
+#: src/components/settings/Integrations.tsx:232
 msgid "Not configured"
 msgstr "No configurat"
 
 #: src/components/automations/nodes/BaseNode.tsx:49
+#: src/components/settings/AIAssistantSettings.tsx:200
 msgid "Not connected"
 msgstr "No connectat"
 
@@ -18407,6 +18786,10 @@ msgstr "Res en aquest període"
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "No s'enregistra res i no es rebutja res: aquesta pàgina, l'exportació i el paràmetre de retenció continuen disponibles, i les entrades enregistrades mentre una llicència cobria els registres d'auditoria continuen sent llegibles."
 
+#: src/pages/OAuthAuthorizePage.tsx:198
+msgid "Nothing was shared with the application. The server's administrator can turn it on."
+msgstr "No s'ha compartit res amb l'aplicació. L'administrador del servidor el pot activar."
+
 #: src/components/templates/TemplateSelectorModal.tsx:708
 #: src/components/transactional/TransactionalTable.tsx:155
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:391
@@ -18454,9 +18837,17 @@ msgstr "Notifuse afegeix una signatura DKIM als correus que les vostres integrac
 msgid "Notifuse creates the key. You publish one DNS record."
 msgstr "Notifuse crea la clau. Vosaltres publiqueu un registre DNS."
 
+#: src/pages/OAuthAuthorizePage.tsx:160
+msgid "Notifuse did not open the application's address"
+msgstr "Notifuse no ha obert l'adreça de l'aplicació"
+
 #: src/components/settings/WebhookDetail.tsx:443
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse ha desactivat aquest webhook automàticament"
+
+#: src/pages/OAuthAuthorizePage.tsx:335
+msgid "Notifuse does not know this application. Its name was chosen by whoever published it, at the address below."
+msgstr "Notifuse no coneix aquesta aplicació. El seu nom l'ha triat qui la publica, a l'adreça de sota."
 
 #: src/pages/TemplatesPage.tsx:584
 msgid "Notifuse export (.json)"
@@ -18473,6 +18864,14 @@ msgstr "Notifuse està a punt"
 #: src/components/segment/form_leaf.tsx:890
 msgid "Notifuse is still reading past activity from history: until it finishes, this condition matches nobody."
 msgstr "Notifuse encara està llegint l'activitat passada de l'historial: fins que acabi, aquesta condició no coincideix amb ningú."
+
+#: src/components/settings/MCPSettings.tsx:185
+msgid "Notifuse opens and asks for an API key. Paste the key you created for ChatGPT."
+msgstr "S'obre Notifuse i demana una clau API. Enganxeu la clau que heu creat per a ChatGPT."
+
+#: src/components/settings/MCPSettings.tsx:178
+msgid "Notifuse opens and asks for an API key. Paste the key you created for Claude."
+msgstr "S'obre Notifuse i demana una clau API. Enganxeu la clau que heu creat per a Claude."
 
 #: src/components/two_factor/RecoveryCodesList.tsx:25
 msgid "Notifuse recovery codes"
@@ -18655,6 +19054,7 @@ msgstr "desactivats"
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:139
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:94
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/settings/MCPSettings.tsx:309
 #: src/components/setup/setupHooks.ts:54
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
@@ -18689,6 +19089,7 @@ msgstr "activats"
 
 #: src/components/settings/BlogSettings.tsx:317
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/settings/MCPSettings.tsx:309
 #: src/components/setup/setupHooks.ts:64
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/two_factor/AccountSecurityPanel.tsx:161
@@ -18779,6 +19180,10 @@ msgstr "Només un administrador de la instància pot veure o instal·lar la clau
 msgid "Only an owner can change the storage settings"
 msgstr "Només un propietari pot canviar la configuració d'emmagatzematge"
 
+#: src/components/settings/MCPSettings.tsx:165
+msgid "Only an owner can change this."
+msgstr "Només un propietari ho pot canviar."
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:186
 #~ msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks are still included in the Clicks total above."
 #~ msgstr ""
@@ -18823,6 +19228,10 @@ msgstr "Només es permeten caràcters alfanumèrics en minúscules, guió baix i
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:52
 msgid "Only one breakpoint per email template is allowed"
 msgstr "Només es permet un punt de ruptura per plantilla de correu"
+
+#: src/components/settings/MCPSettings.tsx:286
+msgid "Only owners can see the connections."
+msgstr "Només els propietaris poden veure les connexions."
 
 #: src/components/settings/EditPermissionsDrawer.tsx:36
 msgid "Only the root account sees this. Use it when {memberEmail} has lost both their phone and their recovery codes."
@@ -19203,6 +19612,10 @@ msgstr "Opcional"
 msgid "Optional bearer token"
 msgstr "Token bearer opcional"
 
+#: src/components/settings/AIAssistantSettings.tsx:326
+msgid "Optional: lets the assistant read a web page you give it and search the web."
+msgstr "Opcional: permet a l'assistent llegir una pàgina web que li donis i cercar al web."
+
 #: src/components/integrations/LLMIntegration.tsx:224
 #~ msgid "Optional. Controls how much reasoning models think. Leave as Default for non-reasoning models; some providers ignore it."
 #~ msgstr "Opcional. Controla quant raonen els models de raonament. Deixeu-ho com a Predeterminat per als models sense raonament; alguns proveïdors ho ignoren."
@@ -19239,7 +19652,7 @@ msgstr "Opcions"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:247
-#: src/pages/SignInPage.tsx:330
+#: src/pages/SignInPage.tsx:331
 msgid "or"
 msgstr "o"
 
@@ -19247,7 +19660,7 @@ msgstr "o"
 msgid "OR"
 msgstr "O"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:63
+#: src/components/settings/AIAssistantSettings.tsx:81
 msgid "Or any OpenAI-compatible endpoint"
 msgstr "O qualsevol endpoint compatible amb OpenAI"
 
@@ -19358,10 +19771,19 @@ msgstr "Substituir el proveïdor de correu predeterminat de l'espai de treball p
 msgid "Overwrite with mine"
 msgstr "Sobreescriure amb el meu"
 
-#: src/components/settings/WorkspaceMembers.tsx:81
+#: src/components/settings/WorkspaceMembers.tsx:84
 #: src/layouts/app-shell/AccountMenu.tsx:78
+#: src/pages/OAuthAuthorizePage.tsx:326
 msgid "Owner"
 msgstr "Propietari"
+
+#: src/pages/OAuthAuthorizePage.tsx:394
+msgid "Owner? Sign in to create a key here"
+msgstr "Propietari? Inicieu la sessió per crear una clau aquí"
+
+#: src/components/settings/MCPSettings.tsx:454
+msgid "Owners"
+msgstr "Propietaris"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:107
@@ -19526,9 +19948,23 @@ msgstr "L'activitat passada ja s'ha llegit de l'historial: els contactes inactiu
 msgid "Past sessions"
 msgstr "Sessions passades"
 
+#: src/components/settings/MCPSettings.tsx:182
+msgid "Paste <0>{url}</0> as its URL and choose OAuth as its authentication."
+msgstr "Enganxeu <0>{url}</0> com a URL i trieu OAuth com a autenticació."
+
+#: src/components/settings/MCPSettings.tsx:175
+msgid "Paste <0>{url}</0> as its URL and select <1>Connect</1>."
+msgstr "Enganxeu <0>{url}</0> com a URL i seleccioneu <1>Connect</1>."
+
 #: src/components/settings/LicenseSettings.tsx:80
 #~ msgid "Paste a licence key first"
 #~ msgstr ""
+
+#: src/pages/OAuthAuthorizePage.tsx:624
+#: src/pages/OAuthAuthorizePage.tsx:648
+#: src/pages/OAuthAuthorizePage.tsx:667
+msgid "Paste an existing key"
+msgstr "Enganxar una clau existent"
 
 #: src/components/integrations/SupabaseIntegration.tsx:191
 #: src/components/integrations/SupabaseIntegration.tsx:210
@@ -19680,7 +20116,7 @@ msgstr "Pic el {0}"
 #: src/components/contacts/contactDisplay.ts:36
 #: src/components/lists/ListHeader.tsx:39
 #: src/components/logs/labels.ts:38
-#: src/components/settings/WorkspaceMembers.tsx:85
+#: src/components/settings/WorkspaceMembers.tsx:88
 msgid "Pending"
 msgstr "Pendent"
 
@@ -19767,7 +20203,7 @@ msgstr "Períodes"
 msgid "Permanently delete any contact"
 msgstr "Eliminar permanentment qualsevol contacte"
 
-#: src/components/settings/WorkspaceMembers.tsx:64
+#: src/components/settings/WorkspaceMembers.tsx:67
 msgid "Permission details"
 msgstr "Detall dels permisos"
 
@@ -19777,8 +20213,9 @@ msgstr "Detall dels permisos"
 #~ msgid "Permission Details"
 #~ msgstr "Detalls del permís"
 
-#: src/components/settings/WorkspaceMembers.tsx:583
-#: src/components/settings/WorkspaceMembers.tsx:653
+#: src/components/settings/WorkspaceMembers.tsx:646
+#: src/components/settings/WorkspaceMembers.tsx:716
+#: src/pages/OAuthAuthorizePage.tsx:725
 msgid "Permissions"
 msgstr "Permisos"
 
@@ -19843,6 +20280,10 @@ msgctxt "newsletter status"
 msgid "Pick a winner"
 msgstr "Trieu un guanyador"
 
+#: src/pages/OAuthAuthorizePage.tsx:690
+msgid "Pick a workspace"
+msgstr "Trieu un espai de treball"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:463
 msgid "Pick an action and a file to see what will change."
 msgstr "Tria una acció i un fitxer per veure què canviarà."
@@ -19902,7 +20343,7 @@ msgstr "Text pla (només segur darrere d'un proxy que acabi el TLS)"
 msgid "Plan"
 msgstr "Pla"
 
-#: src/components/settings/WorkspaceMembers.tsx:260
+#: src/components/settings/WorkspaceMembers.tsx:277
 msgid "Platform admin"
 msgstr "Administrador de la plataforma"
 
@@ -20019,7 +20460,7 @@ msgstr "Si us plau, introduïu una URL"
 #: src/components/two_factor/ProofModal.tsx:93
 #: src/components/two_factor/SetupWizard.tsx:216
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:93
-#: src/pages/SignInPage.tsx:357
+#: src/pages/SignInPage.tsx:358
 msgid "Please enter a valid 6-digit code!"
 msgstr "Si us plau, introdueix un codi de 6 dígits vàlid!"
 
@@ -20028,7 +20469,7 @@ msgstr "Si us plau, introdueix un codi de 6 dígits vàlid!"
 msgid "Please enter a valid email"
 msgstr "Si us plau, introduïu un correu vàlid"
 
-#: src/pages/SignInPage.tsx:316
+#: src/pages/SignInPage.tsx:317
 msgid "Please enter a valid email!"
 msgstr "Si us plau, introdueix un correu vàlid!"
 
@@ -20060,8 +20501,9 @@ msgstr "Si us plau, introduïu un nom d'espai de treball"
 msgid "Please enter an API identifier"
 msgstr "Si us plau, introduïu un identificador API"
 
-#: src/components/settings/WorkspaceMembers.tsx:348
-#: src/components/settings/WorkspaceMembers.tsx:638
+#: src/components/settings/WorkspaceMembers.tsx:392
+#: src/components/settings/WorkspaceMembers.tsx:701
+#: src/pages/OAuthAuthorizePage.tsx:563
 msgid "Please enter an API key name"
 msgstr "Si us plau, introduïu un nom de clau API"
 
@@ -20070,8 +20512,8 @@ msgstr "Si us plau, introduïu un nom de clau API"
 msgid "Please enter an automation name"
 msgstr "Si us plau, introduïu un nom d'automatització"
 
-#: src/components/settings/WorkspaceMembers.tsx:314
-#: src/components/settings/WorkspaceMembers.tsx:574
+#: src/components/settings/WorkspaceMembers.tsx:358
+#: src/components/settings/WorkspaceMembers.tsx:637
 msgid "Please enter an email address"
 msgstr "Si us plau, introduïu una adreça de correu"
 
@@ -20098,11 +20540,11 @@ msgstr "Si us plau, introduïu la vostra clau API"
 msgid "Please fill in all required fields before testing"
 msgstr "Si us plau, ompliu tots els camps obligatoris abans de provar"
 
-#: src/pages/SignInPage.tsx:354
+#: src/pages/SignInPage.tsx:355
 msgid "Please input the magic code!"
 msgstr "Si us plau, introdueix el codi màgic!"
 
-#: src/pages/SignInPage.tsx:315
+#: src/pages/SignInPage.tsx:316
 msgid "Please input your email!"
 msgstr "Si us plau, introdueix el teu correu!"
 
@@ -20651,7 +21093,7 @@ msgstr "Propietats"
 msgid "Property name"
 msgstr "Nom de la propietat"
 
-#: src/components/settings/Integrations.tsx:450
+#: src/components/settings/AIAssistantSettings.tsx:112
 msgid "Provider"
 msgstr "Proveïdor"
 
@@ -20741,6 +21183,10 @@ msgstr "Publicat · signa"
 #: src/components/blog/PostsTable.tsx:269
 msgid "Published {0} · Updated {updatedAt} in {timezone}"
 msgstr "Publicat {0} · Actualitzat {updatedAt} ({timezone})"
+
+#: src/pages/OAuthAuthorizePage.tsx:316
+msgid "Published at"
+msgstr "Publicada a"
 
 #: src/components/logs/auditPhrases.ts:27
 msgid "Published the blog post <0>{target}</0>"
@@ -20892,6 +21338,7 @@ msgstr "Arriba al teu públic"
 msgid "Reached"
 msgstr "Arribats"
 
+#: src/components/settings/MCPSettings.tsx:490
 #: src/components/settings/PermissionsMatrix.tsx:101
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:244
@@ -21116,7 +21563,6 @@ msgstr "A punt per iniciar sessió"
 #~ msgstr "Motiu:"
 
 #: src/components/integrations/LLMIntegration.tsx:252
-#: src/components/settings/Integrations.tsx:458
 msgid "Reasoning effort"
 msgstr "Esforç de raonament"
 
@@ -21490,7 +21936,7 @@ msgstr "Ha registrat els webhooks del proveïdor de <0>{target}</0>"
 msgid "Regular expression"
 msgstr "Expressió regular"
 
-#: src/components/settings/Integrations.tsx:407
+#: src/components/settings/Integrations.tsx:298
 msgid "Reject Disposable Email"
 msgstr "Rebutjar correu d'un sol ús"
 
@@ -21536,9 +21982,10 @@ msgstr "Torna a carregar la pàgina per actualitzar els teus blocs desats."
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
 #: src/components/contacts/sheet/ContactListsCard.tsx:155
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:77
+#: src/components/settings/AIAssistantSettings.tsx:94
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/LogoInput.tsx:111
-#: src/components/settings/WorkspaceMembers.tsx:191
+#: src/components/settings/WorkspaceMembers.tsx:208
 msgid "Remove"
 msgstr "Treure"
 
@@ -21623,7 +22070,7 @@ msgstr "Treure de la llista"
 msgid "Remove from List node must have a list selected"
 msgstr "El node Treure de la llista ha de tenir una llista seleccionada"
 
-#: src/components/settings/WorkspaceMembers.tsx:221
+#: src/components/settings/WorkspaceMembers.tsx:238
 msgid "Remove from workspace"
 msgstr "Treu de l'espai de treball"
 
@@ -21635,7 +22082,7 @@ msgstr "Treu l'etiqueta"
 msgid "Remove Link"
 msgstr "Eliminar enllaç"
 
-#: src/components/settings/WorkspaceMembers.tsx:186
+#: src/components/settings/WorkspaceMembers.tsx:203
 msgid "Remove member"
 msgstr "Treure membre"
 
@@ -21944,11 +22391,11 @@ msgstr "Obligatori quan l'SSO està activat"
 msgid "Requires a padding"
 msgstr "Requereix un farciment"
 
-#: src/pages/SignInPage.tsx:390
+#: src/pages/SignInPage.tsx:391
 msgid "Resend code"
 msgstr "Reenviar codi"
 
-#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WorkspaceMembers.tsx:231
 msgid "Resend invitation"
 msgstr "Reenviar invitació"
 
@@ -22186,7 +22633,7 @@ msgstr "Ha reintentat els enviaments fallits del butlletí <0>{target}</0>"
 #: src/components/settings/DomainsSettings.tsx:278
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
-#: src/components/settings/WorkspaceMembers.tsx:496
+#: src/components/settings/WorkspaceMembers.tsx:540
 #: src/components/templates/TemplateSelectorModal.tsx:234
 #: src/components/transactional/LoadError.tsx:22
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
@@ -22224,13 +22671,26 @@ msgstr "Torna-ho a provar amb un fitxer corregit"
 msgid "Retrying"
 msgstr "En reintent"
 
+#: src/pages/OAuthAuthorizePage.tsx:317
+msgid "Returns to"
+msgstr "Torna a"
+
 #: src/components/email_builder/MjmlCodeEditor.tsx:208
 msgid "Reusable class"
 msgstr "Classe reutilitzable"
 
+#: src/components/settings/MCPSettings.tsx:216
+#: src/components/settings/MCPSettings.tsx:276
+msgid "Revoke"
+msgstr "Revocar"
+
 #: src/components/settings/PermissionScopePresets.tsx:54
 msgid "Revoke all"
 msgstr "Revocar-ho tot"
+
+#: src/components/settings/MCPSettings.tsx:214
+msgid "Revoke this connection?"
+msgstr "Voleu revocar aquesta connexió?"
 
 #: src/components/logs/auditPhrases.ts:70
 msgid "Revoked a token issued to the application <0>{target}</0>"
@@ -22422,6 +22882,10 @@ msgstr "Tornar a executar"
 msgid "Run Test"
 msgstr "Executar la prova"
 
+#: src/components/settings/MCPSettings.tsx:191
+msgid "Run the command below in a terminal, with the key in place of <0>YOUR_API_KEY</0>."
+msgstr "Executeu l'ordre següent en un terminal, amb la clau en lloc de <0>YOUR_API_KEY</0>."
+
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:255
 msgid "Run when the rule matches"
 msgstr "S'executen quan la regla coincideix"
@@ -22544,8 +23008,9 @@ msgstr "Mode sandbox"
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:302
+#: src/components/settings/AIAssistantSettings.tsx:237
 #: src/components/settings/CustomFieldsConfiguration.tsx:388
-#: src/components/settings/Integrations.tsx:600
+#: src/components/settings/Integrations.tsx:400
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:853
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:994
 #: src/components/settings/SystemSettingsDrawer.tsx:263
@@ -22996,7 +23461,7 @@ msgstr "El segon valor ha de ser més gran que el primer valor"
 msgid "seconds"
 msgstr "segons"
 
-#: src/components/settings/Integrations.tsx:326
+#: src/components/settings/Integrations.tsx:224
 msgid "secret"
 msgstr "secret"
 
@@ -23054,7 +23519,7 @@ msgstr "Secció amb columna"
 msgid "Sections"
 msgstr "Seccions"
 
-#: src/components/settings/SettingsSidebar.tsx:20
+#: src/components/settings/SettingsSidebar.tsx:21
 #: src/components/settings/SystemSecuritySettings.tsx:35
 #: src/components/transactional/ApiCommandDrawer.tsx:145
 #: src/components/updates/UpdateDrawer.tsx:63
@@ -23624,7 +24089,11 @@ msgstr "Envieu una notificació transaccional utilitzant Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envieu una notificació transaccional utilitzant TypeScript/JavaScript:"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:120
+#: src/components/settings/MCPSettings.tsx:506
+msgid "Send and delete"
+msgstr "Enviar i eliminar"
+
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:84
 msgid "Send auth emails, add new users as contacts"
 msgstr "Envia els correus d'autenticació i afegeix els nous usuaris com a contactes"
 
@@ -23636,7 +24105,11 @@ msgstr "Hook d'enviament de correu"
 msgid "Send emails and update lists when contacts do something"
 msgstr "Envia correus i actualitza llistes quan els contactes fan alguna cosa"
 
-#: src/components/settings/WorkspaceMembers.tsx:564
+#: src/components/settings/MCPSettings.tsx:509
+msgid "Send emails, start automations, cancel broadcasts, delete objects. These tools are flagged so clients can ask you to confirm."
+msgstr "Enviar correus, iniciar automatitzacions, cancel·lar difusions, eliminar objectes. Aquestes eines estan marcades perquè els clients us puguin demanar confirmació."
+
+#: src/components/settings/WorkspaceMembers.tsx:627
 msgid "Send invitation"
 msgstr "Enviar invitació"
 
@@ -23644,7 +24117,7 @@ msgstr "Enviar invitació"
 #~ msgid "Send Invitation"
 #~ msgstr "Enviar invitació"
 
-#: src/pages/SignInPage.tsx:324
+#: src/pages/SignInPage.tsx:325
 msgid "Send Magic Code"
 msgstr "Enviar codi màgic"
 
@@ -24053,7 +24526,7 @@ msgstr "Testimoni del servidor"
 msgid "Server Token"
 msgstr "Token del servidor"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:56
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:48
 msgid "Server token, message stream"
 msgstr "Token del servidor, flux de missatges"
 
@@ -24136,7 +24609,7 @@ msgstr "Defineix una prioritat per situar aquesta regla entre les altres."
 msgid "Set a priority to see which rules override this one"
 msgstr "Defineix una prioritat per veure quines regles prevalen sobre aquesta"
 
-#: src/components/settings/Integrations.tsx:121
+#: src/components/settings/Integrations.tsx:102
 msgid "Set as default marketing email provider"
 msgstr "Establir com a proveïdor de correu de màrqueting predeterminat"
 
@@ -24144,7 +24617,7 @@ msgstr "Establir com a proveïdor de correu de màrqueting predeterminat"
 #~ msgid "Set as default sender"
 #~ msgstr "Establir com a remitent predeterminat"
 
-#: src/components/settings/Integrations.tsx:122
+#: src/components/settings/Integrations.tsx:103
 msgid "Set as default transactional email provider"
 msgstr "Establir com a proveïdor de correu transaccional predeterminat"
 
@@ -24298,6 +24771,10 @@ msgstr "Configura l'enviament"
 msgid "Set up this Notifuse installation"
 msgstr "Ha configurat aquesta instal·lació de Notifuse"
 
+#: src/pages/OAuthAuthorizePage.tsx:646
+msgid "Set up two-factor authentication"
+msgstr "Configurar l'autenticació de doble factor"
+
 #: src/components/analytics/DashboardKpis.tsx:365
 #: src/components/analytics/GetStartedChecklist.tsx:233
 msgid "Set up web analytics"
@@ -24354,7 +24831,7 @@ msgstr "S'està configurant…"
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
 #: src/layouts/app-shell/menuItems.ts:248
-#: src/pages/WorkspaceSettingsPage.tsx:278
+#: src/pages/WorkspaceSettingsPage.tsx:293
 msgid "Settings"
 msgstr "Configuració"
 
@@ -24574,11 +25051,12 @@ msgstr "Es mostra quan el punter s'atura sobre la imatge (atribut title)."
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Mostra les noves versions de Notifuse i les correccions de seguretat a la llista d'espais de treball."
 
-#: src/pages/SignInPage.tsx:268
+#: src/pages/SignInPage.tsx:269
 msgid "Sign In"
 msgstr "Iniciar sessió"
 
 #: src/components/two_factor/RootSessionRefused.tsx:25
+#: src/pages/OAuthAuthorizePage.tsx:664
 msgid "Sign in again"
 msgstr "Torna a iniciar la sessió"
 
@@ -24616,7 +25094,7 @@ msgstr "Inicieu sessió amb {rootEmail}."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:657
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:342
+#: src/pages/SignInPage.tsx:343
 msgid "Sign in with SSO"
 msgstr "Iniciar sessió amb SSO"
 
@@ -24643,6 +25121,10 @@ msgstr "Signat · registre absent {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
 #: src/components/logs/auditPhrases.ts:60
 msgid "Signed an upload URL for <0>{target}</0>"
 msgstr "Ha signat una URL de pujada per a <0>{target}</0>"
+
+#: src/pages/OAuthAuthorizePage.tsx:322
+msgid "Signed in as"
+msgstr "Sessió iniciada com a"
 
 #: src/components/logs/auditPhrases.ts:73
 #~ msgid "Signed in as <0>{target}</0>"
@@ -24729,12 +25211,12 @@ msgstr "Inici de sessió únic (OpenID Connect)"
 msgid "Single sign-on (SSO)"
 msgstr "Inici de sessió únic (SSO)"
 
-#: src/pages/SignInPage.tsx:150
+#: src/pages/SignInPage.tsx:151
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "L'inici de sessió únic no pot crear un compte per al vostre domini de correu. Si us han convidat, obriu l'enllaç del correu d'invitació; si no, demaneu a un administrador que us convidi."
 
-#: src/pages/SignInPage.tsx:160
-#: src/pages/SignInPage.tsx:173
+#: src/pages/SignInPage.tsx:161
+#: src/pages/SignInPage.tsx:174
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "L'inici de sessió únic ha fallat. Torneu-ho a provar o utilitzeu un codi màgic."
 
@@ -24742,7 +25224,7 @@ msgstr "L'inici de sessió únic ha fallat. Torneu-ho a provar o utilitzeu un co
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "L'inici de sessió únic està activat, però la llicència d'aquest desplegament no l'inclou."
 
-#: src/pages/SignInPage.tsx:156
+#: src/pages/SignInPage.tsx:157
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "L'inici de sessió únic no està disponible temporalment. Proveu amb un codi màgic."
 
@@ -24826,7 +25308,7 @@ msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "L'slug només pot contenir lletres minúscules, números i guions"
 
 #: src/components/logs/MessagesTab.tsx:301
-#: src/components/settings/Integrations.tsx:550
+#: src/components/settings/Integrations.tsx:362
 msgid "SMS"
 msgstr "SMS"
 
@@ -24834,7 +25316,7 @@ msgstr "SMS"
 msgid "SMTP"
 msgstr "SMTP"
 
-#: src/components/settings/SettingsSidebar.tsx:56
+#: src/components/settings/SettingsSidebar.tsx:59
 #: src/components/settings/SMTPBridgeSettings.tsx:19
 #: src/components/setup/BridgePanel.tsx:30
 #: src/components/setup/setupHooks.ts:47
@@ -25675,7 +26157,7 @@ msgstr "Correcte"
 #~ msgid "Successfully processed {successful} contacts"
 #~ msgstr "Processats {successful} contactes correctament"
 
-#: src/pages/SignInPage.tsx:42
+#: src/pages/SignInPage.tsx:44
 msgid "Successfully signed in"
 msgstr "Sessió iniciada correctament"
 
@@ -25714,7 +26196,7 @@ msgstr "Resum de {0}"
 msgid "Supabase"
 msgstr "Supabase"
 
-#: src/components/settings/Integrations.tsx:676
+#: src/components/settings/Integrations.tsx:434
 msgid "Supabase integration saved successfully"
 msgstr "Integració de Supabase desada correctament"
 
@@ -25837,8 +26319,8 @@ msgstr "Tipus de tasca"
 #~ msgid "Team"
 #~ msgstr "Equip"
 
-#: src/components/settings/SettingsSidebar.tsx:52
-#: src/components/settings/WorkspaceMembers.tsx:474
+#: src/components/settings/SettingsSidebar.tsx:55
+#: src/components/settings/WorkspaceMembers.tsx:518
 msgid "Team & API keys"
 msgstr "Equip i claus API"
 
@@ -25846,7 +26328,7 @@ msgstr "Equip i claus API"
 msgid "Team invitation"
 msgstr "Invitació a l'equip"
 
-#: src/components/settings/WorkspaceMembers.tsx:335
+#: src/components/settings/WorkspaceMembers.tsx:379
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "S'ha assolit el límit de membres de l'equip. Milloreu el vostre pla per afegir més membres."
 
@@ -26412,6 +26894,10 @@ msgstr "El/La"
 msgid "The address of the font's CSS file, or a Liquid output."
 msgstr "L'adreça del fitxer CSS de la font, o una sortida Liquid."
 
+#: src/components/settings/MCPSettings.tsx:325
+msgid "The address you give your assistant."
+msgstr "L'adreça que doneu al vostre assistent."
+
 #: src/services/api/permissions.ts:983
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "L'assistent d'IA: conversa a través de la integració LLM configurada a l'espai de treball, i les eines del costat del servidor que pot cridar."
@@ -26424,9 +26910,22 @@ msgstr "L'endpoint de l'API ha canviat. Després del reinici, la consola estarà
 msgid "The API identifier is not valid"
 msgstr "L'identificador API no és vàlid"
 
+#: src/components/settings/MCPSettings.tsx:401
+#: src/pages/OAuthAuthorizePage.tsx:732
+msgid "The assistant gets every right its key has."
+msgstr "L'assistent té tots els drets de la seva clau."
+
+#: src/components/settings/AIAssistantSettings.tsx:298
+msgid "The assistant in the blog, the email editor and Web Analytics."
+msgstr "L'assistent del blog, de l'editor de correu i de l'Analítica web."
+
+#: src/components/settings/AIAssistantSettings.tsx:309
+msgid "The assistant runs on a model you connect with your own provider key. If you connect more than one, people pick the model in the assistant."
+msgstr "L'assistent fa servir un model que connectes amb la teva pròpia clau del proveïdor. Si en connectes més d'un, cadascú tria el model a l'assistent."
+
 #: src/components/settings/Integrations.tsx:747
-msgid "The assistants of the email editor, the blog and web analytics"
-msgstr "Els assistents de l'editor de correu, del blog i de l'analítica web"
+#~ msgid "The assistants of the email editor, the blog and web analytics"
+#~ msgstr "Els assistents de l'editor de correu, del blog i de l'analítica web"
 
 #. placeholder {0}: seedResult.error
 #: src/components/email_builder/panels/TextVersionPanel.tsx:238
@@ -26806,6 +27305,10 @@ msgstr "La clau apareix a Configuració → Equip i claus API com a {0}, on pode
 #: src/components/settings/DomainsSettings.tsx:88
 msgid "The key of {domain} changed during the check. The list shows its current state."
 msgstr "La clau de {domain} ha canviat durant la comprovació. La llista en mostra l'estat actual."
+
+#: src/pages/OAuthAuthorizePage.tsx:615
+msgid "The key will have every right in {workspaceName}, sending emails and deleting contacts included. It goes to the application published at {clientHost}."
+msgstr "La clau tindrà tots els drets a {workspaceName}, inclosos enviar correus i eliminar contactes. És per a l'aplicació publicada a {clientHost}."
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:140
 msgid "The last backfill failed"
@@ -27291,7 +27794,7 @@ msgstr "Es tanquen totes les seves sessions."
 msgid "Thinking"
 msgstr "Pensant"
 
-#: src/pages/SignInPage.tsx:154
+#: src/pages/SignInPage.tsx:155
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "Aquest compte ja està vinculat a una identitat d'inici de sessió únic diferent."
 
@@ -27299,8 +27802,8 @@ msgstr "Aquest compte ja està vinculat a una identitat d'inici de sessió únic
 #: src/components/automations/list/AutomationsTable.tsx:88
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/Integrations.tsx:292
 #: src/components/settings/integrations/EmailProviderCard.tsx:190
+#: src/components/settings/integrations/useIntegrationActions.ts:107
 #: src/components/settings/WebhookDetail.tsx:343
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:30
 msgid "This action cannot be undone."
@@ -27335,6 +27838,10 @@ msgstr "Aquesta anotació es va crear automàticament quan es va iniciar una dif
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
 #~ msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 #~ msgstr "Això apareix a les pestanyes del navegador quan es visualitza el correu en un navegador web i en alguns clients de correu. Normalment és el mateix o està relacionat amb l'assumpte del correu."
+
+#: src/pages/OAuthAuthorizePage.tsx:373
+msgid "This application returns to a program on your own computer. Connect only if you started this connection yourself, just now."
+msgstr "Aquesta aplicació torna a un programa del vostre propi ordinador. Connecteu només si acabeu d'iniciar aquesta connexió vosaltres mateixos."
 
 #: src/components/logs/AuditEntryDetail.tsx:106
 msgid "This audit entry could not be found"
@@ -27402,6 +27909,14 @@ msgstr "Aquesta categoria encara no s’ha creat."
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:325
 msgid "This comes from the deployment defaults, set by the administrator of this installation."
 msgstr "Això ve dels valors per defecte del desplegament, fixats per l'administrador d'aquesta instal·lació."
+
+#: src/components/settings/MCPSettings.tsx:121
+msgid "This connection no longer exists"
+msgstr "Aquesta connexió ja no existeix"
+
+#: src/pages/OAuthAuthorizePage.tsx:172
+msgid "This connection request can't continue"
+msgstr "Aquesta sol·licitud de connexió no pot continuar"
 
 #: src/components/license/LicenseBanner.tsx:191
 #: src/components/settings/LicenseSettings.tsx:127
@@ -27510,6 +28025,10 @@ msgstr "Aquesta integració s'eliminarà aviat: SparkPost ja no accepta clients 
 msgid "This invitation link is invalid or has expired."
 msgstr "Aquest enllaç d'invitació no és vàlid o ha caducat."
 
+#: src/pages/OAuthAuthorizePage.tsx:459
+msgid "This is not a Notifuse API key, or the key was deleted. Sign-in links and invitations don't work here. Create a key in Settings › Team & API keys."
+msgstr "No és una clau API de Notifuse, o la clau s'ha eliminat. Els enllaços d'inici de sessió i les invitacions no funcionen aquí. Creeu una clau a Configuració › Equip i claus API."
+
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:377
 msgid "This is not a web address. Paste a link such as https://example.com/page."
 msgstr "Això no és una adreça web. Enganxa un enllaç com ara https://example.com/page."
@@ -27597,7 +28116,7 @@ msgstr "Aquesta marca notifuse:condition d'una exportació de Notifuse no conté
 msgid "This page cannot be previewed here"
 msgstr "Aquesta pàgina no es pot previsualitzar aquí"
 
-#: src/pages/SignInPage.tsx:278
+#: src/pages/SignInPage.tsx:279
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "Aquesta pàgina se serveix des de {pageOrigin}, però aquesta instància envia les seves sol·licituds a {unreachableEndpoint}, que no ha respost. Si Notifuse s'ha traslladat a {pageOrigin}, definiu la variable d'entorn API_ENDPOINT amb aquesta adreça i reinicieu el servidor."
 
@@ -27642,6 +28161,10 @@ msgstr "Aquesta expressió regular fa servir una sintaxi que el navegador no pot
 msgid "This removes the contacts and their history from the workspace. It cannot be undone."
 msgstr "Això elimina els contactes i el seu historial de l'espai de treball. No es pot desfer."
 
+#: src/pages/OAuthAuthorizePage.tsx:149
+msgid "This request was started in another browser. A connection can only be finished where it began, so that nobody can send you a link to approve their request."
+msgstr "Aquesta sol·licitud es va iniciar en un altre navegador. Una connexió només es pot acabar on va començar, perquè ningú no us pugui enviar un enllaç que aprovi la seva sol·licitud."
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:122
 msgid "This rule"
 msgstr "Aquesta regla"
@@ -27674,6 +28197,10 @@ msgstr "Aquest segment ja no existeix"
 #: src/components/broadcasts/compose/ContentCard.tsx:214
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Aquest remitent ja no forma part de la integració d'email de màrqueting. Tria'n un altre o buida el camp per fer servir el de la plantilla."
+
+#: src/pages/OAuthAuthorizePage.tsx:642
+msgid "This server requires two-factor authentication before you can create a key. You can still paste an existing key."
+msgstr "Aquest servidor exigeix l'autenticació de doble factor abans de crear una clau. Encara podeu enganxar una clau existent."
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:205
 msgid "This session is too long to show in full: only its first pages and goals are listed."
@@ -27747,7 +28274,7 @@ msgstr "Aquest text no s'actualitza quan canvies el correu."
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "Aquest token només es mostra una vegada i no es podrà recuperar de nou. Copieu-lo ara i enganxeu-lo a Zapier."
 
-#: src/components/settings/WorkspaceMembers.tsx:673
+#: src/components/settings/WorkspaceMembers.tsx:736
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Aquest token només es mostrarà una vegada. Si us plau, deseu-lo en una ubicació segura. No es podrà recuperar de nou."
 
@@ -28082,8 +28609,13 @@ msgstr "Per aturar aquests esdeveniments, desactiveu el Zap a Zapier. Zapier eli
 
 #. placeholder {0}: config.title
 #: src/components/ai-assistant/AIAssistantChat.tsx:139
-msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
-msgstr "Per utilitzar el {0}, heu de configurar la integració d'Anthropic a la configuració de l'espai de treball."
+msgid "To use the {0}, connect an AI model from Anthropic, OpenAI or Gemini in Settings › AI › Assistant."
+msgstr "Per fer servir {0}, connecta un model d'IA d'Anthropic, OpenAI o Gemini a Configuració › IA › Assistent."
+
+#. placeholder {0}: config.title
+#: src/components/ai-assistant/AIAssistantChat.tsx:139
+#~ msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
+#~ msgstr "Per utilitzar el {0}, heu de configurar la integració d'Anthropic a la configuració de l'espai de treball."
 
 #: src/components/contacts/sheet/sheetDates.ts:16
 #: src/components/contacts/visits/ContactWebVisits.tsx:239
@@ -28121,7 +28653,11 @@ msgstr "Alternar llegenda"
 msgid "Token"
 msgstr "Token"
 
-#: src/pages/SignInPage.tsx:158
+#: src/pages/OAuthAuthorizePage.tsx:464
+msgid "Too many attempts from this address. Wait a minute, then try again."
+msgstr "Massa intents des d'aquesta adreça. Espereu un minut i torneu-ho a provar."
+
+#: src/pages/SignInPage.tsx:159
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Massa intents d'inici de sessió. Espereu un moment i torneu-ho a provar."
 
@@ -28134,7 +28670,6 @@ msgid "Too many wrong codes. Try again in {minutes} minutes."
 msgstr "Massa codis erronis. Torna-ho a provar d'aquí a {minutes} minuts."
 
 #: src/components/integrations/FirecrawlIntegration.tsx:125
-#: src/components/settings/Integrations.tsx:492
 msgid "Tools"
 msgstr "Eines"
 
@@ -28403,7 +28938,7 @@ msgstr "Notificació transaccional eliminada correctament"
 #~ msgid "Transactional Notifications"
 #~ msgstr "Notificacions transaccionals"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:81
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:68
 msgid "Transactional only"
 msgstr "Només transaccional"
 
@@ -28478,11 +29013,11 @@ msgstr "El disparador ha de tenir almenys un tipus d'esdeveniment seleccionat"
 msgid "Trigger on specific field changes"
 msgstr "Activar amb canvis de camp específics"
 
-#: src/components/settings/Integrations.tsx:517
+#: src/components/settings/Integrations.tsx:327
 msgid "Triggers and actions"
 msgstr "Activadors i accions"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:127
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:91
 msgid "Triggers and actions in your Zaps"
 msgstr "Activadors i accions als vostres Zaps"
 
@@ -28495,6 +29030,7 @@ msgstr "cert"
 #~ msgstr "Proveu d'ajustar la cerca o el filtre d'estat"
 
 #: src/components/two_factor/SetupWizard.tsx:157
+#: src/pages/OAuthAuthorizePage.tsx:208
 msgid "Try again"
 msgstr "Torna-ho a provar"
 
@@ -28602,6 +29138,10 @@ msgstr "Ha activat o desactivat el webhook <0>{target}</0>"
 msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
 msgstr "Desactivar el doble opt-in no canvia els contactes «Pendents»: continuaran pendents fins que confirmin."
 
+#: src/components/settings/MCPSettings.tsx:349
+msgid "Turning it back on restores existing connections: nothing is revoked."
+msgstr "Tornar-lo a activar restableix les connexions existents: no es revoca res."
+
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
 #~ msgstr ""
@@ -28653,9 +29193,13 @@ msgstr "Escriviu {selectedCount} per confirmar:"
 #~ msgid "Type:"
 #~ msgstr "Tipus:"
 
-#: src/components/settings/Integrations.tsx:564
+#: src/components/settings/Integrations.tsx:376
 msgid "Type: {typeName}"
 msgstr "Tipus: {typeName}"
+
+#: src/components/settings/MCPSettings.tsx:362
+msgid "Unavailable"
+msgstr "No disponible"
 
 #: src/components/blog/PostsTable.tsx:330
 msgid "Uncategorized"
@@ -28733,8 +29277,10 @@ msgstr "Els clics únics compten cada destinatari una vegada per enllaç — alg
 #: src/components/contacts/ContactUpsertDrawer.tsx:434
 #: src/components/contacts/TrackingConsent.tsx:14
 #: src/components/contacts/trackingConsentOptions.ts:16
+#: src/components/settings/MCPSettings.tsx:243
 #: src/components/transactional/TransactionalDetail.tsx:424
 #: src/components/web_analytics/LiveSessionMap.tsx:57
+#: src/pages/OAuthAuthorizePage.tsx:308
 msgid "Unknown"
 msgstr "Desconegut"
 
@@ -29225,7 +29771,7 @@ msgstr "Feu servir 0 per conservar per sempre, o un valor entre {AUDIT_LOG_MIN_R
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "Feu servir 0 per conservar per sempre, o un valor entre 30 i 3650"
 
-#: src/pages/SignInPage.tsx:382
+#: src/pages/SignInPage.tsx:383
 msgid "Use a different email"
 msgstr "Utilitzar un altre correu"
 
@@ -29399,7 +29945,7 @@ msgstr "Usuari creat i sincronitzat des de Supabase"
 #~ msgid "User Created Hook Secret"
 #~ msgstr "Secret del hook d'usuari creat"
 
-#: src/components/settings/Integrations.tsx:415
+#: src/components/settings/Integrations.tsx:306
 msgid "User Metadata Field"
 msgstr "Camp de metadades d'usuari"
 
@@ -29673,7 +30219,7 @@ msgstr "Ha verificat el codi d'inici de sessió de <0>{target}</0>"
 msgid "Verify"
 msgstr "Verificar"
 
-#: src/pages/SignInPage.tsx:372
+#: src/pages/SignInPage.tsx:373
 msgid "Verify Code"
 msgstr "Verificar codi"
 
@@ -29986,16 +30532,21 @@ msgstr "Detectarem i utilitzarem automàticament el favicon del vostre lloc web"
 msgid "Web"
 msgstr "Web"
 
+#: src/components/settings/AIAssistantSettings.tsx:323
+msgid "Web access"
+msgstr "Accés al web"
+
 #: src/components/contacts/sheet/describeActivity.tsx:393
 #: src/components/contacts/sheet/describeActivity.tsx:418
 #: src/components/logs/labels.ts:22
 #: src/components/settings/data_retention/categoryText.ts:11
-#: src/components/settings/SettingsSidebar.tsx:59
+#: src/components/settings/SettingsSidebar.tsx:62
 #: src/components/settings/WebAnalyticsSettings.tsx:201
 #: src/components/settings/WebAnalyticsSettings.tsx:264
 msgid "Web analytics"
 msgstr "Analítica web"
 
+#: src/components/settings/AIAssistantSettings.tsx:227
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:212
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
@@ -30042,8 +30593,8 @@ msgstr "La configuració d'analítica web s'ha actualitzat correctament"
 #~ msgstr "Sessió web"
 
 #: src/components/settings/Integrations.tsx:482
-msgid "Web tools for the AI assistant"
-msgstr "Eines web per a l'assistent d'IA"
+#~ msgid "Web tools for the AI assistant"
+#~ msgstr "Eines web per a l'assistent d'IA"
 
 #: src/components/broadcasts/compose/TrackingCard.tsx:19
 #: src/components/broadcasts/detail/BroadcastAside.tsx:181
@@ -30124,7 +30675,7 @@ msgid "Webhook URL"
 msgstr "URL del webhook"
 
 #: src/components/logs/labels.ts:13
-#: src/components/settings/SettingsSidebar.tsx:55
+#: src/components/settings/SettingsSidebar.tsx:58
 #: src/components/settings/WebhooksSettings.tsx:456
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -30257,6 +30808,10 @@ msgstr "El que un lector de feeds mostra de cada article"
 #~ msgid "What a licence includes"
 #~ msgstr ""
 
+#: src/components/settings/MCPSettings.tsx:484
+msgid "What an assistant can do"
+msgstr "Què pot fer un assistent"
+
 #: src/components/web_analytics/explore/CsvExportModal.tsx:147
 msgid "What gets exported"
 msgstr "Què s'exporta"
@@ -30348,6 +30903,14 @@ msgstr "Quan s'aplica"
 #~ msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 #~ msgstr "Quan està desactivat (recomanat), només els usuaris ja convidats poden iniciar sessió amb SSO. Quan està activat, un correu verificat d'un domini permès crea un compte automàticament."
 
+#: src/components/settings/MCPSettings.tsx:168
+msgid "When off, no assistant reaches this workspace, whatever key it uses."
+msgstr "Quan està desactivat, cap assistent arriba a aquest espai de treball, sigui quina sigui la clau."
+
+#: src/components/settings/MCPSettings.tsx:167
+msgid "When off, no assistant reaches this workspace. Nothing is revoked."
+msgstr "Quan està desactivat, cap assistent arriba a aquest espai de treball. No es revoca res."
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:244
 msgid "When one of them also matches a session, its value replaces this rule's."
 msgstr "Quan una d'elles també coincideix amb una sessió, el seu valor substitueix el d'aquesta regla."
@@ -30375,6 +30938,14 @@ msgstr "Quan enviar"
 #: src/components/templates/CreateTemplateDrawer.tsx:1502
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Quan seleccioneu un bloc, la seva configuració apareix aquí. Modifiqueu colors, text, espaiat, alineació i altres propietats per personalitzar el disseny del vostre correu."
+
+#: src/components/settings/MCPSettings.tsx:357
+msgid "Where claude.ai and ChatGPT ask for the API key."
+msgstr "On claude.ai i ChatGPT demanen la clau API."
+
+#: src/components/settings/AIAssistantSettings.tsx:349
+msgid "Where the assistant appears"
+msgstr "On apareix l'assistent"
 
 #: src/components/segment/segmentLabels.ts:58
 msgid "Where the last tracking consent change came from"
@@ -30408,7 +30979,7 @@ msgstr "Quines pàgines d'aterratge porten més sessions, i quines tenen la pitj
 msgid "Which provider sends what"
 msgstr "Quin proveïdor envia què"
 
-#: src/components/settings/WorkspaceMembers.tsx:474
+#: src/components/settings/WorkspaceMembers.tsx:518
 msgid "Who can do what in this workspace"
 msgstr "Qui pot fer què en aquest espai de treball"
 
@@ -30566,6 +31137,10 @@ msgstr "amb propietats"
 msgid "with status"
 msgstr "amb estat"
 
+#: src/components/settings/MCPSettings.tsx:485
+msgid "With the audit log licence, every action that is not a read is logged under the key that made it."
+msgstr "Amb la llicència del registre d'auditoria, cada acció que no és una lectura queda registrada amb la clau que l'ha feta."
+
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:67
 msgid "With the test data"
 msgstr "Amb les dades de prova"
@@ -30581,6 +31156,11 @@ msgstr "Amb:"
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:158
 msgid "Within"
 msgstr "Dins de"
+
+#: src/components/settings/MCPSettings.tsx:405
+#: src/pages/OAuthAuthorizePage.tsx:733
+msgid "Without a licence that includes custom permissions, every key has full access: the assistant can send emails, change templates and delete contacts."
+msgstr "Sense una llicència que inclogui permisos personalitzats, totes les claus tenen accés complet: l'assistent pot enviar correus, canviar plantilles i eliminar contactes."
 
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
@@ -30602,6 +31182,10 @@ msgstr "Paraules"
 msgid "Works once created"
 msgstr "Funciona un cop creada"
 
+#: src/components/settings/AIAssistantSettings.tsx:306
+msgid "Works with Anthropic, OpenAI or an OpenAI-compatible endpoint, and Gemini. Only owners can add, change or remove a model."
+msgstr "Funciona amb Anthropic, OpenAI o un endpoint compatible amb OpenAI, i Gemini. Només els propietaris poden afegir, canviar o treure un model."
+
 #: src/components/logs/AuditEntryDetail.tsx:193
 #: src/components/logs/AuditLogTab.tsx:528
 #: src/components/logs/labels.ts:9
@@ -30610,6 +31194,7 @@ msgstr "Funciona un cop creada"
 #: src/components/settings/permissionLabels.ts:12
 #: src/components/settings/SettingsSidebar.tsx:14
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
+#: src/pages/OAuthAuthorizePage.tsx:674
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Espai de treball"
@@ -30723,6 +31308,7 @@ msgid "Wrapper container"
 msgstr "Contenidor envoltant"
 
 #: src/components/blog/PostDrawer.tsx:851
+#: src/components/settings/MCPSettings.tsx:498
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -30748,6 +31334,10 @@ msgstr "Escriviu marcatge MJML amb etiquetes de plantilla Liquid. Aquest conting
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:98
 msgid "Writes"
 msgstr "Escriu"
+
+#: src/components/settings/AIAssistantSettings.tsx:222
+msgid "Writes and edits templates"
+msgstr "Escriu i edita plantilles"
 
 #: src/pages/BlogPage.tsx:34
 msgid "Writing or editing a post also needs Templates read and write: its content is a template."
@@ -30866,6 +31456,10 @@ msgstr "Ahir {time}"
 #: src/components/transactional/TransactionalTable.tsx:265
 msgid "Yesterday, {time}"
 msgstr "Ahir, {time}"
+
+#: src/pages/OAuthAuthorizePage.tsx:138
+msgid "You can close this page if nothing happens."
+msgstr "Podeu tancar aquesta pàgina si no passa res."
 
 #: src/components/setup/SetupRestartView.tsx:54
 msgid "You can now sign in."
@@ -31142,7 +31736,11 @@ msgstr "Els teus correus apareixeran aquí, dia a dia, des del teu primer enviam
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Els vostres fitxers es poden pujar a qualsevol emmagatzematge compatible amb S3."
 
-#: src/pages/SignInPage.tsx:152
+#: src/components/settings/AIAssistantSettings.tsx:331
+msgid "Your Firecrawl key, or your own Firecrawl server"
+msgstr "La teva clau de Firecrawl, o el teu propi servidor Firecrawl"
+
+#: src/pages/SignInPage.tsx:153
 msgid "Your identity provider has not verified your email address."
 msgstr "El vostre proveïdor d'identitat no ha verificat la vostra adreça de correu."
 
@@ -31173,6 +31771,10 @@ msgstr "La vostra factura d'octubre"
 #: src/components/two_factor/AccountSecurityPanel.tsx:115
 msgid "Your previous codes no longer work. This is the only time Notifuse shows these."
 msgstr "Els teus codis anteriors ja no funcionen. Notifuse només mostra aquests aquesta vegada."
+
+#: src/pages/OAuthAuthorizePage.tsx:656
+msgid "Your session has expired. Sign in again to create a key here. The request stays open until it is 10 minutes old."
+msgstr "La sessió ha caducat. Torneu a iniciar la sessió per crear una clau aquí. La sol·licitud continua oberta fins a 10 minuts després de començar."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:571
 msgid "Your SMTP server's name"
@@ -31221,11 +31823,11 @@ msgstr "Clau API de Zapier"
 msgid "Zapier created this webhook for one of your Zaps."
 msgstr "Zapier ha creat aquest webhook per a un dels vostres Zaps."
 
-#: src/components/settings/Integrations.tsx:238
+#: src/components/settings/Integrations.tsx:166
 msgid "Zapier integration saved successfully"
 msgstr "Integració de Zapier desada correctament"
 
-#: src/components/settings/Integrations.tsx:221
+#: src/components/settings/Integrations.tsx:149
 msgid "Zapier is connected, but the integration list could not be refreshed"
 msgstr "Zapier està connectat, però no s'ha pogut actualitzar la llista d'integracions"
 

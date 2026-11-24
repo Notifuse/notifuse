@@ -60,6 +60,19 @@ describe('api client 401 handling', () => {
     expect(localStorage.getItem('auth_token')).toBeNull()
   })
 
+  // The MCP connection page needs no session and offers to sign in again itself, keeping its
+  // request: a 401 drops the dead token and leaves the page where it is.
+  it('keeps the MCP connection page and its request when a 401 arrives there', async () => {
+    goTo('/console/oauth/authorize?request=req1')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(401, { error: 'Session expired or invalid' })))
+
+    await expect(api.post('/api/oauth.createKeyAndApprove', {})).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).not.toHaveBeenCalled()
+    expect(localStorage.getItem('auth_token')).toBeNull()
+    expect(window.location.search).toBe('?request=req1')
+  })
+
   it('still redirects to sign-in when a 401 arrives anywhere else', async () => {
     goTo('/console/workspace/demo/contacts')
     vi.stubGlobal(
@@ -375,6 +388,17 @@ describe('api client two_factor_required', () => {
     await expect(api.post('/api/workspaces.joinInvitation', {})).rejects.toBeInstanceOf(ApiError)
 
     expect(navigate).toHaveBeenCalledWith({ to: '/console/account/security' })
+  })
+
+  // The MCP connection page explains it: pasting a key still works without the second factor.
+  it('leaves the MCP connection page where it is', async () => {
+    goTo('/console/oauth/authorize?request=req1')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(403, { error: 'two_factor_required' })))
+
+    await expect(api.post('/api/oauth.createKeyAndApprove', {})).rejects.toBeInstanceOf(ApiError)
+
+    expect(navigate).not.toHaveBeenCalled()
+    expect(localStorage.getItem('auth_token')).toBe('live-token')
   })
 
   // workspaces.create and the root screens explain the refusal themselves.

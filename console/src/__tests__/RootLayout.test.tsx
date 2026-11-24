@@ -263,4 +263,27 @@ describe('RootLayout two-factor requirement', () => {
     render(<RootLayout />)
     expect(navigate).not.toHaveBeenCalled()
   })
+
+  // The MCP connection page needs no session: the API key pasted there is the proof.
+  it('leaves a visitor without a session on the MCP connection page', () => {
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({ isAuthenticated: false, loading: false, workspaces: [], user: undefined, twoFactorRequired: false })
+    onRoute('/console/oauth/authorize')
+    render(<RootLayout />)
+    expect(navigate).not.toHaveBeenCalled()
+    expect(screen.getByTestId('outlet')).toBeInTheDocument()
+  })
+
+  // A root user with no workspace, or a session short of the second factor, stays there too.
+  it.each([
+    ['a root user without a workspace', { email: 'root@example.com' }, false],
+    ['a session short of the second factor', { email: 'ann@example.com' }, true]
+  ])('leaves %s on the MCP connection page', (_label, user, twoFactorRequired) => {
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({ isAuthenticated: true, loading: false, workspaces: [], user, twoFactorRequired })
+    onRoute('/console/oauth/authorize')
+    render(<RootLayout />)
+    expect(navigate).not.toHaveBeenCalled()
+    expect(screen.getByTestId('outlet')).toBeInTheDocument()
+  })
 })

@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import {
   Table,
   Button,
@@ -38,6 +40,7 @@ import { initialsFor } from '../../layouts/app-shell/gravatar'
 import { summarizeAccess } from './accessSummary'
 import { API_KEY_PREFIX_MAX_LENGTH, apiKeyDomain, finalApiKeyPrefix, toApiKeyPrefix } from './apiKeyPrefix'
 import { PERMISSION_RESOURCE_LABELS } from './permissionLabels'
+import { isKnownOAuthClient, workspaceGrantsQuery, type OAuthGrant } from '../../services/api/mcp'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -54,7 +57,7 @@ interface WorkspaceMembersProps {
 }
 
 /** The Access cell: a pill, or the resources of a partial grant, with the matrix on hover. */
-function AccessCell({ member }: { member: WorkspaceMember }) {
+export function AccessCell({ member }: { member: WorkspaceMember }) {
   const { t, i18n } = useLingui()
   const summary = summarizeAccess(member)
   const permissions: StoredPermissions = member.permissions ?? createEmptyPermissions()
@@ -179,6 +182,20 @@ export function WorkspaceMembers({
   const apiKeyRows = members
     .filter((member) => member.type === 'api_key')
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
+
+  // The applications connected with each key through the MCP connection page. Owners only: the
+  // server lists the connections to no one else.
+  const showConnections = isOwner && window.MCP_ENABLED === true
+  const grants = useQuery({
+    ...workspaceGrantsQuery(workspaceId),
+    enabled: showConnections,
+    retry: false
+  })
+  const connectionsByKey = new Map<string, OAuthGrant[]>()
+  for (const grant of grants.data?.grants ?? []) {
+    if (grant.status !== 'active') continue
+    connectionsByKey.set(grant.api_key_user_id, [...(connectionsByKey.get(grant.api_key_user_id) ?? []), grant])
+  }
 
   const confirmRemove = (member: WorkspaceMember) => {
     const email = member.email
@@ -306,6 +323,33 @@ export function WorkspaceMembers({
       width: 130,
       render: (_, member) => <span className="text-ink-3">{shortDate(member.created_at)}</span>
     },
+    ...(showConnections
+      ? [
+          {
+            title: t`Connected applications`,
+            key: 'connections',
+            render: (_: unknown, member: WorkspaceMember) => {
+              // Not "None" before the connections answer, or when they could not load.
+              if (!grants.isSuccess) return null
+              const connected = connectionsByKey.get(member.user_id) ?? []
+              if (connected.length === 0) return <span className="text-xs text-ink-3">{t({ message: 'None', context: 'connected applications' })}</span>
+              return (
+                <span data-key-connections className="flex flex-wrap gap-1.5">
+                  {connected.map((grant) => (
+                    <Pill
+                      key={grant.id}
+                      tone={isKnownOAuthClient(grant.client_id) ? 'neutral' : 'warning'}
+                      dot={false}
+                    >
+                      {grant.client_name}
+                    </Pill>
+                  ))}
+                </span>
+              )
+            }
+          }
+        ]
+      : []),
     { title: '', key: 'actions', width: 48, align: 'right', render: (_, member) => actionsFor(member) }
   ]
 
@@ -515,6 +559,20 @@ export function WorkspaceMembers({
       <Panel
         flush
         title={t`API keys`}
+        footer={
+          showConnections ? (
+            <span>
+              {t`Deleting a key also ends the assistant connections made with it.`}{' '}
+              <Link
+                to="/console/workspace/$workspaceId/settings/$section"
+                params={{ workspaceId, section: 'mcp' }}
+                className="text-primary-600 hover:text-primary-700"
+              >
+                {t`Manage connections`}
+              </Link>
+            </span>
+          ) : undefined
+        }
         extra={
           isOwner ? (
             <Button size="small" icon={<KeyRound size={14} aria-hidden="true" />} onClick={() => setApiKeyDrawerOpen(true)}>
@@ -523,6 +581,11 @@ export function WorkspaceMembers({
           ) : null
         }
       >
+        {showConnections ? (
+          <p className="m-0 px-3.5 pt-3 pb-2 text-xs text-ink-3">
+            {t`Give each AI assistant its own key, so you can tell its actions apart and revoke it alone.`}
+          </p>
+        ) : null}
         {error ? null : loading ? (
           <div className="px-3.5 py-3">
             <Skeleton active title={false} paragraph={{ rows: 2 }} />

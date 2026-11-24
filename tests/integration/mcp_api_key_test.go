@@ -23,7 +23,7 @@ import (
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
-// mcpAppFactory turns MCP on, which MCP_ENABLED leaves off by default.
+// mcpAppFactory turns MCP on, which the test configuration leaves off.
 func mcpAppFactory(cfg *config.Config) testutil.AppInterface {
 	cfg.MCP.Enabled = true
 	return appFactory(cfg)
