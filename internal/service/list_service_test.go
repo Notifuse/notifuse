@@ -710,7 +710,8 @@ func TestListService_SubscribeToLists(t *testing.T) {
 				UpdatedAt: time.Now(),
 			},
 		}, nil)
-		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, payload.Contact.Email, []string{"list123"}).Return(nil, nil)
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 		workspace.Settings.MarketingEmailProviderID = "" // No marketing provider
 
@@ -731,7 +732,8 @@ func TestListService_SubscribeToLists(t *testing.T) {
 				UpdatedAt: time.Now(),
 			},
 		}, nil)
-		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, payload.Contact.Email, []string{"list123"}).Return(nil, nil)
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 		workspace.Settings.MarketingEmailProviderID = "" // No marketing provider
 
@@ -761,7 +763,8 @@ func TestListService_SubscribeToLists(t *testing.T) {
 			},
 		}, nil)
 
-		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, "test@example.com", "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, "test@example.com", "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, "test@example.com", []string{"list123"}).Return(nil, nil)
 
 		// AddContactToList should be called with status=pending since this is a double opt-in list
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).
@@ -827,7 +830,7 @@ func TestListService_SubscribeToLists(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
 		// Mock upsert
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 
 		// The rest of the flow continues
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
@@ -839,7 +842,8 @@ func TestListService_SubscribeToLists(t *testing.T) {
 				UpdatedAt: time.Now(),
 			},
 		}, nil)
-		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, "existing@example.com", "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, "existing@example.com", "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, "existing@example.com", []string{"list123"}).Return(nil, nil)
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 		specialWorkspace.Settings.MarketingEmailProviderID = "" // No marketing provider
 
@@ -859,7 +863,8 @@ func TestListService_SubscribeToLists(t *testing.T) {
 				UpdatedAt: time.Now(),
 			},
 		}, nil)
-		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, payload.Contact.Email, []string{"list123"}).Return(nil, nil)
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(errors.New("add contact to list error"))
 		mockLogger.EXPECT().WithField("email", payload.Contact.Email).Return(mockLogger)
 		mockLogger.EXPECT().WithField("list_id", "list123").Return(mockLogger)
@@ -885,9 +890,9 @@ func TestListService_SubscribeToLists(t *testing.T) {
 		}
 
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		// For unauthenticated requests, service checks if contact exists first
-		mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(nil, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		// Refused before the contact is read or written
+		mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
 			{
@@ -931,7 +936,7 @@ func TestListService_SubscribeToLists(t *testing.T) {
 		}
 
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceWithSecret, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
 			{
 				ID:        "list123",
@@ -942,6 +947,7 @@ func TestListService_SubscribeToLists(t *testing.T) {
 			},
 		}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, "test@example.com", "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, "test@example.com", []string{"list123"}).Return(nil, nil)
 		// No AddContactToList expectation: gomock fails the test if it is called
 
 		err := service.SubscribeToLists(ctx, hmacPayload, false) // hasBearerToken=false, valid HMAC
@@ -951,7 +957,11 @@ func TestListService_SubscribeToLists(t *testing.T) {
 
 	t.Run("error - upsert contact failure", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{{ID: "list123", Name: "Test List", IsPublic: true}}, nil)
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, payload.Contact.Email, []string{"list123"}).Return(nil, nil)
 		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, errors.New("upsert contact error"))
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockLogger.EXPECT().WithField("email", payload.Contact.Email).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
 
@@ -962,7 +972,7 @@ func TestListService_SubscribeToLists(t *testing.T) {
 
 	t.Run("error - get lists failure", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return(nil, errors.New("get lists error"))
 		mockLogger.EXPECT().WithField("list_ids", payload.ListIDs).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
@@ -1016,7 +1026,7 @@ func TestListService_SubscribeToLists(t *testing.T) {
 
 	t.Run("error - list not found", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{}, nil)
 
 		mockLogger.EXPECT().WithField("list_id", "list123").Return(mockLogger)
@@ -1052,7 +1062,8 @@ func TestListService_SubscribeToLists(t *testing.T) {
 				UpdatedAt: time.Now(),
 			},
 		}, nil)
-		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, payload.Contact.Email, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, payload.Contact.Email, []string{"list123"}).Return(nil, nil)
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(errors.New("failed to add contact"))
 		mockLogger.EXPECT().WithField("email", payload.Contact.Email).Return(mockLogger)
 		mockLogger.EXPECT().WithField("list_id", "list123").Return(mockLogger)
@@ -1144,7 +1155,7 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 
 	t.Run("existing active subscription is idempotent no-op", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusActive}, nil)
@@ -1164,7 +1175,7 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 		doiList.IsDoubleOptin = true
 
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{&doiList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusPending}, nil)
@@ -1215,7 +1226,8 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 
 	t.Run("bounced contact is silently skipped", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		// Refused on its only list: the contact is not written either
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusBounced}, nil)
@@ -1228,7 +1240,8 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 
 	t.Run("complained contact is silently skipped", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		// Refused on its only list: the contact is not written either
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusComplained}, nil)
@@ -1242,7 +1255,7 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 	t.Run("a signed re-subscription is active at once, with no email", func(t *testing.T) {
 		// The signed link proves the mailbox, as a double opt-in click does.
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusUnsubscribed}, nil)
@@ -1306,7 +1319,7 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 		noTemplate := *testList
 		noTemplate.DoubleOptInTemplate = nil
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{&noTemplate}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusUnsubscribed}, nil)
@@ -1339,7 +1352,8 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 		auditCtx := domain.WithAuditRecord(ctx, record)
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 		bearerAuth()
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		// Refused on its only list: the contact is not written either
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusUnsubscribed}, nil)
@@ -1363,7 +1377,7 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 		doiList.IsDoubleOptin = true
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 		bearerAuth()
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{&doiList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusUnsubscribed}, nil)
@@ -1388,7 +1402,8 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 		flagged.Resubscribe = true
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 		bearerAuth()
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		// Refused on its only list: the contact is not written either
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusBounced}, nil)
@@ -1402,7 +1417,7 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 
 	t.Run("a complaint recorded during the re-subscription is reported", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		gomock.InOrder(
 			mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
@@ -1446,7 +1461,8 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
-			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+			Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, contactEmail, []string{listID}).Return(nil, nil)
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 		err := service.SubscribeToLists(ctx, payload, false)
@@ -1455,7 +1471,7 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 
 	t.Run("an unexpected error reading the row propagates", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(nil, errors.New("db connection failed"))
@@ -1513,7 +1529,7 @@ func TestListService_SubscribeToLists_PrivateListThroughALink(t *testing.T) {
 		emailService    *mocks.MockEmailServiceInterface
 	}
 	// setup expects what every request does before it reaches the list: load the
-	// workspace, upsert the contact and load the lists
+	// workspace and the lists. The contact is written only when the list accepts it
 	setup := func(t *testing.T) fixture {
 		ctrl := gomock.NewController(t)
 		listRepo := mocks.NewMockListRepository(ctrl)
@@ -1528,7 +1544,6 @@ func TestListService_SubscribeToLists_PrivateListThroughALink(t *testing.T) {
 			f.authService, f.emailService, pkgmocks.NewMockLogger(ctrl), "https://api.example.com", pkgmocks.NewMockCache(ctrl))
 
 		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-		f.contactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 		listRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{privateList}, nil)
 		return f
 	}
@@ -1537,8 +1552,9 @@ func TestListService_SubscribeToLists_PrivateListThroughALink(t *testing.T) {
 		f := setup(t)
 		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
-		// No AddContactToList or SendEmailForTemplate expectation: gomock fails the test if
-		// either is called
+		f.contactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, contactEmail, []string{listID}).Return(nil, nil)
+		// No AddContactToList, SendEmailForTemplate or UpsertContact expectation: gomock
+		// fails the test if any is called
 
 		err := f.service.SubscribeToLists(ctx, payload, false)
 		require.Error(t, err)
@@ -1547,6 +1563,7 @@ func TestListService_SubscribeToLists_PrivateListThroughALink(t *testing.T) {
 
 	t.Run("pending row: the double opt-in confirmation activates it", func(t *testing.T) {
 		f := setup(t)
+		f.contactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusPending}, nil)
 		f.contactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).
@@ -1566,8 +1583,8 @@ func TestListService_SubscribeToLists_PrivateListThroughALink(t *testing.T) {
 		f := setup(t)
 		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusUnsubscribed}, nil)
-		// No AddContactToList or SendEmailForTemplate expectation: gomock fails the test if
-		// either is called
+		// No AddContactToList, SendEmailForTemplate or UpsertContact expectation: gomock
+		// fails the test if any is called
 
 		err := f.service.SubscribeToLists(ctx, payload, false)
 		require.Error(t, err)
@@ -1576,6 +1593,7 @@ func TestListService_SubscribeToLists_PrivateListThroughALink(t *testing.T) {
 
 	t.Run("bearer token: the API still adds a contact to a private list", func(t *testing.T) {
 		f := setup(t)
+		f.contactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 		f.authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, &domain.UserWorkspace{
 			UserID:      "user123",
 			WorkspaceID: workspaceID,
@@ -1583,7 +1601,8 @@ func TestListService_SubscribeToLists_PrivateListThroughALink(t *testing.T) {
 			Permissions: domain.UserPermissions{domain.PermissionResourceLists: {Read: true, Write: true}},
 		}, nil)
 		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, listID).
-			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+			Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		f.contactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, contactEmail, []string{listID}).Return(nil, nil)
 		f.contactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).
 			Do(func(_ context.Context, _ string, cl *domain.ContactList) {
 				assert.Equal(t, domain.ContactListStatusActive, cl.Status)
@@ -1718,7 +1737,7 @@ func TestListService_SubscribeToLists_RemovedRow(t *testing.T) {
 
 	t.Run("removed unsubscribed row: a signed re-subscription is active at once, as for a member", func(t *testing.T) {
 		f := setup(t)
-		f.contactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		f.contactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, singleOptInList.ID).
 			Return(removedRow(singleOptInList.ID, domain.ContactListStatusUnsubscribed), nil)
 		// The request is signed: the contact's own, so they come back active at once
@@ -1764,11 +1783,10 @@ func TestListService_SubscribeToLists_RemovedRow(t *testing.T) {
 	// The workspace removed them: a link's signature doesn't add them back
 	t.Run("private list, removed active row: rejoining through a link is refused", func(t *testing.T) {
 		f := setup(t)
-		f.contactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, privateList.ID).
 			Return(removedRow(privateList.ID, domain.ContactListStatusActive), nil)
-		// No AddContactToList or SendEmailForTemplate expectation: gomock fails the test if
-		// either is called
+		// No AddContactToList, SendEmailForTemplate or UpsertContact expectation: gomock
+		// fails the test if any is called
 
 		err := f.service.SubscribeToLists(ctx, linkPayload(privateList.ID), false)
 		require.Error(t, err)
@@ -2734,7 +2752,8 @@ func TestListService_SubscribeToLists_DoubleOptInEmailSent(t *testing.T) {
 	)
 	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{list}, nil)
-	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+	mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, contactEmail, []string{"list123"}).Return(nil, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Do(func(_ context.Context, _ string, cl *domain.ContactList) {
 		assert.Equal(t, domain.ContactListStatusPending, cl.Status)
 	}).Return(nil)
@@ -2801,7 +2820,8 @@ func TestListService_SubscribeToLists_GetEmailProviderError(t *testing.T) {
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{list}, nil)
-	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, contactEmail, "list123").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+	mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, contactEmail, []string{"list123"}).Return(nil, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockLogger.EXPECT().WithField("workspace_id", workspaceID).Return(mockLogger)
 	mockLogger.EXPECT().Error(gomock.Any())
@@ -2882,7 +2902,7 @@ func TestListService_SubscribeToListsWithResults_ReportsEveryRequestedList(t *te
 	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 		Return(ctx, &domain.User{}, subscribeResultsUserWorkspace(workspaceID), nil)
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(subscribeResultsWorkspace(workspaceID), nil)
-	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
 
 	mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
 		{ID: "fresh", Name: "Fresh List"},
@@ -2892,7 +2912,8 @@ func TestListService_SubscribeToListsWithResults_ReportsEveryRequestedList(t *te
 	}, nil)
 
 	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "fresh").
-		Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+	mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"fresh"}).Return(nil, nil)
 	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "resub").
 		Return(&domain.ContactList{Email: email, ListID: "resub", Status: domain.ContactListStatusUnsubscribed, CreatedAt: earlier, UpdatedAt: earlier}, nil)
 	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "bounced").
@@ -2952,6 +2973,181 @@ func TestListService_SubscribeToListsWithResults_ReportsEveryRequestedList(t *te
 	}
 }
 
+// A subscribe refused on every list it names writes nothing, not even the contact: the
+// contact's fields in the payload are not applied and its updated_at does not move. The
+// memberships are read before the contact is written, with the opt-outs a deleted contact
+// left on the lists where it has no row, which inserting the address would restore. Those
+// lists are read again after the upsert: an insert, this request's or a concurrent one's,
+// may have restored an opt-out there.
+func TestListService_SubscribeToListsWithResults_RefusedRequestWritesNothing(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "test@example.com"
+	unsubscribedRow := func(listID string) *domain.ContactList {
+		return &domain.ContactList{Email: email, ListID: listID, Status: domain.ContactListStatusUnsubscribed}
+	}
+	payload := func(listIDs ...string) *domain.SubscribeToListsRequest {
+		return &domain.SubscribeToListsRequest{
+			WorkspaceID: workspaceID,
+			Contact:     domain.Contact{Email: email, FirstName: &domain.NullableString{String: "Changed"}},
+			ListIDs:     listIDs,
+		}
+	}
+	bearer := func(mockAuthService *mocks.MockAuthService) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{}, subscribeResultsUserWorkspace(workspaceID), nil)
+	}
+
+	for _, status := range []domain.ContactListStatus{domain.ContactListStatusUnsubscribed, domain.ContactListStatusBounced, domain.ContactListStatusComplained} {
+		t.Run("API call on a "+string(status)+" contact: the contact is not written", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			service, mockRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuthService := newSubscribeResultsService(ctrl)
+			bearer(mockAuthService)
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(subscribeResultsWorkspace(workspaceID), nil)
+			mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{{ID: "news", Name: "News"}}, nil)
+			mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "news").
+				Return(&domain.ContactList{Email: email, ListID: "news", Status: status}, nil)
+			mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+			results, err := service.SubscribeToListsWithResults(ctx, payload("news"), true)
+			require.NoError(t, err)
+			require.Len(t, results, 1)
+			assert.Equal(t, status, results[0].Status)
+		})
+	}
+
+	t.Run("refused on one list, accepted on another: the contact is written", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		service, mockRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuthService := newSubscribeResultsService(ctrl)
+		bearer(mockAuthService)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(subscribeResultsWorkspace(workspaceID), nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{{ID: "left", Name: "Left"}, {ID: "fresh", Name: "Fresh"}}, nil)
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "left").Return(unsubscribedRow("left"), nil)
+		// Only the list with no row is read again after the upsert
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "fresh").
+			Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"fresh"}).Return(nil, nil)
+		gomock.InOrder(
+			mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, c *domain.Contact) (bool, error) {
+					assert.Equal(t, "Changed", c.FirstName.String)
+					return false, nil
+				}),
+			mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).
+				Do(func(_ context.Context, _ string, cl *domain.ContactList) {
+					assert.Equal(t, "fresh", cl.ListID)
+				}).Return(nil),
+		)
+
+		results, err := service.SubscribeToListsWithResults(ctx, payload("left", "fresh"), true)
+		require.NoError(t, err)
+		require.Len(t, results, 2)
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, results[0].Status)
+		assert.Equal(t, domain.ContactListStatusActive, results[1].Status)
+	})
+
+	t.Run("a deleted contact's stored opt-out refuses the request before the insert", func(t *testing.T) {
+		// The address left an unsubscribe when it was deleted: inserting it would put the
+		// unsubscribe back, so the request is refused and the contact is not inserted.
+		ctrl := gomock.NewController(t)
+		service, mockRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuthService := newSubscribeResultsService(ctrl)
+		bearer(mockAuthService)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(subscribeResultsWorkspace(workspaceID), nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{{ID: "news", Name: "News"}}, nil)
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "news").
+			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"news"}).
+			Return([]*domain.ContactList{unsubscribedRow("news")}, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		results, err := service.SubscribeToListsWithResults(ctx, payload("news"), true)
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, results[0].Status)
+	})
+
+	t.Run("an opt-out restored by the insert is read again", func(t *testing.T) {
+		// The opt-out was stored after the read before the insert: the insert restored it,
+		// and the request must report it and not subscribe over it.
+		ctrl := gomock.NewController(t)
+		service, mockRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuthService := newSubscribeResultsService(ctrl)
+		bearer(mockAuthService)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(subscribeResultsWorkspace(workspaceID), nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{{ID: "news", Name: "News"}}, nil)
+		gomock.InOrder(
+			mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "news").
+				Return(nil, &domain.ErrContactListNotFound{Message: "not found"}),
+			mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"news"}).Return(nil, nil),
+			mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil),
+			mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "news").
+				Return(unsubscribedRow("news"), nil),
+		)
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		results, err := service.SubscribeToListsWithResults(ctx, payload("news"), true)
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, results[0].Status)
+	})
+
+	t.Run("an opt-out a concurrent subscribe's insert restored is read again", func(t *testing.T) {
+		// Two form posts for a deleted contact coming back: the other one inserted the
+		// contact, restoring its unsubscribe, between this request's reads and its upsert,
+		// which then updates the contact (not new). The list with no row is still read
+		// again: the request reports the unsubscribe, writes nothing over it and does not
+		// count as engagement.
+		ctrl := gomock.NewController(t)
+		service, mockRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, _ := newSubscribeResultsService(ctrl)
+		// No Touch expectation: gomock fails the test if the engagement clock is touched
+		service.SetEngagementRecorder(NewEngagementRecorder(mocks.NewMockContactEngagementRepository(ctrl), pkgmocks.NewMockLogger(ctrl)))
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(subscribeResultsWorkspace(workspaceID), nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{{ID: "news", Name: "News", IsPublic: true}}, nil)
+		gomock.InOrder(
+			mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(nil, domain.ErrContactNotFound),
+			mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "news").
+				Return(nil, &domain.ErrContactListNotFound{Message: "not found"}),
+			mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"news"}).Return(nil, nil),
+			mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil),
+			mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "news").
+				Return(unsubscribedRow("news"), nil),
+		)
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		results, err := service.SubscribeToListsWithResults(ctx, payload("news"), false)
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, results[0].Status)
+	})
+
+	t.Run("a list refused with an error after an accepted one writes nothing", func(t *testing.T) {
+		// A signed link may not join a private list it is not on: the public list before
+		// it is not written either.
+		ctrl := gomock.NewController(t)
+		service, mockRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, _ := newSubscribeResultsService(ctrl)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(subscribeResultsWorkspace(workspaceID), nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
+			{ID: "public", Name: "Public", IsPublic: true},
+			{ID: "private", Name: "Private"},
+		}, nil)
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "public").
+			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "private").
+			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"public", "private"}).Return(nil, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		signed := payload("public", "private")
+		signed.Contact.EmailHMAC = domain.ComputeEmailHMAC(email, "test-secret-key")
+		results, err := service.SubscribeToListsWithResults(ctx, signed, false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "list is not public")
+		assert.Nil(t, results)
+	})
+}
+
 // TestListService_SubscribeToListsWithResults_DoubleOptInReportsPending covers the
 // other unpredictable status: the list itself is in double opt-in, so an
 // unauthenticated subscriber lands on pending and is not reachable until they
@@ -2973,7 +3169,8 @@ func TestListService_SubscribeToListsWithResults_DoubleOptInReportsPending(t *te
 		{ID: "doi", Name: "Double Opt-In List", IsPublic: true, IsDoubleOptin: true},
 	}, nil)
 	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "doi").
-		Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+	mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"doi"}).Return(nil, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	results, err := service.SubscribeToListsWithResults(ctx, &domain.SubscribeToListsRequest{
@@ -3106,7 +3303,8 @@ func TestListService_SubscribeToListsWithResults_FailuresReportNoResults(t *test
 			{ID: "list123", Name: "Test List"},
 		}, nil)
 		mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list123").
-			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+			Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+		mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"list123"}).Return(nil, nil)
 		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).
 			Return(errors.New("database error"))
 
@@ -3143,7 +3341,8 @@ func TestListService_SubscribeToLists_DiscardsResults(t *testing.T) {
 		{ID: "list123", Name: "Test List"},
 	}, nil)
 	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list123").
-		Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+		Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+	mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"list123"}).Return(nil, nil)
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := service.SubscribeToLists(ctx, &domain.SubscribeToListsRequest{
@@ -3260,11 +3459,16 @@ func TestListService_SubscribeToLists_RecordsEngagement(t *testing.T) {
 				mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 					Return(ctx, &domain.User{}, subscribeResultsUserWorkspace(workspaceID), nil)
 			}
-			if tc.bearer || tc.signed {
-				mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+			// An active member is an existing contact, which an anonymous request does not
+			// write; otherwise the contact is new
+			anonymous := !tc.bearer && !tc.signed
+			if anonymous && tc.active {
+				mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(&domain.Contact{Email: email}, nil)
 			} else {
-				mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(nil, domain.ErrContactNotFound)
-				mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+				if anonymous {
+					mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(nil, domain.ErrContactNotFound)
+				}
+				mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(!tc.active, nil)
 			}
 			mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
 				{ID: "list1", Name: "List", IsPublic: true, IsDoubleOptin: tc.doubleOptin},
@@ -3274,7 +3478,8 @@ func TestListService_SubscribeToLists_RecordsEngagement(t *testing.T) {
 					Return(&domain.ContactList{Email: email, ListID: "list1", Status: domain.ContactListStatusActive}, nil)
 			} else {
 				mockContactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list1").
-					Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+					Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+				mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"list1"}).Return(nil, nil)
 				mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 			}
 			if tc.counts {

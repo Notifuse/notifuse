@@ -54,6 +54,10 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `contacts.list` no longer answers 500 when asked for the page after a contact whose email contains `~`. The cursor joins a date and an email with that character, and the email's own `~` broke it.
 
+- **Fix**: A `lists.subscribe` call that leaves the contact unsubscribed, bounced or complained on every list it names no longer updates the contact. Before, it saved the contact fields from the request and changed `updated_at` even though it subscribed no one.
+
+- **Fix**: Transactional emails and double opt-in confirmations now record their template version in the message history, as broadcasts and automations do. It was always 0, which left their template's name out of the contact timeline.
+
 - **Fix**: An analytics query with a granularity and a date range given as a date and time (`2026-11-20 08:30:00`) or in RFC 3339 no longer fails with `failed to parse start date`. An hourly series that ends on a date now runs to the last hour of that day.
 
 ## [44.0] - 2026-11-19
