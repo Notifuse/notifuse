@@ -18,6 +18,7 @@ import type { TreeNode } from '../../../services/api/segment'
 import { HasLeaf } from '../../segment/tree_completeness'
 import { i18n } from '../../../i18n'
 import { refusedWebhookHost } from './webhookTarget'
+import { getBrandName } from '../../brand/instanceBranding'
 
 // Node data stored in ReactFlow nodes.
 // Declared as a type alias rather than an interface on purpose: ReactFlow constrains node data to
@@ -552,7 +553,7 @@ export function validateFlow(
           nodeId: node.id,
           field: 'url',
           message: i18n._(
-            msg`The webhook URL points at a private or internal address (${{ host }}), which Notifuse does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network.`
+            msg`The webhook URL points at a private or internal address (${{ host }}), which ${{ brand: getBrandName() }} does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network.`
           )
         })
       }

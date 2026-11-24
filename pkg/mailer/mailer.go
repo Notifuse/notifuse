@@ -80,6 +80,26 @@ func (m *SMTPMailer) BrandName() string {
 	return ResolveBrandName(m.config.BrandName)
 }
 
+// fromName is the sender name of system emails: the one set in the settings or the environment,
+// else the brand name, read at each send.
+func (m *SMTPMailer) fromName() string {
+	if m.config.FromName != "" {
+		return m.config.FromName
+	}
+	return m.BrandName()
+}
+
+// texts returns the strings of a language with the brand filled in, for subjects and text parts.
+func (m *SMTPMailer) texts(language string) Translations {
+	return GetTranslations(language).withBrand(m.BrandName())
+}
+
+// htmlTexts returns the same strings with the brand HTML-escaped, for HTML parts: a brand name
+// may hold &, < or >.
+func (m *SMTPMailer) htmlTexts(language string) Translations {
+	return GetTranslations(language).withBrand(html.EscapeString(m.BrandName()))
+}
+
 // NewTestSMTPMailer creates a new SMTP mailer in test mode (won't connect to SMTP server)
 func NewTestSMTPMailer(config *Config) *SMTPMailer {
 	return &SMTPMailer{
@@ -93,7 +113,7 @@ func NewTestSMTPMailer(config *Config) *SMTPMailer {
 // RFC 2046 section 5.1.4 asks (a client shows the last part it can display).
 func (m *SMTPMailer) newSystemMessage(to, subject, plainBody, htmlBody string) (*mail.Msg, error) {
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
-	if err := msg.FromFormat(m.config.FromName, m.config.FromEmail); err != nil {
+	if err := msg.FromFormat(m.fromName(), m.config.FromEmail); err != nil {
 		return nil, fmt.Errorf("failed to set email from address: %w", err)
 	}
 	if err := msg.To(to); err != nil {
@@ -119,7 +139,7 @@ func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, 
 		return err
 	}
 	inviteURL := m.invitationURL(token)
-	subject := fmt.Sprintf(GetTranslations(language).Invitation.Subject, workspaceName)
+	subject := fmt.Sprintf(m.texts(language).Invitation.Subject, workspaceName)
 
 	// Create SMTP client
 	client, err := m.createSMTPClient()
@@ -130,7 +150,7 @@ func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, 
 	// For testing - log information if client is nil
 	if client == nil {
 		log.Printf("Sending invitation email to: %s", email)
-		log.Printf("From: %s <%s>", m.config.FromName, m.config.FromEmail)
+		log.Printf("From: %s <%s>", m.fromName(), m.config.FromEmail)
 		log.Printf("Subject: %s", subject)
 		log.Printf("Invitation URL: %s", inviteURL)
 		return nil
@@ -146,7 +166,8 @@ func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, 
 
 // invitationMessage builds the workspace invitation email.
 func (m *SMTPMailer) invitationMessage(email, workspaceName, inviterName, token, language string) (*mail.Msg, error) {
-	t := GetTranslations(language)
+	t := m.texts(language)
+	h := m.htmlTexts(language)
 	inviteURL := m.invitationURL(token)
 	subject := fmt.Sprintf(t.Invitation.Subject, workspaceName)
 
@@ -165,16 +186,16 @@ func (m *SMTPMailer) invitationMessage(email, workspaceName, inviterName, token,
 			<p>%s<br>%s</p>
 		</body>
 	</html>`,
-		t.Lang,
-		t.Invitation.Heading,
-		t.Common.Greeting,
-		fmt.Sprintf(t.Invitation.Body, inviterName, "<strong>"+workspaceName+"</strong>"),
-		t.Invitation.ClickPrompt,
-		inviteURL, t.Invitation.LinkText,
-		t.Invitation.FallbackURL,
+		h.Lang,
+		h.Invitation.Heading,
+		h.Common.Greeting,
+		fmt.Sprintf(h.Invitation.Body, html.EscapeString(inviterName), "<strong>"+html.EscapeString(workspaceName)+"</strong>"),
+		h.Invitation.ClickPrompt,
+		inviteURL, h.Invitation.LinkText,
+		h.Invitation.FallbackURL,
 		inviteURL,
-		t.Invitation.Expiry,
-		t.Invitation.SignOff, t.Common.TeamName)
+		h.Invitation.Expiry,
+		h.Invitation.SignOff, h.Common.TeamName)
 
 	// The text version, sent as the main body
 	plainBody := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s\n\n%s\n%s",
@@ -193,7 +214,7 @@ func (m *SMTPMailer) SendMagicCode(email, code, language string) error {
 	if err != nil {
 		return err
 	}
-	subject := GetTranslations(language).MagicCode.Subject
+	subject := m.texts(language).MagicCode.Subject
 
 	// Create SMTP client
 	client, err := m.createSMTPClient()
@@ -204,7 +225,7 @@ func (m *SMTPMailer) SendMagicCode(email, code, language string) error {
 	// For testing - log information if client is nil
 	if client == nil {
 		log.Printf("Sending magic code to: %s", email)
-		log.Printf("From: %s <%s>", m.config.FromName, m.config.FromEmail)
+		log.Printf("From: %s <%s>", m.fromName(), m.config.FromEmail)
 		log.Printf("Subject: %s", subject)
 		log.Printf("Code: %s", code)
 		return nil
@@ -220,7 +241,8 @@ func (m *SMTPMailer) SendMagicCode(email, code, language string) error {
 
 // magicCodeMessage builds the sign-in code email.
 func (m *SMTPMailer) magicCodeMessage(email, code, language string) (*mail.Msg, error) {
-	t := GetTranslations(language)
+	t := m.texts(language)
+	h := m.htmlTexts(language)
 	subject := t.MagicCode.Subject
 
 	// Create HTML content
@@ -236,14 +258,14 @@ func (m *SMTPMailer) magicCodeMessage(email, code, language string) (*mail.Msg, 
 			<p>%s<br>%s</p>
 		</body>
 	</html>`,
-		t.Lang,
-		t.MagicCode.Heading,
-		t.Common.Greeting,
-		t.MagicCode.Intro,
+		h.Lang,
+		h.MagicCode.Heading,
+		h.Common.Greeting,
+		h.MagicCode.Intro,
 		code,
-		t.MagicCode.Expiry,
-		t.MagicCode.IgnoreNotice,
-		t.MagicCode.SignOff, t.Common.TeamName)
+		h.MagicCode.Expiry,
+		h.MagicCode.IgnoreNotice,
+		h.MagicCode.SignOff, h.Common.TeamName)
 
 	// The text version, sent as the main body
 	plainBody := fmt.Sprintf("%s\n\n%s %s\n\n%s\n\n%s\n\n%s\n%s",
@@ -262,7 +284,7 @@ func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 	if err != nil {
 		return err
 	}
-	subject := fmt.Sprintf(GetTranslations(language).CircuitBreaker.Subject, broadcastName)
+	subject := fmt.Sprintf(m.texts(language).CircuitBreaker.Subject, broadcastName)
 
 	// Create SMTP client
 	client, err := m.createSMTPClient()
@@ -273,7 +295,7 @@ func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 	// For testing - log information if client is nil
 	if client == nil {
 		log.Printf("Sending circuit breaker alert to: %s", email)
-		log.Printf("From: %s <%s>", m.config.FromName, m.config.FromEmail)
+		log.Printf("From: %s <%s>", m.fromName(), m.config.FromEmail)
 		log.Printf("Subject: %s", subject)
 		log.Printf("Broadcast: %s", broadcastName)
 		log.Printf("Workspace: %s", workspaceName)
@@ -292,7 +314,8 @@ func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 // circuitBreakerAlertMessage builds the email sent when a broadcast is paused by the circuit
 // breaker.
 func (m *SMTPMailer) circuitBreakerAlertMessage(email, workspaceName, broadcastName, reason, language string) (*mail.Msg, error) {
-	t := GetTranslations(language)
+	t := m.texts(language)
+	h := m.htmlTexts(language)
 	subject := fmt.Sprintf(t.CircuitBreaker.Subject, broadcastName)
 
 	// Create HTML content
@@ -311,13 +334,13 @@ func (m *SMTPMailer) circuitBreakerAlertMessage(email, workspaceName, broadcastN
 			<p>%s<br>%s</p>
 		</body>
 	</html>`,
-		t.Lang,
-		t.CircuitBreaker.Heading,
-		t.Common.Greeting,
-		fmt.Sprintf(t.CircuitBreaker.Body, `<strong>"`+broadcastName+`"</strong>`, "<strong>"+workspaceName+"</strong>"),
-		t.CircuitBreaker.ReasonLabel,
-		reason,
-		t.CircuitBreaker.SignOff, t.Common.TeamName)
+		h.Lang,
+		h.CircuitBreaker.Heading,
+		h.Common.Greeting,
+		fmt.Sprintf(h.CircuitBreaker.Body, `<strong>"`+html.EscapeString(broadcastName)+`"</strong>`, "<strong>"+html.EscapeString(workspaceName)+"</strong>"),
+		h.CircuitBreaker.ReasonLabel,
+		html.EscapeString(reason),
+		h.CircuitBreaker.SignOff, h.Common.TeamName)
 
 	// The text version, sent as the main body
 	plainBody := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s %s\n\n%s\n%s",
@@ -428,9 +451,14 @@ func (m *ConsoleMailer) BrandName() string {
 	return ResolveBrandName(m.brandName)
 }
 
+// texts returns the strings of a language with the brand filled in.
+func (m *ConsoleMailer) texts(language string) Translations {
+	return GetTranslations(language).withBrand(m.BrandName())
+}
+
 // SendWorkspaceInvitation logs the invitation details to console
 func (m *ConsoleMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, token, language string) error {
-	t := GetTranslations(language)
+	t := m.texts(language)
 	fmt.Println("==============================================================")
 	fmt.Println("                 WORKSPACE INVITATION EMAIL                   ")
 	fmt.Println("==============================================================")
@@ -449,7 +477,7 @@ func (m *ConsoleMailer) SendWorkspaceInvitation(email, workspaceName, inviterNam
 
 // SendMagicCode logs the magic code details to console
 func (m *ConsoleMailer) SendMagicCode(email, code, language string) error {
-	t := GetTranslations(language)
+	t := m.texts(language)
 	fmt.Println("==============================================================")
 	fmt.Println("                 AUTHENTICATION MAGIC CODE                    ")
 	fmt.Println("==============================================================")
@@ -468,7 +496,7 @@ func (m *ConsoleMailer) SendMagicCode(email, code, language string) error {
 
 // SendCircuitBreakerAlert logs the circuit breaker alert details to console
 func (m *ConsoleMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason, language string) error {
-	t := GetTranslations(language)
+	t := m.texts(language)
 	fmt.Println("==============================================================")
 	fmt.Println("                 CIRCUIT BREAKER ALERT EMAIL                  ")
 	fmt.Println("==============================================================")
@@ -494,11 +522,12 @@ func (m *SMTPMailer) dataRetentionURL(workspaceID string) string {
 // dataRetentionPendingMessage builds the email that tells an owner a data retention change
 // that deletes more is scheduled. The date is the UTC day it applies.
 func (m *SMTPMailer) dataRetentionPendingMessage(email, workspaceID, workspaceName string, effectiveAt time.Time, language string) (*mail.Msg, error) {
-	t := GetTranslations(language)
+	t := m.texts(language)
+	h := m.htmlTexts(language)
 	subject := fmt.Sprintf(t.RetentionPending.Subject, workspaceName)
 	date := effectiveAt.UTC().Format("2006-01-02")
 	link := m.dataRetentionURL(workspaceID)
-	body := fmt.Sprintf(t.RetentionPending.Body, "<strong>"+html.EscapeString(workspaceName)+"</strong>", "<strong>"+date+"</strong>")
+	body := fmt.Sprintf(h.RetentionPending.Body, "<strong>"+html.EscapeString(workspaceName)+"</strong>", "<strong>"+date+"</strong>")
 	htmlBody := fmt.Sprintf(`
 	<html lang="%s">
 		<body>
@@ -510,8 +539,8 @@ func (m *SMTPMailer) dataRetentionPendingMessage(email, workspaceID, workspaceNa
 			<p>%s<br>%s</p>
 		</body>
 	</html>`,
-		t.Lang, t.RetentionPending.Heading, t.Common.Greeting, body, t.RetentionPending.CancelNote,
-		link, t.RetentionPending.LinkText, t.RetentionPending.SignOff, t.Common.TeamName)
+		h.Lang, h.RetentionPending.Heading, h.Common.Greeting, body, h.RetentionPending.CancelNote,
+		link, h.RetentionPending.LinkText, h.RetentionPending.SignOff, h.Common.TeamName)
 	plain := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s: %s\n\n%s\n%s",
 		t.Common.Greeting, fmt.Sprintf(t.RetentionPending.Body, workspaceName, date), t.RetentionPending.CancelNote,
 		t.RetentionPending.LinkText, link, t.RetentionPending.SignOff, t.Common.TeamName)
@@ -540,7 +569,7 @@ func (m *SMTPMailer) SendDataRetentionPending(email, workspaceID, workspaceName 
 
 // SendDataRetentionPending prints the data retention notice to the console.
 func (m *ConsoleMailer) SendDataRetentionPending(email, workspaceID, workspaceName string, effectiveAt time.Time, language string) error {
-	t := GetTranslations(language)
+	t := m.texts(language)
 	date := effectiveAt.UTC().Format("2006-01-02")
 	fmt.Println("==============================================================")
 	fmt.Println("                DATA RETENTION CHANGE SCHEDULED               ")

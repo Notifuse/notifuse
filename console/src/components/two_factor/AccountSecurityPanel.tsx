@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Alert, App, Button, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { signInAgain } from './signInAgain'
 import { useAuth } from '../../contexts/AuthContext'
 import {
@@ -39,6 +40,7 @@ function Section({ title, children, action }: { title: string; children?: React.
  */
 export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const { user, twoFactor, refreshWorkspaces } = useAuth()
   const [wizard, setWizard] = useState<{ replacing: boolean; setup?: TwoFactorSetupResponse } | null>(null)
@@ -112,7 +114,7 @@ export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h3 className="m-0 text-sm font-semibold text-ink">{t`Save your new recovery codes`}</h3>
-          <p className="m-0 text-sm text-ink-2">{t`Your previous codes no longer work. This is the only time Notifuse shows these.`}</p>
+          <p className="m-0 text-sm text-ink-2">{t`Your previous codes no longer work. This is the only time ${brand} shows these.`}</p>
         </div>
         <RecoveryCodesList codes={newCodes} email={user?.email} saved={codesSaved} onSavedChange={setCodesSaved} />
         <div className="flex justify-end">
@@ -145,7 +147,7 @@ export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps
             {t`Off`}
           </span>
           <p className="m-0 text-sm text-ink-2">
-            {t`After the code we email you, Notifuse asks for a second code from an authenticator app on your phone, such as Google Authenticator, 1Password or Bitwarden. Someone who gets into your mailbox still can't sign in.`}
+            {t`After the code we email you, ${brand} asks for a second code from an authenticator app on your phone, such as Google Authenticator, 1Password or Bitwarden. Someone who gets into your mailbox still can't sign in.`}
           </p>
           <div className="mt-3 flex items-center gap-3">
             <Button type="primary" onClick={() => setWizard({ replacing: false })}>
@@ -161,7 +163,7 @@ export function AccountSecurityPanel({ onLockChange }: AccountSecurityPanelProps
               {t`On`}
             </span>
             <p className="m-0 text-sm text-ink-2">
-              {t`After the code we email you, Notifuse asks for a second code from an authenticator app on your phone.`}
+              {t`After the code we email you, ${brand} asks for a second code from an authenticator app on your phone.`}
             </p>
           </Section>
           <Section

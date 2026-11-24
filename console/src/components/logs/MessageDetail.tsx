@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, Button, Empty, Result, Segmented, Skeleton, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Ban,
@@ -760,6 +761,7 @@ function SentContent({
   preview
 }: SentContentProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const [view, setView] = useState<'html' | 'text' | 'mjml'>('html')
   const note = (text: string) => (
     <p data-unreset className="m-0 text-sm text-ink-3">
@@ -796,7 +798,7 @@ function SentContent({
   return (
     <div className="flex flex-col gap-3">
       {note(
-        t`Rendered again from the template and the message data; Notifuse doesn't store the sent HTML`
+        t`Rendered again from the template and the message data; ${brand} doesn't store the sent HTML`
       )}
       <Segmented<'html' | 'text' | 'mjml'>
         size="small"

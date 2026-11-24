@@ -21,7 +21,7 @@ import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import { ThemePreview } from './ThemePreview'
 import { useDebouncedCallback } from 'use-debounce'
 import { Workspace } from '../../services/api/types'
-import { ThemePreset, THEME_PRESETS } from './themePresets'
+import { ThemePreset, getThemePresets } from './themePresets'
 import { FullDrawer, Pill } from '../layout'
 
 const { TextArea } = Input
@@ -87,7 +87,7 @@ export function ThemeEditorDrawer({
     enabled: open
   })
   const [selectedFile, setSelectedFile] = useState<keyof BlogThemeFiles>('home.liquid')
-  const [files, setFiles] = useState<BlogThemeFiles>(THEME_PRESETS[0].files)
+  const [files, setFiles] = useState<BlogThemeFiles>(() => getThemePresets()[0].files)
   const [notes, setNotes] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
@@ -150,7 +150,7 @@ export function ThemeEditorDrawer({
       }
     } else {
       // New theme - use preset data if provided, otherwise use defaults
-      const initialFiles = presetData?.files || THEME_PRESETS[0].files
+      const initialFiles = presetData?.files || getThemePresets()[0].files
       const initialNotes = presetData ? `Created from ${presetData.name}` : ''
 
       setFiles(initialFiles)
@@ -213,7 +213,7 @@ export function ThemeEditorDrawer({
     if (!theme) {
       // New theme
       const hasContent =
-        JSON.stringify(files) !== JSON.stringify(THEME_PRESETS[0].files) || notes.trim() !== ''
+        JSON.stringify(files) !== JSON.stringify(getThemePresets()[0].files) || notes.trim() !== ''
       setHasUnsavedChanges(hasContent)
     } else {
       // Existing theme
@@ -346,7 +346,7 @@ export function ThemeEditorDrawer({
   }
 
   // What each file was when the editor opened, to mark the ones changed since.
-  const baseFiles = theme?.files ?? presetData?.files ?? THEME_PRESETS[0].files
+  const baseFiles = theme?.files ?? presetData?.files ?? getThemePresets()[0].files
   const changedFile = (key: keyof BlogThemeFiles) => files[key] !== baseFiles[key]
   // A draft with nothing new can still be published as it is; a published version cannot.
   const canPublish = hasUnsavedChanges || (!!theme && !isPublished)

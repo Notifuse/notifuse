@@ -2306,12 +2306,12 @@ func TestBuildTestPayload(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.eventType, func(t *testing.T) {
-			assert.ElementsMatch(t, tc.keys, keysOf(buildTestPayload(tc.eventType)))
+			assert.ElementsMatch(t, tc.keys, keysOf(buildTestPayload(tc.eventType, "Notifuse")))
 		})
 	}
 
 	t.Run("the contact object carries every contacts column", func(t *testing.T) {
-		contact, ok := buildTestPayload("contact.created")["contact"].(map[string]interface{})
+		contact, ok := buildTestPayload("contact.created", "Notifuse")["contact"].(map[string]interface{})
 		require.True(t, ok)
 
 		// to_jsonb(contact_record) emits one key per column, unset ones present
@@ -2331,7 +2331,7 @@ func TestBuildTestPayload(t *testing.T) {
 	})
 
 	t.Run("the custom_event object carries every custom_events column", func(t *testing.T) {
-		event, ok := buildTestPayload("custom_event.created")["custom_event"].(map[string]interface{})
+		event, ok := buildTestPayload("custom_event.created", "Notifuse")["custom_event"].(map[string]interface{})
 		require.True(t, ok)
 
 		expected := []string{
@@ -2346,15 +2346,15 @@ func TestBuildTestPayload(t *testing.T) {
 	// free: list.confirmed can only come from pending, and a status inserted
 	// directly has no previous one.
 	t.Run("previous_status matches the transition that produced the event", func(t *testing.T) {
-		confirmed := buildTestPayload("list.confirmed")
+		confirmed := buildTestPayload("list.confirmed", "Notifuse")
 		assert.Equal(t, "active", confirmed["status"])
 		assert.Equal(t, "pending", confirmed["previous_status"])
 
-		resubscribed := buildTestPayload("list.resubscribed")
+		resubscribed := buildTestPayload("list.resubscribed", "Notifuse")
 		assert.Equal(t, "active", resubscribed["status"])
 		assert.Equal(t, "unsubscribed", resubscribed["previous_status"])
 
-		subscribed := buildTestPayload("list.subscribed")
+		subscribed := buildTestPayload("list.subscribed", "Notifuse")
 		assert.Equal(t, "active", subscribed["status"])
 		require.Contains(t, subscribed, "previous_status",
 			"the trigger always builds the key, null included")
@@ -2362,14 +2362,14 @@ func TestBuildTestPayload(t *testing.T) {
 
 		// list.pending also comes from a contact on the list moved to pending, but
 		// the sample is the common case: a first subscription awaiting confirmation.
-		pending := buildTestPayload("list.pending")
+		pending := buildTestPayload("list.pending", "Notifuse")
 		assert.Equal(t, "pending", pending["status"])
 		require.Contains(t, pending, "previous_status")
 		assert.Nil(t, pending["previous_status"])
 	})
 
 	t.Run("an unrecognised event type says so instead of inventing a shape", func(t *testing.T) {
-		payload := buildTestPayload("test")
+		payload := buildTestPayload("test", "Notifuse")
 		assert.ElementsMatch(t, []string{"message", "event_type", "created_at"}, keysOf(payload))
 	})
 }
@@ -3530,4 +3530,15 @@ func TestWebhookDeliveryWorker_cleanupReadsTheWorkspacePeriod(t *testing.T) {
 	workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{{ID: "long"}, {ID: "off"}}, nil)
 	deliveryRepo.EXPECT().CleanupOldDeliveries(gomock.Any(), "long", 30).Return(int64(1), nil)
 	worker.cleanupOldDeliveries(context.Background())
+}
+
+func TestWebhookDeliveryWorker_TestMessageNamesTheBrand(t *testing.T) {
+	assert.Equal(t, "This is a test webhook from Acme", buildTestPayload("test", "Acme")["message"])
+
+	w := &WebhookDeliveryWorker{}
+	assert.Equal(t, "Notifuse", w.brand(), "Notifuse without a source")
+	WithWebhookBrandName(func() string { return "Acme" })(w)
+	assert.Equal(t, "Acme", w.brand())
+	WithWebhookBrandName(func() string { return "" })(w)
+	assert.Equal(t, "Notifuse", w.brand(), "an empty answer falls back")
 }

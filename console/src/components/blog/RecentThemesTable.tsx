@@ -13,7 +13,7 @@ import { blogThemesApi, BlogTheme } from '../../services/api/blog'
 import type { Workspace } from '../../services/api/types'
 import { Panel } from '../layout'
 import { ThemeEditorDrawer } from './ThemeEditorDrawer'
-import { ThemePreset, THEME_PRESETS } from './themePresets'
+import { ThemePreset, getThemePresets } from './themePresets'
 import dayjs from '../../lib/dayjs'
 
 interface RecentThemesTableProps {
@@ -62,7 +62,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   const handleCreate = () => {
     // Automatically use the default theme preset
     setSelectedTheme(null)
-    setSelectedPreset(THEME_PRESETS[0])
+    setSelectedPreset(getThemePresets()[0])
     setEditorOpen(true)
   }
 

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
+- **Feature**: Custom branding, with an Agency or Enterprise licence. In **System Settings** → **Branding**, the root user sets the instance's name, logo and icon, and can hide the Help menu. The console and the system emails then show this identity in place of Notifuse's.
+
 - **Feature**: Data retention deletes old data on a schedule. In **Settings** → **Data retention**, a workspace owner sets how long to keep inactive contacts, message history, the contact timeline, custom events, automation history, web analytics and provider events, and the root user can set defaults for every workspace. A change that deletes more waits 7 days and the owners get an email. The segment condition "will be deleted as inactive within N days" lets an automation ask those contacts to stay before they go. Setting a policy needs an Enterprise licence.
 
 - **Feature**: Two-factor authentication with an authenticator app, and ten single-use recovery codes. Each person turns it on in **Account security**, from the account menu. The root user can require it for the whole instance in **System settings** → **Security**, or with `REQUIRE_TWO_FACTOR=true`, and can reset it for someone who lost their phone. Sign-ins through single sign-on and API keys are not affected.

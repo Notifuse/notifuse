@@ -147,8 +147,8 @@ func TestLoadWithOptions_EnvValuesHoldOnlyTheEnvironment(t *testing.T) {
 		assert.Empty(t, cfg.EnvValues.CheckForUpdates)
 		assert.Empty(t, cfg.EnvValues.RequireTwoFactor)
 		assert.False(t, cfg.RequireTwoFactor, "not installed and not set: nothing is required")
-		// The runtime still gets the built-in values.
-		assert.Equal(t, "Notifuse", cfg.SMTP.FromName)
+		// The runtime still gets the built-in values; the sender name is left to the mailer.
+		assert.Empty(t, cfg.SMTP.FromName)
 		assert.Equal(t, 587, cfg.SMTPBridge.Port)
 	})
 

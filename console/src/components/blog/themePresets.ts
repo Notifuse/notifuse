@@ -1,3 +1,4 @@
+import { getInstanceBranding } from '../brand/instanceBranding'
 import { BlogThemeFiles } from '../../services/api/blog'
 
 export interface ThemePreset {
@@ -2560,4 +2561,25 @@ if (document.readyState === 'loading') {
   }
 }
 
-export const THEME_PRESETS: ThemePreset[] = [defaultTheme]
+// The footer lines that name Notifuse: the "Powered by" line and the website, X and GitHub links.
+const POWERED_BY = /\n\s*<p class="text-gray-500 text-xs mt-1">\s*Powered by <a href="https:\/\/www\.notifuse\.com"[\s\S]*?<\/p>/
+const SOCIAL_LINKS = /\n\s*<div class="social-links">[\s\S]*?<\/div>/
+
+/** The default theme without Notifuse's marks, for an instance that shows its own brand. */
+function unbrandedTheme(theme: ThemePreset): ThemePreset {
+  const footer = theme.files['footer.liquid'].replace(POWERED_BY, '').replace(SOCIAL_LINKS, '')
+  return { ...theme, files: { ...theme.files, 'footer.liquid': footer } }
+}
+
+/**
+ * The presets a new theme starts from. Under the instance's own brand the footer carries no
+ * Notifuse mark; themes already saved keep what they hold.
+ */
+export function getThemePresets(): ThemePreset[] {
+  if (!getInstanceBranding().custom) return [defaultTheme]
+  // Built once: it does not depend on the brand's name, and callers read it on every render.
+  unbrandedDefaultTheme ??= unbrandedTheme(defaultTheme)
+  return [unbrandedDefaultTheme]
+}
+
+let unbrandedDefaultTheme: ThemePreset | undefined

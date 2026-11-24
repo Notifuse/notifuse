@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { Liquid } from 'liquidjs'
-import { THEME_PRESETS } from './themePresets'
+import { getThemePresets } from './themePresets'
 
 // The default theme's header holds the head tags; rendered alone with the data a page receives.
-const files = THEME_PRESETS[0].files as unknown as Record<string, string>
+const files = getThemePresets()[0].files as unknown as Record<string, string>
 const header = files['header.liquid']
 // The theme's own files, in memory, under the names its includes use ('styles', 'shared'…).
 const engine = new Liquid({

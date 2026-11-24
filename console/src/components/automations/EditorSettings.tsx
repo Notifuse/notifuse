@@ -1,12 +1,14 @@
 import { ConfigProvider, Form, Select, Switch, Tooltip } from 'antd'
 import { Info } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { supportsInboundReplies, type TriggerFrequency } from '../../services/api/automation'
 import { useAutomation } from './context'
 
 /** The automation's own settings, above the palette: list, frequency, exit on reply. */
 export function EditorSettings() {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { lists, listId, setListId, frequency, setFrequency, exitOnReply, setExitOnReply, workspace, readOnly } = useAutomation()
 
   // "Exit on reply" needs an email provider that can ingest inbound replies. For SES this is also
@@ -69,7 +71,7 @@ export function EditorSettings() {
                   <Tooltip
                     title={
                       hasInboundIntegration
-                        ? t`Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop.`
+                        ? t`Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to ${brand}. Without that setup, replies aren't detected and the sequence won't stop.`
                         : t`Available once you connect an email provider that supports inbound replies (currently Mailgun and Amazon SES — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails.`
                     }
                   >

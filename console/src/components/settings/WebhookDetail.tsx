@@ -17,6 +17,7 @@ import { Copy, Eye, EyeOff, RotateCw } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import {
   webhookSubscriptionApi,
   type WebhookSubscription
@@ -75,6 +76,7 @@ export function WebhookDetail({
   onNotFound
 }: WebhookDetailProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -440,7 +442,7 @@ export function WebhookDetail({
           <Alert
             type="error"
             showIcon
-            title={t`Notifuse disabled this webhook automatically`}
+            title={t`${brand} disabled this webhook automatically`}
             description={
               <>
                 <div>{webhook.disabled_reason}</div>

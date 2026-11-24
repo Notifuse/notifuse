@@ -15,6 +15,7 @@ import {
 } from '../../services/api/segment'
 import dayjs, { Dayjs } from 'dayjs'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { useQuery } from '@tanstack/react-query'
 import { dataRetentionApi, dataRetentionQueryKey } from '../../services/api/dataRetention'
 import { InputDimensionFilters } from './input_dimension_filters'
@@ -840,6 +841,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
  */
 export const LeafRetentionForm = (props: LeafFormProps) => {
   const { t } = useLingui()
+  const brand = useBrandName()
   const [form] = useForm()
   const onValuesChange = useLeafDraft(props, form)
   const { confirm } = useConfirm(props, form)
@@ -887,7 +889,7 @@ export const LeafRetentionForm = (props: LeafFormProps) => {
         </EditorLine>
         {policy.data && !policy.data.backfill_ready ? (
           <p className="m-0 text-xs text-warning-fg">
-            {t`Notifuse is still reading past activity from history: until it finishes, this condition matches nobody.`}
+            {t`${brand} is still reading past activity from history: until it finishes, this condition matches nobody.`}
           </p>
         ) : contactsOff ? (
           <p className="m-0 text-xs text-warning-fg">

@@ -17,14 +17,14 @@ func TestGetTranslations_PerLocale(t *testing.T) {
 		{"es", "Tu código de autenticación de Notifuse"},
 		{"de", "Ihr Notifuse-Authentifizierungscode"},
 		{"ca", "El teu codi d'autenticació de Notifuse"},
-		{"pt-BR", "Seu código de autenticação da Notifuse"},
+		{"pt-BR", "Seu código de autenticação de Notifuse"},
 		{"ja", "Notifuse 認証コード"},
 		{"it", "Il tuo codice di autenticazione Notifuse"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.lang, func(t *testing.T) {
-			got := GetTranslations(tc.lang).MagicCode.Subject
+			got := GetTranslations(tc.lang).withBrand(DefaultBrandName).MagicCode.Subject
 			if got != tc.expectedSubject {
 				t.Errorf("GetTranslations(%q).MagicCode.Subject = %q, want %q", tc.lang, got, tc.expectedSubject)
 			}

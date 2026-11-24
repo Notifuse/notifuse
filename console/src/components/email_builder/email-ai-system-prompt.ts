@@ -5,6 +5,7 @@
 import type { EmailBlock } from './types'
 import { serializeEmailTree } from './email-ai-tools'
 import { TOOL_RESULT_PROTOCOL_PROMPT } from '../ai-assistant/wire'
+import { withBrandName } from '../brand/instanceBranding'
 
 export const EMAIL_AI_SYSTEM_PROMPT = `You are an expert MJML email designer and coding assistant. You help users create and modify beautiful, responsive email templates.
 
@@ -429,7 +430,7 @@ export function buildEmailSystemPrompt({
   previewText,
   category
 }: EmailPromptContext): string {
-  let systemPrompt = EMAIL_AI_SYSTEM_PROMPT
+  let systemPrompt = withBrandName(EMAIL_AI_SYSTEM_PROMPT)
 
   systemPrompt += `\n\n## Template Category\n\nCategory: ${category || 'not set'}\n${categoryNote(category)}`
 

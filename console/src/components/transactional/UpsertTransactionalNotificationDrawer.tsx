@@ -565,7 +565,7 @@ function NotificationEditor({ workspace, notification, canReadTemplates, backLab
                       label={utmLabel('utm_source')}
                       tooltip={t`Identifies which site sent the traffic (e.g. google, newsletter)`}
                     >
-                      <Input placeholder={t`e.g. notifuse`} disabled={utmDisabled} />
+                      <Input placeholder={t`e.g. newsletter`} disabled={utmDisabled} />
                     </Form.Item>
                     <Form.Item
                       name={['tracking_settings', 'utm_medium']}

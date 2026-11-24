@@ -675,6 +675,11 @@ func (a *App) brandName() string {
 	return a.brandingService.Name()
 }
 
+// brandIdentity is the identity the instance shows now, read at each call like brandName.
+func (a *App) brandIdentity() branding.Resolved {
+	return a.brandingService.Effective()
+}
+
 // InitRepositories initializes all repositories
 func (a *App) InitRepositories() error {
 	if a.db == nil {
@@ -917,6 +922,8 @@ func (a *App) InitServices() error {
 		RequireTwoFactor: a.config.RequireTwoFactor,
 		IsRootEmail:      a.config.IsRootEmail,
 		MaxUsers:         a.config.MaxUsers,
+		// The brand name for new enrolments; read at each enrolment, like the mailer's.
+		Issuer: a.brandName,
 	})
 
 	// Initialize setup service with environment config from config loader
@@ -1117,6 +1124,8 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 	)
 	a.emailService.SetEngagementRecorder(a.engagementRecorder)
+	// The provider test email names the instance brand, read at each send.
+	a.emailService.SetBrandName(a.brandName)
 
 	// DKIM: one key store, shared by the sends that sign and the service and worker
 	// that change the keys, so a change is seen by the next send on this instance.
@@ -1223,6 +1232,8 @@ func (a *App) InitServices() error {
 		a.inboundWebhookEventRepo,
 		a.logger,
 	)
+	// The starter templates drop Notifuse's marks while the instance shows its own brand.
+	a.supabaseService.SetBranding(a.brandIdentity)
 
 	// Initialize data feed fetcher for external data in broadcasts.
 	// Uses an SSRF-protected HTTP client by default; private/loopback targets are
@@ -1594,6 +1605,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.logger,
 		newOutgoingWebhookClient(a.config.Webhook.AllowPrivateDeliveryHosts, a.config.Tracing.Enabled, 10*time.Second),
+		service.WithWebhookBrandName(a.brandName),
 	)
 
 	// Initialize email queue worker for processing marketing emails (broadcasts & automations)

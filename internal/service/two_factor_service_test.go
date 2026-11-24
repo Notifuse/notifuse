@@ -715,3 +715,34 @@ func TestTwoFactorService_EnableReencryptsUnderTheFirstKey(t *testing.T) {
 	_, err := f.svc.Enable(context.Background(), tfUserID, tfSession, f.code(0), false, TwoFactorRequestMeta{})
 	require.NoError(t, err)
 }
+
+func TestTwoFactorService_IssuerFollowsTheBrand(t *testing.T) {
+	t.Run("Notifuse without a source or with an empty answer", func(t *testing.T) {
+		assert.Equal(t, "Notifuse", (&TwoFactorService{}).issuerName())
+		assert.Equal(t, "Notifuse", (&TwoFactorService{issuer: func() string { return "" }}).issuerName())
+	})
+
+	t.Run("read at each enrolment, so a new brand needs no restart", func(t *testing.T) {
+		name := "Acme"
+		svc := &TwoFactorService{issuer: func() string { return name }}
+		assert.Equal(t, "Acme", svc.issuerName())
+		name = "Acme Labs"
+		assert.Equal(t, "Acme Labs", svc.issuerName())
+	})
+
+	t.Run("the enrolment URI names the brand", func(t *testing.T) {
+		f := newTwoFactorFixture(t)
+		f.svc.issuer = func() string { return "Acme" }
+		f.lock(tfUserID, nil)
+		recent := f.now.Add(-time.Minute)
+		f.authTx.EXPECT().GetSessionForUpdate(gomock.Any(), gomock.Any(), tfUserID, tfSession).
+			Return(&domain.Session{ID: tfSession, AuthMethod: domain.AuthMethodMagicCode, AuthenticatedAt: &recent}, nil)
+		f.repo.EXPECT().SavePending(gomock.Any(), gomock.Any(), tfUserID, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		setup, err := f.svc.Setup(context.Background(), tfUserID, tfSession, TwoFactorProof{}, TwoFactorRequestMeta{})
+		require.NoError(t, err)
+		assert.Contains(t, setup.OtpauthURI, "issuer=Acme")
+		assert.Contains(t, setup.OtpauthURI, "otpauth://totp/Acme:")
+		assert.NotContains(t, setup.OtpauthURI, "Notifuse")
+	})
+}

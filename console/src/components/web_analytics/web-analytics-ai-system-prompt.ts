@@ -13,6 +13,7 @@
  */
 
 import { TOOL_RESULT_PROTOCOL_PROMPT } from '../ai-assistant/wire'
+import { withBrandName } from '../brand/instanceBranding'
 import { BLOCKED_DIMENSIONS, redactBlockedFilterValues } from './web-analytics-ai-tools'
 import type { WebAnalyticsTab } from './context'
 import type { InstallState } from './lib/installStatus'
@@ -321,5 +322,5 @@ export function serializeWebAnalyticsState(context: WebAnalyticsPromptContext): 
 }
 
 export function buildWebAnalyticsSystemPrompt(context: WebAnalyticsPromptContext): string {
-  return `${WEB_ANALYTICS_AI_SYSTEM_PROMPT}\n\n${serializeWebAnalyticsState(context)}`
+  return `${withBrandName(WEB_ANALYTICS_AI_SYSTEM_PROMPT)}\n\n${serializeWebAnalyticsState(context)}`
 }

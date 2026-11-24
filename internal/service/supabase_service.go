@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/branding"
 	"github.com/Notifuse/notifuse/pkg/disposable_emails"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
@@ -27,6 +28,14 @@ type SupabaseService struct {
 	transactionalService    domain.TransactionalNotificationService
 	inboundWebhookEventRepo domain.InboundWebhookEventRepository
 	logger                  logger.Logger
+	// branding returns the identity the starter templates show; nil keeps Notifuse's.
+	branding func() branding.Resolved
+}
+
+// SetBranding supplies the instance identity the starter templates show, read each time the
+// templates are created.
+func (s *SupabaseService) SetBranding(effective func() branding.Resolved) {
+	s.branding = effective
 }
 
 // NewSupabaseService creates a new Supabase service

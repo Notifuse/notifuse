@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/branding"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
@@ -108,4 +109,43 @@ func TestAppBrandingWiring(t *testing.T) {
 		bootID := unexportedField(t, app.settingsHandler, "bootID").String()
 		assert.NotEmpty(t, bootID)
 	})
+}
+
+type brandingLicence struct{}
+
+func (brandingLicence) Entitlements() domain.Entitlements {
+	return domain.Entitlements{Features: []domain.Feature{domain.FeatureBranding}}
+}
+
+// Every surface that names the instance reads the App's BrandingService when it names it, not
+// when it was built: replacing the service after InitServices reaches all of them.
+func TestAppBrandingWiring_EverySurfaceReadsTheBrandAtUseTime(t *testing.T) {
+	app := initialisedApp(t, nil)
+	app.brandingService = service.NewBrandingService(
+		branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png"}, brandingLicence{})
+
+	require.NoError(t, app.InitMailer())
+	named, ok := app.mailer.(interface{ BrandName() string })
+	require.True(t, ok, "the mailer exposes the name it prints")
+	assert.Equal(t, "Acme", named.BrandName(), "system emails")
+
+	for _, consumer := range []struct {
+		name   string
+		holder interface{}
+		field  string
+	}{
+		{"provider test email", app.emailService, "brandName"},
+		{"test webhook", app.webhookDeliveryWorker, "brandName"},
+		{"authenticator issuer", app.twoFactorService, "issuer"},
+	} {
+		fn, ok := readInterface(unexportedField(t, consumer.holder, consumer.field)).(func() string)
+		require.True(t, ok, consumer.name)
+		require.NotNil(t, fn, consumer.name)
+		assert.Equal(t, "Acme", fn(), consumer.name)
+	}
+
+	identity, ok := readInterface(unexportedField(t, app.supabaseService, "branding")).(func() branding.Resolved)
+	require.True(t, ok)
+	require.NotNil(t, identity)
+	assert.Equal(t, "https://cdn.example.com/l.png", identity().LogoURL, "Supabase starter templates")
 }

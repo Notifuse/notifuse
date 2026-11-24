@@ -122,13 +122,15 @@ func isDigits(code string) bool {
 
 // KeyURI returns the otpauth:// URI an authenticator app reads from a QR code
 // (Google's Key Uri Format). Colons are removed from the issuer and the account, which
-// the label uses as its separator. The secret comes last, as some apps expect.
+// the label uses as its separator. The issuer is percent-encoded in the query too (a space is
+// %20, not "+"): some apps show a "+" as it is. The secret comes last, as some apps expect.
 func KeyURI(issuer, account string, secret []byte) string {
 	issuer = strings.ReplaceAll(issuer, ":", "")
 	account = strings.ReplaceAll(account, ":", "")
 	label := url.PathEscape(issuer) + ":" + url.PathEscape(account)
 	return "otpauth://totp/" + label +
-		"?issuer=" + url.QueryEscape(issuer) +
+		// QueryEscape writes a literal "+" as %2B, so every "+" left stands for a space.
+		"?issuer=" + strings.ReplaceAll(url.QueryEscape(issuer), "+", "%20") +
 		"&algorithm=SHA1" +
 		fmt.Sprintf("&digits=%d&period=%d", Digits, Period) +
 		"&secret=" + EncodeSecret(secret)

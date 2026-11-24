@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { App, Button, Modal } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { useOptionalAuth } from '../../contexts/AuthContext'
 import { twoFactorErrorCode, twoFactorService, type TwoFactorProof } from '../../services/api/twoFactor'
 import { signInAgain } from './signInAgain'
@@ -22,6 +23,7 @@ export interface ResetTwoFactorButtonProps {
  */
 export function ResetTwoFactorButton({ target, email, disabled, onDone }: ResetTwoFactorButtonProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const auth = useOptionalAuth()
   const twoFactor = auth?.twoFactor
@@ -35,7 +37,7 @@ export function ResetTwoFactorButton({ target, email, disabled, onDone }: ResetT
         <li>{t`Their authenticator app and recovery codes stop working.`}</li>
         <li>{t`They're signed out everywhere.`}</li>
         <li>{t`They get an email about the reset.`}</li>
-        <li>{t`If Notifuse requires two-factor authentication, they set it up again at their next sign-in.`}</li>
+        <li>{t`If ${brand} requires two-factor authentication, they set it up again at their next sign-in.`}</li>
       </ul>
       <p className="m-0 text-ink-2">
         {t`Before you reset it, check that the request really comes from ${email}, for example by a call. Attackers try this with administrators.`}

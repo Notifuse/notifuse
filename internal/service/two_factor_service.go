@@ -79,8 +79,11 @@ type TwoFactorServiceConfig struct {
 	IsRootEmail      func(email string) bool
 	// MaxUsers is MAX_USERS, checked when a sign-in challenge accepts an invitation.
 	MaxUsers int
-	// Issuer is the name authenticator apps show. Empty means "Notifuse".
-	Issuer string
+	// Issuer returns the name authenticator apps show for a new enrolment: the instance brand
+	// while a licence covers it. Read at each enrolment, so a brand or licence change needs no
+	// restart. nil, or an empty answer, means "Notifuse". Accounts already enrolled keep the
+	// label their app stored.
+	Issuer func() string
 }
 
 // TwoFactorService runs two-factor authentication: setup, sign-in challenges, recovery
@@ -104,15 +107,11 @@ type TwoFactorService struct {
 	requireTwoFactor bool
 	isRootEmail      func(email string) bool
 	maxUsers         int
-	issuer           string
+	issuer           func() string
 }
 
 // NewTwoFactorService builds a TwoFactorService.
 func NewTwoFactorService(cfg TwoFactorServiceConfig) *TwoFactorService {
-	issuer := cfg.Issuer
-	if issuer == "" {
-		issuer = "Notifuse"
-	}
 	return &TwoFactorService{
 		tx:               cfg.Tx,
 		repo:             cfg.Repo,
@@ -126,7 +125,7 @@ func NewTwoFactorService(cfg TwoFactorServiceConfig) *TwoFactorService {
 		requireTwoFactor: cfg.RequireTwoFactor,
 		isRootEmail:      cfg.IsRootEmail,
 		maxUsers:         cfg.MaxUsers,
-		issuer:           issuer,
+		issuer:           cfg.Issuer,
 	}
 }
 
@@ -250,7 +249,7 @@ func (s *TwoFactorService) Setup(ctx context.Context, userID, sessionID string, 
 		if err := s.repo.SavePending(ctx, tx, userID, sealed, now.Add(domain.PendingSetupTTL), now); err != nil {
 			return err
 		}
-		setup = &TwoFactorSetup{Secret: encoded, OtpauthURI: totp.KeyURI(s.issuer, user.Email, secret)}
+		setup = &TwoFactorSetup{Secret: encoded, OtpauthURI: totp.KeyURI(s.issuerName(), user.Email, secret)}
 		return nil
 	})
 	if committed {
@@ -832,4 +831,14 @@ func (s *TwoFactorService) replaceRecoveryCodes(ctx context.Context, tx domain.D
 		return nil, err
 	}
 	return codes, nil
+}
+
+// issuerName is the name a new enrolment shows in the authenticator app.
+func (s *TwoFactorService) issuerName() string {
+	if s.issuer != nil {
+		if name := s.issuer(); name != "" {
+			return name
+		}
+	}
+	return "Notifuse"
 }

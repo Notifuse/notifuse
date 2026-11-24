@@ -1,6 +1,7 @@
 import React from 'react'
 import { Form, Input } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../../hooks/useBrandName'
 import type { WebhookNodeConfig } from '../../../services/api/automation'
 import { refusedWebhookHost } from '../utils/webhookTarget'
 
@@ -11,6 +12,7 @@ interface WebhookConfigFormProps {
 
 export const WebhookConfigForm: React.FC<WebhookConfigFormProps> = ({ config, onChange }) => {
   const { t } = useLingui()
+  const brand = useBrandName()
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ ...config, url: e.target.value })
@@ -33,7 +35,7 @@ export const WebhookConfigForm: React.FC<WebhookConfigFormProps> = ({ config, on
   if (config.url && !isValidUrl(config.url)) {
     urlError = t`URL must start with http:// or https://`
   } else if (host) {
-    urlError = t`The webhook URL points at a private or internal address (${host}), which Notifuse does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network.`
+    urlError = t`The webhook URL points at a private or internal address (${host}), which ${brand} does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network.`
   }
 
   return (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../../hooks/useBrandName'
 import { plural } from '@lingui/core/macro'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Select, Skeleton, Table, Tag, Typography } from 'antd'
@@ -87,6 +88,7 @@ interface FormProps {
 
 function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
   const { t, i18n } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const { int: number } = useNumberFormat()
@@ -338,7 +340,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
 
       <Panel title={t`Periods`}>
         <Text type="secondary" className="mb-3 block">
-          {t`Every day at 05:00 UTC, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance.`}
+          {t`Every day at 05:00 UTC, ${brand} deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance.`}
         </Text>
         <Table<RetentionCategorySpec>
           rowKey="category"
@@ -416,7 +418,7 @@ function DataRetentionForm({ workspaceId, isOwner, view }: FormProps) {
             <Alert
               type="info"
               showIcon
-              message={t`Notifuse is reading past activity from history. Until it finishes, no contact is deleted as inactive.`}
+              message={t`${brand} is reading past activity from history. Until it finishes, no contact is deleted as inactive.`}
             />
           )}
         </div>

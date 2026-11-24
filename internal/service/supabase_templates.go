@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/pkg/templates"
 )
 
@@ -124,7 +125,7 @@ func (s *SupabaseService) createSignupTemplate(ctx context.Context, workspaceID,
 	// Use random number to avoid collisions in concurrent tests
 	templateID := fmt.Sprintf("supabase_signup_%06d", rand.Intn(1000000))
 
-	visualEditorTree, err := templates.CreateSupabaseSignupEmailStructure()
+	visualEditorTree, err := s.starterTree(templates.CreateSupabaseSignupEmailStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to create signup email structure: %w", err)
 	}
@@ -158,7 +159,7 @@ func (s *SupabaseService) createSignupTemplate(ctx context.Context, workspaceID,
 func (s *SupabaseService) createMagicLinkTemplate(ctx context.Context, workspaceID, integrationID string) (string, error) {
 	templateID := fmt.Sprintf("supabase_magiclink_%06d", rand.Intn(1000000))
 
-	visualEditorTree, err := templates.CreateSupabaseMagicLinkEmailStructure()
+	visualEditorTree, err := s.starterTree(templates.CreateSupabaseMagicLinkEmailStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to create magic link email structure: %w", err)
 	}
@@ -192,7 +193,7 @@ func (s *SupabaseService) createMagicLinkTemplate(ctx context.Context, workspace
 func (s *SupabaseService) createRecoveryTemplate(ctx context.Context, workspaceID, integrationID string) (string, error) {
 	templateID := fmt.Sprintf("supabase_recovery_%06d", rand.Intn(1000000))
 
-	visualEditorTree, err := templates.CreateSupabaseRecoveryEmailStructure()
+	visualEditorTree, err := s.starterTree(templates.CreateSupabaseRecoveryEmailStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to create recovery email structure: %w", err)
 	}
@@ -228,7 +229,7 @@ func (s *SupabaseService) createRecoveryTemplate(ctx context.Context, workspaceI
 func (s *SupabaseService) createEmailChangeTemplate(ctx context.Context, workspaceID, integrationID string) (string, error) {
 	templateID := fmt.Sprintf("supabase_email_change_%06d", rand.Intn(1000000))
 
-	visualEditorTree, err := templates.CreateSupabaseEmailChangeEmailStructure()
+	visualEditorTree, err := s.starterTree(templates.CreateSupabaseEmailChangeEmailStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to create email change email structure: %w", err)
 	}
@@ -262,7 +263,7 @@ func (s *SupabaseService) createEmailChangeTemplate(ctx context.Context, workspa
 func (s *SupabaseService) createInviteTemplate(ctx context.Context, workspaceID, integrationID string) (string, error) {
 	templateID := fmt.Sprintf("supabase_invite_%06d", rand.Intn(1000000))
 
-	visualEditorTree, err := templates.CreateSupabaseInviteEmailStructure()
+	visualEditorTree, err := s.starterTree(templates.CreateSupabaseInviteEmailStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to create invite email structure: %w", err)
 	}
@@ -296,7 +297,7 @@ func (s *SupabaseService) createInviteTemplate(ctx context.Context, workspaceID,
 func (s *SupabaseService) createReauthenticationTemplate(ctx context.Context, workspaceID, integrationID string) (string, error) {
 	templateID := fmt.Sprintf("supabase_reauth_%06d", rand.Intn(1000000))
 
-	visualEditorTree, err := templates.CreateSupabaseReauthenticationEmailStructure()
+	visualEditorTree, err := s.starterTree(templates.CreateSupabaseReauthenticationEmailStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to create reauthentication email structure: %w", err)
 	}
@@ -324,4 +325,18 @@ func (s *SupabaseService) createReauthenticationTemplate(ctx context.Context, wo
 	}
 
 	return templateID, nil
+}
+
+// starterTree builds a starter template's tree and, when the instance shows its own brand, takes
+// Notifuse's marks out of it. The brand is read at creation: templates already created keep
+// what they hold.
+func (s *SupabaseService) starterTree(build func() (notifuse_mjml.EmailBlock, error)) (notifuse_mjml.EmailBlock, error) {
+	tree, err := build()
+	if err != nil {
+		return nil, err
+	}
+	if s.branding == nil {
+		return tree, nil
+	}
+	return templates.BrandSupabaseTemplate(tree, s.branding()), nil
 }

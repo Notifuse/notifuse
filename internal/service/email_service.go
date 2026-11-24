@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html"
 	"net/url"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ import (
 )
 
 type EmailService struct {
+	// brandName returns the instance brand for the provider test email; nil means Notifuse.
+	brandName func() string
 	// engagement records what the contact does themselves (data retention); nil records nothing.
 	engagement       *EngagementRecorder
 	logger           logger.Logger
@@ -41,6 +44,12 @@ type EmailService struct {
 	sendGridService  domain.EmailProviderService
 	// dkimKeys resolves the key SMTP sends are signed with; nil signs nothing.
 	dkimKeys *DKIMKeyStore
+}
+
+// SetBrandName supplies the instance brand the provider test email names. It is read at each
+// send, so a brand or licence change needs no restart.
+func (s *EmailService) SetBrandName(brandName func() string) {
+	s.brandName = brandName
 }
 
 // SetDKIMKeyStore makes SendEmail sign the emails of the providers Notifuse signs for
@@ -154,8 +163,15 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 	}
 
 	// Generate email content
-	subject := "Notifuse: Test Email Provider"
-	content := "<h1>Notifuse: Test Email Provider</h1><p>This is a test email from Notifuse. Your provider is working!</p>"
+	brand := "Notifuse"
+	if s.brandName != nil {
+		if name := s.brandName(); name != "" {
+			brand = name
+		}
+	}
+	subject := brand + ": Test Email Provider"
+	escaped := html.EscapeString(brand)
+	content := "<h1>" + escaped + ": Test Email Provider</h1><p>This is a test email from " + escaped + ". Your provider is working!</p>"
 
 	// Send email with the provider details
 	messageID := uuid.New().String()

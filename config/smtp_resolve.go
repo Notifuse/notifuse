@@ -4,9 +4,11 @@ package config
 // They are applied here, after the database fallback, and never as viper defaults: a
 // viper default makes the variable read as set by the environment, which would shadow
 // the value stored by the setup wizard or System settings.
+//
+// The sender name has no built-in value here: left empty, the mailer names the instance brand
+// at send time (Notifuse in default mode), which is only known once the services run.
 const (
 	defaultSMTPPort       = 587
-	defaultSMTPFromName   = "Notifuse"
 	defaultSMTPBridgePort = 587
 )
 
@@ -53,9 +55,6 @@ func resolveSMTPConfig(env EnvValues, ss *SystemSettings, isInstalled bool) SMTP
 
 	if c.Port == 0 {
 		c.Port = defaultSMTPPort
-	}
-	if c.FromName == "" {
-		c.FromName = defaultSMTPFromName
 	}
 	return c
 }
