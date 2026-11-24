@@ -508,7 +508,7 @@ func TestSendTransactional_BuildsTheRequest(t *testing.T) {
 	f, audit := transactionalWriteFixture(t, transactionalWritePermissions(domain.PermissionResourceContacts))
 	externalID := "order-981"
 	subject, preheader, fromName := "Your order", "It ships today", "Acme shop"
-	f.notifs.EXPECT().SendNotification(gomock.Any(), testWorkspaceID, domain.TransactionalNotificationSendParams{
+	f.notifs.EXPECT().SendNotificationWithResult(gomock.Any(), testWorkspaceID, domain.TransactionalNotificationSendParams{
 		ID: "order_confirmation", ExternalID: &externalID, Contact: &domain.Contact{Email: "jane@example.com"},
 		Channels: []domain.TransactionalChannel{domain.TransactionalChannelEmail},
 		Data:     domain.MapOfAny{"order": map[string]any{"number": "981"}},
@@ -517,7 +517,7 @@ func TestSendTransactional_BuildsTheRequest(t *testing.T) {
 			Subject: &subject, SubjectPreview: &preheader, FromName: &fromName, ReplyTo: "help@acme.test",
 			CC: []string{"boss@example.com"}, BCC: []string{"audit@example.com"},
 		},
-	}).Return("msg-1", nil)
+	}).Return(domain.TransactionalSendResult{MessageID: "msg-1"}, nil)
 
 	result := f.callTool("send_transactional", map[string]any{
 		"workspace_id": testWorkspaceID, "notification_id": "order_confirmation", "external_id": externalID, "email": " Jane@Example.com",
@@ -525,7 +525,7 @@ func TestSendTransactional_BuildsTheRequest(t *testing.T) {
 		"subject": subject, "preheader": preheader, "from_name": fromName, "reply_to": "help@acme.test",
 		"cc": []string{"Boss@Example.com"}, "bcc": []string{"audit@example.com"},
 	})
-	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"message_id":"msg-1","notification_id":"order_confirmation","external_id":"order-981"}`, string(result.StructuredContent))
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"message_id":"msg-1","notification_id":"order_confirmation","external_id":"order-981","already":false}`, string(result.StructuredContent))
 
 	row := audit.last(t)
 	assert.Equal(t, "transactional.send", row.Action)
@@ -539,17 +539,26 @@ func TestSendTransactional_BuildsTheRequest(t *testing.T) {
 	}, row.Metadata)
 }
 
-// The service answers a replayed key with the first message's ID and sends
-// nothing: the tool returns that ID as a success.
+// The service answers a replayed key with the first message's ID, sends
+// nothing and says so: the tool returns that ID as a success with already set.
 func TestSendTransactional_AReplayAnswersTheFirstMessage(t *testing.T) {
 	f, audit := transactionalWriteFixture(t, transactionalWritePermissions())
-	f.notifs.EXPECT().SendNotification(gomock.Any(), testWorkspaceID, gomock.Any()).Return("msg-first", nil).Times(2)
 	args := map[string]any{"workspace_id": testWorkspaceID, "notification_id": "order_confirmation", "external_id": "order-981", "email": "jane@example.com"}
-	for range 2 {
-		var out sendTransactionalOutput
-		f.callTool("send_transactional", args).decode(t, &out)
-		assert.Equal(t, "msg-first", out.MessageID)
-	}
+	first := f.notifs.EXPECT().SendNotificationWithResult(gomock.Any(), testWorkspaceID, gomock.Any()).
+		Return(domain.TransactionalSendResult{MessageID: "msg-first"}, nil)
+	f.notifs.EXPECT().SendNotificationWithResult(gomock.Any(), testWorkspaceID, gomock.Any()).
+		Return(domain.TransactionalSendResult{MessageID: "msg-first", Deduplicated: true}, nil).After(first)
+
+	result := f.callTool("send_transactional", args)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"message_id":"msg-first","notification_id":"order_confirmation","external_id":"order-981","already":false}`, string(result.StructuredContent))
+	assert.NotContains(t, audit.last(t).Metadata, "already")
+
+	result = f.callTool("send_transactional", args)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"message_id":"msg-first","notification_id":"order_confirmation","external_id":"order-981","already":true}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+	assert.Equal(t, true, row.Metadata["already"])
+	assert.Equal(t, "msg-first", row.Metadata["message_id"])
 	assert.Equal(t, 2, audit.count())
 }
 
@@ -596,13 +605,13 @@ func TestSendTransactional_Refusals(t *testing.T) {
 	})
 	t.Run("service errors", func(t *testing.T) {
 		f, _ := transactionalWriteFixture(t, transactionalWritePermissions())
-		f.notifs.EXPECT().SendNotification(gomock.Any(), testWorkspaceID, gomock.Any()).
-			Return("", fmt.Errorf("failed to get notification: %w", &domain.ErrNotFound{Entity: "transactional_notification", ID: "order_confirmation"}))
+		f.notifs.EXPECT().SendNotificationWithResult(gomock.Any(), testWorkspaceID, gomock.Any()).
+			Return(domain.TransactionalSendResult{}, fmt.Errorf("failed to get notification: %w", &domain.ErrNotFound{Entity: "transactional_notification", ID: "order_confirmation"}))
 		assert.Equal(t, CodeNotFound, f.callTool("send_transactional", base(nil)).errorOf(t).Code)
-		f.notifs.EXPECT().SendNotification(gomock.Any(), testWorkspaceID, gomock.Any()).
-			Return("", fmt.Errorf("failed to send notification through any channel: %w", &domain.TemplateRenderError{Message: "liquid: unknown filter money"}))
+		f.notifs.EXPECT().SendNotificationWithResult(gomock.Any(), testWorkspaceID, gomock.Any()).
+			Return(domain.TransactionalSendResult{}, fmt.Errorf("failed to send notification through any channel: %w", &domain.TemplateRenderError{Message: "liquid: unknown filter money"}))
 		assert.Equal(t, ToolError{Code: CodeValidation, Message: "liquid: unknown filter money"}, f.callTool("send_transactional", base(nil)).errorOf(t))
-		f.notifs.EXPECT().SendNotification(gomock.Any(), testWorkspaceID, gomock.Any()).Return("", errors.New("failed to send notification through any channel"))
+		f.notifs.EXPECT().SendNotificationWithResult(gomock.Any(), testWorkspaceID, gomock.Any()).Return(domain.TransactionalSendResult{}, errors.New("failed to send notification through any channel"))
 		assert.Equal(t, CodeInternal, f.callTool("send_transactional", base(nil)).errorOf(t).Code)
 	})
 }

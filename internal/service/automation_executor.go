@@ -140,7 +140,7 @@ func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, 
 	// Get automation once (outside loop)
 	automation, err := e.automationRepo.GetByID(ctx, workspaceID, contactAutomation.AutomationID)
 	if err != nil {
-		return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to get automation")
+		return e.handleError(ctx, workspaceID, contactAutomation, nil, err, "failed to get automation")
 	}
 
 	// Check if automation is paused/not live
@@ -162,7 +162,7 @@ func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, 
 	// Get contact data once (outside loop) - only if we have nodes to process
 	contactData, err := e.contactRepo.GetContactByEmail(ctx, workspaceID, contactAutomation.ContactEmail)
 	if err != nil {
-		return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to get contact")
+		return e.handleError(ctx, workspaceID, contactAutomation, automation, err, "failed to get contact")
 	}
 
 	// LOOP: Process nodes until delay, completion, or max iterations
@@ -183,7 +183,7 @@ func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, 
 		// Get executor for node type
 		executor, ok := e.nodeExecutors[node.Type]
 		if !ok {
-			return e.handleError(ctx, workspaceID, contactAutomation,
+			return e.handleError(ctx, workspaceID, contactAutomation, automation,
 				fmt.Errorf("unsupported node type: %s", node.Type), "unsupported node type")
 		}
 
@@ -224,7 +224,7 @@ func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, 
 				// due again when its claim ends, with no retry spent.
 				return nil
 			}
-			return e.handleError(ctx, workspaceID, contactAutomation, execErr, "node execution failed")
+			return e.handleError(ctx, workspaceID, contactAutomation, automation, execErr, "node execution failed")
 		}
 
 		if stop, err := e.recordStep(ctx, workspaceID, automation, contactAutomation, nodeExecution, nodeStartTime, result, iterations < maxNodesPerTick-1 && !stopping()); stop {
@@ -363,7 +363,7 @@ func (e *AutomationExecutor) retryAfterFailedSave(ctx context.Context, workspace
 		ca.ExitReason = &reason
 	}
 	ca.Status = domain.ContactAutomationStatusActive
-	return e.recordFailure(ctx, workspaceID, ca, saveErr, "failed to update contact automation", nil, stepScheduledAt)
+	return e.recordFailure(ctx, workspaceID, ca, saveErr, "failed to update contact automation", nil, "", stepScheduledAt)
 }
 
 // ProcessBatch claims a batch of due journeys and runs them one after the other. A batch can
@@ -474,8 +474,9 @@ func (e *AutomationExecutor) releaseClaims(ctx context.Context, contacts []*doma
 // handleError records a failed attempt on the journey's current step and schedules a retry, or
 // fails the journey once it has used its retries. When the run's context is done, the error is
 // the cancellation (the end of a shutdown's drain), not a failed attempt: nothing is written, no retry is spent,
-// and the journey is due again when its claim ends.
-func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string, ca *domain.ContactAutomation, err error, context string) error {
+// and the journey is due again when its claim ends. automation, nil when it could not be read,
+// gives the failed step its type.
+func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string, ca *domain.ContactAutomation, automation *domain.Automation, err error, context string) error {
 	if ctx.Err() != nil {
 		e.logger.WithFields(map[string]interface{}{
 			"contact_automation_id": ca.ID,
@@ -486,14 +487,27 @@ func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string
 	}
 	writeCtx, cancel := writeContext(ctx)
 	defer cancel()
-	return e.recordFailure(writeCtx, workspaceID, ca, err, context, ca.CurrentNodeID, nil)
+	return e.recordFailure(writeCtx, workspaceID, ca, err, context, ca.CurrentNodeID, failedNodeType(automation, ca.CurrentNodeID), nil)
 }
 
-// recordFailure spends a retry: it writes a failed execution on failedNodeID when one is given,
+// failedNodeType is the type of the step a failure is recorded on, read from the automation.
+// When the automation could not be read or no longer has the step, the type is unknown and
+// the trigger type stands in: the column cannot be empty.
+func failedNodeType(automation *domain.Automation, nodeID *string) domain.NodeType {
+	if automation != nil && nodeID != nil {
+		if node := automation.GetNodeByID(*nodeID); node != nil {
+			return node.Type
+		}
+	}
+	return domain.NodeTypeTrigger
+}
+
+// recordFailure spends a retry: it writes a failed execution on failedNodeID, of type
+// failedNodeType, when one is given,
 // and either schedules the next attempt, no earlier than notBefore when one is given, or fails
 // the journey once RetryCount reaches MaxRetries. The failed stat and end event are written
 // only when the journey's row was still active.
-func (e *AutomationExecutor) recordFailure(ctx context.Context, workspaceID string, ca *domain.ContactAutomation, err error, context string, failedNodeID *string, notBefore *time.Time) error {
+func (e *AutomationExecutor) recordFailure(ctx context.Context, workspaceID string, ca *domain.ContactAutomation, err error, context string, failedNodeID *string, failedNodeType domain.NodeType, notBefore *time.Time) error {
 	ca.RetryCount++
 	errStr := fmt.Sprintf("%s: %s", context, err.Error())
 	ca.LastError = &errStr
@@ -540,7 +554,7 @@ func (e *AutomationExecutor) recordFailure(ctx context.Context, workspaceID stri
 			ContactAutomationID: ca.ID,
 			AutomationID:        ca.AutomationID,
 			NodeID:              *failedNodeID,
-			NodeType:            domain.NodeTypeTrigger, // Placeholder - actual type not available in error context
+			NodeType:            failedNodeType,
 			Action:              domain.NodeActionFailed,
 			EnteredAt:           time.Now().UTC(),
 			Error:               &errStr,

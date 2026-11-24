@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -42,6 +43,10 @@ func (h *AnalyticsHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/analytics.schemas", requireAuth(http.HandlerFunc(h.handleGetSchemas)))
 }
 
+// maxAnalyticsQueryBytes bounds the body of an analytics query. A query is a few hundred
+// bytes; the largest the console sends lists ids or paths in an in filter.
+const maxAnalyticsQueryBytes = 1 << 20
+
 // AnalyticsQueryRequest represents the request payload for analytics queries
 type AnalyticsQueryRequest struct {
 	WorkspaceID string          `json:"workspace_id"`
@@ -61,7 +66,12 @@ func (h *AnalyticsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req AnalyticsQueryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(middleware.MaxBytesReader(w, r, maxAnalyticsQueryBytes)).Decode(&req); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			h.writeErrorResponse(w, http.StatusRequestEntityTooLarge, "Request body too large")
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to decode analytics query request")
 		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -80,7 +90,9 @@ func (h *AnalyticsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 		if writeServiceError(w, err, "You do not have access to this workspace") {
 			return
 		}
-		h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Query failed: %v", err))
+		// The error is logged above. Its text can hold the database's own message, the
+		// generated SQL's internals, which a caller has no use for.
+		h.writeErrorResponse(w, http.StatusInternalServerError, "Query failed")
 		return
 	}
 

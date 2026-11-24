@@ -495,6 +495,8 @@ export function WebAnalyticsAIAssistant(props: {
       workspace={workspace}
       config={config}
       hidden={shouldHideAssistant(tab)}
+      // The last element of the page: the end of the last table scrolls clear of the button.
+      reserveRoom
       // Wider than the 420 the prose assistants use: this one's answers carry small
       // metric tables, and 420 leaves ~330px of text once the padding and avatar are
       // taken out - not enough for "metric | now | change" without wrapping. Still

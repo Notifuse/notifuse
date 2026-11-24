@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -62,7 +64,10 @@ func TestAnalyticsRepository_Query_Success(t *testing.T) {
 		Return(db, nil)
 
 	rows := sqlmock.NewRows([]string{"count"}).AddRow(42)
+	sqlMock.ExpectBegin()
+	sqlMock.ExpectExec("SET LOCAL statement_timeout = 60000").WillReturnResult(sqlmock.NewResult(0, 0))
 	sqlMock.ExpectQuery("SELECT (.+) FROM test_schema").WillReturnRows(rows)
+	sqlMock.ExpectCommit()
 
 	// Execute test
 	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger, "")
@@ -196,7 +201,10 @@ func runMessageHistoryQuery(t *testing.T, q analytics.Query, columns []string) s
 		Return(&domain.Workspace{ID: "workspace-123"}, nil).AnyTimes()
 	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
 
+	sqlMock.ExpectBegin()
+	sqlMock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 	sqlMock.ExpectQuery("").WillReturnRows(sqlmock.NewRows(columns))
+	sqlMock.ExpectCommit()
 
 	_, err = NewAnalyticsRepository(mockWorkspaceRepo, logger.NewLogger(), "").Query(context.Background(), "workspace-123", q)
 	require.NoError(t, err)
@@ -260,6 +268,87 @@ func TestAnalyticsRepository_MessageHistoryOpenedAtByHour(t *testing.T) {
 	}, []string{"opened_at_hour", "count"})
 
 	assert.Equal(t, "SELECT (COUNT(*)) AS count, (DATE_TRUNC('hour', opened_at AT TIME ZONE 'Europe/Paris')) AS opened_at_hour "+
-		"FROM message_history WHERE broadcast_id = $1 AND (opened_at >= $2 AND opened_at <= $3) GROUP BY opened_at_hour", sent)
+		"FROM message_history WHERE broadcast_id = $1 AND (opened_at >= $2 AND opened_at <= $3) GROUP BY opened_at_hour LIMIT 50001", sent)
 	assert.NotContains(t, sent, "generate_series", "no filler rows")
+}
+
+// Every query runs in a transaction bounded by the statement timeout, whatever the work_mem
+// setting, and the errors its caller can fix come back as analytics.QueryError.
+func TestAnalyticsRepository_StatementTimeoutAndCallerErrors(t *testing.T) {
+	originalSchemas := domain.PredefinedSchemas
+	domain.PredefinedSchemas = map[string]analytics.SchemaDefinition{
+		"test_schema": {
+			Name:     "test_schema",
+			Measures: map[string]analytics.MeasureDefinition{"count": {Type: "count", SQL: "COUNT(*)"}},
+		},
+	}
+	defer func() { domain.PredefinedSchemas = originalSchemas }()
+
+	run := func(t *testing.T, queryErr error) error {
+		t.Helper()
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").
+			Return(&domain.Workspace{ID: "workspace-123"}, nil).AnyTimes()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectExec("SET LOCAL statement_timeout = 60000").WillReturnResult(sqlmock.NewResult(0, 0))
+		sqlMock.ExpectQuery("SELECT").WillReturnError(queryErr)
+		sqlMock.ExpectRollback()
+
+		_, err = NewAnalyticsRepository(mockWorkspaceRepo, logger.NewLogger(), "").
+			Query(context.Background(), "workspace-123", analytics.Query{Schema: "test_schema", Measures: []string{"count"}})
+		require.NoError(t, sqlMock.ExpectationsWereMet())
+		return err
+	}
+
+	t.Run("a statement past the timeout says to narrow the query", func(t *testing.T) {
+		err := run(t, &pq.Error{Code: "57014", Message: "canceling statement due to statement timeout"})
+		var queryErr *analytics.QueryError
+		require.True(t, errors.As(err, &queryErr), "%v", err)
+		assert.Equal(t, "the query ran past 1m0s: narrow its date range or filters", queryErr.Message)
+	})
+
+	t.Run("a value the column type cannot read is the caller's, with a fixed message", func(t *testing.T) {
+		for _, cause := range []*pq.Error{
+			{Code: "22P02", Message: `invalid input syntax for type integer: "abc"`},
+			{Code: "22007", Message: `invalid input syntax for type timestamp with time zone: "soon"`},
+			{Code: "22008", Message: `date/time field value out of range: "2026-13-45"`},
+		} {
+			err := run(t, cause)
+			var queryErr *analytics.QueryError
+			require.True(t, errors.As(err, &queryErr), "%s: %v", cause.Code, err)
+			assert.Equal(t, "a value of the query's filters or having does not fit its member's type: check its numbers, dates and times", queryErr.Message)
+			assert.NotContains(t, queryErr.Message, cause.Message)
+		}
+	})
+
+	t.Run("a division by zero, a numeric overflow and other class 22 errors stay ours", func(t *testing.T) {
+		for _, cause := range []*pq.Error{
+			{Code: "22012", Message: "division by zero"},
+			{Code: "22003", Message: "bigint out of range"},
+			{Code: "22001", Message: "value too long for type character varying(10)"},
+		} {
+			err := run(t, cause)
+			var queryErr *analytics.QueryError
+			assert.False(t, errors.As(err, &queryErr), "%s: %v", cause.Code, err)
+		}
+	})
+
+	t.Run("a cancelled request and any other error stay ours", func(t *testing.T) {
+		for _, cause := range []error{
+			&pq.Error{Code: "57014", Message: "canceling statement due to user request"},
+			&pq.Error{Code: "42P01", Message: `relation "test_schema" does not exist`},
+		} {
+			err := run(t, cause)
+			var queryErr *analytics.QueryError
+			assert.False(t, errors.As(err, &queryErr), "%v", err)
+		}
+	})
 }

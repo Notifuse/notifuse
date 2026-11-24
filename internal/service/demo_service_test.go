@@ -491,8 +491,10 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 	mockContactRepo.EXPECT().UpsertContact(ctx, "demo", gomock.Any()).Return(true, nil).Times(2)
 	// List retrieval
 	mockListRepo.EXPECT().GetLists(ctx, "demo").Return([]*domain.List{{ID: "newsletter", Name: "Newsletter", IsPublic: true}}, nil).Times(2)
-	// Check existing subscription (not found)
-	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(ctx, "demo", gomock.Any(), "newsletter").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+	// Check existing subscription (not found), and again after each contact is inserted
+	mockContactListRepo.EXPECT().GetContactListIncludingRemoved(ctx, "demo", gomock.Any(), "newsletter").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(4)
+	// No opt-out left by a deleted contact to restore
+	mockContactListRepo.EXPECT().GetOptOutsRestoredOnInsert(ctx, "demo", gomock.Any(), []string{"newsletter"}).Return(nil, nil).Times(2)
 	// Add to list
 	mockContactListRepo.EXPECT().AddContactToList(ctx, "demo", gomock.Any()).Return(nil).Times(2)
 

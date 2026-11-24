@@ -268,7 +268,9 @@ WHERE s.session_date = $1 AND s.id = agg.session_id`
 // tabs. Both are written per-payload from a tab's own ordinals, so a visitor with
 // three tabs would otherwise register three entries and three exits, inflating
 // the Entries, Exits and Exit Rate measures for exactly the multi-tab users this
-// work exists to serve. Neither column is indexed, so these updates stay HOT.
+// work exists to serve. entry_type follows is_landing, for the same reason: it is
+// written per tab too, and the contact timeline and the segments read it from
+// here. None of these columns is indexed, so these updates stay HOT.
 //
 // It picks exactly ONE row for each flag rather than comparing every row against
 // MIN/MAX: pages within a beat routinely share an exit timestamp (only the
@@ -279,7 +281,9 @@ WHERE s.session_date = $1 AND s.id = agg.session_id`
 const webPageEntryExitRollup = `
 UPDATE web_pages p SET
 	is_landing = (p.tab_id = agg.first_tab AND p.page_number = agg.first_page),
-	is_exit = (p.tab_id = agg.last_tab AND p.page_number = agg.last_page)
+	is_exit = (p.tab_id = agg.last_tab AND p.page_number = agg.last_page),
+	entry_type = CASE WHEN p.tab_id = agg.first_tab AND p.page_number = agg.first_page
+		THEN '` + domain.WebEntryTypeLanding + `' ELSE '` + domain.WebEntryTypeNavigation + `' END
 FROM (
 	SELECT session_id,
 		(ARRAY_AGG(tab_id ORDER BY entered_at ASC, tab_id ASC, page_number ASC))[1] AS first_tab,

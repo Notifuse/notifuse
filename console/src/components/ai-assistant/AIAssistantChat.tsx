@@ -46,6 +46,7 @@ export function AIAssistantChat({
   bubbleItems,
   resetConversation,
   hidden = false,
+  reserveRoom = false,
   chatBoxTop = 66,
   width = 420,
   suggestions,
@@ -63,9 +64,13 @@ export function AIAssistantChat({
   }))
 
   // Render setup prompt when no AI model is connected
+  // Room at the end of the page for the floating button (see reserveRoom).
+  const room = reserveRoom && !hidden ? <div aria-hidden="true" className="h-20 shrink-0" /> : null
+
   if (!llmIntegration) {
     return (
       <>
+        {room}
         {!open && !hidden && (
           <Button
             type="primary"
@@ -157,6 +162,7 @@ export function AIAssistantChat({
 
   return (
     <>
+      {room}
       {/* Floating trigger button */}
       {!open && !hidden && (
         <Button

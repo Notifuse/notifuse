@@ -520,6 +520,7 @@ func TestOAuthMCP(t *testing.T) {
 			"pause_broadcast":                   args(`"broadcast_id":"refused"`),
 			"resume_broadcast":                  args(`"broadcast_id":"refused"`),
 			"cancel_broadcast":                  args(`"broadcast_id":"refused"`),
+			"unschedule_broadcast":              args(`"broadcast_id":"refused"`),
 			"delete_broadcast":                  args(`"broadcast_id":"refused"`),
 			"create_transactional_notification": args(`"notification_id":"refused","name":"Refused","email_template_id":"refused"`),
 			"update_transactional_notification": args(`"notification_id":"refused","name":"Refused"`),

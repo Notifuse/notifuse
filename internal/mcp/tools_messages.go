@@ -34,6 +34,9 @@ func (s *Server) searchMessagesTool() *Tool {
 		Description: "Finds the emails a workspace sent, newest first. " +
 			"You can filter by recipient, message ID or external ID, origin (broadcast, automation, transactional, other), broadcast, automation, transactional notification, template, list, clicked link, an event the message reached, and send time. " +
 			"Each message has its recipient, origin, template, the time of each event (delivered, failed, opened, clicked, bounced, complained, unsubscribed) and the provider's status message. " +
+			"subject is set only when the send replaced the template's subject, as a transactional send or a template test can. Otherwise it is null and the email used its template's subject. " +
+			"list_id is the list the email was sent for: a broadcast's list, the list of an automation that has one, or the list a template test was sent for. " +
+			"It is null for transactional emails, for automations without a list and for double opt-in confirmations. " +
 			"The data the email was rendered with is never returned. To get the next page, pass next_cursor back as cursor with the same filters.",
 		Class: ClassRead,
 		Pairs: []Pair{{Resource: domain.PermissionResourceMessageHistory, Verb: domain.PermissionTypeRead}},

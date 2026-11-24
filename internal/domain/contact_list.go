@@ -405,6 +405,13 @@ type ContactListRepository interface {
 	// removal leaves in place: unsubscribed, bounced or complained
 	GetContactListIncludingRemoved(ctx context.Context, workspaceID string, email, listID string) (*ContactList, error)
 
+	// GetOptOutsRestoredOnInsert returns the rows that inserting the address into
+	// contacts would put back now on the given lists: the unsubscribes, bounces and
+	// complaints a deleted contact left, kept as hashes until the address comes back
+	// (restore_contact_opt_outs). A row of a contact removed from the list has DeletedAt
+	// set. It returns none while the address is a contact, since only an insert restores.
+	GetOptOutsRestoredOnInsert(ctx context.Context, workspaceID string, email string, listIDs []string) ([]*ContactList, error)
+
 	// GetContactsByListID retrieves all contacts for a list
 	GetContactsByListID(ctx context.Context, workspaceID string, listID string) ([]*ContactList, error)
 

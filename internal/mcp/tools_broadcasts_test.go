@@ -554,15 +554,20 @@ func TestBroadcastWriteTools_Definitions(t *testing.T) {
 		write, "broadcasts.resume", id)
 	assertWriteTool(t, catalogueTool(t, "cancel_broadcast"), "cancel_broadcast", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
 		write, "broadcasts.cancel", id)
+	assertWriteTool(t, catalogueTool(t, "unschedule_broadcast"), "unschedule_broadcast", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+		write, "broadcasts.unschedule", id)
 	assertWriteTool(t, catalogueTool(t, "delete_broadcast"), "delete_broadcast", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
 		write, "broadcasts.delete", id)
-	// The service refuses a scheduled broadcast, whose send task would outlive it.
-	assert.Contains(t, catalogueTool(t, "delete_broadcast").Description, "A scheduled broadcast answers invalid_state too: it has to be unscheduled first")
+	// The service refuses a scheduled broadcast, whose send task would outlive it:
+	// the description names the tools that take it out of scheduled.
+	assert.Contains(t, catalogueTool(t, "delete_broadcast").Description, "send it back to draft first with unschedule_broadcast")
+	assert.NotContains(t, catalogueTool(t, "delete_broadcast").Description, "console")
 
 	// The send tools and the open-world update count in mcp_send.
 	for name, counts := range map[string]bool{
 		"create_broadcast": false, "update_broadcast": true, "send_broadcast_to_contact": true, "schedule_broadcast": true,
 		"select_broadcast_winner": true, "pause_broadcast": false, "resume_broadcast": true, "cancel_broadcast": false, "delete_broadcast": false,
+		"unschedule_broadcast": false,
 	} {
 		assert.Equal(t, counts, catalogueTool(t, name).countsAsSend(), name)
 	}
@@ -1003,6 +1008,61 @@ func TestPauseAndCancelBroadcast_AlreadyInTheTargetState(t *testing.T) {
 			assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
 		})
 	}
+}
+
+// unschedule_broadcast answers a replay on a draft as done, read from the
+// service's own refusal type, and any other refusal as it comes.
+func TestUnscheduleBroadcast(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	args := map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}
+	expect := func() *gomock.Call {
+		return f.broadcasts.EXPECT().UnscheduleBroadcast(gomock.Any(), &domain.UnscheduleBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"})
+	}
+
+	expect().Return(nil)
+	result := f.callTool("unschedule_broadcast", args)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":"draft","already":false}`, string(result.StructuredContent))
+	row := audit.last(t)
+	assert.Equal(t, "broadcasts.unschedule", row.Action)
+	assert.Equal(t, domain.AuditTargetBroadcast, row.TargetType)
+	assert.Equal(t, "bc1", row.TargetID)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+	assert.NotContains(t, row.Metadata, "already")
+
+	expect().Return(fmt.Errorf("x: %w", &domain.BroadcastNotScheduledError{ID: "bc1"}))
+	result = f.callTool("unschedule_broadcast", args)
+	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"broadcast_id":"bc1","status":"draft","already":true}`, string(result.StructuredContent))
+	row = audit.last(t)
+	assert.Equal(t, http.StatusOK, row.StatusCode)
+	assert.Equal(t, true, row.Metadata["already"])
+
+	// Any other validation error is a refusal, not a replay.
+	expect().Return(domain.NewValidationError("the broadcast has started sending: cancel it instead"))
+	assert.Equal(t, ToolError{Code: CodeValidation, Message: "the broadcast has started sending: cancel it instead"}, f.callTool("unschedule_broadcast", args).errorOf(t))
+	assert.Equal(t, http.StatusBadRequest, audit.last(t).StatusCode)
+
+	expect().Return(&domain.ErrBroadcastNotFound{ID: "bc1"})
+	assert.Equal(t, CodeNotFound, f.callTool("unschedule_broadcast", args).errorOf(t).Code)
+}
+
+// A scheduled broadcast's refusal names the tools that take it out of
+// scheduled, not the console's action the service's reason names.
+func TestDeleteBroadcast_ScheduledNamesUnscheduleBroadcast(t *testing.T) {
+	f, audit := broadcastsWriteFixture(t, broadcastsWritePermission())
+	stored := storedDraft()
+	stored.Status = domain.BroadcastStatusScheduled
+	f.bcastRows.EXPECT().GetBroadcast(gomock.Any(), testWorkspaceID, "bc1").Return(stored, nil)
+	f.broadcasts.EXPECT().DeleteBroadcast(gomock.Any(), &domain.DeleteBroadcastRequest{WorkspaceID: testWorkspaceID, ID: "bc1"}).
+		Return(&domain.InvalidStateError{Entity: "broadcast", ID: "bc1", Action: "delete", Status: "scheduled",
+			Reason: "Unschedule it first: unscheduling removes its send task."})
+
+	toolErr := f.callTool("delete_broadcast", map[string]any{"workspace_id": testWorkspaceID, "broadcast_id": "bc1"}).errorOf(t)
+	assert.Equal(t, ToolError{
+		Code:    CodeInvalidState,
+		Message: "cannot delete broadcast bc1: it is scheduled. Send it back to draft with unschedule_broadcast, which removes its send task, or cancel it with cancel_broadcast.",
+		Status:  "scheduled",
+	}, toolErr)
+	assert.Equal(t, http.StatusConflict, audit.last(t).StatusCode)
 }
 
 func TestResumeBroadcast_ReportsWhereItWentBack(t *testing.T) {

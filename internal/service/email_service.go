@@ -717,6 +717,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		AutomationID:                request.AutomationID,
 		TransactionalNotificationID: request.TransactionalNotificationID,
 		TemplateID:                  request.TemplateConfig.TemplateID,
+		TemplateVersion:             template.Version, // the latest when the email was built: the one sent
 		Channel:                     "email",
 		MessageData:                 request.MessageData,
 		ChannelOptions:              channelOptions,

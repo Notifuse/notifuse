@@ -1416,6 +1416,37 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	// The template is read at its latest version: the message records which one that was,
+	// as broadcasts and automations do, so the message can be traced to what was sent.
+	t.Run("records the version of the template it sent", func(t *testing.T) {
+		versioned := *emailTemplate
+		versioned.Version = 7
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockTemplateService.EXPECT().GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).Return(&versioned, nil)
+		mockTemplateService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).Return(compileResult, nil)
+		mockMessageRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ string, msgHistory *domain.MessageHistory) error {
+				assert.Equal(t, int64(7), msgHistory.TemplateVersion)
+				return nil
+			})
+		mockSESService.EXPECT().SendEmail(gomock.Any(), gomock.Any()).Return(nil)
+
+		notificationID := "order-confirmation"
+		err := emailService.SendEmailForTemplate(ctx, domain.SendEmailRequest{
+			WorkspaceID:                 workspaceID,
+			IntegrationID:               "test-integration-id",
+			MessageID:                   messageID,
+			TransactionalNotificationID: &notificationID,
+			Contact:                     contact,
+			TemplateConfig:              templateConfig,
+			MessageData:                 messageData,
+			TrackingSettings:            trackingSettings,
+			EmailProvider:               emailProvider,
+			EmailOptions:                options,
+		})
+		require.NoError(t, err)
+	})
+
 	t.Run("TrackingMode survives the compile-request rebuild", func(t *testing.T) {
 		workspace := &domain.Workspace{
 			ID:       workspaceID,

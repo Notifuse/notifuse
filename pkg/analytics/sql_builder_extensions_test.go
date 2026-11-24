@@ -195,13 +195,13 @@ func TestHavingMetricFilters(t *testing.T) {
 
 		query := Query{Schema: "web_sessions", Measures: []string{"sessions"},
 			Having: []Filter{{Member: "channel", Operator: "gt", Values: []string{"5"}}}}
-		assert.ErrorContains(t, DefaultValidate(query, schemas), "must be a measure")
+		assert.ErrorContains(t, DefaultValidate(query, schemas), "is not a measure")
 
 		query.Having = []Filter{{Member: "sessions", Operator: "contains", Values: []string{"5"}}}
 		assert.ErrorIs(t, DefaultValidate(query, schemas), ErrUnsupportedOperator)
 
 		query.Having = []Filter{{Member: "sessions", Operator: "gt"}}
-		assert.ErrorContains(t, DefaultValidate(query, schemas), "values cannot be empty")
+		assert.ErrorContains(t, DefaultValidate(query, schemas), "needs a value")
 
 		query.Having = []Filter{{Member: "sessions", Operator: "gte", Values: []string{"10"}}}
 		assert.NoError(t, DefaultValidate(query, schemas))
@@ -327,7 +327,7 @@ func TestEmptyResultShape(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = rows.Close() }()
 
-		data, err := ProcessRows(rows, query, nil)
+		data, err := ProcessRows(rows, query, nil, nil)
 		require.NoError(t, err)
 		return data
 	}
@@ -404,7 +404,7 @@ func TestGapFillKeepsRealBuckets(t *testing.T) {
 			Dimension: "created_at", Granularity: "day",
 			DateRange: &[2]string{"2026-08-08", "2026-08-09"},
 		}},
-	}, nil)
+	}, nil, nil)
 	require.NoError(t, err)
 
 	total := 0

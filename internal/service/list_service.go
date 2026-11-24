@@ -262,6 +262,123 @@ func membershipResult(contactList *domain.ContactList, listName string) *domain.
 	return &result
 }
 
+// subscriptionAction is what a subscribe does on one list, decided from the contact's
+// membership before anything is written.
+type subscriptionAction int
+
+const (
+	// subscriptionKeep writes nothing and sends nothing: the membership is reported as
+	// it is stored.
+	subscriptionKeep subscriptionAction = iota
+	// subscriptionAdd writes the membership (AddContactToList).
+	subscriptionAdd
+	// subscriptionResubscribe takes the membership out of an unsubscribe
+	// (ResubscribeContactToList).
+	subscriptionResubscribe
+	// subscriptionResendConfirmation writes nothing and sends the confirmation email.
+	subscriptionResendConfirmation
+)
+
+// subscriptionStep is the outcome a subscribe will have on one list.
+type subscriptionStep struct {
+	list     *domain.List
+	existing *domain.ContactList
+	action   subscriptionAction
+}
+
+// refused reports a list the contact opted out of and the request leaves as it is: an
+// unsubscribe the request may not override, a bounce or a complaint.
+func (step subscriptionStep) refused() bool {
+	return step.action == subscriptionKeep && step.existing != nil &&
+		domain.IsOptOutContactListStatus(step.existing.Status)
+}
+
+// readMembership reads the contact's row on a list, nil when there is none. A contact
+// removed from the list is read too: the removal ends their membership, not the opt-out,
+// bounce or complaint on their row, which planSubscription must still see.
+func (s *ListService) readMembership(ctx context.Context, workspaceID, email, listID string) (*domain.ContactList, error) {
+	existingCL, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+	if err != nil {
+		if _, ok := err.(*domain.ErrContactListNotFound); ok {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to check existing subscription: %w", err)
+	}
+	return existingCL, nil
+}
+
+// planSubscription decides what the subscribe does on a list from the contact's row there
+// (nil when there is none), writing nothing.
+func planSubscription(payload *domain.SubscribeToListsRequest, list *domain.List, existingCL *domain.ContactList, isAuthenticated, hasBearerToken bool) (subscriptionStep, error) {
+	step := subscriptionStep{list: list, action: subscriptionAdd}
+
+	// Removed while active or pending: not on the list, and nothing on the row to keep,
+	// so this is a new subscription
+	if existingCL != nil && existingCL.DeletedAt != nil &&
+		(existingCL.Status == domain.ContactListStatusActive || existingCL.Status == domain.ContactListStatusPending) {
+		existingCL = nil
+	}
+	step.existing = existingCL
+
+	// The workspace decides who is on a private list. A link's signature lets its contact
+	// confirm a double opt-in the workspace started, but never join a private list,
+	// nor rejoin one they left.
+	if !list.IsPublic && !hasBearerToken &&
+		(existingCL == nil || existingCL.Status == domain.ContactListStatusUnsubscribed) {
+		return step, fmt.Errorf("list is not public")
+	}
+
+	if existingCL == nil {
+		return step, nil
+	}
+	switch existingCL.Status {
+	case domain.ContactListStatusActive:
+		// Idempotent no-op — already subscribed. Still reported: "already
+		// active" is the outcome of this subscribe, and a caller that only
+		// saw success would have no way to tell it apart from a new one.
+		step.action = subscriptionKeep
+	case domain.ContactListStatusPending:
+		if !isAuthenticated {
+			// Anonymous re-submit of the subscribe form:
+			// skip DB write and resend DOI email.
+			step.action = subscriptionResendConfirmation
+		}
+		// Authenticated request (valid email_hmac) is the confirmation-link click:
+		// the write transitions Pending → Active and the DOI email logic is NOT
+		// re-triggered.
+	case domain.ContactListStatusBounced, domain.ContactListStatusComplained:
+		// Hard block — do not send email to bounced/complained addresses.
+		// Reported too, so the refusal is visible rather than silent: this
+		// is the one path where a "successful" subscribe leaves the contact
+		// permanently unmailable on that list.
+		step.action = subscriptionKeep
+	case domain.ContactListStatusUnsubscribed:
+		switch {
+		case hasBearerToken && !payload.Resubscribe:
+			// The workspace's own call does not override the contact's
+			// unsubscribe: reported as it is, nothing written, no email.
+			step.action = subscriptionKeep
+		case !hasBearerToken && !isAuthenticated:
+			// An anonymous form post can carry anyone's address, so it never
+			// writes over an unsubscribe: not even pending, which a later API
+			// call or automation would turn active. When the list can send its
+			// confirmation, the contact gets it, and its signed link brings
+			// them back; otherwise nothing happens.
+			if list.DoubleOptInTemplate == nil {
+				step.action = subscriptionKeep
+			} else {
+				step.action = subscriptionResendConfirmation
+			}
+		default:
+			// The explicit flag, or a signed request: the contact's own link
+			// (notification center, confirmation email) proves the mailbox, as a
+			// double opt-in click does.
+			step.action = subscriptionResubscribe
+		}
+	}
+	return step, nil
+}
+
 // SubscribeToListsWithResults subscribes a contact to lists and reports the
 // membership each request left behind.
 //
@@ -355,24 +472,6 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		isAuthenticated = true
 	}
 
-	// if the contact is not authenticated we only allow inserting the contact to avoid public frontend injections
-	canUpsert := true
-	if !isAuthenticated {
-		// check if the contact already exists
-		if existingContact, _ := s.contactRepo.GetContactByEmail(ctx, workspace.ID, payload.Contact.Email); existingContact != nil {
-			canUpsert = false
-		}
-	}
-
-	if canUpsert {
-		// upsert the contact
-		_, err = s.contactRepo.UpsertContact(ctx, workspace.ID, &payload.Contact)
-		if err != nil {
-			s.logger.WithField("email", payload.Contact.Email).Error(fmt.Sprintf("Failed to upsert contact: %v", err))
-			return nil, fmt.Errorf("failed to upsert contact: %w", err)
-		}
-	}
-
 	// get the lists
 	lists, err := s.repo.GetLists(ctx, workspace.ID)
 	if err != nil {
@@ -383,20 +482,105 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 	// Every requested list must exist before anything is written, so a request naming a
 	// missing list fails whole instead of after subscribing (or re-subscribing) the
 	// contact to the lists before it.
+	requested := make([]*domain.List, 0, len(payload.ListIDs))
 	for _, listID := range payload.ListIDs {
-		found := false
+		var list *domain.List
 		for _, l := range lists {
 			if l.ID == listID {
-				found = true
+				list = l
 				break
 			}
 		}
-		if !found {
+		if list == nil {
 			s.logger.WithField("list_id", listID).Error("List not found")
 			// Typed, so the handler can answer 404 and name the list. A Zap or a
 			// script outliving the list it points at is the ordinary way here, and
 			// an untyped error made that an unexplained 500.
 			return nil, &domain.ErrListNotFound{Message: fmt.Sprintf("list %s not found", listID)}
+		}
+		requested = append(requested, list)
+	}
+
+	// reject if a list is not public and the request is not authenticated
+	// (authenticated = bearer token OR valid HMAC from notification center), before
+	// anything is written
+	for _, list := range requested {
+		if !list.IsPublic && !isAuthenticated {
+			return nil, fmt.Errorf("list is not public")
+		}
+	}
+
+	// if the contact is not authenticated we only allow inserting the contact to avoid public frontend injections
+	canUpsert := true
+	if !isAuthenticated {
+		// check if the contact already exists
+		if existingContact, _ := s.contactRepo.GetContactByEmail(ctx, workspace.ID, payload.Contact.Email); existingContact != nil {
+			canUpsert = false
+		}
+	}
+
+	// Each list's outcome is decided before anything is written, so that a request
+	// refused on every list it names writes nothing, not even the contact.
+	memberships := make([]*domain.ContactList, len(requested))
+	// The lists where the contact has no row: the ones an insert of the address can
+	// change, by restoring an opt-out it left when it was deleted (restore_contact_opt_outs)
+	noRow := make([]bool, len(requested))
+	var noRowIDs []string
+	for i, list := range requested {
+		if memberships[i], err = s.readMembership(ctx, workspace.ID, payload.Contact.Email, list.ID); err != nil {
+			return nil, err
+		}
+		if memberships[i] == nil {
+			noRow[i] = true
+			noRowIDs = append(noRowIDs, list.ID)
+		}
+	}
+	// A deleted contact coming back gets their opt-outs back on insert, so they are
+	// planned from those rather than as new, and a refusal inserts nothing.
+	if canUpsert && len(noRowIDs) > 0 {
+		restored, err := s.contactListRepo.GetOptOutsRestoredOnInsert(ctx, workspace.ID, payload.Contact.Email, noRowIDs)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range restored {
+			for i, list := range requested {
+				if noRow[i] && list.ID == row.ListID {
+					memberships[i] = row
+				}
+			}
+		}
+	}
+	steps := make([]subscriptionStep, len(requested))
+	refused := len(requested) > 0
+	for i, list := range requested {
+		if steps[i], err = planSubscription(payload, list, memberships[i], isAuthenticated, hasBearerToken); err != nil {
+			return nil, err
+		}
+		if !steps[i].refused() {
+			refused = false
+		}
+	}
+
+	if canUpsert && !refused {
+		// upsert the contact
+		if _, err := s.contactRepo.UpsertContact(ctx, workspace.ID, &payload.Contact); err != nil {
+			s.logger.WithField("email", payload.Contact.Email).Error(fmt.Sprintf("Failed to upsert contact: %v", err))
+			return nil, fmt.Errorf("failed to upsert contact: %w", err)
+		}
+		// A list with no row before the upsert may have one now: this insert, or a
+		// concurrent subscribe's, restored an opt-out. Its plan is made again from what
+		// is stored.
+		for i, list := range requested {
+			if !noRow[i] {
+				continue
+			}
+			existingCL, err := s.readMembership(ctx, workspace.ID, payload.Contact.Email, list.ID)
+			if err != nil {
+				return nil, err
+			}
+			if steps[i], err = planSubscription(payload, list, existingCL, isAuthenticated, hasBearerToken); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -413,107 +597,16 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		}
 	}
 
-	// get the list
-	for _, listID := range payload.ListIDs {
+	for _, step := range steps {
+		list := step.list
+		listID := list.ID
+		existingCL := step.existing
 
-		var list *domain.List
-		for _, l := range lists {
-			if l.ID == listID {
-				list = l
-				break
-			}
+		if step.action == subscriptionKeep {
+			results = append(results, membershipResult(existingCL, list.Name))
+			continue
 		}
-
-		if list == nil {
-			// Checked above; kept so a list can never be dereferenced nil.
-			return nil, &domain.ErrListNotFound{Message: fmt.Sprintf("list %s not found", listID)}
-		}
-
-		// reject if the list is not public and the request is not authenticated
-		// (authenticated = bearer token OR valid HMAC from notification center)
-		if !list.IsPublic && !isAuthenticated {
-			return nil, fmt.Errorf("list is not public")
-		}
-
-		// Check existing subscription status to prevent overwriting. A contact removed from
-		// the list is read too: the removal ends their membership, not the opt-out, bounce or
-		// complaint on their row, which the guards below must still see.
-		existingCL, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspace.ID, payload.Contact.Email, listID)
-		if err != nil {
-			if _, ok := err.(*domain.ErrContactListNotFound); !ok {
-				return nil, fmt.Errorf("failed to check existing subscription: %w", err)
-			}
-			// Not found — proceed as new subscription
-		}
-		// Removed while active or pending: not on the list, and nothing on the row to keep,
-		// so this is a new subscription
-		if existingCL != nil && existingCL.DeletedAt != nil &&
-			(existingCL.Status == domain.ContactListStatusActive || existingCL.Status == domain.ContactListStatusPending) {
-			existingCL = nil
-		}
-
-		// The workspace decides who is on a private list. A link's signature lets its contact
-		// confirm a double opt-in the workspace started, but never join a private list,
-		// nor rejoin one they left.
-		if !list.IsPublic && !hasBearerToken &&
-			(existingCL == nil || existingCL.Status == domain.ContactListStatusUnsubscribed) {
-			return nil, fmt.Errorf("list is not public")
-		}
-
-		skipDBWrite := false
-		// The write leaves an unsubscribe, which only ResubscribeContactToList does.
-		resubscribe := false
-
-		if existingCL != nil {
-			switch existingCL.Status {
-			case domain.ContactListStatusActive:
-				// Idempotent no-op — already subscribed. Still reported: "already
-				// active" is the outcome of this subscribe, and a caller that only
-				// saw success would have no way to tell it apart from a new one.
-				results = append(results, membershipResult(existingCL, list.Name))
-				continue
-			case domain.ContactListStatusPending:
-				if !isAuthenticated {
-					// Anonymous re-submit of the subscribe form:
-					// skip DB write and resend DOI email below.
-					skipDBWrite = true
-				}
-				// Authenticated request (valid email_hmac) is the confirmation-link click:
-				// fall through so the upsert below transitions Pending → Active and the
-				// DOI email logic is NOT re-triggered. (Issue #313)
-			case domain.ContactListStatusBounced, domain.ContactListStatusComplained:
-				// Hard block — do not send email to bounced/complained addresses.
-				// Reported too, so the refusal is visible rather than silent: this
-				// is the one path where a "successful" subscribe leaves the contact
-				// permanently unmailable on that list.
-				results = append(results, membershipResult(existingCL, list.Name))
-				continue
-			case domain.ContactListStatusUnsubscribed:
-				if hasBearerToken && !payload.Resubscribe {
-					// The workspace's own call does not override the contact's
-					// unsubscribe: reported as it is, nothing written, no email.
-					results = append(results, membershipResult(existingCL, list.Name))
-					continue
-				}
-				if !hasBearerToken && !isAuthenticated {
-					// An anonymous form post can carry anyone's address, so it never
-					// writes over an unsubscribe: not even pending, which a later API
-					// call or automation would turn active. When the list can send its
-					// confirmation, the contact gets it, and its signed link brings
-					// them back; otherwise nothing happens.
-					if list.DoubleOptInTemplate == nil {
-						results = append(results, membershipResult(existingCL, list.Name))
-						continue
-					}
-					skipDBWrite = true
-					break
-				}
-				// The explicit flag, or a signed request: the contact's own link
-				// (notification center, confirmation email) proves the mailbox, as a
-				// double opt-in click does.
-				resubscribe = true
-			}
-		}
+		skipDBWrite := step.action == subscriptionResendConfirmation
 
 		contactList := &domain.ContactList{
 			Email:     payload.Contact.Email,
@@ -528,7 +621,7 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		if list.IsDoubleOptin && !isAuthenticated {
 			contactList.Status = domain.ContactListStatusPending
 		}
-		if resubscribe {
+		if step.action == subscriptionResubscribe {
 			written, err := s.contactListRepo.ResubscribeContactToList(ctx, workspace.ID, contactList, false)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resubscribe to list: %w", err)

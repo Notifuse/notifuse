@@ -40,6 +40,7 @@ func (s *Server) listAnalyticsSchemasTool() *Tool {
 		Title: "List analytics schemas",
 		Description: "Lists the analytics schemas this key may query with query_analytics. " +
 			"Each schema has its measures (counts and aggregates) and its dimensions (the fields to group or filter by, time dimensions included). " +
+			"A member has a name, a type and a title, and a description when the schema gives one. " +
 			"A schema is listed only when the key can read its resource: " +
 			"message_history and email_queue need message_history, contacts needs contacts, broadcasts needs broadcasts, automation_node_executions needs automations, and the web analytics schemas need web_analytics.",
 		Class: ClassRead,
@@ -59,7 +60,7 @@ type analyticsMember struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"`
 	Title       string `json:"title"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 }
 
 // analyticsSchema is a schema without its SQL fragments.
@@ -122,7 +123,11 @@ func (s *Server) queryAnalyticsTool() *Tool {
 		Title: "Query analytics",
 		Description: "Runs an aggregate query on one analytics schema from list_analytics_schemas. " +
 			"You pick the measures to compute and the dimensions to group by. Time dimensions group by hour, day, week, month or year over a date range. " +
+			"To count a period, give the time dimension a date_range: both bounds are included, a date as the end covers that whole day, and the bounds are read in timezone. " +
+			"An inDateRange filter compares its values as given, without the timezone argument, so a date as its end stops at midnight at the start of that day. " +
+			"beforeDate and afterDate leave out the value given. " +
 			"You can filter on dimensions, filter on measures (having), and set one sort order. " +
+			"On a time series with a date_range, the sort order, offset and limit apply to the filled periods. " +
 			"Name members as list_analytics_schemas names them, without the schema prefix. " +
 			"A query returns at most 1000 rows (default 100) and runs for at most 10 seconds. limit_reached is true when the row limit cut the result; " +
 			"use offset to read further rows. Text cells are cut at 2000 characters and named in truncated_fields. " +
@@ -143,19 +148,19 @@ func (s *Server) queryAnalyticsTool() *Tool {
 						"properties": map[string]any{
 							"dimension":   map[string]any{"type": "string", "description": "A time dimension of the schema."},
 							"granularity": map[string]any{"type": "string", "enum": []string{"hour", "day", "week", "month", "year"}},
-							"date_range":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Exactly two dates, [from, to], such as [\"2026-11-01\", \"2026-11-30\"]."},
+							"date_range":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Exactly two bounds, [from, to], both included, such as [\"2026-11-01\", \"2026-11-30\"]. A bound is a date, a date and time, or an RFC 3339 time, read in timezone. A date as the end covers that whole day."},
 						},
 						"required":             []string{"dimension", "granularity"},
 						"additionalProperties": false,
 					},
-					"description": "Time dimensions to group by, each over an optional date range. Periods without data are filled with zeros.",
+					"description": "The time dimension to group by, at most one, over an optional date range. Periods without data are filled with zeros.",
 				},
 				"filters": map[string]any{
 					"type": "array",
 					"items": map[string]any{
 						"type": "object",
 						"properties": map[string]any{
-							"member":   map[string]any{"type": "string", "description": "A dimension or measure of the schema."},
+							"member":   map[string]any{"type": "string", "description": "A dimension of the schema. Conditions on measures go in having."},
 							"operator": map[string]any{"type": "string", "enum": analyticsFilterOperators},
 							"values":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Values to compare with. set and notSet take none."},
 						},
@@ -183,7 +188,7 @@ func (s *Server) queryAnalyticsTool() *Tool {
 					"items": map[string]any{
 						"type": "object",
 						"properties": map[string]any{
-							"member":    map[string]any{"type": "string", "description": "A dimension or measure of the query."},
+							"member":    map[string]any{"type": "string", "description": "A measure, a dimension of the query or its time dimension, which sorts by period."},
 							"direction": map[string]any{"type": "string", "enum": []string{"asc", "desc"}},
 						},
 						"required":             []string{"member", "direction"},
@@ -282,7 +287,8 @@ func (s *Server) queryAnalytics(ctx context.Context, call *Call) (any, error) {
 		return nil, err
 	}
 
-	// The repository sets no timeout of its own.
+	// The repository bounds every statement at analytics.MaxQueryDuration; MCP answers
+	// sooner.
 	ctx, cancel := context.WithTimeout(ctx, analyticsTimeout)
 	defer cancel()
 
@@ -312,8 +318,8 @@ func (s *Server) queryAnalytics(ctx context.Context, call *Call) (any, error) {
 		data = resp.Data
 	}
 	// The query asks for one row past the limit, so a page of exactly limit
-	// rows is not reported as cut. Gap filling can add rows past it too.
-	// Either way, no more than limit rows reach the client.
+	// rows is not reported as cut. On a gap-filled series the engine applies
+	// that limit after the filling, so the extra row means the same there.
 	if len(data) > limit {
 		data = data[:limit]
 		out.LimitReached = true
@@ -354,7 +360,7 @@ func (a *queryAnalyticsArgs) request() (map[string]any, int, *ToolError) {
 		request["dimensions"] = a.Dimensions
 	}
 	if a.Timezone != "" {
-		if _, err := time.LoadLocation(a.Timezone); err != nil {
+		if err := analytics.ValidateTimezone(a.Timezone); err != nil {
 			return nil, 0, validationError("timezone must be an IANA time zone, such as Europe/Paris")
 		}
 		request["timezone"] = a.Timezone

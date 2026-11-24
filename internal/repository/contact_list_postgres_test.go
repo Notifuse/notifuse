@@ -163,6 +163,69 @@ func TestContactListRepository_GetContactListByIDs(t *testing.T) {
 // GetContactListIncludingRemoved reads the row whatever deleted_at says: removing a
 // contact from a list ends their membership, not the unsubscribe, bounce or complaint
 // recorded on it, which the automation email gate and the unsubscribe must still see.
+func TestContactListRepository_GetOptOutsRestoredOnInsert(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "back@example.com"
+	listIDs := []string{"news", "offers"}
+	// The parts that make it what the restore trigger would insert: the address hashed in
+	// SQL, lists that still exist, and nothing while the address is a contact
+	query := `FROM contact_opt_out_hashes o JOIN lists l ON l.id = o.list_id AND l.deleted_at IS NULL ` +
+		`WHERE o.email_hash = contact_opt_out_hash\(\$1\) AND o.list_id = ANY\(\$2::text\[\]\) ` +
+		`AND NOT EXISTS \(SELECT 1 FROM contacts c WHERE c.email = \$1\)`
+
+	t.Run("the stored opt-outs come back as rows, removed ones with their removal", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).
+			WithArgs(email, sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"list_id", "status", "removed"}).
+				AddRow("news", "unsubscribed", false).
+				AddRow("offers", "complained", true))
+
+		rows, err := repo.GetOptOutsRestoredOnInsert(ctx, workspaceID, email, listIDs)
+		require.NoError(t, err)
+		require.Len(t, rows, 2)
+		assert.Equal(t, email, rows[0].Email)
+		assert.Equal(t, "news", rows[0].ListID)
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, rows[0].Status)
+		assert.Nil(t, rows[0].DeletedAt)
+		assert.Equal(t, "offers", rows[1].ListID)
+		assert.Equal(t, domain.ContactListStatusComplained, rows[1].Status)
+		assert.NotNil(t, rows[1].DeletedAt)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no list asks nothing", func(t *testing.T) {
+		rows, err := repo.GetOptOutsRestoredOnInsert(ctx, workspaceID, email, nil)
+		require.NoError(t, err)
+		assert.Empty(t, rows)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs(email, sqlmock.AnyArg()).WillReturnError(errors.New("connection reset"))
+
+		rows, err := repo.GetOptOutsRestoredOnInsert(ctx, workspaceID, email, listIDs)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "connection reset")
+		assert.Nil(t, rows)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(nil, errors.New("connection error"))
+
+		rows, err := repo.GetOptOutsRestoredOnInsert(ctx, workspaceID, email, listIDs)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+		assert.Nil(t, rows)
+	})
+}
+
 func TestContactListRepository_GetContactListIncludingRemoved(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
 	defer cleanup()

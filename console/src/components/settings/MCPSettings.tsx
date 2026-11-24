@@ -425,22 +425,23 @@ export function MCPSettings({ workspace, members, isOwner, onWorkspaceUpdate }: 
                 ))}
               </ol>
             </div>
-            <div className="flex flex-col gap-2 border-t border-line-soft pt-3">
-              <span className="text-sm text-ink-2">{t`Claude Code and Cursor send the key in a header instead:`}</span>
-              {client === 'cursor' ? (
-                <CodeBlock
-                  code={cursorConfig(url)}
-                  copyLabel={t`Copy the configuration`}
-                  onCopy={(text) => copy(text, t`Copied`)}
-                />
-              ) : (
-                <CodeBlock
-                  code={claudeCodeCommand(url)}
-                  copyLabel={t`Copy the command`}
-                  onCopy={(text) => copy(text, t`Copied`)}
-                />
-              )}
-            </div>
+            {client === 'claude-code' || client === 'cursor' ? (
+              <div className="flex flex-col gap-2 border-t border-line-soft pt-3">
+                {client === 'cursor' ? (
+                  <CodeBlock
+                    code={cursorConfig(url)}
+                    copyLabel={t`Copy the configuration`}
+                    onCopy={(text) => copy(text, t`Copied`)}
+                  />
+                ) : (
+                  <CodeBlock
+                    code={claudeCodeCommand(url)}
+                    copyLabel={t`Copy the command`}
+                    onCopy={(text) => copy(text, t`Copied`)}
+                  />
+                )}
+              </div>
+            ) : null}
           </div>
         </Panel>
       </section>
