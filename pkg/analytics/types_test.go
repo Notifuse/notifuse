@@ -75,7 +75,7 @@ func TestQuery_GetLimit(t *testing.T) {
 		{
 			name:     "no limit set",
 			limit:    nil,
-			expected: 1000,
+			expected: MaxRows,
 		},
 		{
 			name:     "limit set",
@@ -452,7 +452,7 @@ func TestQuery_QueryValidation(t *testing.T) {
 				Schema:   "test_table",
 				Measures: []string{"invalid_measure"},
 			},
-			expectedErr: "unsupported measure",
+			expectedErr: `measure "invalid_measure" is not in schema`,
 			description: "Should validate measure existence",
 		},
 		{
@@ -462,7 +462,7 @@ func TestQuery_QueryValidation(t *testing.T) {
 				Measures:   []string{"count"},
 				Dimensions: []string{"invalid_dimension"},
 			},
-			expectedErr: "unsupported dimension",
+			expectedErr: `dimension "invalid_dimension" is not in schema`,
 			description: "Should validate dimension existence",
 		},
 		{
@@ -472,7 +472,7 @@ func TestQuery_QueryValidation(t *testing.T) {
 				Measures: []string{"count"},
 				Timezone: stringPtr("Invalid/Timezone"),
 			},
-			expectedErr: "invalid timezone",
+			expectedErr: `timezone "Invalid/Timezone" is not an IANA time zone name`,
 			description: "Should validate timezone",
 		},
 		{
@@ -482,7 +482,7 @@ func TestQuery_QueryValidation(t *testing.T) {
 				Measures: []string{"count"},
 				Limit:    intPtr(-1),
 			},
-			expectedErr: "limit cannot be negative",
+			expectedErr: "limit must be between 0 and 50000",
 			description: "Should validate limit is not negative",
 		},
 		{
