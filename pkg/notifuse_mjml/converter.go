@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -784,8 +785,18 @@ func formatAttributesWithLiquid(budget *renderBudget, attributes map[string]inte
 		return ""
 	}
 
+	// Keys in a fixed order, so the same block always gives the same MJML: a map's order
+	// changes from one run to the next, and anything that compares two conversions (an
+	// export, a diff, a client reading the template twice) would see a change.
+	keys := make([]string, 0, len(attributes))
+	for key := range attributes {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
 	var attrPairs []string
-	for key, value := range attributes {
+	for _, key := range keys {
+		value := attributes[key]
 		// Skip editor-only attributes that are not valid MJML
 		if key == "visibility" {
 			continue
