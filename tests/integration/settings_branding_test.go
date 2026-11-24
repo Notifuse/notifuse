@@ -99,6 +99,9 @@ func restartAfterSave(t *testing.T, suite *testutil.IntegrationTestSuite, factor
 }
 
 func TestSettingsHandler_InstanceBranding(t *testing.T) {
+	// Before anything else: the subtests mint a dev licence, which a build without the licdev
+	// tag refuses, so a plain `go test ./...` must skip here rather than fail.
+	skipIfNotIntegrationTest(t)
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
