@@ -55,6 +55,11 @@ describe('SidePanel', () => {
     expect(document.querySelector('[data-sidepanel-footer]')).toHaveTextContent('Delete')
   })
 
+  it('names its dialog after the title', () => {
+    renderPanel({ title: 'API command' })
+    expect(screen.getByRole('dialog', { name: 'API command' })).toBeInTheDocument()
+  })
+
   it('closes from the close button', () => {
     const { onClose } = renderPanel()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))

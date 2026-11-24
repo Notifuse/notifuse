@@ -212,9 +212,8 @@ test.describe('Managing saved blocks from the library', () => {
       body: { workspace_id: 'test-workspace', id: 'lib-text' }
     })
     await expect(editor.card('lib-text')).toHaveCount(0)
-    await expect(editor.drawer.getByTestId('library-count')).toHaveText(
-      String(librarySavedBlocks.length - 1)
-    )
+    // The Library tab shows no count of saved blocks: the cards left are what tells
+    await expect(editor.drawer.locator('[data-library-card]')).toHaveCount(librarySavedBlocks.length - 1)
   })
 
   test("confirms in the console's language", async ({ authenticatedPage: page }) => {

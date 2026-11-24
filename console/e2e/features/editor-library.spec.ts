@@ -264,7 +264,7 @@ test.describe('Dropping a block from the library on the canvas', () => {
     await editor.grab('lib-section')
     await editor.moveOver('S2', 0.5, 0.3)
     expect(await editor.shown()).not.toBeNull()
-    const settings = (await editor.drawer.locator('.w-96').first().boundingBox())!
+    const settings = (await editor.drawer.getByTestId('settings-panel').boundingBox())!
     await editor.moveTo(settings.x + settings.width / 2, settings.y + 300)
     expect(await editor.shown()).toBeNull()
     await editor.release()
@@ -324,6 +324,9 @@ test.describe('Inserting a block from the library', () => {
     await editor.reveal('T3')
     await editor.el('T3').click()
     await expect(editor.el('T3')).toHaveClass(/selected/)
+    // Picking a block shows the structure: back to the library, the block still selected
+    await editor.drawer.getByTestId('library-tab').click()
+    await expect(editor.el('T3')).toHaveClass(/selected/)
     const card = editor.drawer.locator('[data-library-card="lib-button"]')
     await card.hover()
     await card.getByRole('button', { name: 'Insert' }).click()
@@ -340,7 +343,8 @@ test.describe('Inserting a block from the library', () => {
     authenticatedPage: page
   }) => {
     const editor = await openLibraryEditor(page, baseBody())
-    await editor.drawer.getByPlaceholder('Search saved blocks').focus()
+    // From the Library tab (the search field shows only above ten saved blocks)
+    await editor.drawer.getByTestId('library-tab').focus()
     for (let i = 0; i < 12; i++) {
       await page.keyboard.press('Tab')
       const focused = await page.evaluate(() => document.activeElement?.textContent ?? '')

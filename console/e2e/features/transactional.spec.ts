@@ -9,7 +9,10 @@ const WORKSPACE_ID = 'test-workspace'
 
 // antd 6 puts role="dialog" on the drawer section itself and names it after the
 // drawer title, so the title is what the dialog is looked up by.
-const CREATE_DRAWER = 'Create a notification'
+const CREATE_DRAWER = 'New notification'
+// The template picker. It lists only the templates of the notification's category, so the
+// transactional one of the mock data (Unsubscribe Confirmation, tpl-3) is what it offers.
+const TEMPLATE_PICKER = 'Choose a template'
 const EDIT_DRAWER = 'Edit notification'
 
 // The table row of a notification, found by its name.
@@ -104,7 +107,7 @@ test.describe('Transactional Notifications Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      await expect(drawer.getByLabel('Notification name')).toBeVisible()
+      await expect(drawer.getByPlaceholder('E.g. Password Reset Email')).toBeVisible()
       await expect(drawer.getByLabel('API Identifier')).toBeVisible()
       await expect(drawer.getByPlaceholder('Select email template')).toBeVisible()
     })
@@ -117,7 +120,7 @@ test.describe('Transactional Notifications Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      const nameInput = drawer.getByLabel('Notification name')
+      const nameInput = drawer.getByPlaceholder('E.g. Password Reset Email')
       await nameInput.fill('Password Reset Email')
       await expect(nameInput).toHaveValue('Password Reset Email')
 
@@ -128,7 +131,7 @@ test.describe('Transactional Notifications Feature', () => {
       await descriptionInput.fill('Sends a password reset email to users')
       await expect(descriptionInput).toHaveValue('Sends a password reset email to users')
 
-      await expect(drawer.getByRole('button', { name: 'Save', exact: true })).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Create notification', exact: true })).toBeVisible()
     })
 
     test('views notification details', async ({ authenticatedPageWithData }) => {
@@ -220,9 +223,11 @@ test.describe('Transactional Notifications Feature', () => {
       // The template field opens a picker listing the workspace templates
       await drawer.getByPlaceholder('Select email template').click()
 
-      const picker = page.getByRole('dialog', { name: 'Select Template' })
+      const picker = page.getByRole('dialog', { name: TEMPLATE_PICKER })
       await expect(picker).toBeVisible()
-      await expect(picker.getByRole('listitem').filter({ hasText: 'Welcome Email' })).toBeVisible()
+      await expect(picker.getByRole('listitem').filter({ hasText: 'Unsubscribe Confirmation' })).toBeVisible()
+      // Templates of another category are not offered
+      await expect(picker.getByRole('listitem').filter({ hasText: 'Welcome Email' })).toHaveCount(0)
     })
 
     test('shows tracking settings', async ({ authenticatedPage }) => {
@@ -290,7 +295,7 @@ test.describe('Transactional Notifications Feature', () => {
 
       const drawer = await openEditDrawer(page, 'Password Reset')
 
-      await expect(drawer.getByLabel('Notification name')).toHaveValue('Password Reset')
+      await expect(drawer.getByPlaceholder('E.g. Password Reset Email')).toHaveValue('Password Reset')
     })
 
     test('edit notification preserves API identifier', async ({ authenticatedPageWithData }) => {
@@ -356,7 +361,7 @@ test.describe('Transactional Notifications Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create notification', exact: true }).click()
 
       await expect(drawer.getByText('Please enter a notification name')).toBeVisible()
     })
@@ -370,9 +375,9 @@ test.describe('Transactional Notifications Feature', () => {
       const drawer = await openCreateDrawer(page)
 
       // Name and identifier satisfied, template still missing
-      await drawer.getByLabel('Notification name').fill('Test Notification')
+      await drawer.getByPlaceholder('E.g. Password Reset Email').fill('Test Notification')
 
-      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create notification', exact: true }).click()
 
       await expect(drawer.getByText('Please select an email template')).toBeVisible()
       await expect(drawer.getByText('Please enter a notification name')).toHaveCount(0)
@@ -423,7 +428,7 @@ test.describe('Transactional Notifications Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      await drawer.getByLabel('Notification name').fill(testTransactionalData.name)
+      await drawer.getByPlaceholder('E.g. Password Reset Email').fill(testTransactionalData.name)
 
       // testTransactionalData.id contains dashes, which the API identifier rejects;
       // the value the form derives from the name is what actually gets submitted,
@@ -435,17 +440,19 @@ test.describe('Transactional Notifications Feature', () => {
 
       // Pick the email template through the picker drawer
       await drawer.getByPlaceholder('Select email template').click()
-      const picker = page.getByRole('dialog', { name: 'Select Template' })
+      // A click previews a template, a double click uses it
+      const picker = page.getByRole('dialog', { name: TEMPLATE_PICKER })
       await picker
         .getByRole('listitem')
-        .filter({ hasText: 'Welcome Email' })
-        .getByRole('button', { name: 'Select', exact: true })
-        .click()
-      await expect(drawer.getByPlaceholder('Select email template')).toHaveValue('Welcome Email')
+        .filter({ hasText: 'Unsubscribe Confirmation' })
+        .getByRole('button', { name: /^Preview of Unsubscribe Confirmation/ })
+        .dblclick()
+      await expect(picker).toBeHidden()
+      await expect(drawer.getByPlaceholder('Select email template')).toHaveValue('Unsubscribe Confirmation')
 
       await drawer.getByLabel('utm_source').fill('e2e-test')
 
-      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create notification', exact: true }).click()
 
       await expect
         .poll(() => requestCapture.getRequestCount(API_PATTERNS.TRANSACTIONAL_CREATE))
@@ -470,7 +477,7 @@ test.describe('Transactional Notifications Feature', () => {
       expect(body.notification?.id).toBe(expectedId)
       expect(body.notification?.name).toBe(testTransactionalData.name)
       expect(body.notification?.description).toBe(testTransactionalData.description)
-      expect(body.notification?.channels?.email?.template_id).toBe('tpl-1')
+      expect(body.notification?.channels?.email?.template_id).toBe('tpl-3')
       expect(body.notification?.tracking_settings?.utm_source).toBe('e2e-test')
       expect(body.notification?.tracking_settings?.utm_content).toBe(expectedId)
     })

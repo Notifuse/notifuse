@@ -87,8 +87,8 @@ test.describe('Templates Feature', () => {
 
       // Used in: what templates.usage counts for each template
       const newsletterRow = rows.filter({ hasText: 'Monthly Newsletter' })
-      await expect(newsletterRow.getByText('1 newsletter', { exact: true })).toBeVisible()
-      await expect(welcomeRow.getByText('Not used', { exact: true })).toBeVisible()
+      await expect(newsletterRow.getByText('1 broadcast', { exact: true })).toBeVisible()
+      await expect(welcomeRow.getByText('Not in use', { exact: true })).toBeVisible()
     })
   })
 
@@ -139,8 +139,12 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // The row's preview action opens the template's own drawer, titled after it
-      await rowAction(page, 'Preview')
+      // The row's Preview button opens the template's own drawer, titled after it
+      await page
+        .locator('.ant-table-row')
+        .filter({ hasText: 'Welcome Email' })
+        .getByRole('button', { name: 'Preview', exact: true })
+        .click()
 
       // Its title also names the version and category after the name: « Welcome Email v1 · … »
       const preview = page.getByRole('dialog', { name: /^Welcome Email/ })

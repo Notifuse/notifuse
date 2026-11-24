@@ -47,7 +47,10 @@ export async function waitForTable(page: Page, timeout = 10000): Promise<Locator
  * Wait for loading spinner to disappear
  */
 export async function waitForLoading(page: Page, timeout = 15000): Promise<void> {
-  await page.waitForLoadState('networkidle')
+  // Bounded: a background request (a poll, a late image) can keep the network from ever being
+  // idle, and an unbounded wait then ate the whole test timeout now and then. The spinner check
+  // below and each test's own assertions say when the page is ready.
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {})
   await page.locator('.ant-spin-spinning').waitFor({ state: 'hidden', timeout }).catch(() => {})
 }
 
