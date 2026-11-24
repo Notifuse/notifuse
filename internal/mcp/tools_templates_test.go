@@ -190,7 +190,7 @@ func TestGetTemplate_CodeTemplate(t *testing.T) {
 	f.reachable(templatesRead())
 	f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(codeTemplate(), nil)
 
-	result := f.callTool("get_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome"})
+	result := f.callTool("get_template", map[string]any{"workspace_id": testWorkspaceID, "id": "welcome", "include_translations": true})
 	require.False(t, result.IsError, string(result.StructuredContent))
 	expected, err := json.Marshal(map[string]any{
 		"workspace": map[string]any{"id": "ws1", "name": "Acme"},
@@ -200,7 +200,8 @@ func TestGetTemplate_CodeTemplate(t *testing.T) {
 			"subject":     "Welcome {{ contact.first_name }}", "subject_preview": "Three things to try",
 			"sender_id": "snd_01", "reply_to": "help@acme.test",
 			"mjml": welcomeMJML, "mjml_origin": "source", "text": "Hi {{ contact.first_name }}",
-			"test_data": map[string]any{"contact": map[string]any{"first_name": "John"}},
+			"test_data":             map[string]any{"contact": map[string]any{"first_name": "John"}},
+			"translation_languages": []string{"fr"},
 			"translations": map[string]any{
 				"fr": map[string]any{"subject": "Bienvenue", "mjml": "<mjml><mj-body>Bonjour</mj-body></mjml>", "mjml_origin": "source"},
 			},
@@ -213,6 +214,33 @@ func TestGetTemplate_CodeTemplate(t *testing.T) {
 	for _, dropped := range []string{"compiled", "visual_editor_tree", "third-party-setting", "supabase-1", "macro-1", "settings", "deleted_at"} {
 		assert.NotContains(t, result.Content[0].Text, dropped)
 	}
+}
+
+// Each translation is a whole email: by default get_template names the
+// languages only, and an omitted include_translations means false.
+func TestGetTemplate_TranslationsOnlyWhenAsked(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(templatesRead())
+	f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "welcome", int64(0)).Return(codeTemplate(), nil).Times(2)
+
+	for name, args := range map[string]map[string]any{
+		"omitted": {"workspace_id": testWorkspaceID, "id": "welcome"},
+		"false":   {"workspace_id": testWorkspaceID, "id": "welcome", "include_translations": false},
+	} {
+		var out struct {
+			Template map[string]json.RawMessage `json:"template"`
+		}
+		result := f.callTool("get_template", args)
+		result.decode(t, &out)
+		assert.NotContains(t, out.Template, "translations", name)
+		assert.JSONEq(t, `["fr"]`, string(out.Template["translation_languages"]), name)
+		assert.NotContains(t, result.Content[0].Text, "Bonjour", name)
+		// The default content stays whole.
+		assert.Contains(t, out.Template, "mjml", name)
+	}
+
+	schema := catalogueTool(t, "get_template").InputSchema["properties"].(map[string]any)["include_translations"].(map[string]any)
+	assert.Equal(t, "boolean", schema["type"])
 }
 
 // The MJML is editable content: returned whole, however long.
@@ -271,7 +299,7 @@ func TestGetTemplate_WebTemplate(t *testing.T) {
 	assert.JSONEq(t, `{
 		"workspace":{"id":"ws1","name":"Acme"},
 		"template":{"id":"layout","name":"Layout","version":1,"channel":"web","category":"blog","editor_mode":null,
-			"web_text":"`+strings.Repeat("w", 2000)+`","managed_by_integration":false,
+			"web_text":"`+strings.Repeat("w", 2000)+`","translation_languages":[],"managed_by_integration":false,
 			"created_at":"2026-09-01T08:00:00Z","updated_at":"2026-09-01T08:00:00Z",
 			"truncated":true,"truncated_fields":["web_text"]}
 	}`, string(result.StructuredContent))

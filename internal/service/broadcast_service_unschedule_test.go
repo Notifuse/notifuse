@@ -177,7 +177,11 @@ func TestBroadcastService_UnscheduleBroadcast(t *testing.T) {
 		err := d.svc.UnscheduleBroadcast(ctx, req)
 		var validation domain.ValidationError
 		require.ErrorAs(t, err, &validation)
-		assert.Contains(t, validation.Message, "not scheduled")
+		assert.Equal(t, "the broadcast is not scheduled", validation.Message)
+		// MCP's unschedule_broadcast answers a repeated call as done from this type.
+		var notScheduled *domain.BroadcastNotScheduledError
+		require.ErrorAs(t, err, &notScheduled)
+		assert.Equal(t, "b1", notScheduled.ID)
 	})
 
 	// A broadcast whose sending started (a scheduled one leaves scheduled when its sending

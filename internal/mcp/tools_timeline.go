@@ -61,6 +61,7 @@ func (s *Server) getContactTimelineTool() *Tool {
 		Description: "Lists what happened to one contact, newest first: " +
 			"changes to the contact, list subscriptions, segment entries, emails sent and their opens, clicks, bounces and complaints, custom events, automations and website visits. " +
 			"Each entry has its kind (such as email.clicked), the changed values and a short description of the object. " +
+			"created_at is when the entry happened: a custom event is dated by its occurred_at, so an event that happened in the past sorts among older entries, even before the contact's creation. " +
 			"Emails and provider events need the message_history read permission. Website visits need the web_analytics read permission. " +
 			"Types the key cannot read are left out and named in omitted_entity_types. Returns a not_found error when no contact has this email. " +
 			"To get the next page, pass next_cursor back as cursor with the same email and entity_types.",

@@ -251,6 +251,66 @@ func TestMCPWriteToolsAutomationsAndBlog(t *testing.T) {
 		assert.Equal(t, []int{200}, auditStatuses(t, "blogPosts.create", postID))
 	})
 
+	t.Run("the blog tools take a post's slug, name what they did not find, and report a turned-off blog", func(t *testing.T) {
+		out := structured(t, full.call("create_blog_post", args(fmt.Sprintf(`"category_id":%q,"slug":"by-slug","title":"By slug","body":%s`, category.ID, body))))
+		postID := out["post"].(map[string]any)["id"].(string)
+		// The factory's workspace has its blog turned off.
+		assert.Equal(t, false, out["blog_enabled"])
+
+		out = structured(t, full.call("get_blog_post", args(`"id":"by-slug"`)))
+		assert.Equal(t, postID, out["post"].(map[string]any)["id"], "id takes a slug")
+		assert.Equal(t, false, out["blog_enabled"])
+
+		structured(t, full.call("update_blog_post", args(`"id":"by-slug","title":"Found by slug"`)))
+		var title, slug string
+		require.NoError(t, db.QueryRow(`SELECT settings->>'title', slug FROM blog_posts WHERE id = $1`, postID).Scan(&title, &slug))
+		assert.Equal(t, "Found by slug", title)
+		assert.Equal(t, "by-slug", slug)
+
+		target := args(`"id":"by-slug"`)
+		out = structured(t, full.call("publish_blog_post", target))
+		assert.Equal(t, postID, out["post_id"])
+		assert.Equal(t, "published", out["status"])
+		out = structured(t, full.call("publish_blog_post", target))
+		assert.Equal(t, true, out["already"])
+		out = structured(t, full.call("unpublish_blog_post", target))
+		assert.Equal(t, false, out["already"])
+		var published bool
+		require.NoError(t, db.QueryRow(`SELECT published_at IS NOT NULL FROM blog_posts WHERE id = $1`, postID).Scan(&published))
+		assert.False(t, published)
+
+		// Writing the blog without reading it: a slug is refused, the ID works.
+		writeOnly := newKey(domain.UserPermissions{domain.PermissionResourceBlog: {Write: true}})
+		refused := toolError(t, writeOnly.call("publish_blog_post", target))
+		assert.Equal(t, "permission_denied", refused["code"])
+		assert.Equal(t, "read", refused["permission"])
+		structured(t, writeOnly.call("publish_blog_post", args(fmt.Sprintf(`"id":%q`, postID))))
+
+		out = structured(t, full.call("delete_blog_post", target))
+		assert.Equal(t, postID, out["post_id"])
+		var deleted bool
+		require.NoError(t, db.QueryRow(`SELECT deleted_at IS NOT NULL FROM blog_posts WHERE id = $1`, postID).Scan(&deleted))
+		assert.True(t, deleted)
+
+		// not_found names the value given, slug or ID.
+		assert.Equal(t, map[string]any{"code": "not_found", "message": "blog post not found: by-slug"}, toolError(t, full.call("delete_blog_post", target)))
+		assert.Equal(t, map[string]any{"code": "not_found", "message": "blog post not found: by-slug"}, toolError(t, full.call("get_blog_post", args(`"slug":"by-slug"`))))
+		assert.Equal(t, map[string]any{"code": "not_found", "message": "blog post not found: " + postID},
+			toolError(t, full.call("unpublish_blog_post", args(fmt.Sprintf(`"id":%q`, postID)))))
+		// The refused call never resolved the slug, so its row names no post.
+		assert.Equal(t, []int{200, 200, 200}, auditStatuses(t, "blogPosts.publish", postID))
+		assert.Equal(t, []int{200, 404}, auditStatuses(t, "blogPosts.unpublish", postID))
+		assert.Equal(t, []int{200}, auditStatuses(t, "blogPosts.delete", postID))
+
+		// Turned on, the blog serves its posts and the results say nothing.
+		_, err := suite.DBManager.GetDB().Exec(`UPDATE workspaces SET settings = jsonb_set(settings, '{blog_enabled}', 'true') WHERE id = $1`, workspace.ID)
+		require.NoError(t, err)
+		out = structured(t, full.call("list_blog_posts", args(`"limit":1`)))
+		assert.NotContains(t, out, "blog_enabled")
+		out = structured(t, full.call("list_blog_categories", args(`"limit":1`)))
+		assert.NotContains(t, out, "blog_enabled")
+	})
+
 	t.Run("a key without the templates pairs edits metadata but no body", func(t *testing.T) {
 		post, err := factory.CreateBlogPost(workspace.ID, category.ID)
 		require.NoError(t, err)
