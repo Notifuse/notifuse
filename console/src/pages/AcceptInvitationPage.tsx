@@ -124,9 +124,9 @@ export function AcceptInvitationPage() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-[calc(100vh-48px)]">
-          <Card title={t`Authentication code`} style={{ width: 400 }}>
-            <p className="mb-6">{t`Enter the code from your authenticator app to accept the invitation.`}</p>
+          <Card title={t`Two-factor authentication`} style={{ width: 400 }}>
             <TwoFactorChallengeForm
+              invitation
               challengeToken={challengeToken}
               onSignedIn={handleSecondFactor}
               onRestart={() => navigate({ to: '/console/signin' })}
