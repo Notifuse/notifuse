@@ -31,10 +31,39 @@ import (
 var WebAnalyticsTableNames = []string{"web_sessions", "web_pages", "web_goals"}
 
 // WebAnalyticsPartitionFillfactor leaves headroom for HOT updates on the
-// upsert-heavy current month; none of the frequently-updated columns are
-// indexed, so updates stay on-page. Cold partitions keep 15% padding, which is
+// upsert-heavy current month; none of the frequently-updated columns has a
+// B-tree index (updated_at has a BRIN one, which PostgreSQL 16 and later
+// update without giving up HOT), so updates stay on-page. Cold partitions keep 15% padding, which is
 // the accepted cost of not rewriting them.
 const WebAnalyticsPartitionFillfactor = 85
+
+// WebSessionsUpdatedAtIndexName is the index the live views read: they ask for the sessions
+// that sent a signal in the last minutes (updated_at), which no other index serves, so each
+// poll would read the whole of the current month's partition.
+//
+// BRIN rather than B-tree: every heartbeat rewrites updated_at, and a B-tree on it would turn
+// each of those updates into a non-HOT one that writes every index of the row, where a BRIN
+// index (a summarizing index) leaves them HOT. Rows sit in the order sessions start, and a
+// session's last signal follows its start by minutes, so the block ranges stay narrow.
+const WebSessionsUpdatedAtIndexName = "idx_web_sessions_updated_at_brin"
+
+// WebSessionsUpdatedAtIndex creates WebSessionsUpdatedAtIndexName on the partitioned parent,
+// which builds it on every partition and on each one created later. A new workspace runs it on
+// empty tables.
+const WebSessionsUpdatedAtIndex = `CREATE INDEX IF NOT EXISTS ` + WebSessionsUpdatedAtIndexName + ` ON web_sessions USING BRIN (updated_at)`
+
+// WebSessionsUpdatedAtParentIndex creates WebSessionsUpdatedAtIndexName on the parent alone
+// (ON ONLY), for a workspace whose partitions already hold sessions: it reads no partition and
+// the index stays invalid, so the planner ignores it, until each existing partition has its
+// own index attached (WebSessionsUpdatedAtPartitionIndex). A partition created afterwards gets
+// its index at creation.
+const WebSessionsUpdatedAtParentIndex = `CREATE INDEX IF NOT EXISTS ` + WebSessionsUpdatedAtIndexName + ` ON ONLY web_sessions USING BRIN (updated_at)`
+
+// WebSessionsUpdatedAtPartitionIndexName names the index of one web_sessions partition that
+// is attached to WebSessionsUpdatedAtIndexName.
+func WebSessionsUpdatedAtPartitionIndexName(partition string) string {
+	return partition + "_updated_at_brin"
+}
 
 // webAnalyticsAttributionColumns is the session-attribution column block shared
 // verbatim by web_sessions and web_goals (goals carry a denormalized snapshot
@@ -115,6 +144,7 @@ func WebAnalyticsTableDefinitions() []string {
 
 		`CREATE INDEX IF NOT EXISTS idx_web_sessions_created_at_brin ON web_sessions USING BRIN (created_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_web_sessions_contact_email ON web_sessions (contact_email) WHERE contact_email IS NOT NULL`,
+		WebSessionsUpdatedAtIndex,
 
 		`CREATE TABLE IF NOT EXISTS web_pages (
 	session_date DATE NOT NULL,

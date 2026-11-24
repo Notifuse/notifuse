@@ -310,4 +310,37 @@ func TestWebAnalyticsNonUTCDatabaseSession(t *testing.T) {
 		assert.Equal(t, float64(expected), byBucket[bucket],
 			"bucket %s should survive a non-UTC database session; got %v", bucket, byBucket)
 	}
+
+	// The cyclic dimensions name UTC too: EXTRACT on a bare timestamptz would read the
+	// sessions' 09:00 UTC as 10:00 or 11:00 in Paris.
+	cyclic := analytics.Query{
+		Schema:     "web_sessions",
+		Measures:   []string{"sessions"},
+		Dimensions: []string{"hour_of_day", "day_of_week"},
+		Timezone:   &utc,
+	}
+	cyclicSQL, cyclicArgs, err := analytics.NewSQLBuilder().BuildSQL(cyclic, schemas["web_sessions"])
+	require.NoError(t, err)
+	cyclicRows, err := wsDB.Query(cyclicSQL, cyclicArgs...)
+	require.NoError(t, err)
+	defer func() { _ = cyclicRows.Close() }()
+	cyclicData, err := analytics.ProcessRows(cyclicRows, cyclic, schemas["web_sessions"].MeasureTypes(), schemas["web_sessions"].DimensionTypes())
+	require.NoError(t, err)
+
+	byHour := map[string]float64{}
+	byWeekday := map[string]float64{}
+	for _, row := range cyclicData {
+		byHour[fmt.Sprintf("%v", row["hour_of_day"])] += waNumber(t, row["sessions"])
+		byWeekday[fmt.Sprintf("%v", row["day_of_week"])] += waNumber(t, row["sessions"])
+	}
+	assert.Equal(t, map[string]float64{"9": 6}, byHour)
+	expectedWeekdays := map[string]float64{}
+	for offset, count := range perDay {
+		weekday := int(firstDay.AddDate(0, 0, offset).Weekday())
+		if weekday == 0 {
+			weekday = 7
+		}
+		expectedWeekdays[fmt.Sprintf("%d", weekday)] += float64(count)
+	}
+	assert.Equal(t, expectedWeekdays, byWeekday)
 }

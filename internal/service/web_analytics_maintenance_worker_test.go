@@ -27,7 +27,16 @@ func newMaintenanceWorkerForTest(t *testing.T, now time.Time) (*WebAnalyticsMain
 	return worker, workspaceRepo, webRepo
 }
 
+// newMaintenanceWorkerForUsageTest stubs the index build, which every RunOnce calls for every
+// workspace after its partitions; newMaintenanceWorkerForIndexTest leaves it unexpected.
 func newMaintenanceWorkerForUsageTest(t *testing.T, now time.Time) (*WebAnalyticsMaintenanceWorker, *mocks.MockWorkspaceRepository, *mocks.MockWebAnalyticsRepository) {
+	t.Helper()
+	worker, workspaceRepo, webRepo := newMaintenanceWorkerForIndexTest(t, now)
+	webRepo.EXPECT().BuildWebSessionsUpdatedAtIndex(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	return worker, workspaceRepo, webRepo
+}
+
+func newMaintenanceWorkerForIndexTest(t *testing.T, now time.Time) (*WebAnalyticsMaintenanceWorker, *mocks.MockWorkspaceRepository, *mocks.MockWebAnalyticsRepository) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
@@ -215,5 +224,59 @@ func TestWebAnalyticsMaintenanceWorkerUsageMetering(t *testing.T) {
 		webRepo.EXPECT().RecomputeUsage(gomock.Any(), "ws-fine", currentMonth, true).Return(nil)
 
 		worker.RunOnce(context.Background())
+	})
+}
+
+func TestWebAnalyticsMaintenanceWorkerUpdatedAtIndex(t *testing.T) {
+	now := time.Date(2026, 8, 8, 3, 0, 0, 0, time.UTC)
+
+	allowEverythingElse := func(webRepo *mocks.MockWebAnalyticsRepository) {
+		webRepo.EXPECT().RecomputeUsage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		webRepo.EXPECT().ListPartitions(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+		webRepo.EXPECT().EnsureMonthlyPartitions(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		webRepo.EXPECT().SetPartitionAutovacuum(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		webRepo.EXPECT().AnalyzePartitions(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	}
+
+	t.Run("builds the index of every workspace, after the partitions of all of them", func(t *testing.T) {
+		worker, workspaceRepo, webRepo := newMaintenanceWorkerForIndexTest(t, now)
+		workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{
+			maintenanceWorkspace("ws1"), {ID: "plain"},
+		}, nil)
+		webRepo.EXPECT().RecomputeUsage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		webRepo.EXPECT().ListPartitions(gomock.Any(), "ws1", gomock.Any()).Return(nil, nil).Times(3)
+		lastPartitionStep := webRepo.EXPECT().AnalyzePartitions(gomock.Any(), "ws1", gomock.Any()).Return(nil)
+		webRepo.EXPECT().EnsureMonthlyPartitions(gomock.Any(), "ws1", gomock.Any()).Return(nil)
+
+		first := webRepo.EXPECT().BuildWebSessionsUpdatedAtIndex(gomock.Any(), "ws1").Return(true, nil).After(lastPartitionStep)
+		// A workspace without web analytics settings still has the tables, and the index.
+		webRepo.EXPECT().BuildWebSessionsUpdatedAtIndex(gomock.Any(), "plain").Return(false, nil).After(first)
+
+		worker.RunOnce(context.Background())
+	})
+
+	t.Run("a failing build does not stop the others", func(t *testing.T) {
+		worker, workspaceRepo, webRepo := newMaintenanceWorkerForIndexTest(t, now)
+		workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{
+			maintenanceWorkspace("broken"), maintenanceWorkspace("healthy"),
+		}, nil)
+		allowEverythingElse(webRepo)
+		webRepo.EXPECT().BuildWebSessionsUpdatedAtIndex(gomock.Any(), "broken").Return(false, errors.New("lock timeout"))
+		webRepo.EXPECT().BuildWebSessionsUpdatedAtIndex(gomock.Any(), "healthy").Return(true, nil)
+
+		worker.RunOnce(context.Background())
+	})
+
+	t.Run("a cancelled pass stops before the builds", func(t *testing.T) {
+		worker, workspaceRepo, webRepo := newMaintenanceWorkerForIndexTest(t, now)
+		ctx, cancel := context.WithCancel(context.Background())
+		workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{maintenanceWorkspace("ws1")}, nil)
+		webRepo.EXPECT().RecomputeUsage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		webRepo.EXPECT().ListPartitions(gomock.Any(), "ws1", gomock.Any()).Return(nil, nil).Times(3)
+		webRepo.EXPECT().EnsureMonthlyPartitions(gomock.Any(), "ws1", gomock.Any()).Return(nil)
+		webRepo.EXPECT().AnalyzePartitions(gomock.Any(), "ws1", gomock.Any()).DoAndReturn(
+			func(context.Context, string, []string) error { cancel(); return nil })
+		// No BuildWebSessionsUpdatedAtIndex expected.
+		worker.RunOnce(ctx)
 	})
 }

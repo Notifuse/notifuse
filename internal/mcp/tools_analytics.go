@@ -124,8 +124,9 @@ func (s *Server) queryAnalyticsTool() *Tool {
 		Description: "Runs an aggregate query on one analytics schema from list_analytics_schemas. " +
 			"You pick the measures to compute and the dimensions to group by. Time dimensions group by hour, day, week, month or year over a date range. " +
 			"To count a period, give the time dimension a date_range: both bounds are included, a date as the end covers that whole day, and the bounds are read in timezone. " +
-			"An inDateRange filter compares its values as given, without the timezone argument, so a date as its end stops at midnight at the start of that day. " +
-			"beforeDate and afterDate leave out the value given. " +
+			"Date filters (inDateRange, notInDateRange, beforeDate, afterDate) read their values the same way: in timezone, with a date standing for that whole day. " +
+			"beforeDate and afterDate leave out the value given, and for a date its whole day. " +
+			"Hour periods are clock hours in timezone: when the clocks go back, the repeated hour is one period that holds both, and the hour skipped when they go forward has no period. " +
 			"You can filter on dimensions, filter on measures (having), and set one sort order. " +
 			"On a time series with a date_range, the sort order, offset and limit apply to the filled periods. " +
 			"Name members as list_analytics_schemas names them, without the schema prefix. " +
@@ -153,7 +154,7 @@ func (s *Server) queryAnalyticsTool() *Tool {
 						"required":             []string{"dimension", "granularity"},
 						"additionalProperties": false,
 					},
-					"description": "The time dimension to group by, at most one, over an optional date range. Periods without data are filled with zeros.",
+					"description": "The time dimension to group by, at most one, over an optional date range. Periods without data are filled: counts and sums with 0, other measures (medians, rates, averages) with null.",
 				},
 				"filters": map[string]any{
 					"type": "array",

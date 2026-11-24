@@ -1435,6 +1435,11 @@ type WebAnalyticsRepository interface {
 	// for hot, upsert-heavy current-month partitions.
 	SetPartitionAutovacuum(ctx context.Context, workspaceID string, partition string, aggressive bool) error
 
+	// BuildWebSessionsUpdatedAtIndex builds, without blocking writes, the index of each
+	// web_sessions partition that the updated_at index (created on the parent alone by v45)
+	// still lacks, and reports whether that index is valid.
+	BuildWebSessionsUpdatedAtIndex(ctx context.Context, workspaceID string) (bool, error)
+
 	// BackfillPartition recompiles the attribution rules to SQL and rewrites
 	// one partition of web_sessions or web_goals. Returns rows updated.
 	BackfillPartition(ctx context.Context, workspaceID string, partition string, filters []WebFilter) (int64, error)

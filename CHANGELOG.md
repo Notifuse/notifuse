@@ -84,6 +84,20 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The `contains`, `startsWith` and `endsWith` analytics filters and their negations match `_` and `%` as written. A filter on `spring_sale` also matched `springXsale`.
 
+- **Fix**: On a PostgreSQL server whose time zone is not UTC, web analytics reports in UTC placed sessions and goals in the server's hours and days (`hour_of_day`, `day_of_week`, `day` and the like). The **Traffic by day and hour** heatmap was shifted by the server's offset.
+
+- **Fix**: The `set` and `notSet` analytics filters on `contact_email` now find identified and anonymous visitors. They matched every session and no session.
+
+- **Fix**: The analytics date filters (`inDateRange`, `notInDateRange`, `beforeDate`, `afterDate`) now read dates in the query's timezone, and a date as the end of a range covers that whole day. They read dates in the database's time zone and stopped at the start of the end date.
+
+- **Fix**: In an analytics time series, a period with no data now gives medians, rates and averages `null` instead of 0. Counts and sums still give 0.
+
+- **Fix**: A date range that ends on a date now includes the last millisecond of that day. An hourly series over a single day with no data now has all the day's hours instead of one, and on the day the clocks go forward it no longer shows the skipped hour as an empty one.
+
+- **Fix**: Web analytics goal value totals no longer drift on large sums: 100,000 goals of 19.99 added up to 1,999,836.6 instead of 1,999,000.
+
+- **Improvement**: The live web analytics view finds active sessions through a new index on `web_sessions` instead of reading the month's sessions every 10 seconds. Visits keep being recorded during the upgrade: the web analytics maintenance builds the index in the background a few minutes after Notifuse starts, one monthly partition at a time.
+
 - **Fix**: An analytics query can sort by its time dimension, and several `order` keys sort in the order the query lists them. Sorting by a dimension the query does not group by answers 400 instead of 500.
 
 - **Fix**: An analytics query with more than one time dimension answers 400. The gap filling dropped rows when there were two.

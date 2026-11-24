@@ -336,7 +336,7 @@ func TestCatalogue_DescriptionsDocumentTheirOutputs(t *testing.T) {
 		},
 		"get_broadcast":        {"get_broadcast_report has each variation's results"},
 		"search_messages":      {"subject is set only when the send replaced the template's subject", "It is null for transactional emails, for automations without a list"},
-		"query_analytics":      {"both bounds are included, a date as the end covers that whole day", "a date as its end stops at midnight"},
+		"query_analytics":      {"both bounds are included, a date as the end covers that whole day", "read their values the same way: in timezone, with a date standing for that whole day", "the repeated hour is one period that holds both"},
 		"render_template":      {"subject_preview is absent when there is no preview text", "auto is generated from the HTML"},
 		"activate_automation":  {"never returns to draft", "stays paused"},
 		"get_contact_timeline": {"a custom event is dated by its occurred_at"},

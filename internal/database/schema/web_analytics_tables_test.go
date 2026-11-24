@@ -27,6 +27,30 @@ func TestWebAnalyticsTableDefinitions(t *testing.T) {
 		assert.Equal(t, 3, strings.Count(joined, "WHERE contact_email IS NOT NULL"), "partial identity index on each table")
 	})
 
+	t.Run("web_sessions has a BRIN index on updated_at, after the table", func(t *testing.T) {
+		// The live views poll the sessions active in the last minutes. A B-tree on
+		// updated_at, which every heartbeat rewrites, would make those updates non-HOT.
+		assert.Equal(t, "idx_web_sessions_updated_at_brin", WebSessionsUpdatedAtIndexName)
+		assert.Equal(t, "CREATE INDEX IF NOT EXISTS idx_web_sessions_updated_at_brin ON web_sessions USING BRIN (updated_at)",
+			WebSessionsUpdatedAtIndex)
+		table, index := -1, -1
+		for i, stmt := range defs {
+			if strings.Contains(stmt, "CREATE TABLE IF NOT EXISTS web_sessions (") {
+				table = i
+			}
+			if stmt == WebSessionsUpdatedAtIndex {
+				index = i
+			}
+		}
+		require.True(t, table >= 0 && index >= 0, "both statements are in the definitions")
+		assert.Less(t, table, index)
+
+		// An upgraded workspace creates it on the parent alone and builds each partition's.
+		assert.Equal(t, "CREATE INDEX IF NOT EXISTS idx_web_sessions_updated_at_brin ON ONLY web_sessions USING BRIN (updated_at)",
+			WebSessionsUpdatedAtParentIndex)
+		assert.Equal(t, "web_sessions_y2026m11_updated_at_brin", WebSessionsUpdatedAtPartitionIndexName("web_sessions_y2026m11"))
+	})
+
 	t.Run("primary keys embed the partition key and the writer", func(t *testing.T) {
 		joined := strings.Join(defs, "\n")
 		assert.Contains(t, joined, "PRIMARY KEY (session_date, id)")

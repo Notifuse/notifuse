@@ -41,7 +41,7 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		var measureSQL string
 		if measureDef.SQL != "" {
 			// Check if the measure type requires wrapping with aggregate function
-			measureSQL = sb.buildMeasureSQL(measureDef.Type, measureDef.SQL, measureDef.Filters)
+			measureSQL = sb.measureSQL(measure, measureDef)
 		} else {
 			// Use measure name directly if no SQL provided
 			measureSQL = measure
@@ -88,33 +88,15 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 	selectBuilder = selectBuilder.From(schema.Name)
 
 	// Add WHERE clauses for filters
+	timezone := query.GetDefaultTimezone()
 	var pruneStart, pruneEnd *time.Time
 	for _, filter := range query.Filters {
-		// A range filter on a time dimension prunes partitions just as well as
-		// a time dimension does. Breakdowns carry their range this way because
-		// a granularity would split every row per bucket, and without this
-		// they would scan the whole history instead of one partition.
-		if filter.Operator == "inDateRange" && len(filter.Values) == 2 {
-			if dimensionDef, exists := schema.Dimensions[filter.Member]; exists && dimensionDef.Type == "time" {
-				timezone := query.GetDefaultTimezone()
-				start, startErr := parseDateRangeBound(filter.Values[0], timezone)
-				end, endErr := parseDateRangeBound(filter.Values[1], timezone)
-				if startErr == nil && endErr == nil {
-					if pruneStart == nil || start.Before(*pruneStart) {
-						pruneStart = &start
-					}
-					if pruneEnd == nil || end.After(*pruneEnd) {
-						pruneEnd = &end
-					}
-				}
-			}
-		}
-
 		// A filter applies to rows, before aggregation, so its member is a dimension. A measure's
 		// SQL in WHERE is either invalid (* or an aggregate) or, for a column measure, the bare
 		// column without its aggregate and its filters: a silently different number.
 		var memberSQL string
-		if dimensionDef, exists := schema.Dimensions[filter.Member]; exists {
+		dimensionDef, exists := schema.Dimensions[filter.Member]
+		if exists {
 			memberSQL = dimensionDef.SQL
 			if memberSQL == "" {
 				memberSQL = filter.Member
@@ -123,6 +105,38 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 			return "", nil, invalid(ErrUnsupportedDimension, "filters take dimensions, and %q is a measure: put conditions on measures in having", filter.Member)
 		} else {
 			return "", nil, fmt.Errorf("filter member '%s' not found in schema", filter.Member)
+		}
+
+		// A date operator on a time dimension reads its values as a dateRange does: in the
+		// query's timezone, a bare date naming its whole day.
+		if dimensionDef.Type == "time" {
+			if condition, bounds, ok := dateFilterCondition(memberSQL, filter, timezone); ok {
+				// A range filter on a time dimension prunes partitions just as well as
+				// a time dimension does. Breakdowns carry their range this way because
+				// a granularity would split every row per bucket, and without this
+				// they would scan the whole history instead of one partition.
+				if filter.Operator == "inDateRange" {
+					start, end := bounds.start, bounds.last()
+					if pruneStart == nil || start.Before(*pruneStart) {
+						pruneStart = &start
+					}
+					if pruneEnd == nil || end.After(*pruneEnd) {
+						pruneEnd = &end
+					}
+				}
+				selectBuilder = selectBuilder.Where(condition)
+				continue
+			}
+		}
+
+		// A nullable column read as the empty string when NULL: the conditions that can name
+		// the column itself do, so that set and notSet see the empty value and an index on
+		// the column applies.
+		if dimensionDef.NullableColumn != "" {
+			if condition, ok := nullableColumnCondition(dimensionDef.NullableColumn, filter); ok {
+				selectBuilder = selectBuilder.Where(condition)
+				continue
+			}
 		}
 
 		// Build WHERE condition based on operator
@@ -139,8 +153,7 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 	// The bounds are compared against the bare column so indexes (BRIN) and
 	// partition pruning stay usable: for non-UTC timezones the local bounds
 	// are converted to UTC instants in Go instead of wrapping the column in
-	// AT TIME ZONE (which is kept only inside DATE_TRUNC bucketing). The UTC
-	// path binds the raw strings, byte-identical to the historical SQL.
+	// AT TIME ZONE (which is kept only inside DATE_TRUNC bucketing).
 	for _, timeDim := range query.TimeDimensions {
 		if timeDim.DateRange == nil {
 			continue
@@ -151,31 +164,22 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 			dimensionSQL = timeDim.Dimension
 		}
 
-		timezone := query.GetDefaultTimezone()
-		startLocal, startErr := parseDateRangeBound(timeDim.DateRange[0], timezone)
-		endLocal, endErr := parseDateRangeBound(timeDim.DateRange[1], timezone)
-
 		// A bare date names a whole day, so the range's last day belongs to
 		// it. Anything else would make a time series silently lose its most
-		// recent day — and a single-day range ("today") return nothing at all
-		// — since the gap filler only accepts date-only bounds and leaves the
-		// caller no way to say "up to the end of that day".
-		if endErr == nil && isDateOnlyBound(timeDim.DateRange[1]) {
-			endLocal = endLocal.AddDate(0, 0, 1).Add(-time.Millisecond)
-		}
-
-		if startErr == nil && endErr == nil {
-			if pruneStart == nil || startLocal.Before(*pruneStart) {
-				pruneStart = &startLocal
+		// recent day — and a single-day range ("today") return nothing at all.
+		if bounds, err := resolveDateRange(timeDim.DateRange[0], timeDim.DateRange[1], timezone); err == nil {
+			start, last := bounds.start, bounds.last()
+			if pruneStart == nil || start.Before(*pruneStart) {
+				pruneStart = &start
 			}
-			if pruneEnd == nil || endLocal.After(*pruneEnd) {
-				pruneEnd = &endLocal
+			if pruneEnd == nil || last.After(*pruneEnd) {
+				pruneEnd = &last
 			}
 
 			// Both bounds are instants now, so the column is compared bare and
 			// stays sargable whatever the timezone.
-			selectBuilder = selectBuilder.Where(squirrel.GtOrEq{dimensionSQL: startLocal.UTC()})
-			selectBuilder = selectBuilder.Where(squirrel.LtOrEq{dimensionSQL: endLocal.UTC()})
+			selectBuilder = selectBuilder.Where(squirrel.GtOrEq{dimensionSQL: bounds.start})
+			selectBuilder = selectBuilder.Where(bounds.endCondition(dimensionSQL))
 			continue
 		}
 
@@ -226,11 +230,7 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		if !exists {
 			return "", nil, fmt.Errorf("having member '%s' is not a measure in schema", having.Member)
 		}
-		measureSQL := measureDef.SQL
-		if measureSQL == "" {
-			measureSQL = having.Member
-		}
-		aggregateSQL := sb.buildMeasureSQL(measureDef.Type, measureSQL, measureDef.Filters)
+		aggregateSQL := sb.measureSQL(having.Member, measureDef)
 		condition, err := sb.buildFilterCondition(aggregateSQL, having)
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to build having condition: %w", err)
@@ -258,11 +258,7 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		nulls := ""
 		if measureDef, exists := schema.Measures[field]; exists {
 			nulls = " NULLS LAST"
-			measureSQL := measureDef.SQL
-			if measureSQL == "" {
-				measureSQL = field
-			}
-			fieldSQL = sb.buildMeasureSQL(measureDef.Type, measureSQL, measureDef.Filters)
+			fieldSQL = sb.measureSQL(field, measureDef)
 			column = field
 		} else if dimensionDef, exists := schema.Dimensions[field]; exists && slices.Contains(query.Dimensions, field) {
 			fieldSQL = dimensionDef.SQL
@@ -367,6 +363,120 @@ func parseDateRangeBound(value string, timezone string) (time.Time, error) {
 		}
 	}
 	return time.Time{}, fmt.Errorf("unsupported dateRange bound: %q", value)
+}
+
+// dateBounds is a date range resolved to instants (UTC). end is exclusive when the range ends
+// on a bare date: the start of the next day, so that every instant of the named day is in,
+// down to its last microsecond.
+type dateBounds struct {
+	start, end   time.Time
+	endExclusive bool
+}
+
+// last returns the last instant the range holds, for partition pruning.
+func (b dateBounds) last() time.Time {
+	if b.endExclusive {
+		return b.end.Add(-time.Microsecond)
+	}
+	return b.end
+}
+
+// endCondition compares a column with the end of the range: before it, or up to it.
+func (b dateBounds) endCondition(column string) squirrel.Sqlizer {
+	if b.endExclusive {
+		return squirrel.Lt{column: b.end}
+	}
+	return squirrel.LtOrEq{column: b.end}
+}
+
+// afterCondition compares a column with what lies past the end of the range.
+func (b dateBounds) afterCondition(column string) squirrel.Sqlizer {
+	if b.endExclusive {
+		return squirrel.GtOrEq{column: b.end}
+	}
+	return squirrel.Gt{column: b.end}
+}
+
+// resolveDateRange reads the bounds of a range in the query's timezone (parseDateRangeBound).
+// A bare date as the end covers that whole day.
+func resolveDateRange(startValue, endValue, timezone string) (dateBounds, error) {
+	start, err := parseDateRangeBound(startValue, timezone)
+	if err != nil {
+		return dateBounds{}, err
+	}
+	end, err := parseDateRangeBound(endValue, timezone)
+	if err != nil {
+		return dateBounds{}, err
+	}
+	bounds := dateBounds{start: start.UTC(), end: end.UTC()}
+	if isDateOnlyBound(endValue) {
+		// AddDate on the local midnight, so a day of 23 or 25 hours ends at its own next
+		// midnight.
+		bounds.end = end.AddDate(0, 0, 1).UTC()
+		bounds.endExclusive = true
+	}
+	return bounds, nil
+}
+
+// dateFilterCondition builds the condition of a date operator on a time dimension, with its
+// values read as a time dimension's dateRange reads its bounds: in the query's timezone, a
+// bare date naming its whole day. inDateRange keeps the instants from its first value to the
+// end of its second; notInDateRange the others; beforeDate the instants before its value (a
+// day's first instant); afterDate those after it (a day's last). ok is false for another
+// operator or a value that does not parse, which keeps the comparison of the values as given.
+func dateFilterCondition(memberSQL string, filter Filter, timezone string) (squirrel.Sqlizer, dateBounds, bool) {
+	var startValue, endValue string
+	switch filter.Operator {
+	case "inDateRange", "notInDateRange":
+		if len(filter.Values) != 2 {
+			return nil, dateBounds{}, false
+		}
+		startValue, endValue = filter.Values[0], filter.Values[1]
+	case "beforeDate", "afterDate":
+		if len(filter.Values) != 1 {
+			return nil, dateBounds{}, false
+		}
+		startValue, endValue = filter.Values[0], filter.Values[0]
+	default:
+		return nil, dateBounds{}, false
+	}
+	bounds, err := resolveDateRange(startValue, endValue, timezone)
+	if err != nil {
+		return nil, dateBounds{}, false
+	}
+	switch filter.Operator {
+	case "inDateRange":
+		return squirrel.And{squirrel.GtOrEq{memberSQL: bounds.start}, bounds.endCondition(memberSQL)}, bounds, true
+	case "notInDateRange":
+		return squirrel.Or{squirrel.Lt{memberSQL: bounds.start}, bounds.afterCondition(memberSQL)}, bounds, true
+	case "beforeDate":
+		return squirrel.Lt{memberSQL: bounds.start}, bounds, true
+	default: // afterDate
+		return bounds.afterCondition(memberSQL), bounds, true
+	}
+}
+
+// nullableColumnCondition builds the conditions on a dimension that reads its NULL column as
+// the empty string (NullableColumn) that can compare the bare column: an equality to non-empty
+// values, which only a non-NULL row can meet (and which an index on the column serves), set (a non-empty value) and notSet
+// (NULL or empty), the empty value being the dimension's "none". ok is false for the others,
+// which compare the dimension's SQL.
+func nullableColumnCondition(column string, filter Filter) (squirrel.Sqlizer, bool) {
+	switch filter.Operator {
+	case "set":
+		return squirrel.NotEq{column: ""}, true
+	case "notSet":
+		return squirrel.Or{squirrel.Eq{column: nil}, squirrel.Eq{column: ""}}, true
+	case "equals", "in":
+		if len(filter.Values) == 0 || slices.Contains(filter.Values, "") {
+			return nil, false
+		}
+		if len(filter.Values) == 1 {
+			return squirrel.Eq{column: filter.Values[0]}, true
+		}
+		return squirrel.Eq{column: filter.Values}, true
+	}
+	return nil, false
 }
 
 // buildTimeDimensionSQL generates SQL for time dimension grouping based on granularity
@@ -505,6 +615,20 @@ func likeCondition(memberSQL, operator, value string) squirrel.Sqlizer {
 		keyword = "NOT LIKE"
 	}
 	return squirrel.Expr(fmt.Sprintf(`%s %s ? ESCAPE '\'`, memberSQL, keyword), pattern)
+}
+
+// measureSQL returns the aggregate of a measure (buildMeasureSQL on its SQL, or on its name
+// when it has none), cast to its Cast type after its filters.
+func (sb *SQLBuilder) measureSQL(name string, measureDef MeasureDefinition) string {
+	sql := measureDef.SQL
+	if sql == "" {
+		sql = name
+	}
+	aggregate := sb.buildMeasureSQL(measureDef.Type, sql, measureDef.Filters)
+	if measureDef.Cast != "" {
+		aggregate = fmt.Sprintf("(%s)::%s", aggregate, measureDef.Cast)
+	}
+	return aggregate
 }
 
 // buildMeasureSQL wraps the SQL expression with the appropriate aggregate function based on measure type
@@ -867,10 +991,12 @@ func cellNumber(v interface{}, numericText bool) (float64, bool) {
 }
 
 // emptyMeasureValue is what a measure of this type is over no row: 0 for a count or a sum,
-// nil for a max, a min or an average, which have no value then. An unknown type gets 0.
+// nil for a max, a min, an average or a number (a median, a rate, a ratio), which have no
+// value then. A period with no session has no bounce rate: 0 would read as one where nobody
+// bounced. An unknown type gets 0.
 func emptyMeasureValue(measureType string) interface{} {
 	switch measureType {
-	case "max", "min", "avg":
+	case "max", "min", "avg", "number":
 		return nil
 	default:
 		return 0
@@ -939,6 +1065,10 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 	} else {
 		// For other cases, use the full date range
 		timeRange = generateTimeRange(startTime, endTime, timeDim.Granularity)
+	}
+
+	if timeDim.Granularity == "hour" {
+		timeRange = dropMissingLocalHours(timeRange, data, timeDimColumn, timezone)
 	}
 
 	if len(timeRange) == 0 {
@@ -1011,8 +1141,8 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 // gapFillRange returns the bounds of a time dimension's range as the gap filler reads them
 // (gapFillBound), and whether it is a single bare day. A bare end date names a whole day at
 // every granularity, as in the SQL: it ends on the last millisecond of that day, so hourly
-// periods run to its last hour, and a range that starts during that day does not end before
-// it starts.
+// periods run to its last hour (a single day with no data gets all its hours), and a range
+// that starts during that day does not end before it starts.
 func gapFillRange(timeDim TimeDimension, timezone string) (start, end time.Time, sameDay bool, err error) {
 	start, err = gapFillBound(timeDim.DateRange[0], timezone)
 	if err != nil {
@@ -1023,7 +1153,7 @@ func gapFillRange(timeDim TimeDimension, timezone string) (start, end time.Time,
 		return start, end, false, fmt.Errorf("failed to parse end date: %w", err)
 	}
 	sameDay = isDateOnlyBound(timeDim.DateRange[0]) && isDateOnlyBound(timeDim.DateRange[1]) && start.Equal(end)
-	if isDateOnlyBound(timeDim.DateRange[1]) && !sameDay {
+	if isDateOnlyBound(timeDim.DateRange[1]) {
 		end = end.AddDate(0, 0, 1).Add(-time.Millisecond)
 	}
 	return start, end, sameDay, nil
@@ -1043,6 +1173,50 @@ func gapFillBound(value string, timezone string) (time.Time, error) {
 	}
 	local := parsed.In(loc)
 	return time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), local.Minute(), local.Second(), local.Nanosecond(), time.UTC), nil
+}
+
+// dropMissingLocalHours removes the hours the clocks skip in the query's timezone: the
+// labels step through the wall clock an hour at a time, and on the day the clocks go forward
+// the skipped hour (02:00 in Europe/Paris) would come back as a period with no data that no
+// instant can fall in. A label the data holds is kept whatever it is.
+//
+// On the day the clocks go back, the repeated hour is one period: the buckets are wall-clock
+// hours of the query's timezone (DATE_TRUNC on the local time, labeled as UTC), so both
+// 02:00 hours of Europe/Paris fall in the bucket labeled 02:00, which holds the two hours'
+// rows. The console reads every bucket key that way.
+func dropMissingLocalHours(labels []string, data []map[string]interface{}, timeDimColumn, timezone string) []string {
+	loc, err := time.LoadLocation(timezone)
+	if err != nil || loc == time.UTC {
+		return labels
+	}
+	inData := make(map[string]bool, len(data))
+	for _, row := range data {
+		if label, ok := row[timeDimColumn].(string); ok {
+			inData[label] = true
+		}
+	}
+	kept := labels[:0:0]
+	for _, label := range labels {
+		wall, err := time.Parse(time.RFC3339, label)
+		if err != nil || inData[label] || localHourExists(wall, loc) {
+			kept = append(kept, label)
+		}
+	}
+	return kept
+}
+
+// localHourExists reports whether some wall-clock time of the hour starting at wall (a wall
+// clock labeled UTC) exists in loc. Its start and its half are tried, for the zones whose
+// clocks move by half an hour.
+func localHourExists(wall time.Time, loc *time.Location) bool {
+	for _, minute := range []int{0, 30} {
+		local := time.Date(wall.Year(), wall.Month(), wall.Day(), wall.Hour(), minute, 0, 0, loc)
+		if local.Year() == wall.Year() && local.Month() == wall.Month() && local.Day() == wall.Day() &&
+			local.Hour() == wall.Hour() && local.Minute() == minute {
+			return true
+		}
+	}
+	return false
 }
 
 // maxGapFilledRows bounds the rows the gap filling may return, and so the periods of a range.

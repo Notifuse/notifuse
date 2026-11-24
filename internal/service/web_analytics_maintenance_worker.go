@@ -16,7 +16,10 @@ import (
 //     self-heals on a missing partition, but pre-creating avoids the retry),
 //   - moves the aggressive autovacuum profile forward: freshly-relevant months
 //     keep it, last month's partitions are reset to defaults once cold,
-//   - ANALYZEs newly created partitions so first queries plan sanely.
+//   - ANALYZEs newly created partitions so first queries plan sanely,
+//   - builds the web_sessions updated_at index that v45 created on the parent
+//     alone, partition by partition and without blocking writes, until it is
+//     valid (BuildWebSessionsUpdatedAtIndex).
 //
 // Old data is never dropped. Expiring history is left to the operator, who
 // can DROP the monthly partitions they no longer want.
@@ -107,6 +110,26 @@ func (w *WebAnalyticsMaintenanceWorker) RunOnce(ctx context.Context) {
 		if err := w.maintainWorkspace(ctx, workspace.ID, currentMonth, nextMonth, previousMonth); err != nil {
 			w.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).
 				Error("Web analytics maintenance failed for workspace")
+		}
+	}
+
+	// After every workspace's partitions, since a build reads whole partitions. Every
+	// workspace has the web analytics tables, configured or not, and so the index; on a valid
+	// one this reads a catalog row. A build that fails, or that another node is running, is
+	// taken up again at the next pass.
+	for _, workspace := range workspaces {
+		if ctx.Err() != nil {
+			return
+		}
+		valid, err := w.webAnalyticsRepo.BuildWebSessionsUpdatedAtIndex(ctx, workspace.ID)
+		if err != nil {
+			w.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).
+				Error("Web analytics maintenance: failed to build the web_sessions updated_at index")
+			continue
+		}
+		if !valid {
+			w.logger.WithField("workspace_id", workspace.ID).
+				Info("Web analytics maintenance: the web_sessions updated_at index is not complete yet")
 		}
 	}
 }

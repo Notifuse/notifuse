@@ -7,6 +7,22 @@ import (
 	"github.com/Notifuse/notifuse/pkg/analytics"
 )
 
+// webGoalValueSum totals goal_value, a REAL. Summed as a REAL, the total drifts by the float4
+// error of every value: 100,000 goals of 19.99 add up to 1,999,836.6. Each value is read as
+// numeric through its text, the shortest decimal that reads back as the stored float
+// (12345.67, where a direct cast to numeric keeps six digits and gives 12345.7), so the total
+// is exact, and the total is cast to double precision so that the measure stays a JSON number.
+func webGoalValueSum(title, description string) analytics.MeasureDefinition {
+	return analytics.MeasureDefinition{Type: "sum", Title: title, SQL: "goal_value::text::numeric", Cast: "float8",
+		Description: description}
+}
+
+// contactEmailDimension is the contact_email dimension of the three web analytics schemas.
+var contactEmailDimension = analytics.DimensionDefinition{
+	Type: "string", Title: "Contact Email", SQL: "COALESCE(contact_email, '')", NullableColumn: "contact_email",
+	Description: "Email of the contact identified for the session; empty when the visitor is anonymous",
+}
+
 // Automated traffic: a session that loaded a page and never sent a second
 // beat. The SDK beats again on pagehide, visibilitychange and beforeunload, so
 // a person who leaves after half a second still sends one, while a tab closed
@@ -44,11 +60,13 @@ const (
 func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[string]analytics.SchemaDefinition {
 	bounceMs := settings.BounceThresholdMs()
 
-	// localTime renders the expression the cyclic dimensions extract from.
+	// localTime renders the expression the cyclic dimensions extract from. UTC is named too:
+	// EXTRACT on a timestamptz reads it in the database session's zone, so the bare column
+	// would give the server's hours and days on a server not set to UTC.
 	localTime := func(column string) string {
 		zone := analytics.SanitizeTimezone(timezone)
-		if zone == "" || zone == "UTC" {
-			return column
+		if zone == "" {
+			zone = "UTC"
 		}
 		return fmt.Sprintf("(%s AT TIME ZONE '%s')", column, zone)
 	}
@@ -145,9 +163,9 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 
 			// Nullable, unlike every other dimension here: folding NULL into the
 			// empty string keeps the anonymous bucket selectable by the same
-			// "is empty" filter that works everywhere else.
-			"contact_email": {Type: "string", Title: "Contact Email", SQL: "COALESCE(contact_email, '')",
-				Description: "Email of the contact identified for the session; empty when the visitor is anonymous"},
+			// "is empty" filter that works everywhere else. NullableColumn lets set,
+			// notSet and an equality to an address compare the column itself.
+			"contact_email": contactEmailDimension,
 
 			// Any dimension whose SQL is an expression rather than a bare column
 			// must parenthesize ITSELF. The query builder interpolates this string
@@ -256,8 +274,7 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 				"goal_conversions": {Type: "count", Title: "Sessions with Goals", SQL: "*",
 					Filters:     []analytics.MeasureFilter{{SQL: "goal_count > 0"}},
 					Description: "Sessions that fired at least one goal"},
-				"goal_value": {Type: "sum", Title: "Goal Value", SQL: "goal_value",
-					Description: "Total value of the goals the sessions fired"},
+				"goal_value": webGoalValueSum("Goal Value", "Total value of the goals the sessions fired"),
 				"contacts": {Type: "count_distinct", Title: "Identified Contacts", SQL: "contact_email",
 					Description: "Distinct contacts identified via identify()"},
 			},
@@ -311,8 +328,7 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 					SQL: fmt.Sprintf("(CASE WHEN is_landing THEN '%s' ELSE '%s' END)", WebEntryTypeLanding, WebEntryTypeNavigation),
 					Description: fmt.Sprintf("'%s' for the first page of the session, '%s' for the others",
 						WebEntryTypeLanding, WebEntryTypeNavigation)},
-				"contact_email": {Type: "string", Title: "Contact Email", SQL: "COALESCE(contact_email, '')",
-					Description: "Email of the contact identified for the session; empty when the visitor is anonymous"},
+				"contact_email": contactEmailDimension,
 			},
 		},
 		"web_goals": {
@@ -321,8 +337,7 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 			Measures: map[string]analytics.MeasureDefinition{
 				"goals": {Type: "count", Title: "Goals", SQL: "COUNT(*)",
 					Description: "Number of goals fired"},
-				"sum_goal_value": {Type: "sum", Title: "Total Goal Value", SQL: "goal_value",
-					Description: "Total value of the goals"},
+				"sum_goal_value": webGoalValueSum("Total Goal Value", "Total value of the goals"),
 				"avg_goal_value": {Type: "number", Title: "Avg Goal Value", SQL: "ROUND(AVG(goal_value)::numeric, 2)",
 					Description: "Average value of a goal"},
 				"median_goal_value": {Type: "number", Title: "Median Goal Value",
