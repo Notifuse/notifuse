@@ -71,7 +71,7 @@ export function AccountSecurityPage() {
             description={t`Turn it on to open your workspaces again. Until then, this page is the only one you can use.`}
           />
         ) : null}
-        <div className="rounded-lg border border-line-soft bg-surface px-5">
+        <div className="rounded-lg border border-line-soft bg-surface p-5">
           <AccountSecurityPanel />
         </div>
       </main>
