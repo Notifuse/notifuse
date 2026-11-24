@@ -11,7 +11,6 @@ import {
   Typography,
   Divider,
   App,
-  Modal,
   Tooltip,
   Space,
   Spin,
@@ -42,7 +41,7 @@ const { Text, Title } = Typography
 
 export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } = {}) {
   const { t } = useLingui()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -180,7 +179,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
           )
         }
 
-        Modal.confirm({
+        modal.confirm({
           title: t`Restart Server?`,
           content: (
             <div>
@@ -288,7 +287,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                     Array.isArray(value) ? value.join(',') : value ?? ''
                   }
                   rules={[{ validator: validateRootEmails }]}
-                  help={renderEnvHint('root_email')}
+                  extra={renderEnvHint('root_email')}
                 >
                   <Select
                     mode="tags"
@@ -304,7 +303,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`API Endpoint`}
                   name="api_endpoint"
                   rules={[{ required: true, message: t`Required` }]}
-                  help={renderEnvHint('api_endpoint')}
+                  extra={renderEnvHint('api_endpoint')}
                 >
                   <Input
                     disabled={isOverridden('api_endpoint')}
@@ -347,7 +346,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`SMTP Host`}
                   name="smtp_host"
                   rules={[{ required: true, message: t`Required` }]}
-                  help={renderEnvHint('smtp_host')}
+                  extra={renderEnvHint('smtp_host')}
                 >
                   <Input
                     disabled={isOverridden('smtp_host')}
@@ -368,7 +367,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                       message: t`Port must be 1-65535`
                     }
                   ]}
-                  help={renderEnvHint('smtp_port')}
+                  extra={renderEnvHint('smtp_port')}
                   tooltip={t`Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)`}
                 >
                   <InputNumber
@@ -390,7 +389,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   }
                   name="smtp_use_tls"
                   valuePropName="checked"
-                  help={renderEnvHint('smtp_use_tls')}
+                  extra={renderEnvHint('smtp_use_tls')}
                 >
                   <Switch disabled={isOverridden('smtp_use_tls')} />
                 </Form.Item>
@@ -401,7 +400,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 <Form.Item
                   label={t`SMTP Username`}
                   name="smtp_username"
-                  help={renderEnvHint('smtp_username')}
+                  extra={renderEnvHint('smtp_username')}
                 >
                   <Input
                     disabled={isOverridden('smtp_username')}
@@ -414,7 +413,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 <Form.Item
                   label={t`SMTP Password`}
                   name="smtp_password"
-                  help={renderEnvHint('smtp_password')}
+                  extra={renderEnvHint('smtp_password')}
                 >
                   <Input.Password
                     disabled={isOverridden('smtp_password')}
@@ -433,7 +432,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                     { required: true, message: t`Required` },
                     { type: 'email', message: t`Invalid email` }
                   ]}
-                  help={renderEnvHint('smtp_from_email')}
+                  extra={renderEnvHint('smtp_from_email')}
                 >
                   <Input
                     disabled={isOverridden('smtp_from_email')}
@@ -445,7 +444,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 <Form.Item
                   label={t`From Name`}
                   name="smtp_from_name"
-                  help={renderEnvHint('smtp_from_name')}
+                  extra={renderEnvHint('smtp_from_name')}
                 >
                   <Input
                     disabled={isOverridden('smtp_from_name')}
@@ -469,7 +468,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                     </Space>
                   }
                   name="smtp_ehlo_hostname"
-                  help={renderEnvHint('smtp_ehlo_hostname')}
+                  extra={renderEnvHint('smtp_ehlo_hostname')}
                 >
                   <Input
                     disabled={isOverridden('smtp_ehlo_hostname')}
@@ -490,7 +489,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`Enabled`}
                   name="smtp_bridge_enabled"
                   valuePropName="checked"
-                  help={renderEnvHint('smtp_bridge_enabled')}
+                  extra={renderEnvHint('smtp_bridge_enabled')}
                 >
                   <Switch disabled={isOverridden('smtp_bridge_enabled')} />
                 </Form.Item>
@@ -500,7 +499,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`Bridge Domain`}
                   name="smtp_bridge_domain"
                   rules={[{ required: bridgeEnabled, message: t`Required when bridge is enabled` }]}
-                  help={renderEnvHint('smtp_bridge_domain')}
+                  extra={renderEnvHint('smtp_bridge_domain')}
                 >
                   <Input
                     disabled={isOverridden('smtp_bridge_domain')}
@@ -521,7 +520,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                       message: t`Port must be 1-65535`
                     }
                   ]}
-                  help={renderEnvHint('smtp_bridge_port')}
+                  extra={renderEnvHint('smtp_bridge_port')}
                 >
                   <InputNumber
                     disabled={isOverridden('smtp_bridge_port')}
@@ -537,7 +536,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`TLS Certificate (Base64)`}
                   name="smtp_bridge_tls_cert_base64"
                   rules={[{ required: bridgeEnabled, message: t`Required when bridge is enabled` }]}
-                  help={renderEnvHint('smtp_bridge_tls_cert_base64')}
+                  extra={renderEnvHint('smtp_bridge_tls_cert_base64')}
                 >
                   <Input.TextArea
                     disabled={isOverridden('smtp_bridge_tls_cert_base64')}
@@ -552,7 +551,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`TLS Key (Base64)`}
                   name="smtp_bridge_tls_key_base64"
                   rules={[{ required: bridgeEnabled, message: t`Required when bridge is enabled` }]}
-                  help={renderEnvHint('smtp_bridge_tls_key_base64')}
+                  extra={renderEnvHint('smtp_bridge_tls_key_base64')}
                 >
                   <Input.TextArea
                     disabled={isOverridden('smtp_bridge_tls_key_base64')}
@@ -575,7 +574,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`Enabled`}
                   name="oidc_enabled"
                   valuePropName="checked"
-                  help={renderEnvHint('oidc_enabled')}
+                  extra={renderEnvHint('oidc_enabled')}
                 >
                   <Switch disabled={isOverridden('oidc_enabled')} />
                 </Form.Item>
@@ -588,7 +587,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                     { required: !!oidcEnabled, message: t`Required when SSO is enabled` },
                     { type: 'url', message: t`Must be a valid https URL` }
                   ]}
-                  help={renderEnvHint('oidc_issuer_url')}
+                  extra={renderEnvHint('oidc_issuer_url')}
                 >
                   <Input
                     disabled={isOverridden('oidc_issuer_url')}
@@ -604,7 +603,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`Client ID`}
                   name="oidc_client_id"
                   rules={[{ required: !!oidcEnabled, message: t`Required when SSO is enabled` }]}
-                  help={renderEnvHint('oidc_client_id')}
+                  extra={renderEnvHint('oidc_client_id')}
                 >
                   <Input disabled={isOverridden('oidc_client_id')} allowClear />
                 </Form.Item>
@@ -614,7 +613,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`Client Secret`}
                   name="oidc_client_secret"
                   rules={[{ required: !!oidcEnabled, message: t`Required when SSO is enabled` }]}
-                  help={renderEnvHint('oidc_client_secret')}
+                  extra={renderEnvHint('oidc_client_secret')}
                 >
                   <Input.Password
                     disabled={isOverridden('oidc_client_secret')}
@@ -629,7 +628,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`Redirect URI`}
                   name="oidc_redirect_uri"
                   rules={[{ type: 'url', message: t`Must be a valid https URL` }]}
-                  help={
+                  extra={
                     renderEnvHint('oidc_redirect_uri') || (
                       <Text type="secondary" style={{ fontSize: 11 }}>
                         {t`Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain.`}
@@ -650,7 +649,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 <Form.Item
                   label={t`Button Label`}
                   name="oidc_button_label"
-                  help={renderEnvHint('oidc_button_label')}
+                  extra={renderEnvHint('oidc_button_label')}
                 >
                   <Input
                     disabled={isOverridden('oidc_button_label')}
@@ -663,7 +662,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 <Form.Item
                   label={t`Scopes`}
                   name="oidc_scopes"
-                  help={renderEnvHint('oidc_scopes')}
+                  extra={renderEnvHint('oidc_scopes')}
                 >
                   <Input
                     disabled={isOverridden('oidc_scopes')}
@@ -679,7 +678,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   label={t`Auto-create users`}
                   name="oidc_auto_create_users"
                   valuePropName="checked"
-                  help={renderEnvHint('oidc_auto_create_users')}
+                  extra={renderEnvHint('oidc_auto_create_users')}
                 >
                   <Switch disabled={isOverridden('oidc_auto_create_users')} />
                 </Form.Item>
@@ -694,7 +693,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                       message: t`Required when auto-create is enabled`
                     }
                   ]}
-                  help={
+                  extra={
                     renderEnvHint('oidc_allowed_domains') || (
                       <Text type="secondary" style={{ fontSize: 11 }}>
                         {t`Comma-separated. Only these domains may auto-create accounts.`}
@@ -735,6 +734,8 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 </Form.Item>
               </Col>
             </Row>
+
+            <Divider />
 
             {/* Audit log */}
             <Title level={5}>{t`Audit log`}</Title>

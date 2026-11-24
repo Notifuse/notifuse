@@ -21,6 +21,7 @@ import { useLicense } from '../../../hooks/useLicense'
 import { LicenceGateNotice } from '../../license/LicenceGateNotice'
 import { useNumberFormat } from '../../layout/format'
 import { SettingsSaveBar } from '../SettingsSaveBar'
+import { SettingsSectionHeader } from '../SettingsSectionHeader'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, SKIP_REASONS } from './categoryText'
 import { fromDays } from './periods'
 import { PeriodInput } from './PeriodInput'
@@ -63,19 +64,41 @@ export function DataRetentionSettings({ workspaceId, isOwner }: DataRetentionSet
     queryFn: () => dataRetentionApi.get(workspaceId)
   })
 
-  if (isLoading) return <Skeleton active />
+  const header = (
+    <SettingsSectionHeader
+      title={t`Data retention`}
+      description={t`How long this workspace keeps each kind of data.`}
+    />
+  )
+
+  if (isLoading) {
+    return (
+      <>
+        {header}
+        <Skeleton active />
+      </>
+    )
+  }
   if (error || !view) {
-    return <Alert type="error" showIcon message={t`Could not load the data retention settings`} />
+    return (
+      <>
+        {header}
+        <Alert type="error" showIcon message={t`Could not load the data retention settings`} />
+      </>
+    )
   }
   // Keyed on what was loaded, so a save or a cancel starts the form again from the server's
   // answer instead of syncing state in an effect.
   return (
-    <DataRetentionForm
-      key={`${view.pending?.effective_at ?? ''}|${normalized(startingPolicy(view))}`}
-      workspaceId={workspaceId}
-      isOwner={isOwner}
-      view={view}
-    />
+    <>
+      {header}
+      <DataRetentionForm
+        key={`${view.pending?.effective_at ?? ''}|${normalized(startingPolicy(view))}`}
+        workspaceId={workspaceId}
+        isOwner={isOwner}
+        view={view}
+      />
+    </>
   )
 }
 
