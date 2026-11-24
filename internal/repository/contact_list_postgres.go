@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
 )
 
 type contactListRepository struct {
@@ -224,6 +225,61 @@ func (r *contactListRepository) GetContactListIncludingRemoved(ctx context.Conte
 	}
 
 	return contactList, nil
+}
+
+// optOutsRestoredOnInsertSQL selects what restore_contact_opt_outs would insert for the
+// address, on the given lists, if it were inserted into contacts now. The hash is computed
+// by contact_opt_out_hash() in SQL, as the trigger does.
+const optOutsRestoredOnInsertSQL = `SELECT o.list_id, o.status, o.removed
+	FROM contact_opt_out_hashes o
+	JOIN lists l ON l.id = o.list_id AND l.deleted_at IS NULL
+	WHERE o.email_hash = contact_opt_out_hash($1)
+	AND o.list_id = ANY($2::text[])
+	AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = $1)
+	ORDER BY o.list_id`
+
+// GetOptOutsRestoredOnInsert returns the opt-outs a deleted contact left on the given
+// lists, as the rows inserting the address would put back now.
+func (r *contactListRepository) GetOptOutsRestoredOnInsert(ctx context.Context, workspaceID string, email string, listIDs []string) ([]*domain.ContactList, error) {
+	if len(listIDs) == 0 {
+		return nil, nil
+	}
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(ctx, optOutsRestoredOnInsertSQL, email, pq.Array(listIDs))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read stored opt-outs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	now := time.Now().UTC()
+	var restored []*domain.ContactList
+	for rows.Next() {
+		var listID, status string
+		var removed bool
+		if err := rows.Scan(&listID, &status, &removed); err != nil {
+			return nil, fmt.Errorf("failed to scan stored opt-out: %w", err)
+		}
+		row := &domain.ContactList{
+			Email:     email,
+			ListID:    listID,
+			Status:    domain.ContactListStatus(status),
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		if removed {
+			deletedAt := now
+			row.DeletedAt = &deletedAt
+		}
+		restored = append(restored, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read stored opt-outs: %w", err)
+	}
+	return restored, nil
 }
 
 func (r *contactListRepository) GetContactsByListID(ctx context.Context, workspaceID string, listID string) ([]*domain.ContactList, error) {

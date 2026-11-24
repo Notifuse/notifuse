@@ -83,7 +83,8 @@ func TestListService_SubscribeToLists_TrackingConsentSource(t *testing.T) {
 				return true, nil
 			})
 			m.repo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{{ID: "list1", Name: "News", IsPublic: true}}, nil)
-			m.contactList.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list1").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+			m.contactList.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list1").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+			m.contactList.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"list1"}).Return(nil, nil)
 			m.contactList.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 			err := svc.SubscribeToLists(context.Background(), &domain.SubscribeToListsRequest{
@@ -160,7 +161,8 @@ func TestListService_SubscribeToLists_DoubleOptInFollowsTrackingConsent(t *testi
 				ID: "list1", Name: "News", IsPublic: true, IsDoubleOptin: true,
 				DoubleOptInTemplate: &domain.TemplateReference{ID: "doi", Version: 1},
 			}}, nil)
-			m.contactList.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list1").Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+			m.contactList.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, "list1").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
+			m.contactList.EXPECT().GetOptOutsRestoredOnInsert(gomock.Any(), workspaceID, email, []string{"list1"}).Return(nil, nil)
 			m.contactList.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 			var sent domain.SendEmailRequest
