@@ -12,6 +12,7 @@ import {
 import { ApiUnreachableError } from '../services/api/errors'
 import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
+import { InstanceLogo } from '../components/brand/InstanceLogo'
 import { useLingui } from '@lingui/react/macro'
 import { takeSignInEmail } from '../components/setup/signInHandoff'
 
@@ -264,8 +265,18 @@ export function SignInPage() {
 
   return (
     <MainLayout>
-      <div className="flex items-center justify-center h-[calc(100vh-48px)]">
-        <Card title={challengeToken ? t`Authentication code` : t`Sign In`} style={{ width: 400 }}>
+      {/* min-h rather than h: on a short screen the card grows past the viewport and the page
+          scrolls, so neither the logo nor the buttons are cut off. */}
+      <div className="flex min-h-[calc(100vh-48px)] items-center justify-center py-6">
+        <Card style={{ width: 400, maxWidth: 'calc(100vw - 32px)' }}>
+          {/* The instance's logo, above the title at every step of the form. It needs no session,
+              no workspace and no API call: config.js already says what to show. */}
+          <div className="mb-5 flex justify-center pt-2" data-testid="signin-brand">
+            <InstanceLogo variant="full" maxWidth={150} maxHeight={64} notifuseHeight={32} />
+          </div>
+          <h1 className="mb-6 text-center text-title font-semibold text-ink">
+            {challengeToken ? t`Authentication code` : t`Sign In`}
+          </h1>
           {unreachable && (
             <Alert
               type="error"

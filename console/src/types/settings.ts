@@ -31,6 +31,12 @@ export interface SystemSettingsData {
   // Every person must pass a second factor. The value in force: REQUIRE_TWO_FACTOR, when set,
   // decides it (env_overrides.require_two_factor). Optional for older servers.
   require_two_factor?: boolean
+  // The instance brand as stored (not the identity shown, which depends on the licence).
+  // Optional for older servers.
+  branding_name?: string
+  branding_logo_url?: string
+  branding_icon_url?: string
+  branding_hide_help_menu?: boolean
 }
 
 export interface SystemTwoFactorSettings {
@@ -45,4 +51,15 @@ export interface SystemSettingsResponse {
   settings: SystemSettingsData
   env_overrides: Record<string, boolean>
   two_factor?: SystemTwoFactorSettings
+  /** Set when the stored brand cannot be read: saving branding values, or clearing them, replaces it. */
+  branding_error?: string
+}
+
+export interface SystemSettingsUpdateResponse {
+  success: boolean
+  message: string
+  /** The process that saved. Absent from servers that predate it. */
+  boot_id?: string
+  /** The revision of the saved brand, which the restarted process must report. */
+  branding_revision?: string
 }

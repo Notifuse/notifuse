@@ -1,5 +1,9 @@
 import { api } from './client'
-import type { SystemSettingsResponse, SystemSettingsData } from '../../types/settings'
+import type {
+  SystemSettingsResponse,
+  SystemSettingsData,
+  SystemSettingsUpdateResponse
+} from '../../types/settings'
 import type { TestSMTPConfig, TestSMTPResponse } from '../../types/setup'
 
 export const settingsApi = {
@@ -7,8 +11,8 @@ export const settingsApi = {
     return api.get<SystemSettingsResponse>('/api/settings.get')
   },
 
-  async update(settings: SystemSettingsData): Promise<{ success: boolean; message: string }> {
-    return api.post<{ success: boolean; message: string }>('/api/settings.update', settings)
+  async update(settings: SystemSettingsData): Promise<SystemSettingsUpdateResponse> {
+    return api.post<SystemSettingsUpdateResponse>('/api/settings.update', settings)
   },
 
   async testSmtp(config: TestSMTPConfig): Promise<TestSMTPResponse> {

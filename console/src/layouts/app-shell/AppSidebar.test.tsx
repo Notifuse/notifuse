@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { forwardRef, useState, type ReactNode } from 'react'
 import type { Workspace } from '../../services/api/types'
 import { AppSidebar, type AppSidebarProps } from './AppSidebar'
+import { MAX_BRAND_NAME_CODE_POINTS } from '../../components/brand/brandingValidation'
 import { changeLanguage } from '../../i18n/languages'
 import { i18n } from '@lingui/core'
 import { generateMessageId } from '@lingui/message-utils/generateMessageId'
+import { resetBrandImageFailures } from '../../components/brand/instanceBranding'
 
 vi.mock('@tanstack/react-router', () => ({
   // Forwards its ref like the real Link: Escape on the pin moves the focus to the logo.
@@ -635,5 +637,78 @@ describe('AppSidebar', () => {
     await waitFor(() =>
       expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
     )
+  })
+})
+
+describe('AppSidebar with an instance brand', () => {
+  const brand = (overrides: Partial<InstanceBrandingGlobal> = {}): InstanceBrandingGlobal => ({
+    custom: true,
+    name: 'Acme',
+    logo_url: 'https://cdn.example.com/acme.png',
+    icon_url: '',
+    hide_help_menu: false,
+    splash_logo_src: 'https://cdn.example.com/acme.png',
+    favicon_src: '/console/neutral-icon.png',
+    revision: 'r1',
+    ...overrides
+  })
+
+  beforeEach(() => {
+    window.VERSION = '45.0'
+  })
+
+  afterEach(() => {
+    resetBrandImageFailures()
+    delete window.INSTANCE_BRANDING
+  })
+
+  it('shows the brand logo when open and its initial when folded', () => {
+    window.INSTANCE_BRANDING = brand()
+    const { unmount } = render(<Harness />)
+    expect(screen.getByRole('img', { name: 'Acme' })).toHaveAttribute('src', 'https://cdn.example.com/acme.png')
+    expect(screen.queryByRole('img', { name: 'Notifuse' })).toBeNull()
+    unmount()
+
+    render(<Harness startPinned={false} />)
+    expect(screen.getByRole('img', { name: 'Acme' })).toHaveTextContent('A')
+  })
+
+  it('keeps the pin button with a name at the length limit', () => {
+    const long = 'Acme'.repeat(20).slice(0, MAX_BRAND_NAME_CODE_POINTS)
+    expect(Array.from(long)).toHaveLength(MAX_BRAND_NAME_CODE_POINTS)
+    window.INSTANCE_BRANDING = brand({ name: long, logo_url: '' })
+    render(<Harness />)
+    expect(screen.getByText(long)).toHaveClass('truncate')
+    expect(screen.getByText(long).closest('a')).toHaveClass('min-w-0')
+    expect(pinButton()).toBeInTheDocument()
+  })
+
+  it('does not load a failed logo again when the sidebar folds and unfolds', () => {
+    window.INSTANCE_BRANDING = brand({ icon_url: 'https://cdn.example.com/acme-icon.png' })
+    // Unpinned and hovered: open; the logo fails and the name takes its place.
+    render(<Harness startPinned={false} />)
+    fireEvent.pointerEnter(aside())
+    expect(isExpanded()).toBe(true)
+    fireEvent.error(screen.getByAltText('Acme'))
+    expect(screen.queryByAltText('Acme')).toBeNull()
+
+    // Folded, the icon shows; open again, the failed logo is not requested a second time.
+    fireEvent.pointerLeave(aside())
+    expect(isExpanded()).toBe(false)
+    expect(screen.getByAltText('Acme')).toHaveAttribute('src', 'https://cdn.example.com/acme-icon.png')
+    fireEvent.pointerEnter(aside())
+    expect(isExpanded()).toBe(true)
+    expect(screen.queryByAltText('Acme')).toBeNull()
+  })
+
+  it('hides the Help menu when the brand asks to, and only then', () => {
+    window.INSTANCE_BRANDING = brand({ hide_help_menu: true })
+    const { unmount } = render(<Harness />)
+    expect(screen.queryByRole('button', { name: /help/i })).toBeNull()
+    unmount()
+
+    window.INSTANCE_BRANDING = brand({ hide_help_menu: false })
+    render(<Harness />)
+    expect(screen.getByRole('button', { name: /help/i })).toBeInTheDocument()
   })
 })

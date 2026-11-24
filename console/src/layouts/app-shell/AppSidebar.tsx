@@ -11,7 +11,7 @@ import { Menu, Tooltip, type MenuProps } from 'antd'
 import { Link } from '@tanstack/react-router'
 import { Pin } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
-import { NotifuseLogo, NotifuseMark } from '../../components/brand/NotifuseLogo'
+import { InstanceLogo } from '../../components/brand/InstanceLogo'
 import { minusBannerOffset, withBannerOffset } from '../../components/license/bannerOffset'
 import type { Workspace } from '../../services/api/types'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
@@ -251,9 +251,13 @@ export function AppSidebar({
           ref={logoRef}
           {...(home?.target ?? { to: '/console/workspace/$workspaceId', params: { workspaceId } })}
           aria-label={home?.label ?? t`Dashboard`}
-          className={`rounded-sm ${focusRing}`}
+          className={`min-w-0 rounded-sm ${focusRing}`}
         >
-          {expanded ? <NotifuseLogo height={22} /> : <NotifuseMark height={24} />}
+          {expanded ? (
+            <InstanceLogo variant="full" maxWidth={150} maxHeight={24} />
+          ) : (
+            <InstanceLogo variant="compact" maxWidth={24} maxHeight={24} />
+          )}
         </Link>
         {expanded ? (
           <Tooltip title={pinLabel} placement="bottom" getPopupContainer={getPopupContainer}>

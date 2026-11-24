@@ -75,7 +75,7 @@ test.describe('Public Pages Load', () => {
     await page.waitForLoadState('networkidle')
 
     // Verify the Sign In card is visible
-    await expect(page.locator('.ant-card-head-title').filter({ hasText: 'Sign In' })).toBeVisible({
+    await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible({
       timeout: 10000
     })
 
@@ -102,7 +102,7 @@ test.describe('Public Pages Load', () => {
 
     // Logging out drops the session and lands on the sign in form
     await expect(page).toHaveURL(/\/console\/signin/, { timeout: 10000 })
-    await expect(page.locator('.ant-card-head-title').filter({ hasText: 'Sign In' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible()
     await expect(page.locator('input[type="email"]')).toBeVisible()
 
     // Check for critical console errors

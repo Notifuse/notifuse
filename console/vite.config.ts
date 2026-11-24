@@ -11,6 +11,11 @@ import path from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// The API the dev server forwards config.js and the brand-dependent files to.
+// VITE_API_PROXY_TARGET points it elsewhere, which the proxy test does with a stub.
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'https://localapi.notifuse.com:4000'
+const apiProxy = { target: apiProxyTarget, changeOrigin: true, secure: false }
+
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/console/',
@@ -38,17 +43,17 @@ export default defineConfig({
     },
     proxy: {
       '/config.js': {
-        target: 'https://localapi.notifuse.com:4000',
-        changeOrigin: true,
-        secure: false,
+        ...apiProxy,
         rewrite: (path) => path.replace(/^\/console/, '')
       },
       '/console/config.js': {
-        target: 'https://localapi.notifuse.com:4000',
-        changeOrigin: true,
-        secure: false,
+        ...apiProxy,
         rewrite: (path) => path.replace(/^\/console/, '')
-      }
+      },
+      // Served by Go from the instance brand: forwarded with their /console prefix intact.
+      '/console/instance.webmanifest': apiProxy,
+      '/console/site.webmanifest': apiProxy,
+      '/console/browserconfig.xml': apiProxy
     }
   },
   test: {

@@ -37,6 +37,10 @@ import { SystemSecuritySettings } from './SystemSecuritySettings'
 import { RootSessionRefused } from '../two_factor/RootSessionRefused'
 import { twoFactorErrorCode } from '../../services/api/twoFactor'
 import { useTwoFactorErrorMessage } from '../two_factor/useTwoFactorErrorMessage'
+import { BrandingSettings, type StoredBranding } from './BrandingSettings'
+import { licenseRefusal } from '../../services/api/licenseErrors'
+import { useLicense } from '../../hooks/useLicense'
+import { waitForRestart } from './waitForRestart'
 
 const { Text, Title } = Typography
 
@@ -54,6 +58,16 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
   const [sessionRefused, setSessionRefused] = useState(false)
   const twoFactorErrorMessage = useTwoFactorErrorMessage()
   const [form] = Form.useForm<SystemSettingsData>()
+  const { refresh: refreshLicense } = useLicense()
+  const [storedBranding, setStoredBranding] = useState<StoredBranding>({
+    name: '',
+    logoUrl: '',
+    iconUrl: '',
+    hideHelpMenu: false
+  })
+  const [brandingError, setBrandingError] = useState<string | undefined>()
+  // Set when Clear or Reset branding is used: setting a field from code does not mark it touched.
+  const [brandingEdited, setBrandingEdited] = useState(false)
 
   const fetchSettings = useCallback(async () => {
     setLoading(true)
@@ -62,9 +76,23 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
       // Convert 0 port values to undefined so optional port fields appear empty
       const settings = {
         ...response.settings,
-        smtp_bridge_port: response.settings.smtp_bridge_port || undefined
+        smtp_bridge_port: response.settings.smtp_bridge_port || undefined,
+        // Always registered, so a save always carries the four keys, even to a server that
+        // has never stored a brand.
+        branding_name: response.settings.branding_name ?? '',
+        branding_logo_url: response.settings.branding_logo_url ?? '',
+        branding_icon_url: response.settings.branding_icon_url ?? '',
+        branding_hide_help_menu: response.settings.branding_hide_help_menu ?? false
       }
       form.setFieldsValue(settings)
+      setStoredBranding({
+        name: settings.branding_name,
+        logoUrl: settings.branding_logo_url,
+        iconUrl: settings.branding_icon_url,
+        hideHelpMenu: settings.branding_hide_help_menu
+      })
+      setBrandingError(response.branding_error || undefined)
+      setBrandingEdited(false)
       setEnvOverrides(response.env_overrides || {})
       setOriginalApiEndpoint(response.settings.api_endpoint || '')
       setTwoFactorSettings(response.two_factor)
@@ -139,33 +167,23 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
     }
   }
 
-  const waitForServerRestart = async (endpoint: string): Promise<void> => {
-    const maxAttempts = 60
-    const delayMs = 1000
-
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        const response = await fetch(`${endpoint}/api/setup.status?t=${Date.now()}`, {
-          method: 'GET'
-        })
-        if (response.ok) {
-          return
-        }
-      } catch {
-        // Expected during restart
-      }
-      await new Promise((resolve) => setTimeout(resolve, delayMs))
-    }
-
-    throw new Error('Server restart timeout')
-  }
 
   const handleSave = () => {
     form
       .validateFields()
-      .then((values) => {
+      .then((validated) => {
+        // An unreadable stored brand is left as it is unless the administrator acted on the
+        // branding fields: the server keeps the row only when the body carries no branding key.
+        const values = { ...validated }
+        const brandingKeys = [
+          'branding_name',
+          'branding_logo_url',
+          'branding_icon_url',
+          'branding_hide_help_menu'
+        ] as const
+        if (brandingError && !brandingEdited && !form.isFieldsTouched([...brandingKeys])) {
+          for (const key of brandingKeys) delete values[key]
+        }
         const newApiEndpoint = values.api_endpoint || ''
         const apiEndpointChanged =
           newApiEndpoint !== originalApiEndpoint && newApiEndpoint !== ''
@@ -194,7 +212,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
           onOk: async () => {
             setSaving(true)
             try {
-              await settingsApi.update(values)
+              const saved = await settingsApi.update(values)
 
               const hideMsg = message.loading({
                 content: t`Server is restarting...`,
@@ -207,7 +225,11 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 : originalApiEndpoint || window.location.origin
 
               try {
-                await waitForServerRestart(endpointToCheck)
+                await waitForRestart({
+                  endpoint: endpointToCheck,
+                  bootId: saved?.boot_id,
+                  brandingRevision: saved?.branding_revision
+                })
                 message.success({
                   content: t`Server restarted successfully!`,
                   key: 'server-restart',
@@ -229,7 +251,16 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 setSaving(false)
               }
             } catch (err) {
-              message.error(twoFactorErrorMessage(err, t`Failed to save settings`))
+              // A licence refusal means the console's view of the licence is out of date (a key
+              // that lapsed after the page loaded): read it again, so the branding section shows
+              // its licence notice and locks what cannot be saved.
+              const refusal = licenseRefusal(err)
+              if (refusal) {
+                void refreshLicense()
+                message.error(refusal.message)
+              } else {
+                message.error(twoFactorErrorMessage(err, t`Failed to save settings`))
+              }
               setSaving(false)
             }
           }
@@ -313,6 +344,16 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 </Form.Item>
               </Col>
             </Row>
+
+            <Divider />
+
+            <BrandingSettings
+              form={form}
+              stored={storedBranding}
+              brandingError={brandingError}
+              workspaceId={workspaceId}
+              onBrandingEdited={() => setBrandingEdited(true)}
+            />
 
             <Divider />
 
