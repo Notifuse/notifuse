@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -147,7 +149,7 @@ func TestAnalyticsService_Query(t *testing.T) {
 				mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
 					Return(schemas, nil)
 			},
-			expectedError: "query validation failed",
+			expectedError: `measure "invalid_measure" is not in schema "message_history"`,
 		},
 		{
 			name:        "repository query execution failure",
@@ -539,5 +541,49 @@ func TestAnalyticsService_GetSchemasFiltersOnTheSameMapping(t *testing.T) {
 		assert.Contains(t, schemas, "message_history")
 		assert.Contains(t, schemas, "web_sessions")
 		assert.NotContains(t, schemas, "schema_added_without_a_mapping")
+	})
+}
+
+// A query the caller has to change answers as a validation error, whether validation refuses
+// it or only its run can tell; any other failure stays an internal one.
+func TestAnalyticsService_RefusalsAreValidationErrors(t *testing.T) {
+	run := func(t *testing.T, query analytics.Query, repoErr error) error {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockRepo := mocks.NewMockAnalyticsRepository(ctrl)
+		mockAuth := mocks.NewMockAuthService(ctrl)
+		mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
+			Return(context.Background(), &domain.User{ID: "user-123"}, analyticsMember(domain.PermissionResourceMessageHistory), nil)
+		mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
+			Return(map[string]analytics.SchemaDefinition{"message_history": domain.PredefinedSchemas["message_history"]}, nil)
+		if repoErr != nil {
+			mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).Return(nil, repoErr)
+		}
+		_, err := NewAnalyticsService(mockRepo, mockAuth, logger.NewLogger()).Query(context.Background(), "test-workspace", query)
+		require.Error(t, err)
+		return err
+	}
+
+	t.Run("a measure in filters", func(t *testing.T) {
+		err := run(t, analytics.Query{Schema: "message_history", Measures: []string{"count"},
+			Filters: []analytics.Filter{{Member: "count_sent", Operator: "gt", Values: []string{"1"}}}}, nil)
+		var validation domain.ValidationError
+		require.True(t, errors.As(err, &validation), "%v", err)
+		assert.Contains(t, validation.Message, "put conditions on measures in having")
+	})
+
+	t.Run("a refusal only the run can tell", func(t *testing.T) {
+		err := run(t, analytics.Query{Schema: "message_history", Measures: []string{"count"}},
+			fmt.Errorf("failed to execute analytics query: %w", &analytics.QueryError{Message: "the query ran past 1m0s: narrow its date range or filters"}))
+		var validation domain.ValidationError
+		require.True(t, errors.As(err, &validation), "%v", err)
+		assert.Equal(t, "the query ran past 1m0s: narrow its date range or filters", validation.Message)
+	})
+
+	t.Run("a database failure stays internal", func(t *testing.T) {
+		err := run(t, analytics.Query{Schema: "message_history", Measures: []string{"count"}}, errors.New("pq: connection refused"))
+		var validation domain.ValidationError
+		assert.False(t, errors.As(err, &validation))
 	})
 }

@@ -70,6 +70,22 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: An analytics query with a granularity and a date range given as a date and time (`2026-11-20 08:30:00`) or in RFC 3339 no longer fails with `failed to parse start date`. An hourly series that ends on a date now runs to the last hour of that day.
 
+- **Fix**: An analytics time series with more than 50,000 periods (years by the hour, for example) now answers 400. The server used to build every period in memory first, so one request could use up its memory.
+
+- **Fix**: On an analytics time series with a date range, `order`, `offset` and `limit` now apply after the empty periods are filled. Rows cut by the limit used to come back as zeros, the order was lost, and the offset started again from the first period. A series grouped by a dimension reads only the groups that hold the requested rows, and answers 400 if those groups still hold more than 50,000 rows.
+
+- **Fix**: `analytics.query` returns at most 50,000 rows and stops a query after 60 seconds. A query without a limit that would return more answers 400, and a request body over 1 MiB answers 413.
+
+- **Fix**: `analytics.query` answers 400 with what to change where it answered 500 with the database's error: a dimension in `timeDimensions` that is not a time, an operator the dimension's type does not take (`contains` on a number), text compared with a number, a value the column cannot read. The `Local` timezone is refused, and an empty timezone means UTC.
+
+- **Fix**: `analytics.query` refuses a measure in `filters` and says to put it in `having`. Such a filter used to fail, or for some measures compare the raw column and return a wrong number.
+
+- **Fix**: The `contains`, `startsWith` and `endsWith` analytics filters and their negations match `_` and `%` as written. A filter on `spring_sale` also matched `springXsale`.
+
+- **Fix**: An analytics query can sort by its time dimension, and several `order` keys sort in the order the query lists them. Sorting by a dimension the query does not group by answers 400 instead of 500.
+
+- **Fix**: An analytics query with more than one time dimension answers 400. The gap filling dropped rows when there were two.
+
 ## [44.0] - 2026-11-19
 
 ### Before you upgrade
