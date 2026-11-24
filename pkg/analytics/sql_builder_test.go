@@ -2849,6 +2849,91 @@ func TestFillTimeSeriesGaps_BoundedByTheRowsItWouldMake(t *testing.T) {
 	assert.Len(t, result, periods*len(atTheBound))
 }
 
+// The gap filler accepts the bounds the SQL accepts: dates, date-times and RFC 3339. A bound
+// is read in the query's timezone, where the buckets are cut.
+func TestFillTimeSeriesGaps_BoundFormats(t *testing.T) {
+	paris := "Europe/Paris"
+	tests := []struct {
+		name        string
+		granularity string
+		dateRange   [2]string
+		timezone    *string
+		data        []map[string]interface{}
+		want        []string
+	}{
+		{
+			name:        "dates by day",
+			granularity: "day",
+			dateRange:   [2]string{"2024-01-01", "2024-01-03"},
+			want:        []string{"2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z", "2024-01-03T00:00:00Z"},
+		},
+		{
+			name:        "date-times by day",
+			granularity: "day",
+			dateRange:   [2]string{"2024-01-01 08:30:00", "2024-01-02 17:45:00"},
+			want:        []string{"2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z"},
+		},
+		{
+			name:        "RFC 3339 by day",
+			granularity: "day",
+			dateRange:   [2]string{"2024-01-01T08:30:00Z", "2024-01-02T17:45:00Z"},
+			want:        []string{"2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z"},
+		},
+		{
+			name:        "date-times by hour",
+			granularity: "hour",
+			dateRange:   [2]string{"2024-01-01 08:30:00", "2024-01-01 11:15:00"},
+			data:        []map[string]interface{}{{"count": 4, "created_at_hour": "2024-01-01T10:00:00Z"}},
+			want:        []string{"2024-01-01T08:00:00Z", "2024-01-01T09:00:00Z", "2024-01-01T10:00:00Z", "2024-01-01T11:00:00Z"},
+		},
+		{
+			name:        "RFC 3339 by hour, read in the query's timezone",
+			granularity: "hour",
+			dateRange:   [2]string{"2024-01-01T08:30:00Z", "2024-01-01T10:00:00+00:00"},
+			timezone:    &paris,
+			want:        []string{"2024-01-01T09:00:00Z", "2024-01-01T10:00:00Z", "2024-01-01T11:00:00Z"},
+		},
+		{
+			name:        "dates by hour run to the last hour of the end date",
+			granularity: "hour",
+			dateRange:   [2]string{"2024-01-01", "2024-01-02"},
+			data:        []map[string]interface{}{{"count": 4, "created_at_hour": "2024-01-02T23:00:00Z"}},
+			want: func() []string {
+				var hours []string
+				for h := 0; h < 48; h++ {
+					hours = append(hours, time.Date(2024, 1, 1, h, 0, 0, 0, time.UTC).Format(time.RFC3339))
+				}
+				return hours
+			}(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dateRange := tt.dateRange
+			query := Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				Timezone: tt.timezone,
+				TimeDimensions: []TimeDimension{{
+					Dimension: "created_at", Granularity: tt.granularity, DateRange: &dateRange,
+				}},
+			}
+			result, err := fillTimeSeriesGaps(tt.data, query, nil)
+			require.NoError(t, err)
+
+			column := "created_at_" + tt.granularity
+			var got []string
+			for _, row := range result {
+				got = append(got, row[column].(string))
+			}
+			assert.Equal(t, tt.want, got)
+			for _, row := range tt.data {
+				assert.Contains(t, result, row, "a row of the data is kept")
+			}
+		})
+	}
+}
+
 func TestEmptyMeasureValue(t *testing.T) {
 	for _, measureType := range []string{"count", "sum", "count_distinct", "count_distinct_approx", "", "custom"} {
 		assert.Equal(t, 0, emptyMeasureValue(measureType), measureType)

@@ -476,6 +476,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 			"avg_recipients_completed": {
 				Type:        "avg",
+				Title:       "Average Recipients (Completed)",
 				SQL:         "recipient_count",
 				Description: "Average recipients for completed broadcasts only",
 				Filters: []analytics.MeasureFilter{
@@ -484,11 +485,13 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 			"winner_recipients": {
 				Type:        "sum",
+				Title:       "Winner Recipients",
 				SQL:         "winner_phase_recipient_count",
 				Description: "Total winner phase recipients",
 			},
 			"avg_test_recipients": {
 				Type:        "avg",
+				Title:       "Average Test Recipients",
 				SQL:         "test_phase_recipient_count",
 				Description: "Average test phase recipients per broadcast",
 				Filters: []analytics.MeasureFilter{
@@ -497,6 +500,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 			"sum_recipients_completed": {
 				Type:        "sum",
+				Title:       "Total Recipients (Completed)",
 				SQL:         "recipient_count",
 				Description: "Total recipients for completed broadcasts",
 				Filters: []analytics.MeasureFilter{
@@ -505,6 +509,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 			"count_with_ab_test": {
 				Type:        "count",
+				Title:       "A/B Tested Broadcasts",
 				SQL:         "*",
 				Description: "Broadcasts with A/B testing enabled",
 				Filters: []analytics.MeasureFilter{
@@ -513,6 +518,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 			"count_large_broadcasts": {
 				Type:        "count",
+				Title:       "Large Broadcasts",
 				SQL:         "*",
 				Description: "Broadcasts with more than 1000 recipients",
 				Filters: []analytics.MeasureFilter{
@@ -523,36 +529,43 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 		Dimensions: map[string]analytics.DimensionDefinition{
 			"id": {
 				Type:        "string",
+				Title:       "Broadcast ID",
 				SQL:         "id",
 				Description: "Broadcast identifier",
 			},
 			"name": {
 				Type:        "string",
+				Title:       "Name",
 				SQL:         "name",
 				Description: "Broadcast name",
 			},
 			"status": {
 				Type:        "string",
+				Title:       "Status",
 				SQL:         "status",
 				Description: "Broadcast status",
 			},
 			"created_at": {
 				Type:        "time",
+				Title:       "Created At",
 				SQL:         "created_at",
 				Description: "Broadcast creation timestamp",
 			},
 			"started_at": {
 				Type:        "time",
+				Title:       "Started At",
 				SQL:         "started_at",
 				Description: "Broadcast start timestamp",
 			},
 			"completed_at": {
 				Type:        "time",
+				Title:       "Completed At",
 				SQL:         "completed_at",
 				Description: "Broadcast completion timestamp",
 			},
 			"workspace_id": {
 				Type:        "string",
+				Title:       "Workspace ID",
 				SQL:         "workspace_id",
 				Description: "Associated workspace ID",
 			},

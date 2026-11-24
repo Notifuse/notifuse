@@ -512,12 +512,24 @@ func (s *TransactionalNotificationService) DeleteNotification(
 	return nil
 }
 
-// SendNotification sends a transactional notification to a contact
+// SendNotification sends a transactional notification to a contact and returns the message's
+// ID: the new message's, or that of the message that already holds the send's external_id.
 func (s *TransactionalNotificationService) SendNotification(
 	ctx context.Context,
 	workspaceID string,
 	params domain.TransactionalNotificationSendParams,
 ) (string, error) {
+	result, err := s.SendNotificationWithResult(ctx, workspaceID, params)
+	return result.MessageID, err
+}
+
+// SendNotificationWithResult sends a transactional notification to a contact. Its result says
+// whether the send's external_id was already used, in which case nothing was sent.
+func (s *TransactionalNotificationService) SendNotificationWithResult(
+	ctx context.Context,
+	workspaceID string,
+	params domain.TransactionalNotificationSendParams,
+) (domain.TransactionalSendResult, error) {
 	ctx, span := tracing.StartServiceSpan(ctx, "TransactionalNotificationService", "SendNotification")
 	defer span.End()
 
@@ -540,13 +552,13 @@ func (s *TransactionalNotificationService) SendNotification(
 		var userWorkspace *domain.UserWorkspace
 		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 		if err != nil {
-			return "", fmt.Errorf("failed to authenticate user for workspace: %w", err)
+			return domain.TransactionalSendResult{}, fmt.Errorf("failed to authenticate user for workspace: %w", err)
 		}
 
 		// The permission check belongs inside this branch: a system call never obtains a
 		// UserWorkspace, so a check outside it would dereference a nil pointer.
 		if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
-			return "", domain.NewPermissionError(
+			return domain.TransactionalSendResult{}, domain.NewPermissionError(
 				domain.PermissionResourceTransactional,
 				domain.PermissionTypeWrite,
 				"Insufficient permissions: write access to transactional notifications required",
@@ -561,7 +573,7 @@ func (s *TransactionalNotificationService) SendNotification(
 	// extra recipient turns a send into a contact read. Without CC or BCC the only reader
 	// is the contact itself, which also keeps its notification_center_url HMAC to itself.
 	if !hasContactsRead && (len(params.EmailOptions.CC) > 0 || len(params.EmailOptions.BCC) > 0) {
-		return "", domain.NewPermissionError(
+		return domain.TransactionalSendResult{}, domain.NewPermissionError(
 			domain.PermissionResourceContacts,
 			domain.PermissionTypeRead,
 			"Insufficient permissions: read access to contacts required to set cc or bcc",
@@ -588,14 +600,14 @@ func (s *TransactionalNotificationService) SendNotification(
 	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return "", fmt.Errorf("failed to get workspace: %w", err)
+		return domain.TransactionalSendResult{}, fmt.Errorf("failed to get workspace: %w", err)
 	}
 
 	// Get the notification
 	notification, err := s.transactionalRepo.Get(ctx, workspaceID, params.ID)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return "", fmt.Errorf("failed to get notification: %w", err)
+		return domain.TransactionalSendResult{}, fmt.Errorf("failed to get notification: %w", err)
 	}
 
 	span.AddAttributes(
@@ -606,14 +618,14 @@ func (s *TransactionalNotificationService) SendNotification(
 	// must not create or update the contact, nor be swallowed by the channel loop below.
 	if err := checkChosenSender(workspace, notification, params); err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return "", err
+		return domain.TransactionalSendResult{}, err
 	}
 
 	// Upsert the contact first
 	if params.Contact == nil {
 		err := fmt.Errorf("contact is required")
 		tracing.MarkSpanError(ctx, err)
-		return "", err
+		return domain.TransactionalSendResult{}, err
 	}
 
 	// An empty external_id is no key: such a send is neither looked up nor deduplicated.
@@ -629,13 +641,13 @@ func (s *TransactionalNotificationService) SendNotification(
 	// write its message (see the email channel below).
 	if existingID, found, err := s.messageForExternalID(ctx, workspaceID, workspace.Settings.SecretKey, params.ExternalID); err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return "", err
+		return domain.TransactionalSendResult{}, err
 	} else if found {
 		span.AddAttributes(
 			trace.StringAttribute("existing_message_id", existingID),
 			trace.BoolAttribute("idempotent_response", true),
 		)
-		return existingID, nil
+		return domain.TransactionalSendResult{MessageID: existingID, Deduplicated: true}, nil
 	}
 
 	// The recipient upsert and lookup are an implementation detail of sending, not a
@@ -663,7 +675,7 @@ func (s *TransactionalNotificationService) SendNotification(
 	if contactOperation.Action == domain.UpsertContactOperationError {
 		err := fmt.Errorf("failed to upsert contact: %s", contactOperation.Error)
 		tracing.MarkSpanError(ctx, err)
-		return "", err
+		return domain.TransactionalSendResult{}, err
 	}
 
 	tracing.AddAttribute(ctx, "contact.operation", string(contactOperation.Action))
@@ -672,7 +684,7 @@ func (s *TransactionalNotificationService) SendNotification(
 	contact, err := s.contactService.GetContactByEmail(contactCtx, workspaceID, params.Contact.Email)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return "", fmt.Errorf("contact not found after upsert: %w", err)
+		return domain.TransactionalSendResult{}, fmt.Errorf("contact not found after upsert: %w", err)
 	}
 
 	// Determine which channels to send through
@@ -694,7 +706,7 @@ func (s *TransactionalNotificationService) SendNotification(
 	if len(channelsToSend) == 0 {
 		err := fmt.Errorf("no valid channels to send notification")
 		tracing.MarkSpanError(ctx, err)
-		return "", err
+		return domain.TransactionalSendResult{}, err
 	}
 
 	// Create message history entry
@@ -748,7 +760,7 @@ func (s *TransactionalNotificationService) SendNotification(
 		if err != nil {
 			tracing.MarkSpanError(childCtx, err)
 			childSpan.End()
-			return "", fmt.Errorf("failed to build template data: %w", err)
+			return domain.TransactionalSendResult{}, fmt.Errorf("failed to build template data: %w", err)
 		}
 
 		messageData := domain.MessageData{
@@ -768,7 +780,7 @@ func (s *TransactionalNotificationService) SendNotification(
 			if err != nil {
 				tracing.MarkSpanError(childCtx, err)
 				childSpan.End()
-				return "", err
+				return domain.TransactionalSendResult{}, err
 			}
 
 			// Validate that the provider is configured
@@ -776,7 +788,7 @@ func (s *TransactionalNotificationService) SendNotification(
 				err := fmt.Errorf("no email provider configured for transactional notifications")
 				tracing.MarkSpanError(childCtx, err)
 				childSpan.End()
-				return "", err
+				return domain.TransactionalSendResult{}, err
 			}
 
 			childSpan.AddAttributes(
@@ -812,13 +824,13 @@ func (s *TransactionalNotificationService) SendNotification(
 				}
 				if lookupErr != nil {
 					tracing.MarkSpanError(ctx, lookupErr)
-					return "", lookupErr
+					return domain.TransactionalSendResult{}, lookupErr
 				}
 				span.AddAttributes(
 					trace.StringAttribute("existing_message_id", existingID),
 					trace.BoolAttribute("idempotent_response", true),
 				)
-				return existingID, nil
+				return domain.TransactionalSendResult{MessageID: existingID, Deduplicated: true}, nil
 			}
 			if err == nil {
 				successfulChannels++
@@ -853,14 +865,14 @@ func (s *TransactionalNotificationService) SendNotification(
 			err = fmt.Errorf("failed to send notification through any channel: %w", renderErr)
 		}
 		tracing.MarkSpanError(ctx, err)
-		return "", err
+		return domain.TransactionalSendResult{}, err
 	}
 
 	span.AddAttributes(
 		trace.Int64Attribute("successful_channels", int64(successfulChannels)),
 	)
 
-	return messageID, nil
+	return domain.TransactionalSendResult{MessageID: messageID}, nil
 }
 
 // messageForExternalID returns the ID of the message that holds externalID, and whether one

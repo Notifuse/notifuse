@@ -199,6 +199,53 @@ func TestMCPWriteToolsBroadcastsAndTransactional(t *testing.T) {
 		assert.Equal(t, []int{200, 404}, auditStatuses(t, "broadcasts.delete", broadcast.ID))
 	})
 
+	t.Run("unschedule_broadcast sends a scheduled broadcast back to draft, and a replay answers already", func(t *testing.T) {
+		full := newKey(nil)
+		broadcast := draft(t)
+		when := time.Now().UTC().Add(48 * time.Hour).Truncate(time.Minute)
+		structured(t, full.call("schedule_broadcast", args(fmt.Sprintf(`"broadcast_id":%q,"when":%q`, broadcast.ID, when.Format(time.RFC3339)))))
+		tasks := func() int {
+			var count int
+			require.NoError(t, suite.DBManager.GetDB().QueryRow(
+				`SELECT COUNT(*) FROM tasks WHERE workspace_id = $1 AND broadcast_id = $2 AND type = 'send_broadcast'`,
+				workspace.ID, broadcast.ID).Scan(&count))
+			return count
+		}
+		require.Equal(t, 1, tasks())
+
+		// delete_broadcast refuses it and names the tool that unschedules it.
+		refused := toolError(t, full.call("delete_broadcast", args(fmt.Sprintf(`"broadcast_id":%q`, broadcast.ID))))
+		assert.Equal(t, "invalid_state", refused["code"])
+		assert.Equal(t, "scheduled", refused["status"])
+		assert.Contains(t, refused["message"], "unschedule_broadcast")
+		assert.NotContains(t, refused["message"], "console")
+
+		out := structured(t, full.call("unschedule_broadcast", args(fmt.Sprintf(`"broadcast_id":%q`, broadcast.ID))))
+		assert.Equal(t, "draft", out["status"])
+		assert.Equal(t, false, out["already"])
+		assert.Equal(t, "draft", broadcastStatus(t, broadcast.ID))
+		assert.Equal(t, 0, tasks(), "the send task is removed")
+		var date string
+		require.NoError(t, db.QueryRow(`SELECT schedule->>'scheduled_date' FROM broadcasts WHERE id = $1`, broadcast.ID).Scan(&date))
+		assert.Equal(t, when.Format("2006-01-02"), date, "the date is kept")
+
+		out = structured(t, full.call("unschedule_broadcast", args(fmt.Sprintf(`"broadcast_id":%q`, broadcast.ID))))
+		assert.Equal(t, true, out["already"])
+		assert.Equal(t, "draft", out["status"])
+
+		// A cancelled broadcast is refused, and an unknown one is not found.
+		cancelled := draft(t)
+		structured(t, full.call("schedule_broadcast", args(fmt.Sprintf(`"broadcast_id":%q,"when":%q`, cancelled.ID, when.Format(time.RFC3339)))))
+		structured(t, full.call("cancel_broadcast", args(fmt.Sprintf(`"broadcast_id":%q`, cancelled.ID))))
+		assert.Equal(t, "validation", toolError(t, full.call("unschedule_broadcast", args(fmt.Sprintf(`"broadcast_id":%q`, cancelled.ID))))["code"])
+		assert.Equal(t, "not_found", toolError(t, full.call("unschedule_broadcast", args(`"broadcast_id":"nope"`)))["code"])
+
+		// The draft can be deleted now.
+		structured(t, full.call("delete_broadcast", args(fmt.Sprintf(`"broadcast_id":%q`, broadcast.ID))))
+		assert.Equal(t, []int{200, 200}, auditStatuses(t, "broadcasts.unschedule", broadcast.ID))
+		assert.Equal(t, []int{409, 200}, auditStatuses(t, "broadcasts.delete", broadcast.ID))
+	})
+
 	t.Run("pause_broadcast and resume_broadcast, and a paused broadcast is not deleted", func(t *testing.T) {
 		full := newKey(nil)
 		later := time.Now().UTC().Add(72 * time.Hour)
@@ -315,15 +362,18 @@ func TestMCPWriteToolsBroadcastsAndTransactional(t *testing.T) {
 	t.Run("send_transactional sends once per external_id", func(t *testing.T) {
 		full := newKey(nil)
 		recipient := fmt.Sprintf("mcp-transactional-%s@example.com", run)
-		send := func(externalID string) string {
+		// already says whether the key was used before: false on a first send,
+		// true on its replay, which sends nothing.
+		send := func(externalID string, already bool) string {
 			out := structured(t, full.call("send_transactional", args(fmt.Sprintf(`"notification_id":%q,"external_id":%q,"email":%q,"data":{"order":"981"}`,
 				notification.ID, externalID, recipient))))
+			assert.Equal(t, already, out["already"], externalID)
 			return out["message_id"].(string)
 		}
-		first := send("order-981-" + run)
-		assert.Equal(t, first, send("order-981-"+run), "a replay answers the first message")
+		first := send("order-981-"+run, false)
+		assert.Equal(t, first, send("order-981-"+run, true), "a replay answers the first message")
 		assert.Equal(t, 1, countHistory(t, `SELECT count(*) FROM message_history WHERE contact_email = $1`, recipient))
-		assert.NotEqual(t, first, send("order-982-"+run))
+		assert.NotEqual(t, first, send("order-982-"+run, false))
 		assert.Equal(t, 2, countHistory(t, `SELECT count(*) FROM message_history WHERE contact_email = $1`, recipient))
 		assert.Equal(t, 1, countHistory(t, `SELECT count(*) FROM message_history WHERE id = $1 AND external_id = $2 AND transactional_notification_id = $3`,
 			first, "order-981-"+run, notification.ID))

@@ -269,7 +269,8 @@ func (s *Server) getBroadcastTool() *Tool {
 		Name:  "get_broadcast",
 		Title: "Get broadcast",
 		Description: "Reads one broadcast: " +
-			"status, audience, schedule, A/B test settings with each variation's template and metrics, UTM parameters, tracking mode, data feed settings, metadata and send timestamps. " +
+			"status, audience, schedule, A/B test settings with each variation's template, UTM parameters, tracking mode, data feed settings, metadata and send timestamps. " +
+			"A variation's metrics field is a stored copy that is usually null: get_broadcast_report has each variation's results. " +
 			"Use get_template to read a template's content. Data feed header values and fetched feed data are never returned, only the header names. " +
 			"Long text is cut at 2000 characters and named in truncated_fields. Metadata longer than that is null.",
 		Class: ClassRead,
@@ -1260,9 +1261,9 @@ func (s *Server) selectBroadcastWinner(ctx context.Context, call *Call) (any, er
 	}, nil
 }
 
-// broadcastStateOutput is what pause_broadcast, resume_broadcast and
-// cancel_broadcast return. Already is true when the broadcast was in the
-// target state before the call.
+// broadcastStateOutput is what pause_broadcast, resume_broadcast,
+// cancel_broadcast and unschedule_broadcast return. Already is true when the
+// broadcast was in the target state before the call.
 type broadcastStateOutput struct {
 	Workspace   WorkspaceRef `json:"workspace"`
 	BroadcastID string       `json:"broadcast_id"`
@@ -1392,13 +1393,56 @@ func (s *Server) cancelBroadcast(ctx context.Context, call *Call) (any, error) {
 	return out, nil
 }
 
+func (s *Server) unscheduleBroadcastTool() *Tool {
+	return &Tool{
+		Name:  "unschedule_broadcast",
+		Title: "Unschedule broadcast",
+		Description: "Sends a scheduled broadcast back to draft and removes its send task, so it sends nothing. " +
+			"It keeps its date and time, and can be edited, then scheduled again with schedule_broadcast. " +
+			"A broadcast that is already a draft answers success with already set to true, whether or not it was ever scheduled, so calling it again is safe: check status in the result. " +
+			"Once its sending has started, it answers a validation error: cancel it with cancel_broadcast instead. " +
+			"Any other status, such as cancelled, answers a validation error too.",
+		Class:       ClassWrite,
+		Idempotent:  boolPtr(true),
+		Pairs:       []Pair{broadcastsWrite},
+		AuditAction: "broadcasts.unschedule",
+		InputSchema: broadcastIDSchema(),
+		Handler:     s.unscheduleBroadcast,
+	}
+}
+
+func (s *Server) unscheduleBroadcast(ctx context.Context, call *Call) (any, error) {
+	id, toolErr := broadcastIDArgument(call)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	var req domain.UnscheduleBroadcastRequest
+	if err := requestFromJSON(map[string]any{"workspace_id": call.WorkspaceID, "id": id}, &req); err != nil {
+		return nil, validationError("invalid arguments: %v", err)
+	}
+	out := broadcastStateOutput{Workspace: call.WorkspaceRef(), BroadcastID: id, Status: string(domain.BroadcastStatusDraft)}
+	// The service reads the status under the broadcast's row lock, and refuses a
+	// draft without a send task with its own error type. It cannot tell a replay
+	// from a draft that was never scheduled, so both answer already.
+	err := s.deps.Broadcasts.UnscheduleBroadcast(ctx, &req)
+	var notScheduled *domain.BroadcastNotScheduledError
+	switch {
+	case errors.As(err, &notScheduled):
+		out.Already = true
+		call.Audit.AddMetadata("already", true)
+	case err != nil:
+		return nil, err
+	}
+	return out, nil
+}
+
 func (s *Server) deleteBroadcastTool() *Tool {
 	return &Tool{
 		Name:  "delete_broadcast",
 		Title: "Delete broadcast",
 		Description: "Deletes a broadcast for good. Messages already sent keep their history. This cannot be undone, so confirm with the user first. " +
 			"A broadcast that is sending, paused or in an A/B test answers invalid_state, and so does one whose queue still holds emails to send: cancel it with cancel_broadcast first. " +
-			"A scheduled broadcast answers invalid_state too: it has to be unscheduled first, which removes its send task (the console's Unschedule action or the broadcasts.unschedule API endpoint). " +
+			"A scheduled broadcast answers invalid_state too: send it back to draft first with unschedule_broadcast, which removes its send task, or cancel it with cancel_broadcast. " +
 			"Returns not_found for a broadcast that does not exist, which is also what a repeated call answers.",
 		Class:       ClassDestructive,
 		Pairs:       []Pair{broadcastsWrite},
@@ -1435,6 +1479,16 @@ func (s *Server) deleteBroadcast(ctx context.Context, call *Call) (any, error) {
 		return nil, validationError("invalid arguments: %v", err)
 	}
 	if err := s.deps.Broadcasts.DeleteBroadcast(ctx, &req); err != nil {
+		// The service's reason names the console's action; a client is told
+		// which tool does it.
+		var invalid *domain.InvalidStateError
+		if errors.As(err, &invalid) && invalid.Status == string(domain.BroadcastStatusScheduled) {
+			return nil, &ToolError{
+				Code:    CodeInvalidState,
+				Status:  invalid.Status,
+				Message: fmt.Sprintf("cannot delete broadcast %s: it is scheduled. Send it back to draft with unschedule_broadcast, which removes its send task, or cancel it with cancel_broadcast.", id),
+			}
+		}
 		return nil, err
 	}
 	return deleteBroadcastOutput{Workspace: call.WorkspaceRef(), Deleted: true, BroadcastID: id}, nil

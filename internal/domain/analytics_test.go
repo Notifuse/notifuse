@@ -496,3 +496,20 @@ func TestTransactionalMessagesMeasureFollowsTheOrigin(t *testing.T) {
 		"broadcast_id IS NULL",
 	}, sql)
 }
+
+// Every measure and dimension has a title: list_analytics_schemas shows it to
+// MCP clients, and an empty one leaves them to guess from the name.
+func TestAnalyticsSchemas_EveryMemberHasATitle(t *testing.T) {
+	schemas := ResolveAnalyticsSchemas(&WebAnalyticsSettings{}, "UTC")
+	for name, schema := range PredefinedSchemas {
+		schemas[name] = schema
+	}
+	for name, schema := range schemas {
+		for member, measure := range schema.Measures {
+			assert.NotEmpty(t, measure.Title, "%s measure %s", name, member)
+		}
+		for member, dimension := range schema.Dimensions {
+			assert.NotEmpty(t, dimension.Title, "%s dimension %s", name, member)
+		}
+	}
+}

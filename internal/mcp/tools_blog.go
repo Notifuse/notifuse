@@ -46,6 +46,94 @@ func blogPostStatus(post *domain.BlogPost, now time.Time) string {
 	}
 }
 
+// blogDisabledNote ends the description of every blog tool.
+const blogDisabledNote = "When the workspace's blog is turned off, the result has blog_enabled set to false: the blog then serves no page, so published posts are not shown."
+
+// blogState is part of every blog tool's result. BlogEnabled is set, to false,
+// only when the workspace's blog is turned off, the setting
+// get_workspace_overview reports.
+type blogState struct {
+	BlogEnabled *bool `json:"blog_enabled,omitempty"`
+}
+
+func blogStateOf(call *Call) blogState {
+	if call.Workspace != nil && !call.Workspace.Settings.BlogEnabled {
+		return blogState{BlogEnabled: boolPtr(false)}
+	}
+	return blogState{}
+}
+
+// blogPostRef reads how a caller names a post: a UUID is the post's ID, and
+// anything else its slug. A slug may look like a UUID too, so a UUID that
+// names no post is then tried as a slug (slugFallback).
+func blogPostRef(raw string) (id, slug string) {
+	if parsed, err := uuid.Parse(raw); err == nil {
+		return parsed.String(), ""
+	}
+	return "", raw
+}
+
+// blogPostNotFound answers a post that no ID or slug names, with what the
+// caller gave.
+func blogPostNotFound(ref string) *ToolError {
+	return &ToolError{Code: CodeNotFound, Message: "blog post not found: " + ref}
+}
+
+// asBlogPostNotFound turns the typed not found of a call on one post into
+// blogPostNotFound, and leaves any other error as it is.
+func asBlogPostNotFound(err error, ref string) error {
+	var notFound *domain.ErrNotFound
+	if errors.As(err, &notFound) {
+		return blogPostNotFound(ref)
+	}
+	return err
+}
+
+// findBlogPost reads the post that ref names: by ID when ref is a UUID, else
+// by slug, or by slug only with bySlug. A UUID that names no post is then
+// tried as a slug, when the key may read the blog. A missing or deleted post
+// answers not_found naming ref.
+func (s *Server) findBlogPost(ctx context.Context, call *Call, ref string, bySlug bool) (*domain.BlogPost, error) {
+	id, slug := blogPostRef(ref)
+	if bySlug {
+		id, slug = "", ref
+	}
+	blogCtx := blogContext(ctx, call)
+	var post *domain.BlogPost
+	var err error
+	if id != "" {
+		post, err = s.deps.Blog.GetPost(blogCtx, id)
+		if isBlogPostMissing(post, err) && slugFallback(call) {
+			post, err = s.deps.Blog.GetPostBySlug(blogCtx, ref)
+		}
+	} else {
+		post, err = s.deps.Blog.GetPostBySlug(blogCtx, slug)
+	}
+	if err != nil {
+		return nil, asBlogPostNotFound(err, ref)
+	}
+	if post == nil || post.DeletedAt != nil {
+		return nil, blogPostNotFound(ref)
+	}
+	return post, nil
+}
+
+// isBlogPostMissing reports whether a read by ID found no post: a typed not
+// found, no post, or a deleted one.
+func isBlogPostMissing(post *domain.BlogPost, err error) bool {
+	var notFound *domain.ErrNotFound
+	if err != nil {
+		return errors.As(err, &notFound)
+	}
+	return post == nil || post.DeletedAt != nil
+}
+
+// slugFallback reports whether a UUID that names no post may be tried as a
+// slug: the slug is read with the blog service's read, which needs blog:read.
+func slugFallback(call *Call) bool {
+	return call.Effective[domain.PermissionResourceBlog].Read
+}
+
 // listBlogPostsTool pages through a workspace's blog posts. blogPosts.list
 // pages by page number on an order with a tie-breaker, so the cursor carries
 // the page and its size.
@@ -56,7 +144,8 @@ func (s *Server) listBlogPostsTool() *Tool {
 		Description: "Lists the posts of the workspace's blog: ID, category, slug, title, excerpt, status (draft, scheduled or published) and publication date. " +
 			"Drafts are sorted by last update, scheduled posts by the date they go live, and the others by publication date, newest first. " +
 			"get_blog_post has the authors, SEO settings and body. total counts every post that matches the filters. " +
-			"To get the next page, pass next_cursor back as cursor with the same filters. Later pages keep the page size of the first page.",
+			"To get the next page, pass next_cursor back as cursor with the same filters. Later pages keep the page size of the first page. " +
+			blogDisabledNote,
 		Class: ClassRead,
 		Pairs: []Pair{blogRead},
 		InputSchema: map[string]any{
@@ -112,6 +201,7 @@ type listBlogPostsOutput struct {
 	Posts      []blogPostSummary `json:"posts"`
 	Total      int               `json:"total"`
 	NextCursor string            `json:"next_cursor,omitempty"`
+	blogState
 }
 
 func (s *Server) listBlogPosts(ctx context.Context, call *Call) (any, error) {
@@ -171,7 +261,7 @@ func (s *Server) listBlogPosts(ctx context.Context, call *Call) (any, error) {
 	}
 
 	now := time.Now()
-	out := listBlogPostsOutput{Workspace: call.WorkspaceRef(), Posts: []blogPostSummary{}}
+	out := listBlogPostsOutput{Workspace: call.WorkspaceRef(), Posts: []blogPostSummary{}, blogState: blogStateOf(call)}
 	if resp == nil {
 		return out, nil
 	}
@@ -208,19 +298,20 @@ func (s *Server) getBlogPostTool() *Tool {
 	return &Tool{
 		Name:  "get_blog_post",
 		Title: "Get blog post",
-		Description: "Reads one blog post by ID or slug. Give one, not both. " +
+		Description: "Reads one blog post by ID or slug. Give id or slug, not both: id also takes a slug. " +
 			"It returns the category, slug, title, excerpt, featured image, authors, reading time, SEO settings, status, publication date, and the body as a Tiptap (ProseMirror) JSON document. " +
 			"Reading the body also needs the templates read permission. " +
 			"Without it, or when the body cannot be found, body is null and body_unavailable says why. " +
 			"body_version is the version of the body that was read. " +
-			"follows_latest_body is true when the post shows the latest version of its body, and false when it shows a pinned version.",
+			"follows_latest_body is true when the post shows the latest version of its body, and false when it shows a pinned version. " +
+			"When no post has that ID or slug, it answers not_found and names the value given. " + blogDisabledNote,
 		Class: ClassRead,
 		Pairs: []Pair{blogRead},
 		InputSchema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
 				"workspace_id": map[string]any{"type": "string", "description": "Workspace ID from list_workspaces."},
-				"id":           map[string]any{"type": "string", "description": "The post's ID (a UUID) from list_blog_posts. Give id or slug, not both."},
+				"id":           map[string]any{"type": "string", "description": "The post's ID (a UUID) from list_blog_posts, or its slug. Give id or slug, not both."},
 				"slug":         map[string]any{"type": "string", "description": "The post's slug, unique across the blog. Give id or slug, not both."},
 			},
 			"required":             []string{"workspace_id"},
@@ -261,6 +352,7 @@ type blogPostDetail struct {
 type getBlogPostOutput struct {
 	Workspace WorkspaceRef   `json:"workspace"`
 	Post      blogPostDetail `json:"post"`
+	blogState
 }
 
 func (s *Server) getBlogPost(ctx context.Context, call *Call) (any, error) {
@@ -272,31 +364,18 @@ func (s *Server) getBlogPost(ctx context.Context, call *Call) (any, error) {
 		return nil, validationError("give either id or slug, not both")
 	}
 
-	blogCtx := blogContext(ctx, call)
-	var post *domain.BlogPost
-	var err error
-	if args.ID != "" {
-		// The column is a UUID, and PostgreSQL refuses anything else.
-		id, parseErr := uuid.Parse(args.ID)
-		if parseErr != nil {
-			return nil, validationError("id must be a UUID, from list_blog_posts; give a slug as slug")
-		}
-		post, err = s.deps.Blog.GetPost(blogCtx, id.String())
-	} else {
-		post, err = s.deps.Blog.GetPostBySlug(blogCtx, args.Slug)
-	}
+	// The ID column is a UUID, which PostgreSQL refuses anything else for: an
+	// id that is not one is read as a slug.
+	post, err := s.findBlogPost(ctx, call, args.ID+args.Slug, args.Slug != "")
 	if err != nil {
 		return nil, err
-	}
-	if post == nil || post.DeletedAt != nil {
-		return nil, &domain.ErrNotFound{Entity: "blog post", ID: args.ID + args.Slug}
 	}
 
 	out := projectBlogPost(post, time.Now())
 	if err := s.readBlogBody(ctx, call, post, &out); err != nil {
 		return nil, err
 	}
-	return getBlogPostOutput{Workspace: call.WorkspaceRef(), Post: out}, nil
+	return getBlogPostOutput{Workspace: call.WorkspaceRef(), Post: out, blogState: blogStateOf(call)}, nil
 }
 
 // projectBlogPost is a post as get_blog_post and the blog write tools return
@@ -386,7 +465,7 @@ func (s *Server) listBlogCategoriesTool() *Tool {
 		Name:  listBlogCategoriesName,
 		Title: "List blog categories",
 		Description: "Lists the categories of the workspace's blog, newest first: ID (the value list_blog_posts filters on), slug, name and description. " +
-			"total counts every category. To get the next page, pass next_cursor back as cursor.",
+			"total counts every category. To get the next page, pass next_cursor back as cursor. " + blogDisabledNote,
 		Class: ClassRead,
 		Pairs: []Pair{blogRead},
 		InputSchema: map[string]any{
@@ -421,6 +500,7 @@ type listBlogCategoriesOutput struct {
 	Categories []blogCategorySummary `json:"categories"`
 	Total      int                   `json:"total"`
 	NextCursor string                `json:"next_cursor,omitempty"`
+	blogState
 }
 
 func (s *Server) listBlogCategories(ctx context.Context, call *Call) (any, error) {
@@ -464,6 +544,7 @@ func (s *Server) listBlogCategories(ctx context.Context, call *Call) (any, error
 		Workspace:  call.WorkspaceRef(),
 		Categories: []blogCategorySummary{},
 		Total:      len(categories),
+		blogState:  blogStateOf(call),
 	}
 	if offset >= len(categories) {
 		return out, nil
@@ -645,16 +726,58 @@ func (s *Server) requireBlogCategory(ctx context.Context, id string) error {
 	return &ToolError{Code: CodeNotFound, Message: "blog category not found: list_blog_categories gives the IDs"}
 }
 
-// blogPostArgument reads a post's id, which must be a UUID, and names it as
-// the audit row's target.
-func blogPostArgument(call *Call) (string, *ToolError) {
-	raw, _ := call.Args["id"].(string)
-	id, err := uuid.Parse(raw)
-	if err != nil {
-		return "", validationError("id must be the post's ID (a UUID), from list_blog_posts")
+// blogPostIDDescription describes the id argument of the blog write tools.
+const blogPostIDDescription = "The post's ID (a UUID) from list_blog_posts, or its slug."
+
+// blogPostIDArgument reads the id argument of a blog write tool: the post's ID
+// or its slug.
+func blogPostIDArgument(call *Call) (string, *ToolError) {
+	ref, _ := call.Args["id"].(string)
+	if strings.TrimSpace(ref) == "" {
+		return "", validationError("id is required: the post's ID or slug, from list_blog_posts")
 	}
-	call.Audit.SetTarget(domain.AuditTargetBlogPost, id.String(), "")
-	return id.String(), nil
+	call.Audit.SetTarget(domain.AuditTargetBlogPost, "", "")
+	if id, slug := blogPostRef(ref); id != "" {
+		call.Audit.SetTarget("", id, "")
+	} else {
+		call.Audit.AddMetadata("slug", slug)
+	}
+	return ref, nil
+}
+
+// readsBlogBySlug is the permission a blog write tool adds when its id is a
+// slug: the slug is looked up with the blog service's read, which checks
+// blog:read. An ID goes to the write as given.
+func readsBlogBySlug(args map[string]any) []Pair {
+	ref, _ := args["id"].(string)
+	if id, _ := blogPostRef(ref); id == "" && strings.TrimSpace(ref) != "" {
+		return []Pair{blogRead}
+	}
+	return nil
+}
+
+// writeBlogPost runs write on the post that the id argument of
+// publish_blog_post, unpublish_blog_post and delete_blog_post names, and
+// returns the post's ID, the value given and the write's error. A slug is
+// looked up first. A UUID goes to the write as given, and when no post has
+// that ID it is tried as a slug, then written again.
+func (s *Server) writeBlogPost(ctx context.Context, call *Call, write func(id string) error) (string, string, error) {
+	ref, toolErr := blogPostIDArgument(call)
+	if toolErr != nil {
+		return "", "", toolErr
+	}
+	if id, _ := blogPostRef(ref); id != "" {
+		var notFound *domain.ErrNotFound
+		if err := write(id); !errors.As(err, &notFound) || !slugFallback(call) {
+			return id, ref, err
+		}
+	}
+	post, err := s.findBlogPost(ctx, call, ref, true)
+	if err != nil {
+		return "", "", err
+	}
+	call.Audit.SetTarget("", post.ID, post.Settings.Title)
+	return post.ID, ref, write(post.ID)
 }
 
 func (s *Server) createBlogPostTool() *Tool {
@@ -666,7 +789,7 @@ func (s *Server) createBlogPostTool() *Tool {
 			"Nothing is published and nothing is sent: publish_blog_post makes the post public. " +
 			"The post opens in the console's blog editor as if it was written there. " +
 			"The slug must be unique among the posts that are not deleted, so a repeated call answers conflict. " +
-			"reading_time_minutes is estimated from the body when you leave it out. All arguments together are limited to 1 MiB.",
+			"reading_time_minutes is estimated from the body when you leave it out. All arguments together are limited to 1 MiB. " + blogDisabledNote,
 		Class:       ClassWrite,
 		Idempotent:  boolPtr(false),
 		Pairs:       []Pair{blogWrite, writeTemplates},
@@ -762,7 +885,7 @@ func (s *Server) createBlogPost(ctx context.Context, call *Call) (any, error) {
 	out.Body = web.Content
 	version := template.Version
 	out.BodyVersion = &version
-	return getBlogPostOutput{Workspace: call.WorkspaceRef(), Post: out}, nil
+	return getBlogPostOutput{Workspace: call.WorkspaceRef(), Post: out, blogState: blogStateOf(call)}, nil
 }
 
 // discardBlogTemplate deletes the body template of a post that could not be
@@ -777,7 +900,7 @@ func (s *Server) discardBlogTemplate(ctx context.Context, call *Call, templateID
 
 func (s *Server) updateBlogPostTool() *Tool {
 	properties := blogPostProperties()
-	properties["id"] = map[string]any{"type": "string", "description": "The post's ID (a UUID) from list_blog_posts."}
+	properties["id"] = map[string]any{"type": "string", "description": "The post's ID (a UUID) from list_blog_posts, or its current slug."}
 	properties["body"] = map[string]any{"type": "object", "description": "The whole new body, in the format create_blog_post describes. Leave it out to keep the body."}
 	properties["base_version"] = map[string]any{"type": "integer", "description": "body_version from get_blog_post. With body, the update is refused with conflict when someone saved the body since."}
 	properties["slug"] = map[string]any{"type": "string", "description": "New URL path: lowercase letters, digits and single hyphens. It changes the address of a published post."}
@@ -791,7 +914,7 @@ func (s *Server) updateBlogPostTool() *Tool {
 			"Changing the body also needs the templates write and read permissions. " +
 			"The post is read then written, so a save made in the console in between can be lost. " +
 			"Calling it again with the same arguments changes nothing more, but saves one more body version when body is given. " +
-			"All arguments together are limited to 1 MiB.",
+			"All arguments together are limited to 1 MiB. " + blogDisabledNote,
 		Class:      ClassWrite,
 		Idempotent: boolPtr(true),
 		Pairs:      []Pair{blogWrite, blogRead},
@@ -813,7 +936,7 @@ func (s *Server) updateBlogPostTool() *Tool {
 }
 
 func (s *Server) updateBlogPost(ctx context.Context, call *Call) (any, error) {
-	id, toolErr := blogPostArgument(call)
+	ref, toolErr := blogPostIDArgument(call)
 	if toolErr != nil {
 		return nil, toolErr
 	}
@@ -838,14 +961,11 @@ func (s *Server) updateBlogPost(ctx context.Context, call *Call) (any, error) {
 	// blogPosts.update replaces every field, so the post is read and written
 	// back with the given fields changed.
 	blogCtx := blogContext(ctx, call)
-	post, err := s.deps.Blog.GetPost(blogCtx, id)
+	post, err := s.findBlogPost(ctx, call, ref, false)
 	if err != nil {
 		return nil, err
 	}
-	if post == nil || post.DeletedAt != nil {
-		return nil, &domain.ErrNotFound{Entity: "blog post", ID: id}
-	}
-	call.Audit.SetTarget("", "", post.Settings.Title)
+	call.Audit.SetTarget("", post.ID, post.Settings.Title)
 	fields := map[string]any{
 		"id":                   post.ID,
 		"category_id":          post.CategoryID,
@@ -944,7 +1064,7 @@ func (s *Server) updateBlogPost(ctx context.Context, call *Call) (any, error) {
 	} else if err := s.readBlogBody(ctx, call, updated, &out); err != nil {
 		return nil, err
 	}
-	return getBlogPostOutput{Workspace: call.WorkspaceRef(), Post: out}, nil
+	return getBlogPostOutput{Workspace: call.WorkspaceRef(), Post: out, blogState: blogStateOf(call)}, nil
 }
 
 // saveBlogBody writes a new version of a post's body template and returns its
@@ -1019,6 +1139,7 @@ type blogPostStateOutput struct {
 	Status      string       `json:"status"`
 	PublishedAt *time.Time   `json:"published_at"`
 	Already     bool         `json:"already"`
+	blogState
 }
 
 func blogPostIDSchema(description string) map[string]any {
@@ -1034,7 +1155,7 @@ func blogPostIDSchema(description string) map[string]any {
 }
 
 func (s *Server) publishBlogPostTool() *Tool {
-	schema := blogPostIDSchema("The draft's ID (a UUID) from list_blog_posts.")
+	schema := blogPostIDSchema("The draft's ID (a UUID) from list_blog_posts, or its slug.")
 	schema["properties"].(map[string]any)["published_at"] = map[string]any{
 		"type": "string", "description": "RFC 3339 date-time. Leave it out to publish now. A later date schedules the post, and an earlier one backdates it.",
 	}
@@ -1044,21 +1165,19 @@ func (s *Server) publishBlogPostTool() *Tool {
 		Description: "Publishes a draft on the public blog, now or at published_at. Nothing is emailed: the post appears on the blog and in its feed. " +
 			"Confirm with the user first. status is published, or scheduled when published_at is still ahead. " +
 			"A post already published or scheduled answers success with already set to true, its status, and published_at null, so calling it again is safe. " +
-			"To change the date of a published post, unpublish it with unpublish_blog_post, then publish it again.",
-		Class:       ClassWrite,
-		Idempotent:  boolPtr(true),
-		Pairs:       []Pair{blogWrite},
-		AuditAction: "blogPosts.publish",
-		InputSchema: schema,
-		Handler:     s.publishBlogPost,
+			"To change the date of a published post, unpublish it with unpublish_blog_post, then publish it again. " +
+			"A slug as id also needs the blog read permission. " + blogDisabledNote,
+		Class:         ClassWrite,
+		Idempotent:    boolPtr(true),
+		Pairs:         []Pair{blogWrite},
+		ArgumentPairs: readsBlogBySlug,
+		AuditAction:   "blogPosts.publish",
+		InputSchema:   schema,
+		Handler:       s.publishBlogPost,
 	}
 }
 
 func (s *Server) publishBlogPost(ctx context.Context, call *Call) (any, error) {
-	id, toolErr := blogPostArgument(call)
-	if toolErr != nil {
-		return nil, toolErr
-	}
 	now := time.Now().UTC()
 	at := now.Truncate(time.Second)
 	if raw, _ := call.Args["published_at"].(string); raw != "" {
@@ -1068,28 +1187,30 @@ func (s *Server) publishBlogPost(ctx context.Context, call *Call) (any, error) {
 		}
 		at = parsed.UTC()
 	}
-	var req domain.PublishBlogPostRequest
-	if err := requestFromJSON(map[string]any{"id": id, "published_at": at}, &req); err != nil {
-		return nil, validationError("invalid arguments: %v", err)
-	}
-	if err := req.Validate(); err != nil {
-		return nil, validationError("%v", err)
-	}
-	err := s.deps.Blog.PublishPost(blogContext(ctx, call), &req)
+	id, ref, err := s.writeBlogPost(ctx, call, func(id string) error {
+		var req domain.PublishBlogPostRequest
+		if err := requestFromJSON(map[string]any{"id": id, "published_at": at}, &req); err != nil {
+			return validationError("invalid arguments: %v", err)
+		}
+		if err := req.Validate(); err != nil {
+			return validationError("%v", err)
+		}
+		return s.deps.Blog.PublishPost(blogContext(ctx, call), &req)
+	})
 	var invalid *domain.InvalidStateError
 	switch {
 	case errors.As(err, &invalid) && invalid.Status != string(domain.BlogPostStatusDraft):
 		call.Audit.AddMetadata("already", true)
-		return blogPostStateOutput{Workspace: call.WorkspaceRef(), PostID: id, Status: invalid.Status, Already: true}, nil
+		return blogPostStateOutput{Workspace: call.WorkspaceRef(), PostID: id, Status: invalid.Status, Already: true, blogState: blogStateOf(call)}, nil
 	case err != nil:
-		return nil, err
+		return nil, asBlogPostNotFound(err, ref)
 	}
 	call.Audit.AddMetadata("published_at", at.Format(time.RFC3339))
 	status := domain.BlogPostStatusPublished
 	if at.After(now) {
 		status = domain.BlogPostStatusScheduled
 	}
-	return blogPostStateOutput{Workspace: call.WorkspaceRef(), PostID: id, Status: string(status), PublishedAt: &at}, nil
+	return blogPostStateOutput{Workspace: call.WorkspaceRef(), PostID: id, Status: string(status), PublishedAt: &at, blogState: blogStateOf(call)}, nil
 }
 
 func (s *Server) unpublishBlogPostTool() *Tool {
@@ -1097,37 +1218,37 @@ func (s *Server) unpublishBlogPostTool() *Tool {
 		Name:  "unpublish_blog_post",
 		Title: "Unpublish blog post",
 		Description: "Takes a published or scheduled post back to draft: it leaves the public blog and its feed, and its publication date is cleared. " +
-			"Confirm with the user first. A post already a draft answers success with already set to true, so calling it again is safe.",
-		Class:       ClassWrite,
-		Idempotent:  boolPtr(true),
-		Pairs:       []Pair{blogWrite},
-		AuditAction: "blogPosts.unpublish",
-		InputSchema: blogPostIDSchema("The post's ID (a UUID) from list_blog_posts."),
-		Handler:     s.unpublishBlogPost,
+			"Confirm with the user first. A post already a draft answers success with already set to true, so calling it again is safe. " +
+			"A slug as id also needs the blog read permission. " + blogDisabledNote,
+		Class:         ClassWrite,
+		Idempotent:    boolPtr(true),
+		Pairs:         []Pair{blogWrite},
+		ArgumentPairs: readsBlogBySlug,
+		AuditAction:   "blogPosts.unpublish",
+		InputSchema:   blogPostIDSchema(blogPostIDDescription),
+		Handler:       s.unpublishBlogPost,
 	}
 }
 
 func (s *Server) unpublishBlogPost(ctx context.Context, call *Call) (any, error) {
-	id, toolErr := blogPostArgument(call)
-	if toolErr != nil {
-		return nil, toolErr
-	}
-	var req domain.UnpublishBlogPostRequest
-	if err := requestFromJSON(map[string]any{"id": id}, &req); err != nil {
-		return nil, validationError("invalid arguments: %v", err)
-	}
-	if err := req.Validate(); err != nil {
-		return nil, validationError("%v", err)
-	}
-	out := blogPostStateOutput{Workspace: call.WorkspaceRef(), PostID: id, Status: string(domain.BlogPostStatusDraft)}
-	err := s.deps.Blog.UnpublishPost(blogContext(ctx, call), &req)
+	id, ref, err := s.writeBlogPost(ctx, call, func(id string) error {
+		var req domain.UnpublishBlogPostRequest
+		if err := requestFromJSON(map[string]any{"id": id}, &req); err != nil {
+			return validationError("invalid arguments: %v", err)
+		}
+		if err := req.Validate(); err != nil {
+			return validationError("%v", err)
+		}
+		return s.deps.Blog.UnpublishPost(blogContext(ctx, call), &req)
+	})
+	out := blogPostStateOutput{Workspace: call.WorkspaceRef(), PostID: id, Status: string(domain.BlogPostStatusDraft), blogState: blogStateOf(call)}
 	var invalid *domain.InvalidStateError
 	switch {
 	case errors.As(err, &invalid) && invalid.Status == string(domain.BlogPostStatusDraft):
 		out.Already = true
 		call.Audit.AddMetadata("already", true)
 	case err != nil:
-		return nil, err
+		return nil, asBlogPostNotFound(err, ref)
 	}
 	return out, nil
 }
@@ -1137,13 +1258,16 @@ func (s *Server) deleteBlogPostTool() *Tool {
 		Name:  "delete_blog_post",
 		Title: "Delete blog post",
 		Description: "Deletes a blog post. A published post leaves the public blog at once, and another post can then use its slug. " +
-			"The body template is kept. This cannot be undone, so confirm with the user first. " +
-			"Returns not_found for a post that does not exist, which is also what a repeated call answers.",
-		Class:       ClassDestructive,
-		Pairs:       []Pair{blogWrite},
-		AuditAction: "blogPosts.delete",
-		InputSchema: blogPostIDSchema("The post's ID (a UUID) from list_blog_posts."),
-		Handler:     s.deleteBlogPost,
+			"The post's body template is not deleted. It stays in the templates, in the blog category, named \"Blog: \" and the post's title: list_templates finds it and delete_template removes it. " +
+			"This cannot be undone, so confirm with the user first. " +
+			"Returns not_found for a post that does not exist, which is also what a repeated call answers. " +
+			"A slug as id also needs the blog read permission. " + blogDisabledNote,
+		Class:         ClassDestructive,
+		Pairs:         []Pair{blogWrite},
+		ArgumentPairs: readsBlogBySlug,
+		AuditAction:   "blogPosts.delete",
+		InputSchema:   blogPostIDSchema(blogPostIDDescription),
+		Handler:       s.deleteBlogPost,
 	}
 }
 
@@ -1151,24 +1275,24 @@ type deleteBlogPostOutput struct {
 	Workspace WorkspaceRef `json:"workspace"`
 	PostID    string       `json:"post_id"`
 	Deleted   bool         `json:"deleted"`
+	blogState
 }
 
 func (s *Server) deleteBlogPost(ctx context.Context, call *Call) (any, error) {
-	id, toolErr := blogPostArgument(call)
-	if toolErr != nil {
-		return nil, toolErr
-	}
-	var req domain.DeleteBlogPostRequest
-	if err := requestFromJSON(map[string]any{"id": id}, &req); err != nil {
-		return nil, validationError("invalid arguments: %v", err)
-	}
-	if err := req.Validate(); err != nil {
-		return nil, validationError("%v", err)
-	}
 	// The service reads the post first and answers a typed not found for one
 	// that is missing or deleted, so a repeated call answers not_found.
-	if err := s.deps.Blog.DeletePost(blogContext(ctx, call), &req); err != nil {
-		return nil, err
+	id, ref, err := s.writeBlogPost(ctx, call, func(id string) error {
+		var req domain.DeleteBlogPostRequest
+		if err := requestFromJSON(map[string]any{"id": id}, &req); err != nil {
+			return validationError("invalid arguments: %v", err)
+		}
+		if err := req.Validate(); err != nil {
+			return validationError("%v", err)
+		}
+		return s.deps.Blog.DeletePost(blogContext(ctx, call), &req)
+	})
+	if err != nil {
+		return nil, asBlogPostNotFound(err, ref)
 	}
-	return deleteBlogPostOutput{Workspace: call.WorkspaceRef(), PostID: id, Deleted: true}, nil
+	return deleteBlogPostOutput{Workspace: call.WorkspaceRef(), PostID: id, Deleted: true, blogState: blogStateOf(call)}, nil
 }

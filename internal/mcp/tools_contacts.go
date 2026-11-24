@@ -728,6 +728,7 @@ func (s *Server) trackCustomEventTool() *Tool {
 			"The event appears on the contact's timeline and can start automations, which may send emails. " +
 			"event_name and external_id identify the event: a later call with both updates it, and only when its occurred_at is later than the stored one. " +
 			"So a repeated call with the same occurred_at changes nothing. " +
+			"The contact's timeline dates the event at occurred_at, not at the time of the call. " +
 			"Returns the event as stored.",
 		Class:       ClassWriteOpenWorld,
 		Idempotent:  boolPtr(true),

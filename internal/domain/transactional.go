@@ -259,9 +259,23 @@ type TransactionalNotificationService interface {
 	// SendNotification sends a transactional notification to a contact
 	SendNotification(ctx context.Context, workspaceID string, params TransactionalNotificationSendParams) (string, error)
 
+	// SendNotificationWithResult sends as SendNotification does, and also says whether the
+	// send's external_id was already used, in which case nothing was sent.
+	SendNotificationWithResult(ctx context.Context, workspaceID string, params TransactionalNotificationSendParams) (TransactionalSendResult, error)
+
 	// TestTemplate sends a test email. With listID it is sent for that mailing list,
 	// with the list's List-Unsubscribe header unless omitListUnsubscribeHeader is set.
 	TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, listID string, omitListUnsubscribeHeader bool, options EmailOptions) error
+}
+
+// TransactionalSendResult is the outcome of a transactional send.
+type TransactionalSendResult struct {
+	// MessageID is the ID of the message sent, or of the message that already holds the
+	// send's external_id.
+	MessageID string
+	// Deduplicated is true when a message already held the send's external_id: this send
+	// sent nothing and MessageID is that message.
+	Deduplicated bool
 }
 
 // Request and response types for transactional notifications
