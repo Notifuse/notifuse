@@ -291,7 +291,7 @@ interface RowsTableProps {
 }
 
 function DimensionRowsTable(props: RowsTableProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const context = useWebAnalytics()
 
   const best = useMemo(() => {
@@ -380,7 +380,7 @@ function DimensionRowsTable(props: RowsTableProps) {
                       {row.dimension_value
                         ? // The SDK stores a country as its code ("FR"): the row names it, the code in its title.
                           props.tab.dimension === 'country'
-                          ? countryName(row.dimension_value)
+                          ? countryName(row.dimension_value, i18n.locale)
                           : row.dimension_value
                         : t`(empty)`}
                     </span>

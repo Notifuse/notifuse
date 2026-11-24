@@ -58,6 +58,20 @@ describe('TriggerNode', () => {
     expect(screen.queryByText('Any link')).not.toBeInTheDocument()
   })
 
+  it('names every event kind with its own label, and an unknown kind by its words', () => {
+    renderNode({ event_kind: 'list.subscribed', frequency: 'once' })
+    expect(screen.getByText('List Subscribed')).toBeInTheDocument()
+
+    renderNode({ event_kind: 'segment.left', frequency: 'once' })
+    expect(screen.getByText('Segment Left')).toBeInTheDocument()
+
+    renderNode({ event_kind: 'custom_event', frequency: 'once' })
+    expect(screen.getByText('Custom event')).toBeInTheDocument()
+
+    renderNode({ event_kind: 'webhook.received', frequency: 'once' })
+    expect(screen.getByText('Webhook Received')).toBeInTheDocument()
+  })
+
   it('names the broadcast and template filters once they are read', async () => {
     broadcastGet.mockResolvedValue({ broadcast: { id: 'bc-1', name: 'November newsletter' } })
     renderNode({ event_kind: 'email.link_clicked', broadcast_id: 'bc-1', template_id: 'tpl-welcome', frequency: 'once' })

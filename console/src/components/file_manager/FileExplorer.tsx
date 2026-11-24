@@ -567,7 +567,7 @@ export function FileExplorer(props: FileExplorerProps) {
   const menuFor = (item: StorageObject): MenuProps['items'] => {
     if (item.is_folder) {
       return [
-        { key: 'open', label: t`Open`, onClick: () => goToPath(item.key) },
+        { key: 'open', label: t({ message: 'Open', context: 'action' }), onClick: () => goToPath(item.key) },
         writeEntry(
           'delete-folder',
           t`Delete folder`,

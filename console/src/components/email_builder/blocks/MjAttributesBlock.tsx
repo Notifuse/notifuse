@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { EmailBlock, MJMLComponentType, MergedBlockAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBlock'
@@ -42,7 +44,7 @@ export class MjAttributesBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Default attributes'
+    return i18n._(msg({ message: 'Default attributes', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

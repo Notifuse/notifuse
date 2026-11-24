@@ -382,7 +382,7 @@ export function validateFlow(
   if (hasOrphanEdges) {
     errors.push({
       field: 'edges',
-      message: 'Some connections reference non-existent nodes'
+      message: i18n._(msg`Some connections reference non-existent nodes`)
     })
   }
 
@@ -391,7 +391,7 @@ export function validateFlow(
   if (!triggerNode) {
     errors.push({
       field: 'trigger',
-      message: 'Automation must have a trigger node'
+      message: i18n._(msg`Automation must have a trigger node`)
     })
   } else {
     // Check trigger has event kind
@@ -400,7 +400,7 @@ export function validateFlow(
       errors.push({
         nodeId: triggerNode.id,
         field: 'event_kind',
-        message: 'Trigger must have at least one event kind selected'
+        message: i18n._(msg`Trigger must have at least one event kind selected`)
       })
     }
   }
@@ -410,7 +410,7 @@ export function validateFlow(
   if (emailNodes.length > 0 && !listId) {
     errors.push({
       field: 'list_id',
-      message: 'A list must be selected when email nodes are present'
+      message: i18n._(msg`A list must be selected when email nodes are present`)
     })
   }
 
@@ -421,7 +421,7 @@ export function validateFlow(
       errors.push({
         nodeId: emailNode.id,
         field: 'template_id',
-        message: 'Email node must have a template selected'
+        message: i18n._(msg`Email node must have a template selected`)
       })
     }
   })
@@ -435,7 +435,7 @@ export function validateFlow(
         errors.push({
           nodeId: delayNode.id,
           field: 'duration',
-          message: 'Delay node must have a duration greater than 0'
+          message: i18n._(msg`Delay node must have a duration greater than 0`)
         })
       }
     })
@@ -449,7 +449,7 @@ export function validateFlow(
         errors.push({
           nodeId: abTestNode.id,
           field: 'variants',
-          message: 'A/B test requires at least 2 variants'
+          message: i18n._(msg`A/B test requires at least 2 variants`)
         })
       } else {
         const totalWeight = config.variants.reduce((sum, v) => sum + (v.weight || 0), 0)
@@ -457,17 +457,18 @@ export function validateFlow(
           errors.push({
             nodeId: abTestNode.id,
             field: 'weight',
-            message: `Variant weights must sum to 100 (currently ${totalWeight})`
+            message: i18n._(msg`Variant weights must sum to 100 (currently ${totalWeight})`)
           })
         }
 
         // Check all variants have connections
         const unconnectedVariants = config.variants.filter((v) => !v.next_node_id)
         if (unconnectedVariants.length > 0) {
+          const missing = unconnectedVariants.map((v) => v.name).join(', ')
           errors.push({
             nodeId: abTestNode.id,
             field: 'connections',
-            message: `All variants must be connected. Missing: ${unconnectedVariants.map((v) => v.name).join(', ')}`
+            message: i18n._(msg`All variants must be connected. Missing: ${missing}`)
           })
         }
       }
@@ -482,14 +483,14 @@ export function validateFlow(
         errors.push({
           nodeId: node.id,
           field: 'list_id',
-          message: 'Add to List node must have a list selected'
+          message: i18n._(msg`Add to List node must have a list selected`)
         })
       }
       if (!config.status) {
         errors.push({
           nodeId: node.id,
           field: 'status',
-          message: 'Add to List node must have a status selected'
+          message: i18n._(msg`Add to List node must have a status selected`)
         })
       }
     })
@@ -503,7 +504,7 @@ export function validateFlow(
         errors.push({
           nodeId: node.id,
           field: 'list_id',
-          message: 'Remove from List node must have a list selected'
+          message: i18n._(msg`Remove from List node must have a list selected`)
         })
       }
     })
@@ -521,7 +522,7 @@ export function validateFlow(
         errors.push({
           nodeId: node.id,
           field: 'conditions',
-          message: 'Filter node must have at least one condition'
+          message: i18n._(msg`Filter node must have at least one condition`)
         })
       }
     })
@@ -535,7 +536,7 @@ export function validateFlow(
         errors.push({
           nodeId: node.id,
           field: 'list_id',
-          message: 'List Status node must have a list selected'
+          message: i18n._(msg`List Status node must have a list selected`)
         })
       }
     })

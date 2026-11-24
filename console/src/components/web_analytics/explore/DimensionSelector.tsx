@@ -103,19 +103,23 @@ export function DimensionSelector(props: DimensionSelectorProps) {
     return () => window.cancelAnimationFrame(frame)
   }, [open])
 
-  const categoryLabels: Record<string, string> = {
-    Channel: t`Channel`,
-    UTM: t`UTM`,
-    Traffic: t`Traffic`,
-    Pages: t`Pages`,
-    Device: t`Device`,
-    Geo: t`Geo`,
-    Time: t`Time`,
-    Session: t`Session`,
-    Goal: t`Goal`,
-    User: t`User`,
-    Custom: t`Custom dimensions`
-  }
+  // Memoised on `t`, which changes with the language, so the search below follows both.
+  const categoryLabels = useMemo<Record<string, string>>(
+    () => ({
+      Channel: t`Channel`,
+      UTM: t`UTM`,
+      Traffic: t`Traffic`,
+      Pages: t`Pages`,
+      Device: t`Device`,
+      Geo: t`Geo`,
+      Time: t`Time`,
+      Session: t`Session`,
+      Goal: t`Goal`,
+      User: t`User`,
+      Custom: t`Custom dimensions`
+    }),
+    [t]
+  )
 
   const available = useMemo(
     () => dimensionsForSchema('web_sessions').filter((entry) => !props.value.includes(entry.name)),
@@ -130,10 +134,11 @@ export function DimensionSelector(props: DimensionSelectorProps) {
         (entry) =>
           getDimensionLabel(entry.name, context.customDimensionLabels)
             .toLowerCase()
-            .includes(term) || entry.category.toLowerCase().includes(term)
+            .includes(term) ||
+          (categoryLabels[entry.category] ?? entry.category).toLowerCase().includes(term)
       )
     )
-  }, [available, search, context.customDimensionLabels])
+  }, [available, search, context.customDimensionLabels, categoryLabels])
 
   const allSelected = available.length === 0
 

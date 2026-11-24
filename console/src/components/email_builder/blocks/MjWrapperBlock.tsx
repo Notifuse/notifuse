@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { Switch } from 'antd'
 import type { EmailBlock, MJMLComponentType, MJWrapperAttributes, MergedBlockAttributes } from '../types'
@@ -213,7 +215,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Wrapper'
+    return i18n._(msg({ message: 'Wrapper', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

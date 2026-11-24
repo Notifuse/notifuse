@@ -8,6 +8,8 @@ import type {
   InboundWebhookEventEntityData,
   MessageHistoryEntityData
 } from '../../../services/api/contact_timeline'
+import { INBOUND_EVENT_LABELS } from '../../logs/labels'
+import { changeNew } from '../../timeline/webPageUrl'
 
 const LABELS = {
   click: msg`Click`,
@@ -20,8 +22,6 @@ const LABELS = {
   created: msg`Contact created`,
   updated: msg`Profile updated`,
   event: msg`Event`,
-  bounce: msg`Bounce`,
-  complaint: msg`Complaint`,
   visit: msg`Site visit`,
   page: msg`Page view`,
   automation: msg`Automation`
@@ -52,10 +52,16 @@ export function activityLabel(entry: ContactTimelineEntry, i18n: I18n): string {
     case 'custom_event':
       return join('event', (entry.entity_data as CustomEventEntityData | undefined)?.event_name ?? entry.kind)
     case 'inbound_webhook_event': {
-      const type = (entry.entity_data as InboundWebhookEventEntityData | undefined)?.type
-      if (type === 'bounce') return join('bounce')
-      if (type === 'complaint') return join('complaint')
-      return join('email', type)
+      const data = entry.entity_data as InboundWebhookEventEntityData | undefined
+      // The entry's own changes first, as the activity feed reads it.
+      const type = changeNew<string>(entry, 'type') || data?.type || ''
+      const name = data?.template_name
+      // The provider's event type is an identifier: show its label, never the raw value.
+      if (type === 'opened') return join('open', name)
+      if (type === 'clicked') return join('click', name)
+      const label = INBOUND_EVENT_LABELS[type as keyof typeof INBOUND_EVENT_LABELS]
+      if (!label) return join('email', name)
+      return name ? `${i18n._(label)} · ${name}` : i18n._(label)
     }
     case 'web_session':
       return join('visit')

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
+import { i18n } from '@lingui/core'
 import type { UseAIAssistantOptions, ToolHandler } from '../../ai-assistant'
 import type { LLMChatEvent } from '../../../services/api/llm'
 import type { EmailBlock } from '../types'
@@ -349,6 +350,77 @@ describe('EmailAIAssistant messages', () => {
       'Updated the preview text'
     ])
     success.mockRestore()
+  })
+
+  it('writes the metadata step to the thread and keeps the tool result for the model', () => {
+    const results = [
+      { subject: 'Hi', preview_text: 'Read on' },
+      { subject: 'Hi' },
+      { preview_text: 'Read on' }
+    ].map((input) => {
+      render(
+        <EmailAIAssistant
+          workspace={workspace}
+          onUpdateSubject={vi.fn()}
+          onUpdatePreviewText={vi.fn()}
+          callbacks={{
+            getEmailTree: () => tree,
+            setEmailTree,
+            onAddBlock: vi.fn(),
+            onUpdateBlock,
+            onDeleteBlock: vi.fn(),
+            onMoveBlock: vi.fn(),
+            onSelectBlock: vi.fn()
+          }}
+        />
+      )
+      return captured!.toolHandlers.get(TOOL_NAMES.UPDATE_EMAIL_METADATA)!(
+        { type: 'tool_use', tool_name: TOOL_NAMES.UPDATE_EMAIL_METADATA, tool_input: input } as LLMChatEvent,
+        insert,
+        ctx()
+      )
+    })
+
+    expect(insert.mock.calls.map((call) => call[0])).toEqual([
+      'Updated subject and preview text',
+      'Updated subject',
+      'Updated preview text'
+    ])
+    expect(results.map((result) => result && 'content' in result && result.content)).toEqual([
+      'Updated subject and preview text',
+      'Updated subject',
+      'Updated preview text'
+    ])
+  })
+
+  // The step line is read by the user, in the console's language; the tool result goes
+  // back to the model and stays in English. The block id inside is data and stays as is.
+  it('translates the step line, not the block id nor the tool result', () => {
+    i18n.load('fr', { 'Updated block {0}': 'Bloc {0} modifié', 'Added {0} to {1}': '{0} ajouté à {1}' })
+    i18n.activate('fr')
+    try {
+      const update = handlerFor(TOOL_NAMES.UPDATE_BLOCK, treeWithText)
+      const updated = update(
+        updateEvent({ blockId: 'text-1', updates: { content: '<p>Hello</p>' } }),
+        insert,
+        ctx()
+      )
+      const add = captured!.toolHandlers.get(TOOL_NAMES.ADD_BLOCK)!
+      const added = add(
+        { type: 'tool_use', tool_name: TOOL_NAMES.ADD_BLOCK, tool_input: { parentId: 'column-1', blockType: 'mj-text' } } as LLMChatEvent,
+        insert,
+        ctx()
+      )
+
+      expect(insert.mock.calls.map((call) => call[0])).toEqual([
+        'Bloc text-1 modifié',
+        'mj-text ajouté à column-1'
+      ])
+      expect(updated).toEqual({ content: 'Updated block text-1', silent: true })
+      expect(added).toEqual({ content: 'Added mj-text to column-1', silent: true })
+    } finally {
+      i18n.activate('en')
+    }
   })
 
   it('gives the chat a title and a placeholder', () => {

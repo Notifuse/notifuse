@@ -34,7 +34,7 @@ export const ListStatusBranchNode: React.FC<ListStatusBranchNodeProps> = ({ id, 
           <div className="text-warning-fg text-xs">{t`Select a list`}</div>
         ) : (
           <div className="text-xs text-ink-2 truncate max-w-[180px]">
-            {t`Check`}: {listName || config.list_id}
+            {t`Check: ${listName || config.list_id}`}
           </div>
         )}
       </BaseNode>

@@ -69,6 +69,8 @@ export function EmailAIAssistant({
       category
     })
 
+  // Each handler writes its step to the thread in the console's language (insert) and
+  // returns the tool result the model reads in English (content).
   const toolHandlers = new Map<string, ToolHandler>([
     [
       TOOL_NAMES.UPDATE_BLOCK,
@@ -78,18 +80,19 @@ export function EmailAIAssistant({
           updates: Partial<EmailBlock>
         }
         if (!input?.blockId || !input?.updates) return
+        const blockId = input.blockId
         const conditionError = displayConditionUpdateError(
           callbacks.getEmailTree(),
           input.blockId,
           input.updates
         )
         if (conditionError) {
-          insert(`Block not updated: ${conditionError}`, TOOL_NAMES.UPDATE_BLOCK)
+          insert(t`Block not updated: ${conditionError}`, TOOL_NAMES.UPDATE_BLOCK)
           message.error(t`Invalid display condition`)
           return
         }
         callbacks.onUpdateBlock(input.blockId, input.updates)
-        insert(`Updated block ${input.blockId}`, TOOL_NAMES.UPDATE_BLOCK)
+        insert(t`Updated block ${blockId}`, TOOL_NAMES.UPDATE_BLOCK)
         message.success(t`Block updated`)
         return { content: `Updated block ${input.blockId}`, silent: true }
       }
@@ -105,11 +108,13 @@ export function EmailAIAssistant({
           attributes?: Record<string, unknown>
         }
         if (!input?.parentId || !input?.blockType) return
+        const blockType = input.blockType
+        const parentId = input.parentId
         const placementError = liquidPlacementError(callbacks.getEmailTree(), input.parentId, {
           type: input.blockType
         })
         if (placementError) {
-          insert(`Block not added: ${placementError}`, TOOL_NAMES.ADD_BLOCK)
+          insert(t`Block not added: ${placementError}`, TOOL_NAMES.ADD_BLOCK)
           message.error(t`A Liquid block cannot go inside a block with a display condition`)
           return
         }
@@ -120,8 +125,7 @@ export function EmailAIAssistant({
           input.content,
           input.attributes
         )
-        insert(`Added ${input.blockType} to ${input.parentId}`, TOOL_NAMES.ADD_BLOCK)
-        const blockType = input.blockType
+        insert(t`Added ${blockType} to ${parentId}`, TOOL_NAMES.ADD_BLOCK)
         message.success(t`Added ${blockType}`)
         return { content: `Added ${input.blockType} to ${input.parentId}`, silent: true }
       }
@@ -131,8 +135,9 @@ export function EmailAIAssistant({
       (event, insert) => {
         const input = event.tool_input as { blockId: string }
         if (!input?.blockId) return
-        callbacks.onDeleteBlock(input.blockId)
-        insert(`Deleted block ${input.blockId}`, TOOL_NAMES.DELETE_BLOCK)
+        const blockId = input.blockId
+        callbacks.onDeleteBlock(blockId)
+        insert(t`Deleted block ${blockId}`, TOOL_NAMES.DELETE_BLOCK)
         message.success(t`Block deleted`)
         return { content: `Deleted block ${input.blockId}`, silent: true }
       }
@@ -146,18 +151,20 @@ export function EmailAIAssistant({
           position: number
         }
         if (!input?.blockId || !input?.newParentId || input?.position === undefined) return
+        const blockId = input.blockId
+        const newParentId = input.newParentId
         const current = callbacks.getEmailTree()
         const moved = EmailBlockClass.findBlockById(current, input.blockId)
         const placementError = moved
           ? liquidPlacementError(current, input.newParentId, moved)
           : null
         if (placementError) {
-          insert(`Block not moved: ${placementError}`, TOOL_NAMES.MOVE_BLOCK)
+          insert(t`Block not moved: ${placementError}`, TOOL_NAMES.MOVE_BLOCK)
           message.error(t`A Liquid block cannot go inside a block with a display condition`)
           return
         }
         callbacks.onMoveBlock(input.blockId, input.newParentId, input.position)
-        insert(`Moved block ${input.blockId} to ${input.newParentId}`, TOOL_NAMES.MOVE_BLOCK)
+        insert(t`Moved block ${blockId} to ${newParentId}`, TOOL_NAMES.MOVE_BLOCK)
         message.success(t`Block moved`)
         return { content: `Moved block ${input.blockId} to ${input.newParentId}`, silent: true }
       }
@@ -167,8 +174,9 @@ export function EmailAIAssistant({
       (event, insert) => {
         const input = event.tool_input as { blockId: string }
         if (!input?.blockId) return
-        callbacks.onSelectBlock(input.blockId)
-        insert(`Selected block ${input.blockId}`, TOOL_NAMES.SELECT_BLOCK)
+        const blockId = input.blockId
+        callbacks.onSelectBlock(blockId)
+        insert(t`Selected block ${blockId}`, TOOL_NAMES.SELECT_BLOCK)
         return { content: `Selected block ${input.blockId}`, silent: true }
       }
     ],
@@ -181,7 +189,7 @@ export function EmailAIAssistant({
           // looks like from here. Returning quietly left the thread showing a
           // successful subject update and no email, with nothing to explain it.
           insert(
-            'The email structure was not applied: the request arrived without a tree, which usually means the response hit the token limit. Ask me again, or ask for a simpler layout.',
+            t`The email structure was not applied: the request arrived without a tree, which usually means the response hit the token limit. Ask me again, or ask for a simpler layout.`,
             TOOL_NAMES.SET_EMAIL_TREE
           )
           message.error(t`Email structure not applied`)
@@ -193,14 +201,15 @@ export function EmailAIAssistant({
           ...conditionErrorsInTree(input.tree)
         ]
         if (errors.length > 0) {
-          insert(`Tree validation failed: ${errors.join(', ')}`, TOOL_NAMES.SET_EMAIL_TREE)
+          const errorList = errors.join(', ')
+          insert(t`Tree validation failed: ${errorList}`, TOOL_NAMES.SET_EMAIL_TREE)
           message.error(t`Invalid tree structure`)
           return
         }
 
         const treeWithNewIds = EmailBlockClass.regenerateIds(input.tree)
         callbacks.setEmailTree(treeWithNewIds)
-        insert('Email structure replaced', TOOL_NAMES.SET_EMAIL_TREE)
+        insert(t`Email structure replaced`, TOOL_NAMES.SET_EMAIL_TREE)
         message.success(t`Email template updated`)
         return { content: 'Email structure replaced', silent: true }
       }
@@ -225,7 +234,14 @@ export function EmailAIAssistant({
         }
 
         if (updates.length > 0) {
-          insert(`Updated ${updates.join(' and ')}`, TOOL_NAMES.UPDATE_EMAIL_METADATA)
+          insert(
+            updates.length > 1
+              ? t`Updated subject and preview text`
+              : updates[0] === 'subject'
+                ? t`Updated subject`
+                : t`Updated preview text`,
+            TOOL_NAMES.UPDATE_EMAIL_METADATA
+          )
           message.success(
             updates.length > 1
               ? t`Updated the subject and the preview text`
