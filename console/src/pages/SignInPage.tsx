@@ -266,7 +266,7 @@ export function SignInPage() {
   return (
     <MainLayout>
       <div className="flex items-center justify-center h-[calc(100vh-48px)]">
-        <Card title={challengeToken ? t`Authentication code` : t`Sign In`} style={{ width: 400 }}>
+        <Card title={challengeToken ? t`Two-factor authentication` : t`Sign In`} style={{ width: 400 }}>
           {unreachable && (
             <Alert
               type="error"
@@ -290,17 +290,14 @@ export function SignInPage() {
             />
           )}
           {challengeToken ? (
-            <>
-              <p className="mb-6">{t`Enter the code from your authenticator app.`}</p>
-              <TwoFactorChallengeForm
-                challengeToken={challengeToken}
-                onSignedIn={(response) => completeSignIn(response.token)}
-                onRestart={() => {
-                  setChallengeToken(null)
-                  setShowCodeInput(false)
-                }}
-              />
-            </>
+            <TwoFactorChallengeForm
+              challengeToken={challengeToken}
+              onSignedIn={(response) => completeSignIn(response.token)}
+              onRestart={() => {
+                setChallengeToken(null)
+                setShowCodeInput(false)
+              }}
+            />
           ) : !showCodeInput ? (
             <Form
               form={form}

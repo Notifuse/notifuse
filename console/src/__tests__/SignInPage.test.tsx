@@ -201,7 +201,7 @@ describe('SignInPage', () => {
     fireEvent.click(page.getByText(/verify code/i))
 
     // No token yet: the second step.
-    expect(await page.findByText('Authentication code', { selector: '.ant-card-head-title' })).toBeInTheDocument()
+    expect(await page.findByText('Two-factor authentication', { selector: '.ant-card-head-title' })).toBeInTheDocument()
     expect(localStorage.getItem('auth_token')).toBeNull()
 
     fireEvent.change(page.getByPlaceholderText('000000'), { target: { value: '654321' } })

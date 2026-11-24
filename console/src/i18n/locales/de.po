@@ -662,7 +662,7 @@ msgstr "{0} hat sich von {name} abgemeldet"
 
 #. placeholder {0}: number(result.opt_outs_kept)
 #. placeholder {0}: number(row.result.opt_outs_kept)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:257
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:280
 #: src/components/settings/data_retention/RetentionPreviewModal.tsx:111
 msgid "{0} unsubscribes kept as hashes"
 msgstr "{0} Abmeldungen als Hash aufbewahrt"
@@ -1564,17 +1564,17 @@ msgstr "{totalRows, plural, one {# Zeile} other {{rowCount} Zeilen}}"
 msgid "{unsubscribed, plural, one {# contact} other {# contacts}}"
 msgstr "{unsubscribed, plural, one {# Kontakt} other {# Kontakte}}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:143
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:166
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:98
 msgid "{value, plural, one {# day} other {# days}}"
 msgstr "{value, plural, one {# Tag} other {# Tage}}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:142
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:165
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:97
 msgid "{value, plural, one {# month} other {# months}}"
 msgstr "{value, plural, one {# Monat} other {# Monate}}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:141
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:164
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:96
 msgid "{value, plural, one {# year} other {# years}}"
 msgstr "{value, plural, one {# Jahr} other {# Jahre}}"
@@ -1960,7 +1960,7 @@ msgid "A bulk action is already running"
 msgstr "Eine Massenaktion läuft bereits"
 
 #. placeholder {0}: formatDate(view.pending_at)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:314
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:337
 msgid "A change that deletes more data takes effect on {0}"
 msgstr "Eine Änderung, die mehr Daten löscht, tritt am {0} in Kraft"
 
@@ -2113,7 +2113,7 @@ msgstr "Eine Zahl (1.3) oder Pixel bis 200px."
 msgid "A one-time code to sign in or confirm an action."
 msgstr "Ein Einmalcode zum Anmelden oder Bestätigen einer Aktion."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:451
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:474
 msgid "A period is shorter than its category allows"
 msgstr "Ein Zeitraum ist kürzer, als seine Kategorie erlaubt"
 
@@ -2397,7 +2397,7 @@ msgstr "Kontoname in der App: Notifuse ({account})"
 
 #: src/components/two_factor/AccountSecurityDrawer.tsx:26
 #: src/layouts/app-shell/AccountMenu.tsx:87
-#: src/pages/AccountSecurityPage.tsx:60
+#: src/pages/AccountSecurityPage.tsx:63
 msgid "Account security"
 msgstr "Kontosicherheit"
 
@@ -3231,7 +3231,7 @@ msgstr "MCP-Verbindungen erlauben"
 msgid "Allowed domains"
 msgstr "Erlaubte Domains"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:689
+#: src/components/settings/SystemSettingsDrawer.tsx:688
 #: src/components/setup/SsoPanel.tsx:165
 #: src/components/setup/SsoPanel.tsx:178
 msgid "Allowed email domains"
@@ -3395,7 +3395,7 @@ msgstr "Eine Einladung, einem Team oder einem Bereich beizutreten."
 msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
 msgstr "IP-Adresse und Ziel-ID müssen exakt übereinstimmen; eine Akteur-E-Mail trifft auch auf Teile zu."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:394
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:417
 msgid "An open never counts. Clicks, replies, confirmations, a contact's own subscriptions and identified visits always do."
 msgstr "Eine Öffnung zählt nie. Klicks, Antworten, Bestätigungen, eigene Anmeldungen des Kontakts und identifizierte Besuche zählen immer."
 
@@ -3584,7 +3584,7 @@ msgstr "API-Dokumentation"
 msgid "API endpoint"
 msgstr "API-Endpunkt"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:304
+#: src/components/settings/SystemSettingsDrawer.tsx:303
 msgid "API Endpoint"
 msgstr "API-Endpunkt"
 
@@ -3704,7 +3704,7 @@ msgstr "Gilt für jedes Symbol; der eigene Rahmen eines Symbols hat Vorrang."
 msgid "Applies to every icon; an icon's own settings win."
 msgstr "Gilt für jedes Symbol; die eigenen Einstellungen eines Symbols haben Vorrang."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:746
+#: src/components/settings/SystemSettingsDrawer.tsx:747
 msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
 msgstr "Gilt für jeden Workspace ohne eigene Aufbewahrung sowie für Einträge auf Deployment-Ebene wie Anmeldungen. 0 behält jeden Eintrag für immer."
 
@@ -3980,7 +3980,7 @@ msgstr "mindestens"
 
 #. placeholder {0}: formatPeriod(minimum(category))
 #. placeholder {0}: formatPeriod(spec.min_days)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:203
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:226
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:130
 msgid "At least {0}"
 msgstr "Mindestens {0}"
@@ -4009,7 +4009,7 @@ msgstr "Mindestens eine Domain ist erforderlich, wenn die automatische Erstellun
 msgid "At least one operation is required"
 msgstr "Mindestens eine Operation ist erforderlich"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:103
+#: src/components/settings/SystemSettingsDrawer.tsx:102
 #: src/components/setup/AdministratorPanel.tsx:37
 msgid "At least one root email is required"
 msgstr "Mindestens eine Root-E-Mail ist erforderlich"
@@ -4071,7 +4071,7 @@ msgstr "Audit-Eintrag"
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
 #: src/components/settings/SettingsSidebar.tsx:65
-#: src/components/settings/SystemSettingsDrawer.tsx:740
+#: src/components/settings/SystemSettingsDrawer.tsx:741
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
 msgstr "Audit-Log"
@@ -4116,9 +4116,7 @@ msgstr "Auth-E-Mail-Hook"
 msgid "Authentication"
 msgstr "Authentifizierung"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:90
-#: src/pages/AcceptInvitationPage.tsx:127
-#: src/pages/SignInPage.tsx:269
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:109
 msgid "Authentication code"
 msgstr "Authentifizierungscode"
 
@@ -4179,7 +4177,7 @@ msgstr "Auto"
 msgid "Auto-create accounts on first sign-in"
 msgstr "Konten bei der ersten Anmeldung automatisch erstellen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:679
+#: src/components/settings/SystemSettingsDrawer.tsx:678
 msgid "Auto-create users"
 msgstr "Benutzer automatisch erstellen"
 
@@ -4401,7 +4399,7 @@ msgstr "AWS-Region"
 msgid "Back"
 msgstr "Zurück"
 
-#: src/pages/AccountSecurityPage.tsx:47
+#: src/pages/AccountSecurityPage.tsx:50
 msgid "Back to {workspaceName}"
 msgstr "Zurück zu {workspaceName}"
 
@@ -4424,11 +4422,11 @@ msgstr "Zurück zum Entwurf"
 msgid "Back to draft?"
 msgstr "Zurück zum Entwurf?"
 
-#: src/pages/AccountSecurityPage.tsx:36
+#: src/pages/AccountSecurityPage.tsx:39
 msgid "Back to Notifuse"
 msgstr "Zurück zu Notifuse"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:66
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:76
 msgid "Back to sign in"
 msgstr "Zurück zur Anmeldung"
 
@@ -4526,7 +4524,7 @@ msgstr "Basis-URL"
 #~ msgid "Base URL (Optional)"
 #~ msgstr "Basis-URL (Optional)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:545
+#: src/components/settings/SystemSettingsDrawer.tsx:544
 msgid "Base64 encoded TLS certificate"
 msgstr "Base64-kodiertes TLS-Zertifikat"
 
@@ -4534,7 +4532,7 @@ msgstr "Base64-kodiertes TLS-Zertifikat"
 #~ msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 #~ msgstr "Base64-kodiertes TLS-Zertifikat. Ausführen: cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:560
+#: src/components/settings/SystemSettingsDrawer.tsx:559
 msgid "Base64 encoded TLS private key"
 msgstr "Base64-kodierter privater TLS-Schlüssel"
 
@@ -5125,11 +5123,11 @@ msgstr "Breakpoint-Breite"
 #~ msgid "Breakpoint Width"
 #~ msgstr "Breakpoint-Breite"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:500
+#: src/components/settings/SystemSettingsDrawer.tsx:499
 msgid "Bridge Domain"
 msgstr "Relay-Domain"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:514
+#: src/components/settings/SystemSettingsDrawer.tsx:513
 msgid "Bridge Port"
 msgstr "Relay-Port"
 
@@ -5450,7 +5448,7 @@ msgstr "Schaltflächenhöhe"
 msgid "Button label"
 msgstr "Schaltflächentext"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:651
+#: src/components/settings/SystemSettingsDrawer.tsx:650
 msgid "Button Label"
 msgstr "Schaltflächenbeschriftung"
 
@@ -5600,7 +5598,7 @@ msgstr "Im Browser nicht testbar"
 #: src/components/settings/integrations/TestEmailModal.tsx:68
 #: src/components/settings/integrations/useIntegrationActions.ts:109
 #: src/components/settings/MCPSettings.tsx:218
-#: src/components/settings/SystemSettingsDrawer.tsx:193
+#: src/components/settings/SystemSettingsDrawer.tsx:192
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:576
 #: src/components/settings/WebhookDetail.tsx:595
@@ -5663,7 +5661,7 @@ msgstr "Kampagne abbrechen?"
 #~ msgid "Cancel Operation?"
 #~ msgstr "Vorgang abbrechen?"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:332
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:355
 msgid "Cancel the change"
 msgstr "Änderung abbrechen"
 
@@ -5989,7 +5987,7 @@ msgstr "Kanäle"
 msgid "Check for updates"
 msgstr "Nach Updates suchen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:730
+#: src/components/settings/SystemSettingsDrawer.tsx:729
 msgid "Check for Updates"
 msgstr "Nach Updates suchen"
 
@@ -6433,7 +6431,7 @@ msgstr "Klicks wurden nicht erfasst"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:648
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:664
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:666
-#: src/components/settings/SystemSettingsDrawer.tsx:604
+#: src/components/settings/SystemSettingsDrawer.tsx:603
 #: src/components/setup/SsoPanel.tsx:78
 msgid "Client ID"
 msgstr "Client-ID"
@@ -6451,7 +6449,7 @@ msgid "Client secret"
 msgstr "Client Secret"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:673
-#: src/components/settings/SystemSettingsDrawer.tsx:614
+#: src/components/settings/SystemSettingsDrawer.tsx:613
 msgid "Client Secret"
 msgstr "Client Secret"
 
@@ -6659,7 +6657,7 @@ msgstr "Spalten, die wie ein Kontaktfeld heißen, werden automatisch zugeordnet.
 msgid "Comma-separated values"
 msgstr "Kommagetrennte Werte"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:700
+#: src/components/settings/SystemSettingsDrawer.tsx:699
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Kommagetrennt. Nur diese Domains dürfen Konten automatisch erstellen."
 
@@ -6667,7 +6665,7 @@ msgstr "Kommagetrennt. Nur diese Domains dürfen Konten automatisch erstellen."
 msgid "Common ports: 587 (STARTTLS), 465 (implicit TLS), 25 (unencrypted)."
 msgstr "Übliche Ports: 587 (STARTTLS), 465 (implizites TLS), 25 (unverschlüsselt)."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:372
+#: src/components/settings/SystemSettingsDrawer.tsx:371
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Gängige Ports: 587 (TLS), 465 (SSL), 25 (unverschlüsselt)"
 
@@ -6782,7 +6780,7 @@ msgstr "Vervollständigen Sie die Bedingung, um die Anzahl zu aktualisieren"
 #: src/components/automations/stats/StepStats.tsx:21
 #: src/components/broadcasts/detail/BroadcastAside.tsx:220
 #: src/components/broadcasts/detail/BroadcastAside.tsx:277
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:234
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:257
 #: src/components/web_analytics/lib/backfill.ts:28
 msgid "Completed"
 msgstr "Abgeschlossen"
@@ -7559,7 +7557,7 @@ msgstr "Das Dashboard konnte nicht geladen werden"
 msgid "Could not load the data retention defaults"
 msgstr "Die Standardwerte für die Datenaufbewahrung konnten nicht geladen werden"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:68
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:86
 msgid "Could not load the data retention settings"
 msgstr "Die Einstellungen zur Datenaufbewahrung konnten nicht geladen werden"
 
@@ -8499,8 +8497,8 @@ msgstr "Benutzerdefiniertes Ereignis: {0}"
 msgid "Custom events"
 msgstr "Benutzerdefinierte Ereignisse"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:383
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:387
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:406
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:410
 msgid "Custom events that count as activity"
 msgstr "Benutzerdefinierte Ereignisse, die als Aktivität zählen"
 
@@ -8532,7 +8530,7 @@ msgstr "Benutzerdefinierte Schriftart"
 msgid "Custom header"
 msgstr "Benutzerdefinierter Header"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:465
+#: src/components/settings/SystemSettingsDrawer.tsx:464
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr "Benutzerdefinierter Hostname, der im SMTP-Befehl EHLO/HELO verwendet wird. Leer lassen, um den Standard zu verwenden."
 
@@ -8710,7 +8708,7 @@ msgid "Dashed"
 msgstr "Gestrichelt"
 
 #: src/components/logs/MessageDetail.tsx:320
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:162
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:185
 #: src/components/settings/data_retention/RetentionPreviewModal.tsx:88
 msgid "Data"
 msgstr "Daten"
@@ -8721,6 +8719,7 @@ msgstr "Datenfeeds"
 
 #: src/components/segment/form_leaf.tsx:872
 #: src/components/segment/input.tsx:68
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:69
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:46
 #: src/components/settings/LicenseSettings.tsx:140
 #: src/components/settings/SettingsSidebar.tsx:66
@@ -8868,7 +8867,7 @@ msgstr "Standard für Marketing"
 msgid "Default periods for every workspace. A workspace that sets its own period keeps it. A default that deletes more waits 7 days, and the owners of the workspaces it reaches get an email."
 msgstr "Standardzeiträume für jeden Workspace. Ein Workspace mit eigenem Zeitraum behält ihn. Ein Standardwert, der mehr löscht, wartet 7 Tage, und die Inhaber der betroffenen Workspaces erhalten eine E-Mail."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:744
+#: src/components/settings/SystemSettingsDrawer.tsx:745
 msgid "Default retention (days)"
 msgstr "Standard-Aufbewahrung (Tage)"
 
@@ -9558,7 +9557,7 @@ msgstr "Verweigert"
 msgid "Deployment"
 msgstr "Deployment"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:192
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:215
 msgid "Deployment default"
 msgstr "Deployment-Standard"
 
@@ -10597,7 +10596,7 @@ msgstr "Editor-Modus"
 msgid "EHLO hostname"
 msgstr "EHLO-Hostname"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:463
+#: src/components/settings/SystemSettingsDrawer.tsx:462
 msgid "EHLO Hostname"
 msgstr "EHLO-Hostname"
 
@@ -10633,8 +10632,8 @@ msgstr "Vergangen"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:313
-#: src/pages/SignInPage.tsx:320
+#: src/pages/SignInPage.tsx:310
+#: src/pages/SignInPage.tsx:317
 msgid "Email"
 msgstr "E-Mail"
 
@@ -11097,7 +11096,7 @@ msgstr "Diese Regel aktivieren?"
 msgid "Enable this translation to edit it."
 msgstr "Aktivieren Sie diese Übersetzung, um sie zu bearbeiten."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:386
+#: src/components/settings/SystemSettingsDrawer.tsx:385
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "TLS-Verschlüsselung für SMTP-Verbindung aktivieren"
 
@@ -11121,8 +11120,8 @@ msgstr "Webhook aktivieren"
 #: src/components/settings/BlogSettings.tsx:241
 #: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
-#: src/components/settings/SystemSettingsDrawer.tsx:490
-#: src/components/settings/SystemSettingsDrawer.tsx:575
+#: src/components/settings/SystemSettingsDrawer.tsx:489
+#: src/components/settings/SystemSettingsDrawer.tsx:574
 #: src/components/settings/WebAnalyticsSettings.tsx:216
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
@@ -11354,10 +11353,18 @@ msgstr "Logo-URL eingeben oder Bild auswählen"
 msgid "Enter number..."
 msgstr "Zahl eingeben..."
 
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:85
+msgid "Enter one of the recovery codes you saved when you turned on two-factor authentication."
+msgstr "Geben Sie einen der Wiederherstellungscodes ein, die Sie beim Aktivieren der Zwei-Faktor-Authentifizierung gespeichert haben."
+
 #: src/components/two_factor/ProofModal.tsx:90
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:83
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:102
 msgid "Enter one of your recovery codes"
 msgstr "Geben Sie einen Ihrer Wiederherstellungscodes ein"
+
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:84
+msgid "Enter one of your recovery codes to accept the invitation."
+msgstr "Geben Sie einen Ihrer Wiederherstellungscodes ein, um die Einladung anzunehmen."
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:71
 #~ msgid "Enter preview text that appears in email clients..."
@@ -11381,19 +11388,19 @@ msgstr "Geben Sie den Betreff ({name}) ein"
 
 #: src/components/two_factor/ProofModal.tsx:92
 #: src/components/two_factor/SetupWizard.tsx:215
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:92
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:111
 msgid "Enter the 6-digit code from your app"
 msgstr "Geben Sie den 6-stelligen Code aus Ihrer App ein"
 
-#: src/pages/SignInPage.tsx:350
+#: src/pages/SignInPage.tsx:347
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Geben Sie den 6-stelligen Code ein, der an {email} gesendet wurde"
 
-#: src/pages/AcceptInvitationPage.tsx:128
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:87
 msgid "Enter the code from your authenticator app to accept the invitation."
 msgstr "Geben Sie den Code aus Ihrer Authenticator-App ein, um die Einladung anzunehmen."
 
-#: src/pages/SignInPage.tsx:294
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:88
 msgid "Enter the code from your authenticator app."
 msgstr "Geben Sie den Code aus Ihrer Authenticator-App ein."
 
@@ -11673,7 +11680,7 @@ msgstr "Jeder Assistent braucht einen API-Schlüssel. Erstellen Sie einen pro As
 msgid "Every condition and every operation has a value"
 msgstr "Jede Bedingung und jede Operation hat einen Wert"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:341
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:364
 msgid "Every day at 05:00 UTC, Notifuse deletes or anonymizes what is older than its period. Off keeps everything. A change that deletes more waits 7 days, so it can still be cancelled. Suggested values follow the CNIL's guidance."
 msgstr "Jeden Tag um 05:00 UTC löscht oder anonymisiert Notifuse, was älter als der jeweilige Zeitraum ist. Aus behält alles. Eine Änderung, die mehr löscht, wartet 7 Tage und lässt sich bis dahin noch abbrechen. Die vorgeschlagenen Werte folgen den Empfehlungen der CNIL."
 
@@ -11784,11 +11791,11 @@ msgstr "Abgemeldete Empfänger ausschließen"
 msgid "Excluded"
 msgstr "Ausgeschlossen"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:360
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:383
 msgid "Exempt lists"
 msgstr "Ausgenommene Listen"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:372
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:395
 msgid "Exempt segments"
 msgstr "Ausgenommene Segmente"
 
@@ -11888,7 +11895,7 @@ msgstr "Exportieren"
 msgid "Export Contacts to CSV"
 msgstr "Kontakte als CSV exportieren"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:430
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:453
 msgid "Export CSV"
 msgstr "CSV exportieren"
 
@@ -11985,7 +11992,7 @@ msgstr "Sehr hoch"
 #: src/components/logs/MessagesTab.tsx:287
 #: src/components/logs/MessagesTab.tsx:925
 #: src/components/messages/MessageHistoryTable.tsx:344
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:236
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:259
 #: src/components/settings/WebhookDetail.tsx:540
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
@@ -12300,7 +12307,7 @@ msgstr "Laden der Kampagnen fehlgeschlagen"
 msgid "Failed to load contact lists"
 msgstr "Laden der Kontaktlisten fehlgeschlagen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:76
+#: src/components/settings/SystemSettingsDrawer.tsx:75
 msgid "Failed to load settings"
 msgstr "Laden der Einstellungen fehlgeschlagen"
 
@@ -12425,7 +12432,7 @@ msgstr "Speichern der Integration fehlgeschlagen"
 msgid "Failed to save LLM integration"
 msgstr "Speichern der LLM-Integration fehlgeschlagen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:232
+#: src/components/settings/SystemSettingsDrawer.tsx:231
 msgid "Failed to save settings"
 msgstr "Speichern der Einstellungen fehlgeschlagen"
 
@@ -12606,7 +12613,7 @@ msgstr "Aktualisieren der Arbeitsbereich-Einstellungen fehlgeschlagen"
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Aktualisieren der Arbeitsbereich-Einstellungen fehlgeschlagen: {errorMessage}"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:55
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:65
 #: src/pages/SignInPage.tsx:96
 msgid "Failed to verify code"
 msgstr "Code konnte nicht verifiziert werden"
@@ -12645,7 +12652,7 @@ msgstr "Beitragsbild"
 #~ msgid "Featured Image URL"
 #~ msgstr "Beitragsbild-URL"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:717
+#: src/components/settings/SystemSettingsDrawer.tsx:716
 msgid "Features"
 msgstr "Funktionen"
 
@@ -13226,7 +13233,7 @@ msgstr "Von console.anthropic.com"
 msgid "From email"
 msgstr "Absender-E-Mail"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:430
+#: src/components/settings/SystemSettingsDrawer.tsx:429
 msgid "From Email"
 msgstr "Von E-Mail"
 
@@ -13246,7 +13253,7 @@ msgstr "Von Google AI Studio"
 msgid "From name"
 msgstr "Absendername"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:446
+#: src/components/settings/SystemSettingsDrawer.tsx:445
 msgid "From Name"
 msgstr "Von Name"
 
@@ -13371,7 +13378,7 @@ msgstr "gemini-4-argon oder eine benutzerdefinierte Modell-ID"
 
 #: src/components/settings/GeneralSettings.tsx:156
 #: src/components/settings/SettingsSidebar.tsx:54
-#: src/components/settings/SystemSettingsDrawer.tsx:277
+#: src/components/settings/SystemSettingsDrawer.tsx:276
 msgid "General"
 msgstr "Allgemein"
 
@@ -13983,6 +13990,10 @@ msgstr "Über einen Block fahren, um Details zu sehen"
 msgid "How it works:"
 msgstr "So funktioniert es:"
 
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:70
+msgid "How long this workspace keeps each kind of data."
+msgstr "Wie lange dieser Arbeitsbereich jede Art von Daten aufbewahrt."
+
 #: src/components/automations/config/DelayConfigForm.tsx:32
 msgid "How long to wait before proceeding to the next step"
 msgstr "Wie lange bis zum nächsten Schritt gewartet werden soll"
@@ -14320,7 +14331,7 @@ msgstr "Wenn ein Kontakt mit dieser E-Mail bereits existiert, werden die angegeb
 msgid "If Notifuse requires two-factor authentication, they set it up again at their next sign-in."
 msgstr "Wenn Notifuse die Zwei-Faktor-Authentifizierung verlangt, richtet die Person sie bei der nächsten Anmeldung neu ein."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:379
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:402
 msgid "If one of them is deleted or being rebuilt, no contact is deleted until it is back."
 msgstr "Wird eines davon gelöscht oder neu aufgebaut, wird kein Kontakt gelöscht, bis es wieder verfügbar ist."
 
@@ -14650,7 +14661,7 @@ msgid "inactive"
 msgstr "inaktiv"
 
 #: src/components/settings/data_retention/categoryText.ts:6
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:353
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:376
 msgid "Inactive contacts"
 msgstr "Inaktive Kontakte"
 
@@ -14867,7 +14878,7 @@ msgstr "Integrationen"
 msgid "Invalid display condition"
 msgstr "Ungültige Anzeigebedingung"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:434
+#: src/components/settings/SystemSettingsDrawer.tsx:433
 msgid "Invalid email"
 msgstr "Ungültige E-Mail-Adresse"
 
@@ -14876,7 +14887,7 @@ msgid "Invalid email format"
 msgstr "Ungültiges E-Mail-Format"
 
 #. placeholder {0}: invalid.join(', ')
-#: src/components/settings/SystemSettingsDrawer.tsx:108
+#: src/components/settings/SystemSettingsDrawer.tsx:107
 #: src/components/setup/AdministratorPanel.tsx:20
 msgid "Invalid email: {0}"
 msgstr "Ungültige E-Mail-Adresse: {0}"
@@ -15121,7 +15132,7 @@ msgstr "isoliert"
 msgid "isolation requested but not provisioned"
 msgstr "Isolierung angefordert, aber nicht bereitgestellt"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:585
+#: src/components/settings/SystemSettingsDrawer.tsx:584
 #: src/components/setup/SsoPanel.tsx:66
 msgid "Issuer URL"
 msgstr "Issuer-URL"
@@ -15314,7 +15325,7 @@ msgstr "Weiter bearbeiten"
 msgid "Keep entries for (days)"
 msgstr "Einträge aufbewahren für (Tage)"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:174
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:197
 msgid "Keep for"
 msgstr "Aufbewahren für"
 
@@ -15655,7 +15666,7 @@ msgstr "Leer lassen für einen Server, der E-Mails ohne Anmeldung annimmt"
 msgid "Leave empty for full container width"
 msgstr "Leer lassen für volle Container-Breite"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:635
+#: src/components/settings/SystemSettingsDrawer.tsx:634
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "Leer lassen, um sie aus dem API-Endpunkt abzuleiten. Nur setzen, wenn der Callback über einen Proxy oder eine eigene Domain erreicht wird."
 
@@ -16418,7 +16429,7 @@ msgid "Logo URL"
 msgstr "Logo-URL"
 
 #: src/layouts/app-shell/AccountMenu.tsx:104
-#: src/pages/AccountSecurityPage.tsx:54
+#: src/pages/AccountSecurityPage.tsx:57
 msgid "Logout"
 msgstr "Abmelden"
 
@@ -16439,7 +16450,7 @@ msgstr "Den vollständigen Datensatz eines Kontakts anhand Ihrer eigenen externe
 msgid "Loop"
 msgstr "Schleife"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:119
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:140
 msgid "Lost your phone and your recovery codes? Your Notifuse administrator can reset two-factor authentication for your account."
 msgstr "Telefon und Wiederherstellungscodes verloren? Ihr Notifuse-Administrator kann die Zwei-Faktor-Authentifizierung Ihres Kontos zurücksetzen."
 
@@ -17215,7 +17226,7 @@ msgstr "Weitere Aktionen"
 msgid "More actions for {name}"
 msgstr "Weitere Aktionen für {name}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:258
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:281
 msgid "more at the next run"
 msgstr "weitere beim nächsten Lauf"
 
@@ -17241,8 +17252,8 @@ msgstr "Meistbesuchte Seiten"
 msgid "Moved block {blockId} to {newParentId}"
 msgstr "Block {blockId} nach {newParentId} verschoben"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:589
-#: src/components/settings/SystemSettingsDrawer.tsx:631
+#: src/components/settings/SystemSettingsDrawer.tsx:588
+#: src/components/settings/SystemSettingsDrawer.tsx:630
 #: src/components/setup/SsoPanel.tsx:70
 msgid "Must be a valid https URL"
 msgstr "Muss eine gültige https-URL sein"
@@ -17409,11 +17420,11 @@ msgstr "Netzwerk"
 msgid "Never"
 msgstr "Nie"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:356
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:379
 msgid "Never delete members of these lists"
 msgstr "Mitglieder dieser Listen nie löschen"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:368
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:391
 msgid "Never delete members of these segments"
 msgstr "Mitglieder dieser Segmente nie löschen"
 
@@ -18025,7 +18036,7 @@ msgstr "Für diese Variation wurden noch keine Link-Klicks aufgezeichnet"
 
 #: src/components/automations/list/AutomationsTable.tsx:193
 #: src/components/contacts/csv-import/ColumnsStep.tsx:222
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:361
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:384
 msgid "No list"
 msgstr "Keine Liste"
 
@@ -18041,17 +18052,17 @@ msgstr "Keine Liste gewählt"
 msgid "No lists yet"
 msgstr "Noch keine Listen"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:300
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:323
 msgid "No longer counts as activity: {name}"
 msgstr "Zählt nicht mehr als Aktivität: {name}"
 
 #. placeholder {0}: listName(id)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:294
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:317
 msgid "No longer exempt: the list {0}"
 msgstr "Nicht mehr ausgenommen: die Liste {0}"
 
 #. placeholder {0}: segmentName(id)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:297
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:320
 msgid "No longer exempt: the segment {0}"
 msgstr "Nicht mehr ausgenommen: das Segment {0}"
 
@@ -18225,7 +18236,7 @@ msgstr "Keine Regel ist deaktiviert"
 msgid "No rule matches this visit"
 msgstr "Keine Regel trifft auf diesen Besuch zu"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:440
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:463
 msgid "No run yet. The first one starts at 05:00 UTC."
 msgstr "Noch kein Lauf. Der erste startet um 05:00 UTC."
 
@@ -18247,7 +18258,7 @@ msgstr "Noch keine gespeicherten Blöcke"
 msgid "No scheduled posts"
 msgstr "Keine geplanten Beiträge"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:373
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:396
 msgid "No segment"
 msgstr "Kein Segment"
 
@@ -18487,7 +18498,7 @@ msgstr "keine"
 #: src/components/email_builder/ui/fields/BorderField.tsx:90
 #: src/components/email_builder/ui/fields/ColorField.tsx:93
 #: src/components/integrations/LLMIntegration.tsx:260
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:388
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:411
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
 msgid "None"
@@ -18743,7 +18754,7 @@ msgstr "Hinweis: Dies könnte durch eine falsch strukturierte MJML-Datei verursa
 msgid "Notes"
 msgstr "Notizen"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:249
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:272
 msgid "Nothing"
 msgstr "Nichts"
 
@@ -18853,7 +18864,7 @@ msgstr "Notifuse kennt diese Anwendung nicht. Ihren Namen hat gewählt, wer sie 
 msgid "Notifuse export (.json)"
 msgstr "Notifuse-Export (.json)"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:419
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:442
 msgid "Notifuse is reading past activity from history. Until it finishes, no contact is deleted as inactive."
 msgstr "Notifuse liest die bisherige Aktivität aus dem Verlauf. Bis das abgeschlossen ist, wird kein Kontakt als inaktiv gelöscht."
 
@@ -19051,7 +19062,7 @@ msgstr "aus"
 
 #: src/components/settings/BlogSettings.tsx:334
 #: src/components/settings/data_retention/categoryText.ts:31
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:139
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:162
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:94
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/settings/MCPSettings.tsx:309
@@ -19598,9 +19609,9 @@ msgstr "optional"
 #: src/components/analytics/GetStartedChecklist.tsx:367
 #: src/components/analytics/GetStartedChecklist.tsx:387
 #: src/components/contacts/csv-import/ColumnsStep.tsx:215
-#: src/components/settings/SystemSettingsDrawer.tsx:408
-#: src/components/settings/SystemSettingsDrawer.tsx:421
-#: src/components/settings/SystemSettingsDrawer.tsx:476
+#: src/components/settings/SystemSettingsDrawer.tsx:407
+#: src/components/settings/SystemSettingsDrawer.tsx:420
+#: src/components/settings/SystemSettingsDrawer.tsx:475
 #: src/components/setup/SmtpPanel.tsx:195
 #: src/components/setup/SmtpPanel.tsx:204
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
@@ -19652,7 +19663,7 @@ msgstr "Optionen"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:247
-#: src/pages/SignInPage.tsx:331
+#: src/pages/SignInPage.tsx:328
 msgid "or"
 msgstr "oder"
 
@@ -19908,7 +19919,7 @@ msgstr "Teil einer E-Mail"
 msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any link."
 msgstr "Teil der Link-URL, ohne Beachtung der Groß-/Kleinschreibung. Leer lassen, um bei jedem Link zu starten."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:235
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:258
 msgid "Partial"
 msgstr "Teilweise"
 
@@ -19940,7 +19951,7 @@ msgstr "Passwort zurücksetzen"
 #~ msgid "Past 140 characters, most inboxes cut the text."
 #~ msgstr "Ab 140 Zeichen schneiden die meisten Posteingänge den Text ab."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:399
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:422
 msgid "Past activity has been read from history: contacts can be deleted as inactive."
 msgstr "Die bisherige Aktivität wurde aus dem Verlauf gelesen: Kontakte können als inaktiv gelöscht werden."
 
@@ -20195,7 +20206,7 @@ msgstr "Zeitraum — {detail}"
 #~ msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 #~ msgstr "Regelmäßig auf neue Notifuse-Versionen und Sicherheitsupdates prüfen. Ein Popup listet verfügbare neue Versionen auf."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:339
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:362
 msgid "Periods"
 msgstr "Zeiträume"
 
@@ -20459,8 +20470,8 @@ msgstr "Bitte geben Sie eine URL ein"
 
 #: src/components/two_factor/ProofModal.tsx:93
 #: src/components/two_factor/SetupWizard.tsx:216
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:93
-#: src/pages/SignInPage.tsx:358
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:112
+#: src/pages/SignInPage.tsx:355
 msgid "Please enter a valid 6-digit code!"
 msgstr "Bitte geben Sie einen gültigen 6-stelligen Code ein!"
 
@@ -20469,7 +20480,7 @@ msgstr "Bitte geben Sie einen gültigen 6-stelligen Code ein!"
 msgid "Please enter a valid email"
 msgstr "Bitte geben Sie eine gültige E-Mail ein"
 
-#: src/pages/SignInPage.tsx:317
+#: src/pages/SignInPage.tsx:314
 msgid "Please enter a valid email!"
 msgstr "Bitte geben Sie eine gültige E-Mail-Adresse ein!"
 
@@ -20540,11 +20551,11 @@ msgstr "Bitte geben Sie Ihren API-Schlüssel ein"
 msgid "Please fill in all required fields before testing"
 msgstr "Bitte füllen Sie vor dem Testen alle Pflichtfelder aus"
 
-#: src/pages/SignInPage.tsx:355
+#: src/pages/SignInPage.tsx:352
 msgid "Please input the magic code!"
 msgstr "Bitte geben Sie den Magic-Code ein!"
 
-#: src/pages/SignInPage.tsx:316
+#: src/pages/SignInPage.tsx:313
 msgid "Please input your email!"
 msgstr "Bitte geben Sie Ihre E-Mail-Adresse ein!"
 
@@ -20668,8 +20679,8 @@ msgstr "Port"
 #~ msgid "Port for the SMTP bridge server (default: 587)"
 #~ msgstr "Port für den SMTP-Relay-Server (Standard: 587)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:368
-#: src/components/settings/SystemSettingsDrawer.tsx:521
+#: src/components/settings/SystemSettingsDrawer.tsx:367
+#: src/components/settings/SystemSettingsDrawer.tsx:520
 msgid "Port must be 1-65535"
 msgstr "Der Port muss zwischen 1 und 65535 liegen"
 
@@ -20831,7 +20842,7 @@ msgstr "Vorschau"
 msgid "Preview accepts any definition sent to it, not just a saved segment, so anyone holding it together with Contacts read can ask counting questions about contact attributes, list membership, custom events and timeline — one count at a time, on any condition they like. Segments read alone cannot reach it. Segment permissions also quietly decide who may run three kinds of background task on the shared /api/tasks.* endpoints."
 msgstr "Die Vorschau akzeptiert jede an sie gesendete Definition, nicht nur ein gespeichertes Segment. Wer sie zusammen mit dem Leserecht für Kontakte besitzt, kann daher Zählfragen zu Kontaktattributen, Listenmitgliedschaften, benutzerdefinierten Ereignissen und der Zeitleiste stellen — eine Zählung nach der anderen, zu jeder beliebigen Bedingung. Leserecht für Segmente allein erreicht sie nicht. Die Segment-Berechtigungen entscheiden außerdem stillschweigend darüber, wer drei Arten von Hintergrundaufgaben über die gemeinsamen /api/tasks.*-Endpunkte ausführen darf."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:449
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:472
 msgid "Preview and save"
 msgstr "Vorschau und speichern"
 
@@ -21514,11 +21525,11 @@ msgstr "Zapier-Einrichtungsanleitung lesen"
 #~ msgid "Read-only: single sign-on is enabled without a licence that covers it. Turn SSO off, or install a licence, to make changes."
 #~ msgstr ""
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:129
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:152
 msgid "Reading past activity again"
 msgstr "Bisherige Aktivität wird erneut gelesen"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:405
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:428
 msgid "Reading past activity from history failed. Until it succeeds, no contact is deleted as inactive."
 msgstr "Das Lesen der bisherigen Aktivität aus dem Verlauf ist fehlgeschlagen. Bis es gelingt, wird kein Kontakt als inaktiv gelöscht."
 
@@ -21718,7 +21729,7 @@ msgid "Records visits from the sites below that carry the snippet; off, incoming
 msgstr "Erfasst Besuche der unten stehenden Websites mit dem Snippet; aus, werden eingehende Besuche abgelehnt"
 
 #: src/components/two_factor/ProofModal.tsx:87
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:82
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:101
 msgid "Recovery code"
 msgstr "Wiederherstellungscode"
 
@@ -21735,7 +21746,7 @@ msgstr "Wiederherstellungscodes kopiert"
 msgid "Red"
 msgstr "Rot"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:629
+#: src/components/settings/SystemSettingsDrawer.tsx:628
 #: src/components/setup/SsoPanel.tsx:101
 #: src/components/setup/SsoPanel.tsx:107
 #: src/components/setup/SsoPanel.tsx:114
@@ -22345,7 +22356,7 @@ msgid "Request ID"
 msgstr "Request-ID"
 
 #. placeholder {0}: view.pending.requested_by
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:321
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:344
 msgid "Requested by {0}. The owners were told by email."
 msgstr "Angefordert von {0}. Die Inhaber wurden per E-Mail informiert."
 
@@ -22355,10 +22366,10 @@ msgid "Require two-factor authentication for everyone"
 msgstr "Zwei-Faktor-Authentifizierung für alle verlangen"
 
 #: src/components/contacts/csv-import/ColumnsStep.tsx:87
-#: src/components/settings/SystemSettingsDrawer.tsx:306
-#: src/components/settings/SystemSettingsDrawer.tsx:349
-#: src/components/settings/SystemSettingsDrawer.tsx:363
-#: src/components/settings/SystemSettingsDrawer.tsx:433
+#: src/components/settings/SystemSettingsDrawer.tsx:305
+#: src/components/settings/SystemSettingsDrawer.tsx:348
+#: src/components/settings/SystemSettingsDrawer.tsx:362
+#: src/components/settings/SystemSettingsDrawer.tsx:432
 msgid "Required"
 msgstr "Erforderlich"
 
@@ -22371,19 +22382,19 @@ msgstr "Erforderlich"
 msgid "Required to create the notification"
 msgstr "Erforderlich, um die Benachrichtigung zu erstellen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:694
+#: src/components/settings/SystemSettingsDrawer.tsx:693
 msgid "Required when auto-create is enabled"
 msgstr "Erforderlich, wenn die automatische Erstellung aktiviert ist"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:502
-#: src/components/settings/SystemSettingsDrawer.tsx:539
-#: src/components/settings/SystemSettingsDrawer.tsx:554
+#: src/components/settings/SystemSettingsDrawer.tsx:501
+#: src/components/settings/SystemSettingsDrawer.tsx:538
+#: src/components/settings/SystemSettingsDrawer.tsx:553
 msgid "Required when bridge is enabled"
 msgstr "Erforderlich, wenn das Relay aktiviert ist"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:588
-#: src/components/settings/SystemSettingsDrawer.tsx:606
-#: src/components/settings/SystemSettingsDrawer.tsx:616
+#: src/components/settings/SystemSettingsDrawer.tsx:587
+#: src/components/settings/SystemSettingsDrawer.tsx:605
+#: src/components/settings/SystemSettingsDrawer.tsx:615
 msgid "Required when SSO is enabled"
 msgstr "Erforderlich, wenn SSO aktiviert ist"
 
@@ -22391,7 +22402,7 @@ msgstr "Erforderlich, wenn SSO aktiviert ist"
 msgid "Requires a padding"
 msgstr "Erfordert einen Innenabstand"
 
-#: src/pages/SignInPage.tsx:391
+#: src/pages/SignInPage.tsx:388
 msgid "Resend code"
 msgstr "Code erneut senden"
 
@@ -22505,7 +22516,7 @@ msgstr "Antwort"
 msgid "Responsive breakpoint"
 msgstr "Responsiver Breakpoint"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:184
+#: src/components/settings/SystemSettingsDrawer.tsx:183
 msgid "Restart Server?"
 msgstr "Server neu starten?"
 
@@ -22751,7 +22762,7 @@ msgstr "Administrator"
 msgid "Root email"
 msgstr "Root-E-Mail"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:281
+#: src/components/settings/SystemSettingsDrawer.tsx:280
 msgid "Root Email"
 msgstr "Root-E-Mail"
 
@@ -22820,7 +22831,7 @@ msgstr "Regel aktualisiert"
 msgid "Rules that also write {dimensionList}"
 msgstr "Regeln, die auch {dimensionList} schreiben"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:224
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:247
 msgid "Run"
 msgstr "Lauf"
 
@@ -22870,7 +22881,7 @@ msgstr "Nacherfassung ausführen"
 msgid "Run backfill again"
 msgstr "Nacherfassung erneut ausführen"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:410
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:433
 msgid "Run it again"
 msgstr "Erneut ausführen"
 
@@ -22892,7 +22903,7 @@ msgstr "Werden ausgeführt, wenn die Regel zutrifft"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:219
 #: src/components/contacts/BulkUpdateDrawer.tsx:183
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:233
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:256
 msgid "Running"
 msgstr "Läuft"
 
@@ -22900,7 +22911,7 @@ msgstr "Läuft"
 msgid "Running · {progress}"
 msgstr "Läuft · {progress}"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:426
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:449
 msgid "Runs"
 msgstr "Läufe"
 
@@ -23013,13 +23024,13 @@ msgstr "Sandbox-Modus"
 #: src/components/settings/Integrations.tsx:400
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:853
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:994
-#: src/components/settings/SystemSettingsDrawer.tsx:263
+#: src/components/settings/SystemSettingsDrawer.tsx:262
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 msgid "Save"
 msgstr "Speichern"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:192
+#: src/components/settings/SystemSettingsDrawer.tsx:191
 msgid "Save & Restart"
 msgstr "Speichern & neu starten"
 
@@ -23211,7 +23222,7 @@ msgstr "Gespeichert. Die Änderung, die mehr löscht, tritt in 7 Tagen in Kraft.
 msgid "Saved. The defaults that delete more take effect in 7 days."
 msgstr "Gespeichert. Die Standardwerte, die mehr löschen, treten in 7 Tagen in Kraft."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:174
+#: src/components/settings/SystemSettingsDrawer.tsx:173
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Das Speichern der Einstellungen startet den Server neu. Sie müssen sich erneut anmelden."
 
@@ -23294,7 +23305,7 @@ msgstr "Hat den Newsletter <0>{target}</0> geplant"
 msgid "Scheduled today"
 msgstr "Heute geplant"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:664
+#: src/components/settings/SystemSettingsDrawer.tsx:663
 #: src/components/setup/SsoPanel.tsx:136
 msgid "Scopes"
 msgstr "Scopes"
@@ -24117,7 +24128,7 @@ msgstr "Einladung senden"
 #~ msgid "Send Invitation"
 #~ msgstr "Einladung senden"
 
-#: src/pages/SignInPage.tsx:325
+#: src/pages/SignInPage.tsx:322
 msgid "Send Magic Code"
 msgstr "Magic-Code senden"
 
@@ -24501,15 +24512,15 @@ msgstr "Server"
 #~ msgid "Server is restarting with new configuration..."
 #~ msgstr "Server wird mit neuer Konfiguration neu gestartet..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:200
+#: src/components/settings/SystemSettingsDrawer.tsx:199
 msgid "Server is restarting..."
 msgstr "Server wird neu gestartet..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:225
+#: src/components/settings/SystemSettingsDrawer.tsx:224
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Server-Neustart-Timeout. Bitte aktualisieren Sie die Seite manuell."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:212
+#: src/components/settings/SystemSettingsDrawer.tsx:211
 msgid "Server restarted successfully!"
 msgstr "Server erfolgreich neu gestartet!"
 
@@ -24652,7 +24663,7 @@ msgstr "Von {integrationName} festgelegt. Bearbeiten Sie die Vorlage selbst, um 
 msgid "Set by environment"
 msgstr "Durch die Umgebung festgelegt"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:117
+#: src/components/settings/SystemSettingsDrawer.tsx:116
 msgid "Set by environment variable"
 msgstr "Durch Umgebungsvariable festgelegt"
 
@@ -24844,7 +24855,7 @@ msgstr "Einstellungen"
 msgid "Settings › Integrations"
 msgstr "Einstellungen › Integrationen"
 
-#: src/pages/AccountSecurityPage.tsx:61
+#: src/pages/AccountSecurityPage.tsx:64
 msgid "Settings for your Notifuse account, in every workspace you belong to."
 msgstr "Einstellungen Ihres Notifuse-Kontos, in allen Workspaces, zu denen Sie gehören."
 
@@ -24911,7 +24922,7 @@ msgstr "Gemeinsam"
 msgid "shared with the rest of this AWS account"
 msgstr "geteilt mit dem Rest dieses AWS-Kontos"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:211
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:234
 msgid "Shortest"
 msgstr "Minimum"
 
@@ -25060,7 +25071,7 @@ msgstr "Anmelden"
 msgid "Sign in again"
 msgstr "Erneut anmelden"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:269
+#: src/components/settings/SystemSettingsDrawer.tsx:268
 msgid "Sign in again to change system settings"
 msgstr "Melden Sie sich erneut an, um die Systemeinstellungen zu ändern"
 
@@ -25076,7 +25087,7 @@ msgstr "Melden Sie sich erneut an, um einen Workspace zu erstellen"
 msgid "Sign in again to manage the licence"
 msgstr "Melden Sie sich erneut an, um die Lizenz zu verwalten"
 
-#: src/pages/AccountSecurityPage.tsx:64
+#: src/pages/AccountSecurityPage.tsx:67
 msgid "Sign in again to open your workspaces"
 msgstr "Melden Sie sich erneut an, um Ihre Workspaces zu öffnen"
 
@@ -25092,9 +25103,9 @@ msgstr "Melden Sie sich erneut an, um die Zwei-Faktor-Authentifizierung zurückz
 msgid "Sign in with {rootEmail}."
 msgstr "Melden Sie sich mit {rootEmail} an."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:657
+#: src/components/settings/SystemSettingsDrawer.tsx:656
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:343
+#: src/pages/SignInPage.tsx:340
 msgid "Sign in with SSO"
 msgstr "Mit SSO anmelden"
 
@@ -25323,7 +25334,7 @@ msgstr "SMTP"
 msgid "SMTP bridge"
 msgstr "SMTP-Bridge"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:486
+#: src/components/settings/SystemSettingsDrawer.tsx:485
 msgid "SMTP Bridge"
 msgstr "SMTP-Relay"
 
@@ -25351,11 +25362,11 @@ msgstr "SMTP-Relay-Server zur Weiterleitung transaktionaler E-Mails"
 #~ msgid "SMTP connection successful!"
 #~ msgstr "SMTP-Verbindung erfolgreich!"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:136
+#: src/components/settings/SystemSettingsDrawer.tsx:135
 msgid "SMTP connection test failed"
 msgstr "SMTP-Verbindungstest fehlgeschlagen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:134
+#: src/components/settings/SystemSettingsDrawer.tsx:133
 msgid "SMTP connection test successful"
 msgstr "SMTP-Verbindungstest erfolgreich"
 
@@ -25375,7 +25386,7 @@ msgstr "SMTP-Anleitungen:"
 msgid "SMTP host"
 msgstr "SMTP-Host"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:347
+#: src/components/settings/SystemSettingsDrawer.tsx:346
 msgid "SMTP Host"
 msgstr "SMTP-Host"
 
@@ -25383,7 +25394,7 @@ msgstr "SMTP-Host"
 msgid "SMTP host is required"
 msgstr "SMTP-Host ist erforderlich"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:415
+#: src/components/settings/SystemSettingsDrawer.tsx:414
 msgid "SMTP Password"
 msgstr "SMTP-Passwort"
 
@@ -25391,7 +25402,7 @@ msgstr "SMTP-Passwort"
 msgid "SMTP port"
 msgstr "SMTP-Port"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:360
+#: src/components/settings/SystemSettingsDrawer.tsx:359
 msgid "SMTP Port"
 msgstr "SMTP-Port"
 
@@ -25429,7 +25440,7 @@ msgstr "SMTP-Benutzer"
 #~ msgid "SMTP User"
 #~ msgstr "SMTP-Benutzer"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:402
+#: src/components/settings/SystemSettingsDrawer.tsx:401
 msgid "SMTP Username"
 msgstr "SMTP-Benutzername"
 
@@ -25640,7 +25651,7 @@ msgstr "Aufteilen"
 msgid "SQL Arguments:"
 msgstr "SQL-Argumente:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:570
+#: src/components/settings/SystemSettingsDrawer.tsx:569
 msgid "SSO (OpenID Connect)"
 msgstr "SSO (OpenID Connect)"
 
@@ -25804,7 +25815,7 @@ msgstr "Statistiken erscheinen, sobald der Versand der Kampagne beginnt"
 #: src/components/logs/OutgoingWebhooksTab.tsx:189
 #: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/BlogSettings.tsx:332
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:229
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:252
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:61
 #: src/components/settings/LicenseSettings.tsx:170
 #: src/components/settings/WebAnalyticsSettings.tsx:281
@@ -26161,7 +26172,7 @@ msgstr "Erfolgreich"
 msgid "Successfully signed in"
 msgstr "Erfolgreich angemeldet"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:216
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:239
 msgid "Suggested"
 msgstr "Vorgeschlagen"
 
@@ -26256,12 +26267,12 @@ msgstr "Systemschriften"
 #~ msgid "System Fonts"
 #~ msgstr "Systemschriften"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:244
-#: src/components/settings/SystemSettingsDrawer.tsx:255
+#: src/components/settings/SystemSettingsDrawer.tsx:243
+#: src/components/settings/SystemSettingsDrawer.tsx:254
 msgid "System Settings"
 msgstr "Systemeinstellungen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:333
+#: src/components/settings/SystemSettingsDrawer.tsx:332
 msgid "System SMTP"
 msgstr "System-SMTP"
 
@@ -26336,7 +26347,7 @@ msgstr "Die Grenze für Teammitglieder ist erreicht. Bitte aktualisieren Sie Ihr
 msgid "Technical performance insights"
 msgstr "Einblicke in die technische Performance"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:721
+#: src/components/settings/SystemSettingsDrawer.tsx:720
 msgid "Telemetry"
 msgstr "Telemetrie"
 
@@ -26617,7 +26628,7 @@ msgstr "Test abgeschlossen"
 msgid "Test connection"
 msgstr "Verbindung testen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:341
+#: src/components/settings/SystemSettingsDrawer.tsx:340
 msgid "Test Connection"
 msgstr "Verbindung testen"
 
@@ -26902,7 +26913,7 @@ msgstr "Die Adresse, die Sie Ihrem Assistenten geben."
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "Der KI-Assistent: Chat über die konfigurierte LLM-Integration des Arbeitsbereichs und die serverseitigen Tools, die er aufrufen darf."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:178
+#: src/components/settings/SystemSettingsDrawer.tsx:177
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "Der API-Endpunkt hat sich geändert. Nach dem Neustart ist die Konsole erreichbar unter:"
 
@@ -26998,7 +27009,7 @@ msgstr "Die Kategorie {forcedLabel} ist dort vorgegeben, wo diese Vorlage erstel
 msgid "The category is set by where this template is used"
 msgstr "Die Kategorie ergibt sich daraus, wo diese Vorlage verwendet wird"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:121
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:144
 msgid "The change was cancelled"
 msgstr "Die Änderung wurde abgebrochen"
 
@@ -27200,7 +27211,7 @@ msgid "The email this step sends"
 msgstr "Die E-Mail, die dieser Schritt sendet"
 
 #: src/components/logs/AuditLogTab.tsx:151
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:273
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:296
 msgid "The export failed"
 msgstr "Der Export ist fehlgeschlagen"
 
@@ -27406,7 +27417,7 @@ msgstr "Der Operator {0} wird hier nicht unterstützt"
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "Das Protokoll ausgehender Nachrichten: jede vom Arbeitsbereich gesendete E-Mail, ihr Zustellstatus und das ihr zugerechnete Engagement."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:322
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:345
 msgid "The owners were told by email."
 msgstr "Die Inhaber wurden per E-Mail informiert."
 
@@ -27906,7 +27917,7 @@ msgstr "Dies kann nicht rückgängig gemacht werden."
 msgid "This category is not created yet."
 msgstr "Diese Kategorie ist noch nicht erstellt."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:325
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:348
 msgid "This comes from the deployment defaults, set by the administrator of this installation."
 msgstr "Dieser Wert stammt aus den Deployment-Standardwerten, die der Administrator dieser Installation festgelegt hat."
 
@@ -28215,7 +28226,7 @@ msgstr "Diese Einrichtung ist nach 15 Minuten abgelaufen. Scannen Sie den neuen 
 msgid "This setup expired after 15 minutes. Start the replacement again."
 msgstr "Diese Einrichtung ist nach 15 Minuten abgelaufen. Starten Sie den Austausch erneut."
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:64
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:74
 #: src/components/two_factor/useTwoFactorErrorMessage.ts:23
 msgid "This sign-in expired after 10 minutes. Start again with your email."
 msgstr "Diese Anmeldung ist nach 10 Minuten abgelaufen. Beginnen Sie erneut mit Ihrer E-Mail."
@@ -28543,7 +28554,7 @@ msgstr "TLS"
 msgid "TLS certificate (Base64)"
 msgstr "TLS-Zertifikat (Base64)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:537
+#: src/components/settings/SystemSettingsDrawer.tsx:536
 msgid "TLS Certificate (Base64)"
 msgstr "TLS-Zertifikat (Base64)"
 
@@ -28555,7 +28566,7 @@ msgstr "TLS-Zertifikat ist erforderlich"
 #~ msgid "TLS Enabled"
 #~ msgstr "TLS aktiviert"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:552
+#: src/components/settings/SystemSettingsDrawer.tsx:551
 msgid "TLS Key (Base64)"
 msgstr "TLS-Schlüssel (Base64)"
 
@@ -29048,8 +29059,12 @@ msgid "Turn Into"
 msgstr "Umwandeln in"
 
 #: src/pages/AccountSecurityPage.tsx:71
-msgid "Turn it on to open your workspaces again. Until then, this page is the only one you can use."
-msgstr "Aktivieren Sie sie, um Ihre Workspaces wieder zu öffnen. Bis dahin ist nur diese Seite verfügbar."
+#~ msgid "Turn it on to open your workspaces again. Until then, this page is the only one you can use."
+#~ msgstr "Aktivieren Sie sie, um Ihre Workspaces wieder zu öffnen. Bis dahin ist nur diese Seite verfügbar."
+
+#: src/pages/AccountSecurityPage.tsx:74
+msgid "Turn it on to open your workspaces. Until then, this page is the only one you can use."
+msgstr "Aktivieren Sie sie, um Ihre Arbeitsbereiche zu öffnen. Bis dahin können Sie nur diese Seite verwenden."
 
 #: src/components/settings/BlogSettings.tsx:332
 msgid "Turn it on to publish posts at the root of your custom domain"
@@ -29149,6 +29164,8 @@ msgstr "Beim Wiedereinschalten funktionieren die bestehenden Verbindungen wieder
 #: src/components/settings/EditPermissionsDrawer.tsx:33
 #: src/components/two_factor/AccountSecurityPanel.tsx:143
 #: src/components/two_factor/AccountSecurityPanel.tsx:159
+#: src/pages/AcceptInvitationPage.tsx:127
+#: src/pages/SignInPage.tsx:269
 msgid "Two-factor authentication"
 msgstr "Zwei-Faktor-Authentifizierung"
 
@@ -29763,7 +29780,7 @@ msgid "Use"
 msgstr "Verwenden"
 
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:109
-#: src/components/settings/SystemSettingsDrawer.tsx:754
+#: src/components/settings/SystemSettingsDrawer.tsx:755
 msgid "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS} and {AUDIT_LOG_MAX_RETENTION_DAYS}"
 msgstr "0 für unbegrenzt, oder ein Wert zwischen {AUDIT_LOG_MIN_RETENTION_DAYS} und {AUDIT_LOG_MAX_RETENTION_DAYS}"
 
@@ -29771,12 +29788,12 @@ msgstr "0 für unbegrenzt, oder ein Wert zwischen {AUDIT_LOG_MIN_RETENTION_DAYS}
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "0 für unbegrenzt, oder ein Wert zwischen 30 und 3650"
 
-#: src/pages/SignInPage.tsx:383
+#: src/pages/SignInPage.tsx:380
 msgid "Use a different email"
 msgstr "Andere E-Mail verwenden"
 
-#: src/components/two_factor/ProofModal.tsx:112
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:112
+#: src/components/two_factor/ProofModal.tsx:113
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:133
 msgid "Use a recovery code instead"
 msgstr "Stattdessen einen Wiederherstellungscode verwenden"
 
@@ -29784,7 +29801,7 @@ msgstr "Stattdessen einen Wiederherstellungscode verwenden"
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Verwenden Sie einen Mandanten, den Sie selbst verwalten. Erfordert einen in AWS damit verknüpften Konfigurationssatz."
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:115
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:136
 msgid "Use another email"
 msgstr "Andere E-Mail verwenden"
 
@@ -29833,7 +29850,7 @@ msgid "Use the automatic version?"
 msgstr "Automatische Version verwenden?"
 
 #. placeholder {0}: formatPeriod(view.defaults[spec.category] ?? 0)
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:197
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:220
 msgid "Use the default ({0})"
 msgstr "Standard verwenden ({0})"
 
@@ -29870,7 +29887,7 @@ msgstr "Diese Vorlage verwenden"
 #~ msgstr "Dieses Theme verwenden"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:593
-#: src/components/settings/SystemSettingsDrawer.tsx:385
+#: src/components/settings/SystemSettingsDrawer.tsx:384
 #: src/components/setup/SmtpPanel.tsx:180
 #: src/components/setup/SmtpPanel.tsx:184
 msgid "Use TLS"
@@ -29884,8 +29901,8 @@ msgstr "Standard des Arbeitsbereichs verwenden"
 msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "Standard des Arbeitsbereichs · {defaultIntegrationName}"
 
-#: src/components/two_factor/ProofModal.tsx:112
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:112
+#: src/components/two_factor/ProofModal.tsx:113
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:133
 msgid "Use your authenticator app instead"
 msgstr "Stattdessen die Authenticator-App verwenden"
 
@@ -30215,11 +30232,11 @@ msgstr "Hat den Anmeldecode von <0>{target}</0> bestätigt"
 
 #: src/components/settings/DomainsSettings.tsx:382
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:542
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:107
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:126
 msgid "Verify"
 msgstr "Überprüfen"
 
-#: src/pages/SignInPage.tsx:373
+#: src/pages/SignInPage.tsx:370
 msgid "Verify Code"
 msgstr "Code verifizieren"
 
@@ -30816,7 +30833,7 @@ msgstr "Was ein Assistent tun kann"
 msgid "What gets exported"
 msgstr "Was exportiert wird"
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:243
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:266
 msgid "What it removed"
 msgstr "Entfernt"
 
@@ -31571,7 +31588,7 @@ msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schl
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schließen möchten? Ihre Änderungen gehen verloren."
 
-#: src/components/settings/data_retention/DataRetentionSettings.tsx:454
+#: src/components/settings/data_retention/DataRetentionSettings.tsx:477
 msgid "You have unsaved data retention changes. Leave without saving?"
 msgstr "Sie haben ungespeicherte Änderungen an der Datenaufbewahrung. Ohne Speichern verlassen?"
 
@@ -31748,7 +31765,7 @@ msgstr "Ihr Identitätsanbieter hat Ihre E-Mail-Adresse nicht verifiziert."
 msgid "Your licence does not cover translations: see the notice above."
 msgstr "Ihre Lizenz umfasst keine Übersetzungen: siehe Hinweis oben."
 
-#: src/pages/AccountSecurityPage.tsx:70
+#: src/pages/AccountSecurityPage.tsx:73
 msgid "Your Notifuse administrator requires two-factor authentication."
 msgstr "Ihr Notifuse-Administrator verlangt die Zwei-Faktor-Authentifizierung."
 
