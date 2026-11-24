@@ -19,7 +19,7 @@ func brandingRootHandler(t *testing.T, consoleDir string, effective func() brand
 	t.Helper()
 	installed := true
 	h := NewRootHandler(consoleDir, "notification_center_test", logger.NewLogger(), "https://api.example.com",
-		"45.0", "root@example.com", &installed, false, "", 0, "off", nil, nil, nil, nil, "", false)
+		"45.0", "root@example.com", &installed, false, "", 0, "off", nil, nil, nil, nil, "", false, false, false)
 	if effective != nil {
 		h.SetBranding(effective)
 	}

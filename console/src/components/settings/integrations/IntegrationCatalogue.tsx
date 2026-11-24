@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react'
 import { Modal } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import type { EmailProviderKind, LLMProviderKind } from '../../../services/api/types'
+import type { EmailProviderKind } from '../../../services/api/types'
 import { emailProviders } from '../../integrations/EmailProviders'
-import { llmProviders } from '../../integrations/LLMProviders'
-import { firecrawlProvider } from '../../integrations/FirecrawlProviders'
 import { zapierProvider } from '../../integrations/ZapierProviders'
 import { Pill } from '../../layout'
 import { IntegrationIcon } from './IntegrationCard'
@@ -14,8 +12,6 @@ import { DeprecatedPill } from './DeprecatedPill'
 /** What the owner picked in the catalogue: the drawer to open. */
 export type CatalogueSelection =
   | { type: 'email'; kind: EmailProviderKind }
-  | { type: 'llm'; kind: LLMProviderKind }
-  | { type: 'firecrawl' }
   | { type: 'supabase' }
   | { type: 'zapier' }
 
@@ -24,10 +20,8 @@ interface CatalogueEntry {
   icon: ReactNode
   name: string
   description: string
-  /** Under the description, wrapping: a restriction, or why it cannot be picked. */
+  /** Under the description, wrapping: a restriction. */
   pill?: ReactNode
-  /** Shown but not clickable. */
-  disabled?: boolean
   selection: CatalogueSelection
 }
 
@@ -35,18 +29,16 @@ export interface IntegrationCatalogueProps {
   open: boolean
   onClose: () => void
   onSelect: (selection: CatalogueSelection) => void
-  /**
-   * The server only ever uses the first Firecrawl integration (llm_service.go), so a second one
-   * would never be used: once one exists the entry says so instead of opening a form.
-   */
-  firecrawlConfigured: boolean
 }
 
 // The order of the mockup: the most used first.
 const EMAIL_ORDER: EmailProviderKind[] = ['ses', 'smtp', 'sparkpost', 'postmark', 'mailgun', 'mailjet', 'sendgrid']
 
-/** "Add integration": every integration the workspace can add, grouped by what it is used for. */
-export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigured }: IntegrationCatalogueProps) {
+/**
+ * "Add integration": the email providers and the connected apps. The AI models and Firecrawl are
+ * added from Settings › AI › Assistant.
+ */
+export function IntegrationCatalogue({ open, onClose, onSelect }: IntegrationCatalogueProps) {
   const { t } = useLingui()
 
   const emailDescriptions: Record<EmailProviderKind, string> = {
@@ -57,11 +49,6 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
     mailgun: t`Domain and API key, US or EU`,
     mailjet: t`API and secret keys`,
     sendgrid: t`API key`
-  }
-  const llmDescriptions: Record<LLMProviderKind, string> = {
-    anthropic: t`Claude models`,
-    openai: t`Or any OpenAI-compatible endpoint`,
-    gemini: t`Gemini models`
   }
 
   const email: CatalogueEntry[] = EMAIL_ORDER.flatMap((kind) => {
@@ -88,29 +75,6 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
       }
     ]
   })
-
-  const ai: CatalogueEntry[] = [
-    ...llmProviders.map((provider) => ({
-      key: `llm-${provider.kind}`,
-      icon: provider.getIcon('', 14),
-      name: provider.name,
-      description: llmDescriptions[provider.kind],
-      selection: { type: 'llm', kind: provider.kind } as CatalogueSelection
-    })),
-    {
-      key: 'firecrawl',
-      icon: firecrawlProvider.getIcon('', 14),
-      name: firecrawlProvider.name,
-      description: t`Lets the assistant read web pages and search`,
-      pill: firecrawlConfigured ? (
-        <Pill tone="success" dot={false}>
-          {t`Configured`}
-        </Pill>
-      ) : undefined,
-      disabled: firecrawlConfigured,
-      selection: { type: 'firecrawl' }
-    }
-  ]
 
   const apps: CatalogueEntry[] = [
     {
@@ -139,9 +103,8 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
           key={entry.key}
           type="button"
           data-catalogue-entry={entry.key}
-          disabled={entry.disabled}
           onClick={() => onSelect(entry.selection)}
-          className="flex w-full items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 text-left enabled:cursor-pointer enabled:hover:border-primary-300 focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none disabled:cursor-default"
+          className="flex w-full items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 text-left cursor-pointer hover:border-primary-300 focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none"
         >
           {/* A column as wide as the widest wordmark, so the names line up. */}
           <span className="flex w-[88px] shrink-0">
@@ -162,10 +125,7 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
     <Modal open={open} onCancel={onClose} footer={null} title={t`Add integration`} width={820} destroyOnHidden>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {group(t`Email sending`, email)}
-        <div className="flex flex-col gap-4">
-          {group(t`AI assistant`, ai)}
-          {group(t`Connected apps`, apps)}
-        </div>
+        {group(t`Connected apps`, apps)}
       </div>
     </Modal>
   )

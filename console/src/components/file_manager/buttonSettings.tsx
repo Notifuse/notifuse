@@ -205,7 +205,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
           label={t`S3 endpoint`}
           name="endpoint"
           rules={[{ type: 'url', required: true }]}
-          help={selectedProvider?.endpointHelp}
+          extra={selectedProvider?.endpointHelp}
         >
           <Input placeholder={selectedProvider?.endpointPlaceholder || 'https://storage.googleapis.com'} />
         </Form.Item>
@@ -270,7 +270,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
           label={t`Path-style access`}
           name="force_path_style"
           valuePropName="checked"
-          help={t`Use path-style URLs (bucket in path instead of subdomain)`}
+          extra={t`Use path-style URLs (bucket in path instead of subdomain)`}
         >
           <Switch disabled={selectedProvider ? !selectedProvider.showForcePathStyle : false} />
         </Form.Item>
@@ -278,7 +278,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
         <Form.Item
           label={t`CDN endpoint`}
           name="cdn_endpoint"
-          help={t`URL of the CDN that caches your files`}
+          extra={t`URL of the CDN that caches your files`}
           rules={[{ type: 'url', required: false }]}
         >
           <Input placeholder="https://cdn.yourbusiness.com" />

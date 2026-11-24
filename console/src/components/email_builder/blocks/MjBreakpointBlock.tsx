@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { MJMLComponentType, MJBreakpointAttributes, MergedBlockAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBlock'
@@ -91,7 +93,7 @@ export class MjBreakpointBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Breakpoint'
+    return i18n._(msg({ message: 'Breakpoint', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

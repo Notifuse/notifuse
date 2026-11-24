@@ -1,3 +1,5 @@
+import { i18n, type MessageDescriptor } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { weekdayLabel } from './dictionaries'
 import { WebDimensionFilter, WebSchema } from './types'
 
@@ -8,8 +10,11 @@ export interface DimensionInfo {
   type: DimensionType
   /** Grouping used by the dimension pickers. */
   category: DimensionCategory
-  /** Labels mirror the titles in internal/domain/web_analytics_schemas.go. */
-  label: string
+  /**
+   * Labels mirror the titles in internal/domain/web_analytics_schemas.go. A descriptor, resolved
+   * in the active language when shown: read it through getDimensionLabel.
+   */
+  label: MessageDescriptor
   schemas: WebSchema[]
 }
 
@@ -46,7 +51,7 @@ const SESSIONS_AND_GOALS: WebSchema[] = ['web_sessions', 'web_goals']
 
 function define(
   name: string,
-  label: string,
+  label: MessageDescriptor,
   category: DimensionCategory,
   type: DimensionType,
   schemas: WebSchema[]
@@ -60,69 +65,69 @@ function define(
  * reports can group by them without a join.
  */
 const CATALOG: DimensionInfo[] = [
-  define('channel', 'Channel', 'Channel', 'string', SESSIONS_AND_GOALS),
-  define('channel_group', 'Channel Group', 'Channel', 'string', SESSIONS_AND_GOALS),
+  define('channel', msg`Channel`, 'Channel', 'string', SESSIONS_AND_GOALS),
+  define('channel_group', msg`Channel Group`, 'Channel', 'string', SESSIONS_AND_GOALS),
 
-  define('utm_source', 'UTM Source', 'UTM', 'string', SESSIONS_AND_GOALS),
-  define('utm_medium', 'UTM Medium', 'UTM', 'string', SESSIONS_AND_GOALS),
-  define('utm_campaign', 'UTM Campaign', 'UTM', 'string', SESSIONS_AND_GOALS),
-  define('utm_term', 'UTM Term', 'UTM', 'string', SESSIONS_AND_GOALS),
-  define('utm_content', 'UTM Content', 'UTM', 'string', SESSIONS_AND_GOALS),
+  define('utm_source', msg`UTM Source`, 'UTM', 'string', SESSIONS_AND_GOALS),
+  define('utm_medium', msg`UTM Medium`, 'UTM', 'string', SESSIONS_AND_GOALS),
+  define('utm_campaign', msg`UTM Campaign`, 'UTM', 'string', SESSIONS_AND_GOALS),
+  define('utm_term', msg`UTM Term`, 'UTM', 'string', SESSIONS_AND_GOALS),
+  define('utm_content', msg`UTM Content`, 'UTM', 'string', SESSIONS_AND_GOALS),
 
-  define('referrer', 'Referrer', 'Traffic', 'string', SESSIONS_AND_GOALS),
-  define('referrer_domain', 'Referrer Domain', 'Traffic', 'string', SESSIONS_AND_GOALS),
-  define('referrer_path', 'Referrer Path', 'Traffic', 'string', SESSIONS_AND_GOALS),
-  define('is_direct', 'Is Direct', 'Traffic', 'boolean', SESSIONS_AND_GOALS),
+  define('referrer', msg`Referrer`, 'Traffic', 'string', SESSIONS_AND_GOALS),
+  define('referrer_domain', msg`Referrer Domain`, 'Traffic', 'string', SESSIONS_AND_GOALS),
+  define('referrer_path', msg`Referrer Path`, 'Traffic', 'string', SESSIONS_AND_GOALS),
+  define('is_direct', msg`Is Direct`, 'Traffic', 'boolean', SESSIONS_AND_GOALS),
 
-  define('landing_page', 'Landing Page', 'Pages', 'string', SESSIONS_AND_GOALS),
-  define('landing_domain', 'Landing Domain', 'Pages', 'string', SESSIONS_AND_GOALS),
-  define('landing_path', 'Landing Path', 'Pages', 'string', SESSIONS_AND_GOALS),
-  define('exit_path', 'Exit Path', 'Pages', 'string', ['web_sessions']),
-  define('page_path', 'Page Path', 'Pages', 'string', ['web_pages']),
-  define('page_number', 'Page Number', 'Pages', 'number', ['web_pages']),
-  define('is_landing_page', 'Is Landing Page', 'Pages', 'boolean', ['web_pages']),
-  define('is_exit_page', 'Is Exit Page', 'Pages', 'boolean', ['web_pages']),
-  define('page_entry_type', 'Entry Type', 'Pages', 'string', ['web_pages']),
+  define('landing_page', msg`Landing Page`, 'Pages', 'string', SESSIONS_AND_GOALS),
+  define('landing_domain', msg`Landing Domain`, 'Pages', 'string', SESSIONS_AND_GOALS),
+  define('landing_path', msg`Landing Path`, 'Pages', 'string', SESSIONS_AND_GOALS),
+  define('exit_path', msg`Exit Path`, 'Pages', 'string', ['web_sessions']),
+  define('page_path', msg`Page Path`, 'Pages', 'string', ['web_pages']),
+  define('page_number', msg`Page Number`, 'Pages', 'number', ['web_pages']),
+  define('is_landing_page', msg`Is Landing Page`, 'Pages', 'boolean', ['web_pages']),
+  define('is_exit_page', msg`Is Exit Page`, 'Pages', 'boolean', ['web_pages']),
+  define('page_entry_type', msg`Entry Type`, 'Pages', 'string', ['web_pages']),
 
-  define('device', 'Device', 'Device', 'string', SESSIONS_AND_GOALS),
-  define('browser', 'Browser', 'Device', 'string', SESSIONS_AND_GOALS),
-  define('browser_type', 'Browser Type', 'Device', 'string', SESSIONS_AND_GOALS),
-  define('os', 'Operating System', 'Device', 'string', SESSIONS_AND_GOALS),
-  define('connection_type', 'Connection Type', 'Device', 'string', SESSIONS_AND_GOALS),
-  define('screen_width', 'Screen Width', 'Device', 'number', SESSIONS_AND_GOALS),
-  define('screen_height', 'Screen Height', 'Device', 'number', SESSIONS_AND_GOALS),
-  define('viewport_width', 'Viewport Width', 'Device', 'number', SESSIONS_AND_GOALS),
-  define('viewport_height', 'Viewport Height', 'Device', 'number', SESSIONS_AND_GOALS),
+  define('device', msg`Device`, 'Device', 'string', SESSIONS_AND_GOALS),
+  define('browser', msg`Browser`, 'Device', 'string', SESSIONS_AND_GOALS),
+  define('browser_type', msg`Browser Type`, 'Device', 'string', SESSIONS_AND_GOALS),
+  define('os', msg`Operating System`, 'Device', 'string', SESSIONS_AND_GOALS),
+  define('connection_type', msg`Connection Type`, 'Device', 'string', SESSIONS_AND_GOALS),
+  define('screen_width', msg`Screen Width`, 'Device', 'number', SESSIONS_AND_GOALS),
+  define('screen_height', msg`Screen Height`, 'Device', 'number', SESSIONS_AND_GOALS),
+  define('viewport_width', msg`Viewport Width`, 'Device', 'number', SESSIONS_AND_GOALS),
+  define('viewport_height', msg`Viewport Height`, 'Device', 'number', SESSIONS_AND_GOALS),
 
-  define('country', 'Country', 'Geo', 'string', SESSIONS_AND_GOALS),
-  define('region', 'Region', 'Geo', 'string', SESSIONS_AND_GOALS),
-  define('city', 'City', 'Geo', 'string', SESSIONS_AND_GOALS),
-  define('language', 'Language', 'Geo', 'string', SESSIONS_AND_GOALS),
-  define('timezone', 'Timezone', 'Geo', 'string', SESSIONS_AND_GOALS),
+  define('country', msg`Country`, 'Geo', 'string', SESSIONS_AND_GOALS),
+  define('region', msg`Region`, 'Geo', 'string', SESSIONS_AND_GOALS),
+  define('city', msg`City`, 'Geo', 'string', SESSIONS_AND_GOALS),
+  define('language', msg`Language`, 'Geo', 'string', SESSIONS_AND_GOALS),
+  define('timezone', msg`Timezone`, 'Geo', 'string', SESSIONS_AND_GOALS),
 
-  define('hour_of_day', 'Hour of Day', 'Time', 'number', SESSIONS_AND_GOALS),
-  define('day_of_week', 'Day of Week', 'Time', 'number', SESSIONS_AND_GOALS),
-  define('is_weekend', 'Is Weekend', 'Time', 'boolean', SESSIONS_AND_GOALS),
-  define('year', 'Year', 'Time', 'number', SESSIONS_AND_GOALS),
-  define('month', 'Month', 'Time', 'number', SESSIONS_AND_GOALS),
-  define('day', 'Day', 'Time', 'number', SESSIONS_AND_GOALS),
-  define('week_number', 'Week Number', 'Time', 'number', SESSIONS_AND_GOALS),
+  define('hour_of_day', msg`Hour of Day`, 'Time', 'number', SESSIONS_AND_GOALS),
+  define('day_of_week', msg`Day of Week`, 'Time', 'number', SESSIONS_AND_GOALS),
+  define('is_weekend', msg`Is Weekend`, 'Time', 'boolean', SESSIONS_AND_GOALS),
+  define('year', msg`Year`, 'Time', 'number', SESSIONS_AND_GOALS),
+  define('month', msg`Month`, 'Time', 'number', SESSIONS_AND_GOALS),
+  define('day', msg`Day`, 'Time', 'number', SESSIONS_AND_GOALS),
+  define('week_number', msg`Week Number`, 'Time', 'number', SESSIONS_AND_GOALS),
 
-  define('pageview_count', 'Pageview Count', 'Session', 'number', ['web_sessions']),
-  define('duration', 'Duration (ms)', 'Session', 'number', ['web_sessions']),
-  define('sdk_version', 'SDK Version', 'Session', 'string', ['web_sessions']),
-  define('traffic_type', 'Traffic Type', 'Traffic', 'string', ['web_sessions']),
+  define('pageview_count', msg`Pageview Count`, 'Session', 'number', ['web_sessions']),
+  define('duration', msg`Duration (ms)`, 'Session', 'number', ['web_sessions']),
+  define('sdk_version', msg`SDK Version`, 'Session', 'string', ['web_sessions']),
+  define('traffic_type', msg`Traffic Type`, 'Traffic', 'string', ['web_sessions']),
 
-  define('goal_name', 'Goal Name', 'Goal', 'string', ['web_goals']),
-  define('goal_type', 'Goal Type', 'Goal', 'string', ['web_goals']),
-  define('goal_path', 'Goal Path', 'Goal', 'string', ['web_goals']),
-  define('goal_value', 'Goal Value', 'Goal', 'number', ['web_goals']),
+  define('goal_name', msg`Goal Name`, 'Goal', 'string', ['web_goals']),
+  define('goal_type', msg`Goal Type`, 'Goal', 'string', ['web_goals']),
+  define('goal_path', msg`Goal Path`, 'Goal', 'string', ['web_goals']),
+  define('goal_value', msg`Goal Value`, 'Goal', 'number', ['web_goals']),
 
-  define('contact_email', 'Contact Email', 'User', 'string', ALL_SCHEMAS)
+  define('contact_email', msg`Contact Email`, 'User', 'string', ALL_SCHEMAS)
 ]
 
 for (let slot = 1; slot <= 10; slot++) {
-  CATALOG.push(define(`custom_${slot}`, `Custom ${slot}`, 'Custom', 'string', SESSIONS_AND_GOALS))
+  CATALOG.push(define(`custom_${slot}`, msg`Custom ${slot}`, 'Custom', 'string', SESSIONS_AND_GOALS))
 }
 
 export const DIMENSIONS: Record<string, DimensionInfo> = Object.fromEntries(
@@ -161,8 +166,9 @@ export function getDimensionLabel(
 ): string {
   const custom = customLabels?.[name]
   if (custom) return custom
-  const known = DIMENSIONS[name]
-  if (known) return known.label
+  // hasOwn: DIMENSIONS is a plain object, and a prototype key such as `constructor` is no dimension.
+  const known = Object.prototype.hasOwnProperty.call(DIMENSIONS, name) ? DIMENSIONS[name] : undefined
+  if (known) return i18n._(known.label)
   return name
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

@@ -451,7 +451,7 @@ export function ThemeEditorDrawer({
               target="_blank"
               rel="noopener noreferrer"
             >
-              {t`Open`}
+              {t({ message: 'Open', context: 'action' })}
             </Button>
           </Tooltip>
         ) : null}

@@ -31,7 +31,7 @@ export function ResetTwoFactorButton({ target, email, disabled, onDone }: ResetT
 
   const consequences = (
     <div className="flex flex-col gap-3">
-      <ul className="m-0 flex flex-col gap-1 pl-5">
+      <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
         <li>{t`Their authenticator app and recovery codes stop working.`}</li>
         <li>{t`They're signed out everywhere.`}</li>
         <li>{t`They get an email about the reset.`}</li>

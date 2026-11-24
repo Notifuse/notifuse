@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { Select, Switch } from 'antd'
 import type { EmailBlock, MJMLComponentType, MJSocialElementAttributes, MergedBlockAttributes } from '../types'
@@ -536,7 +538,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     const baseName = currentAttributes.name?.replace(/-noshare$/, '')
     return baseName
       ? baseName.charAt(0).toUpperCase() + baseName.slice(1)
-      : 'Social Element'
+      : i18n._(msg({ message: 'Social Element', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

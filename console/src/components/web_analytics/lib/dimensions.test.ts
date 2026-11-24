@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { formatDimensionValue, namedCustomDimensions } from './dimensions'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@lingui/core'
+import { formatDimensionValue, getDimensionLabel, namedCustomDimensions } from './dimensions'
 
 const en = { emptyLabel: '(empty)', locale: 'en' }
 
@@ -65,5 +66,31 @@ describe('namedCustomDimensions', () => {
   it('is empty without labels', () => {
     expect(namedCustomDimensions(undefined)).toEqual([])
     expect(namedCustomDimensions({})).toEqual([])
+  })
+})
+
+describe('getDimensionLabel', () => {
+  afterEach(() => i18n.activate('en'))
+
+  it('reads the catalog label in English', () => {
+    expect(getDimensionLabel('channel')).toBe('Channel')
+    expect(getDimensionLabel('landing_path')).toBe('Landing Path')
+    expect(getDimensionLabel('custom_3')).toBe('Custom 3')
+  })
+
+  it('translates the catalog label in the active language', () => {
+    i18n.load('fr', { Channel: 'Canal', 'Landing Path': "Chemin d'arrivée" })
+    i18n.activate('fr')
+    expect(getDimensionLabel('channel')).toBe('Canal')
+    expect(getDimensionLabel('landing_path')).toBe("Chemin d'arrivée")
+  })
+
+  it('prefers the workspace label of a custom slot, in any language', () => {
+    expect(getDimensionLabel('custom_3', { custom_3: 'Plan' })).toBe('Plan')
+  })
+
+  it('title-cases an unknown name, prototype keys included', () => {
+    expect(getDimensionLabel('utm_id_from')).toBe('Utm Id From')
+    expect(getDimensionLabel('constructor')).toBe('Constructor')
   })
 })

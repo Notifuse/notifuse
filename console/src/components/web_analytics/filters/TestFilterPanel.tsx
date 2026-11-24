@@ -86,7 +86,7 @@ export function TestFilterPanel(props: TestFilterPanelProps) {
 }
 
 function RuleTester(props: TestFilterPanelProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const vocabulary = useFilterVocabulary()
   const [form] = Form.useForm<TestFormValues>()
   const [fieldGroups] = useState(groupSourceFields)
@@ -332,7 +332,7 @@ function RuleTester(props: TestFilterPanelProps) {
                       label={
                         // The key the snippet sends, shown rather than hidden in a tooltip.
                         <span className="inline-flex flex-wrap items-baseline gap-x-1.5">
-                          <span>{field.label}</span>{' '}
+                          <span>{i18n._(field.label)}</span>{' '}
                           <span className="font-mono text-xs text-ink-4">{field.value}</span>
                         </span>
                       }

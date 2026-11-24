@@ -210,9 +210,9 @@ describe('WebAnalyticsAIAssistant wiring', () => {
 
     expect(screen.getByText('AI Assistant Not Configured')).toBeInTheDocument()
     expect(screen.getByText('Analytics Assistant')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Configure Integration' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Connect an AI model' })).toHaveAttribute(
       'href',
-      '/console/workspace/ws1/settings/integrations'
+      '/console/workspace/ws1/settings/ai-assistant'
     )
   })
 

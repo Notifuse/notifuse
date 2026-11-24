@@ -20,11 +20,14 @@ export function RootLayout() {
   const isWorkspaceCreateRoute = useMatch({ from: '/console/workspace/create', shouldThrow: false })
   const isSetupRoute = useMatch({ from: '/console/setup', shouldThrow: false })
   const isAccountSecurityRoute = useMatch({ from: '/console/account/security', shouldThrow: false })
+  // The MCP connection page needs no session: the API key pasted there is the proof.
+  const isOAuthAuthorizeRoute = useMatch({ from: '/console/oauth/authorize', shouldThrow: false })
 
   // Check if system is installed (explicitly check for true to handle undefined case)
   const isInstalled = window.IS_INSTALLED === true
 
-  const isPublicRoute = isSigninRoute || isAcceptInvitationRoute || isLogoutRoute || isSetupRoute
+  const isPublicRoute =
+    isSigninRoute || isAcceptInvitationRoute || isLogoutRoute || isSetupRoute || isOAuthAuthorizeRoute
 
   // If system is not installed, redirect to setup wizard
   const shouldRedirectToSetup = !isInstalled && !isSetupRoute
@@ -53,7 +56,8 @@ export function RootLayout() {
     isRootUser(user?.email) &&
     !isWorkspaceCreateRoute &&
     !isAccountSecurityRoute &&
-    !isLogoutRoute
+    !isLogoutRoute &&
+    !isOAuthAuthorizeRoute
 
   // console.log('isAuthenticated', isAuthenticated)
   // handle redirection...

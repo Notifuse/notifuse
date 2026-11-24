@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock } from '@fortawesome/free-solid-svg-icons'
@@ -190,7 +192,7 @@ export class MjGroupBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Group'
+    return i18n._(msg({ message: 'Group', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

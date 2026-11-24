@@ -1,4 +1,6 @@
 import React from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { Select } from 'antd'
 import type { MJMLComponentType, EmailBlock, MJButtonAttributes, MergedBlockAttributes } from '../types'
@@ -381,7 +383,7 @@ export class MjButtonBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Button'
+    return i18n._(msg({ message: 'Button', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

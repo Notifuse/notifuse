@@ -258,8 +258,9 @@ type BroadcastConfig struct {
 // MCPConfig is the instance-wide switch of the MCP endpoint (/mcp) and the
 // browser origins allowed to call it.
 type MCPConfig struct {
-	// Enabled turns /mcp on. Off by default until the console can manage MCP;
-	// demo deployments never serve it, whatever this says.
+	// Enabled turns /mcp and its OAuth sign-in on. On by default;
+	// MCP_ENABLED=false turns it off. Demo deployments never serve it,
+	// whatever this says.
 	Enabled bool
 	// AllowedOrigins are the browser origins accepted on /mcp besides
 	// API_ENDPOINT's own, from the comma-separated MCP_ALLOWED_ORIGINS. A
@@ -675,7 +676,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("ANALYTICS_WORK_MEM", "64MB")
 	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("VERSION", VERSION)
-	v.SetDefault("MCP_ENABLED", false)
+	v.SetDefault("MCP_ENABLED", true)
 
 	// SMTP and SMTP bridge: deliberately NO viper SetDefault (SMTP_FROM_NAME,
 	// SMTP_BRIDGE_PORT, SMTP_BRIDGE_ENABLED…). A default would make the variable read
