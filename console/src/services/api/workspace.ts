@@ -54,6 +54,8 @@ export interface WorkspaceSettings {
   blog_settings?: BlogSettings
   web_analytics?: import('./web_analytics').WebAnalyticsSettings
   audit_logs?: import('./audit_log').AuditLogSettings
+  /** The owner switch for MCP; absent means MCP may reach the workspace. */
+  mcp?: import('./mcp').MCPSettings
   default_language: string
   languages: string[]
 }

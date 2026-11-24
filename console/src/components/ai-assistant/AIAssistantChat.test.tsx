@@ -93,6 +93,16 @@ const renderChat = (overrides: Partial<AIAssistantChatProps> = {}) =>
   )
 
 describe('AIAssistantChat', () => {
+  it('sends a workspace without an AI model to Settings › AI › Assistant', () => {
+    renderChat({ llmIntegration: undefined, llmIntegrations: [] })
+
+    expect(screen.getByText(/connect an AI model from Anthropic, OpenAI or Gemini/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Connect an AI model' })).toHaveAttribute(
+      'href',
+      '/console/workspace/ws1/settings/ai-assistant'
+    )
+  })
+
   it('renders a user bubble and an assistant bubble from the message list', () => {
     const bubbleItems: BubbleItem[] = [
       { key: 'm1', role: 'user', content: 'Write me a welcome email' },

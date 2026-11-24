@@ -51,7 +51,7 @@ msgstr "- cancelled"
 msgid "· applies to the whole Web Analytics section. Click a row or a country to add one."
 msgstr "· applies to the whole Web Analytics section. Click a row or a country to add one."
 
-#: src/components/settings/WorkspaceMembers.tsx:111
+#: src/components/settings/WorkspaceMembers.tsx:114
 msgid "· read only"
 msgstr "· read only"
 
@@ -128,7 +128,7 @@ msgstr "(original: {original})"
 msgid "(unknown)"
 msgstr "(unknown)"
 
-#: src/components/settings/WorkspaceMembers.tsx:257
+#: src/components/settings/WorkspaceMembers.tsx:274
 msgid "(you)"
 msgstr "(you)"
 
@@ -699,13 +699,17 @@ msgstr "{action} exactly {count} times"
 msgid "{active, plural, one {# active} other {# active}}"
 msgstr "{active, plural, one {# active} other {# active}}"
 
-#: src/components/settings/WorkspaceMembers.tsx:113
+#: src/components/settings/WorkspaceMembers.tsx:116
 msgid "{active} of {total} permissions granted"
 msgstr "{active} of {total} permissions granted"
 
 #: src/components/analytics/GetStartedChecklist.tsx:279
 msgid "{apiKeys, plural, one {# API key} other {# API keys}}"
 msgstr "{apiKeys, plural, one {# API key} other {# API keys}}"
+
+#: src/components/settings/MCPSettings.tsx:215
+msgid "{application} loses the access it has through the key {key}. The key keeps working."
+msgstr "{application} loses the access it has through the key {key}. The key keeps working."
 
 #: src/components/email_builder/ui/fields/NumberUnitField.tsx:162
 msgid "{ariaLabel} mode"
@@ -894,7 +898,7 @@ msgstr "{days, plural, one {+{0} over # d} other {+{1} over # d}}"
 msgid "{days, plural, one {Added in the last # day, today included} other {Added in the last # days, today included}}"
 msgstr "{days, plural, one {Added in the last # day, today included} other {Added in the last # days, today included}}"
 
-#: src/components/settings/WorkspaceMembers.tsx:240
+#: src/components/settings/WorkspaceMembers.tsx:257
 msgid "{days, plural, one {expires in # day} other {expires in # days}}"
 msgstr "{days, plural, one {expires in # day} other {expires in # days}}"
 
@@ -1251,6 +1255,10 @@ msgstr "{n} variants, test on {p} % for {h} h"
 msgid "{name} ({weight} %)"
 msgstr "{name} ({weight} %)"
 
+#: src/pages/OAuthAuthorizePage.tsx:161
+msgid "{name} asked to return to an address that is not a web page."
+msgstr "{name} asked to return to an address that is not a web page."
+
 #: src/components/analytics/GetStartedChecklist.tsx:252
 msgid "{name} connected"
 msgstr "{name} connected"
@@ -1282,6 +1290,14 @@ msgstr "{name} was not dropped on the email."
 #: src/components/email_builder/dnd/LibraryDnd.tsx:139
 msgid "{name} was not inserted: {reason}."
 msgstr "{name} was not inserted: {reason}."
+
+#: src/pages/OAuthAuthorizePage.tsx:337
+msgid "{name} will work with an API key of its own. Create it here, or paste one you already have."
+msgstr "{name} will work with an API key of its own. Create it here, or paste one you already have."
+
+#: src/pages/OAuthAuthorizePage.tsx:338
+msgid "{name} will work with the API key you give here, in that key's workspace and with that key's access."
+msgstr "{name} will work with the API key you give here, in that key's workspace and with that key's access."
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:282
 msgid "{named} of {total} slots named"
@@ -1726,6 +1742,11 @@ msgstr "<{tag}> is not closed."
 msgid "</{tag}> closes no open tag."
 msgstr "</{tag}> closes no open tag."
 
+#. placeholder {0}: window.API_ENDPOINT
+#: src/components/settings/MCPSettings.tsx:376
+msgid "<0>API_ENDPOINT</0> must use https and have no path. It is <1>{0}</1>."
+msgstr "<0>API_ENDPOINT</0> must use https and have no path. It is <1>{0}</1>."
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:970
 #: src/components/settings/integrations/providerDetails.ts:170
 msgid "≈ {perHour} per hour · ≈ {perDay} per day"
@@ -2027,6 +2048,10 @@ msgstr "a header of the global data feed has no name or value"
 msgid "a header of the per-recipient data feed has no name or value"
 msgstr "a header of the per-recipient data feed has no name or value"
 
+#: src/components/settings/MCPSettings.tsx:404
+msgid "A key with full access lets the assistant send emails, change templates and delete contacts."
+msgstr "A key with full access lets the assistant send emails, change templates and delete contacts."
+
 #: src/components/templates/gallery/labels.ts:17
 msgid "A limited offer: a visual, a promo code and featured products."
 msgstr "A limited offer: a visual, a promo code and featured products."
@@ -2092,7 +2117,7 @@ msgstr "A one-time code to sign in or confirm an action."
 msgid "A period is shorter than its category allows"
 msgstr "A period is shorter than its category allows"
 
-#: src/components/settings/WorkspaceMembers.tsx:279
+#: src/components/settings/WorkspaceMembers.tsx:296
 msgid "A platform admin reaches every workspace without joining it"
 msgstr "A platform admin reaches every workspace without joining it"
 
@@ -2183,6 +2208,10 @@ msgstr "A webinar or an event: date, agenda, registration."
 msgctxt "newsletter status"
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
 msgstr "A winner has been selected. Emails are being sent to the remaining recipients."
+
+#: src/pages/OAuthAuthorizePage.tsx:679
+msgid "A workspace with MCP off can't be picked. Switch it on in Settings › AI › MCP first."
+msgstr "A workspace with MCP off can't be picked. Switch it on in Settings › AI › MCP first."
 
 #: src/components/analytics/UpcomingSends.tsx:157
 #: src/components/broadcasts/BroadcastsTable.tsx:309
@@ -2336,8 +2365,9 @@ msgstr "Accept Invitation"
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "Accepted the invitation <0>{target}</0>"
 
-#: src/components/settings/WorkspaceMembers.tsx:271
-#: src/components/settings/WorkspaceMembers.tsx:302
+#: src/components/settings/MCPSettings.tsx:253
+#: src/components/settings/WorkspaceMembers.tsx:288
+#: src/components/settings/WorkspaceMembers.tsx:319
 msgid "Access"
 msgstr "Access"
 
@@ -2387,7 +2417,7 @@ msgstr "Action"
 #: src/components/automations/nodeTypes.ts:42
 #: src/components/blog/RecentThemesTable.tsx:173
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
-#: src/components/settings/WorkspaceMembers.tsx:227
+#: src/components/settings/WorkspaceMembers.tsx:244
 #: src/components/transactional/TransactionalTable.tsx:274
 msgid "Actions"
 msgstr "Actions"
@@ -2505,7 +2535,8 @@ msgstr "Add {0}"
 msgid "Add {name}"
 msgstr "Add {name}"
 
-#: src/components/settings/Integrations.tsx:596
+#: src/components/settings/AIAssistantSettings.tsx:233
+#: src/components/settings/Integrations.tsx:396
 msgid "Add {name} integration"
 msgstr "Add {name} integration"
 
@@ -2530,6 +2561,10 @@ msgstr "Add a filter"
 #: src/components/segment/SegmentDrawer.tsx:360
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "Add a first condition: a contact property, a list, an activity or a goal."
+
+#: src/components/settings/AIAssistantSettings.tsx:174
+msgid "Add a model"
+msgstr "Add a model"
 
 #: src/components/segment/input_event_property_filters.tsx:137
 msgid "Add a property"
@@ -2677,8 +2712,8 @@ msgstr "Add filter"
 msgid "Add filter conditions"
 msgstr "Add filter conditions"
 
-#: src/components/settings/Integrations.tsx:579
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:162
+#: src/components/settings/Integrations.tsx:391
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:125
 msgid "Add integration"
 msgstr "Add integration"
 
@@ -2754,6 +2789,10 @@ msgstr "Add the domain of your senders to sign their emails with DKIM."
 #: src/components/analytics/GetStartedChecklist.tsx:230
 msgid "Add the script to your site to count visits and see which emails bring people back."
 msgstr "Add the script to your site to count visits and see which emails bring people back."
+
+#: src/components/settings/MCPSettings.tsx:202
+msgid "Add the server below to <0>.cursor/mcp.json</0> in your project, or to <1>~/.cursor/mcp.json</1> for every project, with the key in place of <2>YOUR_API_KEY</2>."
+msgstr "Add the server below to <0>.cursor/mcp.json</0> in your project, or to <1>~/.cursor/mcp.json</1> for every project, with the key in place of <2>YOUR_API_KEY</2>."
 
 #: src/components/automations/nodeTypes.ts:30
 #: src/components/contacts/BulkActionsBar.tsx:88
@@ -2965,9 +3004,13 @@ msgstr "Aggregate"
 #~ msgid "Aggregated across all A/B variations."
 #~ msgstr "Aggregated across all A/B variations."
 
-#: src/components/settings/Integrations.tsx:438
-#: src/components/settings/Integrations.tsx:747
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:166
+#: src/components/settings/SettingsSidebar.tsx:17
+msgid "AI"
+msgstr "AI"
+
+#: src/components/settings/AIAssistantSettings.tsx:249
+#: src/components/settings/AIAssistantSettings.tsx:274
+#: src/components/settings/AIAssistantSettings.tsx:297
 msgid "AI assistant"
 msgstr "AI assistant"
 
@@ -2983,9 +3026,13 @@ msgstr "AI Blog Assistant"
 msgid "AI Email Designer"
 msgstr "AI Email Designer"
 
-#: src/components/settings/Integrations.tsx:553
+#: src/components/settings/Integrations.tsx:365
 msgid "AI model"
 msgstr "AI model"
+
+#: src/components/settings/AIAssistantSettings.tsx:304
+msgid "AI models"
+msgstr "AI models"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:282
 msgid "Align"
@@ -3170,6 +3217,11 @@ msgstr "All transactional emails (notifications, password resets, etc.) will be 
 msgid "All variants must be connected. Missing: {missing}"
 msgstr "All variants must be connected. Missing: {missing}"
 
+#: src/components/settings/MCPSettings.tsx:300
+#: src/components/settings/MCPSettings.tsx:306
+msgid "Allow MCP connections"
+msgstr "Allow MCP connections"
+
 #: src/pages/SetupWizard.tsx:583
 #~ msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 #~ msgstr "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
@@ -3298,6 +3350,10 @@ msgstr "An API call can choose another sender with email_options.sender_id. A tr
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "An API call can set email_options.reply_to. A translation can use another one."
 
+#: src/pages/OAuthAuthorizePage.tsx:584
+msgid "An API key already uses this name, here or in another workspace. Pick another name."
+msgstr "An API key already uses this name, here or in another workspace. Pick another name."
+
 #: src/components/contacts/sheet/describeActivity.tsx:424
 msgid "an automation"
 msgstr "an automation"
@@ -3342,6 +3398,10 @@ msgstr "An IP address and a target ID must match exactly; an actor email matches
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:394
 msgid "An open never counts. Clicks, replies, confirmations, a contact's own subscriptions and identified visits always do."
 msgstr "An open never counts. Clicks, replies, confirmations, a contact's own subscriptions and identified visits always do."
+
+#: src/components/settings/MCPSettings.tsx:317
+msgid "An owner turned off MCP for this workspace. Connected assistants get no answer until it is turned back on."
+msgstr "An owner turned off MCP for this workspace. Connected assistants get no answer until it is turned back on."
 
 #: src/components/contacts/sheet/describeActivity.tsx:398
 msgid "an unknown page"
@@ -3418,6 +3478,10 @@ msgstr "Anonymous telemetry"
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Another change to the library is running. Try again in a moment."
 
+#: src/components/settings/AIAssistantSettings.tsx:228
+msgid "Answers questions about your traffic"
+msgstr "Answers questions about your traffic"
+
 #: src/components/logs/AuditLogTab.tsx:305
 #: src/components/logs/AuditLogTab.tsx:332
 #: src/components/logs/AuditLogTab.tsx:362
@@ -3469,7 +3533,7 @@ msgstr "Any member"
 msgid "Any send"
 msgstr "Any send"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:54
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:46
 msgid "Any SMTP server, basic or OAuth2 login"
 msgstr "Any SMTP server, basic or OAuth2 login"
 
@@ -3490,7 +3554,7 @@ msgstr "anytime"
 msgid "API"
 msgstr "API"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:58
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:50
 msgid "API and secret keys"
 msgstr "API and secret keys"
 
@@ -3551,17 +3615,17 @@ msgstr "API identifier must be at most {TRANSACTIONAL_ID_MAX_LENGTH} characters 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:751
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:778
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:801
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:59
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:51
 #: src/components/settings/integrations/providerDetails.ts:34
 #: src/components/settings/integrations/providerDetails.ts:36
 #: src/components/settings/integrations/providerDetails.ts:37
 #: src/components/settings/integrations/providerDetails.ts:39
+#: src/components/settings/MCPSettings.tsx:231
 #: src/components/settings/ZapierSettings.tsx:259
+#: src/pages/OAuthAuthorizePage.tsx:478
 msgid "API key"
 msgstr "API key"
 
-#: src/components/settings/Integrations.tsx:465
-#: src/components/settings/Integrations.tsx:490
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:717
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:754
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:782
@@ -3572,7 +3636,7 @@ msgstr "API Key"
 msgid "API Key (starts with SG.)"
 msgstr "API Key (starts with SG.)"
 
-#: src/components/settings/Integrations.tsx:537
+#: src/components/settings/Integrations.tsx:349
 msgid "API key address"
 msgstr "API key address"
 
@@ -3580,11 +3644,11 @@ msgstr "API key address"
 msgid "API key created"
 msgstr "API key created"
 
-#: src/components/settings/WorkspaceMembers.tsx:361
+#: src/components/settings/WorkspaceMembers.tsx:405
 msgid "API key created successfully"
 msgstr "API key created successfully"
 
-#: src/components/settings/WorkspaceMembers.tsx:672
+#: src/components/settings/WorkspaceMembers.tsx:735
 msgid "API Key Created Successfully"
 msgstr "API Key Created Successfully"
 
@@ -3592,7 +3656,7 @@ msgstr "API Key Created Successfully"
 #~ msgid "API key name"
 #~ msgstr "API key name"
 
-#: src/components/settings/WorkspaceMembers.tsx:636
+#: src/components/settings/WorkspaceMembers.tsx:699
 msgid "API Key Name"
 msgstr "API Key Name"
 
@@ -3600,16 +3664,16 @@ msgstr "API Key Name"
 msgid "API key token"
 msgstr "API key token"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:55
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:47
 msgid "API key, US or EU"
 msgstr "API key, US or EU"
 
 #: src/components/logs/labels.ts:11
-#: src/components/settings/WorkspaceMembers.tsx:517
+#: src/components/settings/WorkspaceMembers.tsx:561
 msgid "API keys"
 msgstr "API keys"
 
-#: src/components/settings/WorkspaceMembers.tsx:679
+#: src/components/settings/WorkspaceMembers.tsx:742
 msgid "API Token"
 msgstr "API Token"
 
@@ -3618,6 +3682,11 @@ msgstr "API Token"
 #: src/components/settings/ZapierSettings.tsx:190
 msgid "API URL"
 msgstr "API URL"
+
+#: src/components/settings/MCPSettings.tsx:236
+#: src/pages/OAuthAuthorizePage.tsx:298
+msgid "Application"
+msgstr "Application"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:650
 msgid "Application (Client) ID"
@@ -3696,7 +3765,7 @@ msgstr "Are you sure you want to delete the category"
 #~ msgid "Are you sure you want to delete the invitation for {0}?"
 #~ msgstr "Are you sure you want to delete the invitation for {0}?"
 
-#: src/components/settings/WorkspaceMembers.tsx:202
+#: src/components/settings/WorkspaceMembers.tsx:219
 msgid "Are you sure you want to delete the invitation for {email}?"
 msgstr "Are you sure you want to delete the invitation for {email}?"
 
@@ -3747,11 +3816,11 @@ msgstr "Are you sure you want to publish theme v{0}? This will make it live on y
 #~ msgid "Are you sure you want to remove {0}?{1}"
 #~ msgstr "Are you sure you want to remove {0}?{1}"
 
-#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:207
 msgid "Are you sure you want to remove {email}?"
 msgstr "Are you sure you want to remove {email}?"
 
-#: src/components/settings/WorkspaceMembers.tsx:189
+#: src/components/settings/WorkspaceMembers.tsx:206
 msgid "Are you sure you want to remove {email}? This API key will be permanently deleted."
 msgstr "Are you sure you want to remove {email}? This API key will be permanently deleted."
 
@@ -3889,6 +3958,18 @@ msgstr "Asked for a sign-in code for <0>{target}</0>"
 msgid "Assets"
 msgstr "Assets"
 
+#: src/components/settings/SettingsSidebar.tsx:63
+msgid "Assistant"
+msgstr "Assistant"
+
+#: src/components/settings/MCPSettings.tsx:461
+msgid "Assistants connected through the connection page. Revoking one keeps its key; deleting the key ends all its connections."
+msgstr "Assistants connected through the connection page. Revoking one keeps its key; deleting the key ends all its connections."
+
+#: src/components/settings/MCPSettings.tsx:458
+msgid "Assistants that send the key in a header (Claude Code, Cursor) are not listed here: they use the key directly."
+msgstr "Assistants that send the key in a header (Claude Code, Cursor) are not listed here: they use the key directly."
+
 #: src/components/broadcasts/compose/SendingCard.tsx:89
 msgid "At a date and time you choose"
 msgstr "At a date and time you choose"
@@ -3989,7 +4070,7 @@ msgstr "Audit entry"
 
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
-#: src/components/settings/SettingsSidebar.tsx:60
+#: src/components/settings/SettingsSidebar.tsx:65
 #: src/components/settings/SystemSettingsDrawer.tsx:740
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
@@ -4021,7 +4102,7 @@ msgstr "Auth email"
 #~ msgid "Auth Email"
 #~ msgstr "Auth Email"
 
-#: src/components/settings/Integrations.tsx:381
+#: src/components/settings/Integrations.tsx:272
 msgid "Auth Email Hook"
 msgstr "Auth Email Hook"
 
@@ -4029,7 +4110,7 @@ msgstr "Auth Email Hook"
 #~ msgid "Auth Email Hook Secret"
 #~ msgstr "Auth Email Hook Secret"
 
-#: src/components/settings/Integrations.tsx:369
+#: src/components/settings/Integrations.tsx:257
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:604
 #: src/components/settings/integrations/providerDetails.ts:66
 msgid "Authentication"
@@ -4037,7 +4118,7 @@ msgstr "Authentication"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:90
 #: src/pages/AcceptInvitationPage.tsx:127
-#: src/pages/SignInPage.tsx:268
+#: src/pages/SignInPage.tsx:269
 msgid "Authentication code"
 msgstr "Authentication code"
 
@@ -4123,7 +4204,7 @@ msgstr "Auto-reply to an email"
 #~ msgid "Auto-send Winner"
 #~ msgstr "Auto-send Winner"
 
-#: src/components/settings/Integrations.tsx:399
+#: src/components/settings/Integrations.tsx:290
 msgid "Auto-subscribe to Lists"
 msgstr "Auto-subscribe to Lists"
 
@@ -4236,6 +4317,10 @@ msgstr "Automations write is an indirect contact read that Contacts read cannot 
 msgid "available"
 msgstr "available"
 
+#: src/components/settings/MCPSettings.tsx:366
+msgid "Available"
+msgstr "Available"
+
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
 msgstr "Available after saving"
@@ -4292,7 +4377,7 @@ msgstr "AWS account"
 msgid "AWS bills per tenant per month. Turning it on asks to confirm, then creates the tenant after saving."
 msgstr "AWS bills per tenant per month. Turning it on asks to confirm, then creates the tenant after saving."
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:53
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:45
 msgid "AWS keys, optional tenant isolation"
 msgstr "AWS keys, optional tenant isolation"
 
@@ -4434,8 +4519,6 @@ msgstr "Background type"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:113
 #: src/components/integrations/LLMIntegration.tsx:242
-#: src/components/settings/Integrations.tsx:453
-#: src/components/settings/Integrations.tsx:500
 msgid "Base URL"
 msgstr "Base URL"
 
@@ -4530,7 +4613,7 @@ msgstr "Before importing"
 msgid "Before User Created hook"
 msgstr "Before User Created hook"
 
-#: src/components/settings/Integrations.tsx:389
+#: src/components/settings/Integrations.tsx:280
 msgid "Before User Created Hook"
 msgstr "Before User Created Hook"
 
@@ -4705,12 +4788,13 @@ msgstr "Blocks"
 #: src/components/blog/CategoryDrawer.tsx:218
 #: src/components/blog/PostDrawer.tsx:836
 #: src/components/logs/labels.ts:20
+#: src/components/settings/AIAssistantSettings.tsx:215
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
 #: src/components/settings/BlogSettings.tsx:298
 #: src/components/settings/BlogSettings.tsx:312
 #: src/components/settings/permissionLabels.ts:14
-#: src/components/settings/SettingsSidebar.tsx:58
+#: src/components/settings/SettingsSidebar.tsx:61
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:245
 #: src/pages/BlogPage.tsx:89
@@ -5394,6 +5478,10 @@ msgstr "By default, Notifuse keeps a coded trace of the lists this contact unsub
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 
+#: src/components/settings/MCPSettings.tsx:326
+msgid "Calls to this workspace answer \"not found\" while the switch is off."
+msgstr "Calls to this workspace answer \"not found\" while the switch is off."
+
 #: src/pages/WebAnalyticsLivePage.tsx:207
 msgid "Campaign"
 msgstr "Campaign"
@@ -5506,20 +5594,21 @@ msgstr "Can't test in the browser"
 #: src/components/settings/DomainsSettings.tsx:140
 #: src/components/settings/DomainsSettings.tsx:443
 #: src/components/settings/EditPermissionsDrawer.tsx:129
-#: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:929
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:991
 #: src/components/settings/integrations/TestEmailModal.tsx:68
+#: src/components/settings/integrations/useIntegrationActions.ts:109
+#: src/components/settings/MCPSettings.tsx:218
 #: src/components/settings/SystemSettingsDrawer.tsx:193
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:576
 #: src/components/settings/WebhookDetail.tsx:595
 #: src/components/settings/WebhooksSettings.tsx:510
-#: src/components/settings/WorkspaceMembers.tsx:192
-#: src/components/settings/WorkspaceMembers.tsx:204
-#: src/components/settings/WorkspaceMembers.tsx:557
-#: src/components/settings/WorkspaceMembers.tsx:619
+#: src/components/settings/WorkspaceMembers.tsx:209
+#: src/components/settings/WorkspaceMembers.tsx:221
+#: src/components/settings/WorkspaceMembers.tsx:620
+#: src/components/settings/WorkspaceMembers.tsx:682
 #: src/components/templates/CreateTemplateDrawer.tsx:928
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:319
@@ -5540,6 +5629,9 @@ msgstr "Can't test in the browser"
 #: src/components/web_analytics/filters/FilterTable.tsx:356
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
+#: src/pages/OAuthAuthorizePage.tsx:512
+#: src/pages/OAuthAuthorizePage.tsx:617
+#: src/pages/OAuthAuthorizePage.tsx:749
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -5623,11 +5715,15 @@ msgstr "Cancelled the newsletter <0>{target}</0>"
 msgid "Cancelled the web analytics backfill"
 msgstr "Cancelled the web analytics backfill"
 
+#: src/pages/OAuthAuthorizePage.tsx:136
+msgid "Cancelled. Returning you to {name}…"
+msgstr "Cancelled. Returning you to {name}…"
+
 #: src/components/lists/ListDrawer.tsx:488
 msgid "Cannot be changed, used by the API and forms."
 msgstr "Cannot be changed, used by the API and forms."
 
-#: src/pages/SignInPage.tsx:274
+#: src/pages/SignInPage.tsx:275
 msgid "Cannot reach the configured API endpoint"
 msgstr "Cannot reach the configured API endpoint"
 
@@ -5841,7 +5937,7 @@ msgstr "Changed: {section}"
 msgid "Changes"
 msgstr "Changes"
 
-#: src/pages/SignInPage.tsx:285
+#: src/pages/SignInPage.tsx:286
 msgid "Changing your domain"
 msgstr "Changing your domain"
 
@@ -5904,6 +6000,10 @@ msgstr "Check the MJML hierarchy and that every tag is closed."
 #: src/components/setup/SetupRestartView.tsx:88
 msgid "Check the server logs, then reload this page. Your configuration is already saved."
 msgstr "Check the server logs, then reload this page. Your configuration is already saved."
+
+#: src/pages/OAuthAuthorizePage.tsx:210
+msgid "Check your connection, then try again."
+msgstr "Check your connection, then try again."
 
 #. placeholder {0}: listName || config.list_id
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:37
@@ -6062,9 +6162,21 @@ msgstr "City is off, so coordinates are stored at regional precision (~11 km)."
 msgid "City precision needs City on"
 msgstr "City precision needs City on"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:62
+#: src/components/settings/MCPSettings.tsx:381
+msgid "Claude Code and Cursor can still connect with the key in a header."
+msgstr "Claude Code and Cursor can still connect with the key in a header."
+
+#: src/components/settings/MCPSettings.tsx:427
+msgid "Claude Code and Cursor send the key in a header instead:"
+msgstr "Claude Code and Cursor send the key in a header instead:"
+
+#: src/components/settings/AIAssistantSettings.tsx:80
 msgid "Claude models"
 msgstr "Claude models"
+
+#: src/components/settings/MCPSettings.tsx:356
+msgid "claude.ai and ChatGPT need it."
+msgstr "claude.ai and ChatGPT need it."
 
 #: src/components/contacts/ContactsFilters.tsx:240
 #: src/components/contacts/InlineEditableField.tsx:306
@@ -6389,7 +6501,7 @@ msgstr "Clone template"
 #: src/components/logs/MessageDetail.tsx:96
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/settings/WebhookDetail.tsx:592
-#: src/components/settings/WorkspaceMembers.tsx:615
+#: src/components/settings/WorkspaceMembers.tsx:678
 #: src/components/templates/ImportErrorsModal.tsx:36
 #: src/components/transactional/ApiCommandDrawer.tsx:212
 #: src/components/updates/UpdateDrawer.tsx:31
@@ -6780,8 +6892,8 @@ msgstr "Configure a custom domain for email links, notification center, and web 
 #~ msgstr "Configure how your blog's RSS and JSON feeds are generated."
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:149
-msgid "Configure Integration"
-msgstr "Configure Integration"
+#~ msgid "Configure Integration"
+#~ msgstr "Configure Integration"
 
 #: src/components/file_manager/FileExplorer.tsx:1036
 #: src/components/file_manager/FileExplorer.tsx:1042
@@ -6806,9 +6918,7 @@ msgstr "Configure provider"
 #~ msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 #~ msgstr "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 
-#: src/components/settings/Integrations.tsx:297
-#: src/components/settings/Integrations.tsx:307
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:107
+#: src/components/settings/Integrations.tsx:211
 msgid "Configured"
 msgstr "Configured"
 
@@ -6849,10 +6959,26 @@ msgstr "Confirmed their subscription to {name}"
 msgid "Confirms an unsubscription and links to the preferences."
 msgstr "Confirms an unsubscription and links to the preferences."
 
-#: src/components/settings/Integrations.tsx:881
-#: src/components/settings/Integrations.tsx:1309
-#~ msgid "Connect"
-#~ msgstr "Connect"
+#: src/components/settings/AIAssistantSettings.tsx:333
+#: src/pages/OAuthAuthorizePage.tsx:515
+msgid "Connect"
+msgstr "Connect"
+
+#: src/pages/OAuthAuthorizePage.tsx:361
+msgid "Connect \"{name}\" to Notifuse"
+msgstr "Connect \"{name}\" to Notifuse"
+
+#: src/pages/OAuthAuthorizePage.tsx:361
+msgid "Connect {name} to Notifuse"
+msgstr "Connect {name} to Notifuse"
+
+#: src/components/ai-assistant/AIAssistantChat.tsx:149
+msgid "Connect an AI model"
+msgstr "Connect an AI model"
+
+#: src/components/settings/MCPSettings.tsx:390
+msgid "Connect an assistant"
+msgstr "Connect an assistant"
 
 #: src/components/analytics/GetStartedChecklist.tsx:136
 #: src/components/analytics/GetStartedChecklist.tsx:141
@@ -6872,18 +6998,29 @@ msgstr "Connect an S3-compatible bucket to upload images for your emails and blo
 #~ msgid "Connect Notifuse to more than 8,000 apps with Zapier"
 #~ msgstr "Connect Notifuse to more than 8,000 apps with Zapier"
 
-#: src/components/settings/Integrations.tsx:689
+#: src/components/settings/Integrations.tsx:448
 #: src/components/settings/ZapierSettings.tsx:291
 msgid "Connect Zapier"
 msgstr "Connect Zapier"
 
-#: src/components/settings/Integrations.tsx:520
-#: src/components/settings/Integrations.tsx:540
+#: src/components/settings/AIAssistantSettings.tsx:137
+#: src/components/settings/Integrations.tsx:330
+#: src/components/settings/Integrations.tsx:352
+#: src/components/settings/MCPSettings.tsx:261
 msgid "Connected"
 msgstr "Connected"
 
-#: src/components/settings/Integrations.tsx:748
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:167
+#: src/components/settings/AIAssistantSettings.tsx:205
+msgctxt "status"
+msgid "Connected"
+msgstr "Connected"
+
+#: src/components/settings/WorkspaceMembers.tsx:329
+msgid "Connected applications"
+msgstr "Connected applications"
+
+#: src/components/settings/Integrations.tsx:508
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:128
 msgid "Connected apps"
 msgstr "Connected apps"
 
@@ -6903,6 +7040,10 @@ msgstr "Connected Zapier as the integration <0>{target}</0>"
 #~ msgid "Connected Zapier with the API key <0>{target}</0>"
 #~ msgstr "Connected Zapier with the API key <0>{target}</0>"
 
+#: src/pages/OAuthAuthorizePage.tsx:136
+msgid "Connected. Returning you to {name}…"
+msgstr "Connected. Returning you to {name}…"
+
 #: src/components/settings/ZapierSettings.tsx:171
 #~ msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
 #~ msgstr "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
@@ -6921,10 +7062,22 @@ msgstr "Connection"
 msgid "Connection Details"
 msgstr "Connection Details"
 
+#: src/components/settings/MCPSettings.tsx:353
+msgid "Connection page"
+msgstr "Connection page"
+
+#: src/components/settings/MCPSettings.tsx:117
+msgid "Connection revoked"
+msgstr "Connection revoked"
+
 #: src/components/web_analytics/lib/dimensions.ts:96
 #: src/components/web_analytics/lib/filterCatalog.ts:89
 msgid "Connection Type"
 msgstr "Connection Type"
+
+#: src/components/settings/MCPSettings.tsx:452
+msgid "Connections"
+msgstr "Connections"
 
 #: src/components/settings/WebhookDetail.tsx:448
 msgid "Consecutive delivery failures: {consecutiveFailures}"
@@ -7130,6 +7283,10 @@ msgstr "Contacts who have not clicked, replied, confirmed or visited for this lo
 msgid "Contacts without recorded consent"
 msgstr "Contacts without recorded consent"
 
+#: src/components/settings/MCPSettings.tsx:493
+msgid "Contacts, lists, segments, templates, broadcasts, message history and analytics."
+msgstr "Contacts, lists, segments, templates, broadcasts, message history and analytics."
+
 #: src/components/transactional/TransactionalDetail.tsx:372
 msgid "Contacts' tracking consent still applies"
 msgstr "Contacts' tracking consent still applies"
@@ -7250,6 +7407,9 @@ msgstr "Coordinates precision"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:23
 #: src/components/logs/CodeBlock.tsx:21
+#: src/components/settings/MCPSettings.tsx:340
+#: src/components/settings/MCPSettings.tsx:432
+#: src/components/settings/MCPSettings.tsx:438
 msgid "Copied"
 msgstr "Copied"
 
@@ -7258,6 +7418,8 @@ msgstr "Copied"
 #: src/components/layout/Mono.tsx:36
 #: src/components/lists/ListDrawer.tsx:485
 #: src/components/logs/CodeBlock.tsx:33
+#: src/components/settings/MCPSettings.tsx:69
+#: src/components/settings/MCPSettings.tsx:342
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
 #: src/components/settings/ZapierSettings.tsx:260
@@ -7303,6 +7465,18 @@ msgstr "Copy link"
 #: src/components/settings/WebhookDetail.tsx:384
 msgid "Copy secret"
 msgstr "Copy secret"
+
+#: src/components/settings/MCPSettings.tsx:437
+msgid "Copy the command"
+msgstr "Copy the command"
+
+#: src/components/settings/MCPSettings.tsx:431
+msgid "Copy the configuration"
+msgstr "Copy the configuration"
+
+#: src/components/settings/MCPSettings.tsx:339
+msgid "Copy the MCP server URL"
+msgstr "Copy the MCP server URL"
 
 #: src/pages/BroadcastsPage.tsx:1846
 #~ msgid "Copy to clipboard"
@@ -7418,9 +7592,21 @@ msgstr "Could not load this report"
 msgid "Could not read the licence state"
 msgstr "Could not read the licence state"
 
+#: src/pages/OAuthAuthorizePage.tsx:289
+msgid "Couldn't cancel the request. Try again."
+msgstr "Couldn't cancel the request. Try again."
+
 #: src/components/templates/DeleteTemplateModal.tsx:57
 msgid "Couldn't check where this template is used"
 msgstr "Couldn't check where this template is used"
+
+#: src/pages/OAuthAuthorizePage.tsx:466
+msgid "Couldn't connect. Try again in a moment."
+msgstr "Couldn't connect. Try again in a moment."
+
+#: src/pages/OAuthAuthorizePage.tsx:595
+msgid "Couldn't create the key. Try again."
+msgstr "Couldn't create the key. Try again."
 
 #: src/components/blog/PostsTable.tsx:397
 #: src/components/broadcasts/CouldntLoad.tsx:8
@@ -7459,6 +7645,10 @@ msgstr "Couldn't load the automations"
 msgid "Couldn't load the broadcasts"
 msgstr "Couldn't load the broadcasts"
 
+#: src/components/settings/MCPSettings.tsx:287
+msgid "Couldn't load the connections."
+msgstr "Couldn't load the connections."
+
 #: src/components/logs/OutgoingWebhooksTab.tsx:228
 msgid "Couldn't load the deliveries"
 msgstr "Couldn't load the deliveries"
@@ -7475,7 +7665,7 @@ msgstr "Couldn't load the domains"
 msgid "Couldn't load the files"
 msgstr "Couldn't load the files"
 
-#: src/components/settings/WorkspaceMembers.tsx:495
+#: src/components/settings/WorkspaceMembers.tsx:539
 msgid "Couldn't load the members"
 msgstr "Couldn't load the members"
 
@@ -7526,6 +7716,10 @@ msgstr "Couldn't load the webhooks"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 msgid "Couldn't load this broadcast"
 msgstr "Couldn't load this broadcast"
+
+#: src/pages/OAuthAuthorizePage.tsx:207
+msgid "Couldn't load this connection request"
+msgstr "Couldn't load this connection request"
 
 #: src/pages/TemplatesPage.tsx:208
 msgid "Couldn't load this template"
@@ -7681,6 +7875,11 @@ msgstr "Create a custom report"
 msgid "Create a folder in the workspace's storage (Templates or Blog write allows it)"
 msgstr "Create a folder in the workspace's storage (Templates or Blog write allows it)"
 
+#: src/pages/OAuthAuthorizePage.tsx:390
+#: src/pages/OAuthAuthorizePage.tsx:632
+msgid "Create a key for this agent"
+msgstr "Create a key for this agent"
+
 #: src/services/api/permissions.ts:343
 msgid "Create a list"
 msgstr "Create a list"
@@ -7725,6 +7924,14 @@ msgstr "Create a transactional notification (choosing its template also needs Te
 #~ msgid "Create a Zapier API key"
 #~ msgstr "Create a Zapier API key"
 
+#: src/components/settings/MCPSettings.tsx:188
+msgid "Create an API key for Claude Code in <0>Team & API keys</0>."
+msgstr "Create an API key for Claude Code in <0>Team & API keys</0>."
+
+#: src/components/settings/MCPSettings.tsx:199
+msgid "Create an API key for Cursor in <0>Team & API keys</0>."
+msgstr "Create an API key for Cursor in <0>Team & API keys</0>."
+
 #: src/services/api/permissions.ts:746
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Create an automation, including webhook, email and list nodes"
@@ -7741,8 +7948,8 @@ msgstr "Create an SES tenant for this integration?"
 #~ msgid "Create and manage your blog content"
 #~ msgstr "Create and manage your blog content"
 
-#: src/components/settings/WorkspaceMembers.tsx:602
-#: src/components/settings/WorkspaceMembers.tsx:626
+#: src/components/settings/WorkspaceMembers.tsx:665
+#: src/components/settings/WorkspaceMembers.tsx:689
 msgid "Create API Key"
 msgstr "Create API Key"
 
@@ -7769,6 +7976,11 @@ msgstr "Create First Theme"
 #: src/components/settings/DomainsSettings.tsx:442
 msgid "Create key"
 msgstr "Create key"
+
+#: src/pages/OAuthAuthorizePage.tsx:616
+#: src/pages/OAuthAuthorizePage.tsx:757
+msgid "Create key and connect"
+msgstr "Create key and connect"
 
 #: src/components/lists/ListDrawer.tsx:582
 msgid "Create list"
@@ -7823,6 +8035,14 @@ msgstr "Create notification"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:90
 msgid "Create Notification"
 msgstr "Create Notification"
+
+#: src/pages/OAuthAuthorizePage.tsx:503
+msgid "Create one in Settings › Team & API keys. Give {name} a key of its own, with only the permissions it needs. Notifuse never shows this key to {name}."
+msgstr "Create one in Settings › Team & API keys. Give {name} a key of its own, with only the permissions it needs. Notifuse never shows this key to {name}."
+
+#: src/pages/OAuthAuthorizePage.tsx:504
+msgid "Create one in Settings › Team & API keys. The application gets this key's workspace and access. Give it a key of its own."
+msgstr "Create one in Settings › Team & API keys. The application gets this key's workspace and access. Give it a key of its own."
 
 #: src/components/blog/PostDrawer.tsx:823
 msgid "Create post"
@@ -7929,7 +8149,7 @@ msgstr "Create your first template to get started"
 #: src/components/logs/OutgoingWebhooksTab.tsx:408
 #: src/components/settings/DomainsSettings.tsx:346
 #: src/components/settings/WebhookDetail.tsx:503
-#: src/components/settings/WorkspaceMembers.tsx:304
+#: src/components/settings/WorkspaceMembers.tsx:321
 #: src/components/transactional/TransactionalDetail.tsx:431
 msgid "Created"
 msgstr "Created"
@@ -8296,7 +8516,7 @@ msgstr "Custom field label saved successfully"
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
 #: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:275
-#: src/components/settings/SettingsSidebar.tsx:57
+#: src/components/settings/SettingsSidebar.tsx:60
 msgid "Custom fields"
 msgstr "Custom fields"
 
@@ -8466,7 +8686,7 @@ msgid "Daily"
 msgstr "Daily"
 
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/SettingsSidebar.tsx:63
+#: src/components/settings/SettingsSidebar.tsx:68
 msgid "Danger zone"
 msgstr "Danger zone"
 
@@ -8503,7 +8723,7 @@ msgstr "Data feeds"
 #: src/components/segment/input.tsx:68
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:46
 #: src/components/settings/LicenseSettings.tsx:140
-#: src/components/settings/SettingsSidebar.tsx:61
+#: src/components/settings/SettingsSidebar.tsx:66
 #: src/services/api/licenseErrors.ts:54
 msgid "Data retention"
 msgstr "Data retention"
@@ -8604,7 +8824,6 @@ msgid "default"
 msgstr "default"
 
 #: src/components/integrations/LLMIntegration.tsx:259
-#: src/components/settings/Integrations.tsx:339
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:903
 #: src/components/templates/TemplateTranslationsTab.tsx:453
 msgid "Default"
@@ -8783,16 +9002,16 @@ msgstr "Delay node must have a duration greater than 0"
 #: src/components/segment/input.tsx:313
 #: src/components/settings/DomainsSettings.tsx:139
 #: src/components/settings/DomainsSettings.tsx:356
-#: src/components/settings/Integrations.tsx:271
-#: src/components/settings/Integrations.tsx:290
+#: src/components/settings/Integrations.tsx:259
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
 #: src/components/settings/integrations/EmailProviderCard.tsx:229
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:928
+#: src/components/settings/integrations/useIntegrationActions.ts:108
 #: src/components/settings/WebhookDetail.tsx:337
 #: src/components/settings/WebhookDetail.tsx:345
 #: src/components/settings/WebhookDetail.tsx:352
-#: src/components/settings/WorkspaceMembers.tsx:191
-#: src/components/settings/WorkspaceMembers.tsx:203
+#: src/components/settings/WorkspaceMembers.tsx:208
+#: src/components/settings/WorkspaceMembers.tsx:220
 #: src/components/transactional/TransactionalDetail.tsx:333
 #: src/components/transactional/TransactionalTable.tsx:306
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:84
@@ -8998,12 +9217,12 @@ msgstr "Delete folder (Read-only mode)"
 msgid "Delete header"
 msgstr "Delete header"
 
-#: src/components/settings/WorkspaceMembers.tsx:201
-#: src/components/settings/WorkspaceMembers.tsx:215
+#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:232
 msgid "Delete invitation"
 msgstr "Delete invitation"
 
-#: src/components/settings/WorkspaceMembers.tsx:220
+#: src/components/settings/WorkspaceMembers.tsx:237
 msgid "Delete key"
 msgstr "Delete key"
 
@@ -9074,7 +9293,7 @@ msgstr "Delete the key of {domain}?"
 msgid "Delete the notification?"
 msgstr "Delete the notification?"
 
-#: src/components/settings/WorkspaceMembers.tsx:186
+#: src/components/settings/WorkspaceMembers.tsx:203
 msgid "Delete this API key?"
 msgstr "Delete this API key?"
 
@@ -9082,12 +9301,13 @@ msgstr "Delete this API key?"
 msgid "Delete this condition?"
 msgstr "Delete this condition?"
 
-#: src/components/settings/Integrations.tsx:525
+#: src/components/settings/Integrations.tsx:336
 msgid "Delete this connection?"
 msgstr "Delete this connection?"
 
-#: src/components/settings/Integrations.tsx:291
+#: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:182
+#: src/components/settings/integrations/useIntegrationActions.ts:106
 msgid "Delete this integration?"
 msgstr "Delete this integration?"
 
@@ -9236,9 +9456,17 @@ msgstr "Deleted the webhook <0>{target}</0>"
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "Deleted the workspace <0>{target}</0>"
 
-#: src/components/settings/Integrations.tsx:526
+#: src/components/settings/WorkspaceMembers.tsx:565
+msgid "Deleting a key also ends the assistant connections made with it."
+msgstr "Deleting a key also ends the assistant connections made with it."
+
+#: src/components/settings/Integrations.tsx:337
 msgid "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
 msgstr "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
+
+#: src/pages/OAuthAuthorizePage.tsx:343
+msgid "Deleting the key in Notifuse ends this connection. An owner can also revoke it in Settings › AI › MCP."
+msgstr "Deleting the key in Notifuse ends this connection. An owner can also revoke it in Settings › AI › MCP."
 
 #: src/components/settings/WebhookDetail.tsx:579
 msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
@@ -9475,7 +9703,7 @@ msgid "Disable webhook"
 msgstr "Disable webhook"
 
 #: src/components/settings/BlogSettings.tsx:246
-#: src/components/settings/Integrations.tsx:408
+#: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
@@ -9531,7 +9759,7 @@ msgstr "Discard unsaved changes?"
 msgid "Discard your changes?"
 msgstr "Discard your changes?"
 
-#: src/components/settings/Integrations.tsx:524
+#: src/components/settings/Integrations.tsx:334
 msgid "Disconnect"
 msgstr "Disconnect"
 
@@ -9698,7 +9926,7 @@ msgstr "doesn't equal"
 msgid "Domain"
 msgstr "Domain"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:57
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:49
 msgid "Domain and API key, US or EU"
 msgstr "Domain and API key, US or EU"
 
@@ -9715,7 +9943,7 @@ msgid "Domain the visitor arrived from"
 msgstr "Domain the visitor arrived from"
 
 #: src/components/settings/DomainsSettings.tsx:392
-#: src/components/settings/SettingsSidebar.tsx:54
+#: src/components/settings/SettingsSidebar.tsx:57
 msgid "Domains"
 msgstr "Domains"
 
@@ -9833,11 +10061,19 @@ msgstr "Draft"
 msgid "Draft restored from local storage"
 msgstr "Draft restored from local storage"
 
+#: src/components/settings/MCPSettings.tsx:501
+msgid "Draft templates and broadcasts, update contacts and list subscriptions."
+msgstr "Draft templates and broadcasts, update contacts and list subscriptions."
+
 #: src/components/blog/PostsTable.tsx:435
 #: src/pages/AutomationsPage.tsx:140
 #: src/pages/BroadcastsPage.tsx:186
 msgid "Drafts"
 msgstr "Drafts"
+
+#: src/components/settings/AIAssistantSettings.tsx:216
+msgid "Drafts and edits posts"
+msgstr "Drafts and edits posts"
 
 #: src/components/automations/NodePalette.tsx:55
 msgid "Drag a step onto the canvas, or use + under a step."
@@ -10062,7 +10298,8 @@ msgstr "Each variation keeps its template's sender unless you choose another one
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
 #: src/components/segment/input.tsx:394
 #: src/components/segment/input.tsx:398
-#: src/components/settings/Integrations.tsx:261
+#: src/components/settings/AIAssistantSettings.tsx:91
+#: src/components/settings/Integrations.tsx:189
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
 #: src/components/templates/TemplateSettingsAside.tsx:144
@@ -10093,7 +10330,8 @@ msgstr "Edit {0} translation"
 msgid "Edit {name}"
 msgstr "Edit {name}"
 
-#: src/components/settings/Integrations.tsx:596
+#: src/components/settings/AIAssistantSettings.tsx:233
+#: src/components/settings/Integrations.tsx:396
 msgid "Edit {name} integration"
 msgstr "Edit {name} integration"
 
@@ -10217,7 +10455,7 @@ msgstr "Edit notification"
 msgid "Edit Notification"
 msgstr "Edit Notification"
 
-#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:235
 msgid "Edit permissions"
 msgstr "Edit permissions"
 
@@ -10325,7 +10563,7 @@ msgstr "Edit webhook"
 #~ msgid "Edit Webhook"
 #~ msgstr "Edit Webhook"
 
-#: src/components/settings/Integrations.tsx:689
+#: src/components/settings/Integrations.tsx:448
 msgid "Edit Zapier connection"
 msgstr "Edit Zapier connection"
 
@@ -10391,12 +10629,12 @@ msgstr "Elapsed"
 #: src/components/logs/MessagesTab.tsx:300
 #: src/components/logs/MessagesTab.tsx:485
 #: src/components/segment/segmentLabels.ts:17
-#: src/components/settings/Integrations.tsx:549
+#: src/components/settings/Integrations.tsx:361
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:312
-#: src/pages/SignInPage.tsx:319
+#: src/pages/SignInPage.tsx:313
+#: src/pages/SignInPage.tsx:320
 msgid "Email"
 msgstr "Email"
 
@@ -10409,7 +10647,7 @@ msgstr "Email"
 #~ msgid "Email (Required)"
 #~ msgstr "Email (Required)"
 
-#: src/components/settings/WorkspaceMembers.tsx:572
+#: src/components/settings/WorkspaceMembers.tsx:635
 msgid "Email address"
 msgstr "Email address"
 
@@ -10496,6 +10734,10 @@ msgstr "Email delivered: {name}"
 #: src/components/setup/setupHooks.ts:44
 msgid "Email delivery"
 msgstr "Email delivery"
+
+#: src/components/settings/AIAssistantSettings.tsx:221
+msgid "Email editor"
+msgstr "Email editor"
 
 #: src/components/contacts/sheet/describeActivity.tsx:145
 msgid "Email failed: {name}"
@@ -10592,12 +10834,12 @@ msgstr "Email Provider Required"
 #~ msgid "Email providers"
 #~ msgstr "Email providers"
 
-#: src/components/settings/Integrations.tsx:713
+#: src/components/settings/Integrations.tsx:472
 msgid "Email providers and connected services"
 msgstr "Email providers and connected services"
 
 #: src/components/settings/integrations/EmailRoles.tsx:78
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:164
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:127
 msgid "Email sending"
 msgstr "Email sending"
 
@@ -10877,7 +11119,7 @@ msgid "Enable webhook"
 msgstr "Enable webhook"
 
 #: src/components/settings/BlogSettings.tsx:241
-#: src/components/settings/Integrations.tsx:408
+#: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/SystemSettingsDrawer.tsx:490
 #: src/components/settings/SystemSettingsDrawer.tsx:575
@@ -11052,7 +11294,7 @@ msgid "Enter duration"
 msgstr "Enter duration"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:541
-#: src/components/settings/WorkspaceMembers.tsx:577
+#: src/components/settings/WorkspaceMembers.tsx:640
 msgid "Enter email address"
 msgstr "Enter email address"
 
@@ -11143,7 +11385,7 @@ msgstr "Enter the {name} subject"
 msgid "Enter the 6-digit code from your app"
 msgstr "Enter the 6-digit code from your app"
 
-#: src/pages/SignInPage.tsx:349
+#: src/pages/SignInPage.tsx:350
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Enter the 6-digit code sent to {email}"
 
@@ -11151,7 +11393,7 @@ msgstr "Enter the 6-digit code sent to {email}"
 msgid "Enter the code from your authenticator app to accept the invitation."
 msgstr "Enter the code from your authenticator app to accept the invitation."
 
-#: src/pages/SignInPage.tsx:293
+#: src/pages/SignInPage.tsx:294
 msgid "Enter the code from your authenticator app."
 msgstr "Enter the code from your authenticator app."
 
@@ -11422,6 +11664,10 @@ msgstr "Events older than this are deleted. An event that counts as activity is 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:81
 msgid "Every \"set\" operation needs a value"
 msgstr "Every \"set\" operation needs a value"
+
+#: src/components/settings/MCPSettings.tsx:393
+msgid "Every assistant needs an API key. Create one per assistant in <0>Team & API keys</0>, with only the permissions it needs."
+msgstr "Every assistant needs an API key. Create one per assistant in <0>Team & API keys</0>, with only the permissions it needs."
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:158
 msgid "Every condition and every operation has a value"
@@ -11711,7 +11957,6 @@ msgid "External ID copied"
 msgstr "External ID copied"
 
 #: src/components/integrations/LLMIntegration.tsx:265
-#: src/components/settings/Integrations.tsx:345
 msgid "Extra high"
 msgstr "Extra high"
 
@@ -11802,6 +12047,10 @@ msgstr "Failed to add to list: {0}"
 msgid "Failed to cancel broadcast"
 msgstr "Failed to cancel broadcast"
 
+#: src/components/settings/MCPSettings.tsx:110
+msgid "Failed to change MCP access"
+msgstr "Failed to change MCP access"
+
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:120
 msgid "Failed to change the sender"
 msgstr "Failed to change the sender"
@@ -11833,6 +12082,7 @@ msgstr "Failed to connect Zapier"
 #: src/components/layout/DrawerControls.tsx:88
 #: src/components/layout/Mono.tsx:24
 #: src/components/logs/CodeBlock.tsx:22
+#: src/components/settings/MCPSettings.tsx:161
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:41
 #: src/components/transactional/ApiCommandDrawer.tsx:97
@@ -11841,7 +12091,7 @@ msgstr "Failed to connect Zapier"
 msgid "Failed to copy to clipboard"
 msgstr "Failed to copy to clipboard"
 
-#: src/components/settings/WorkspaceMembers.tsx:367
+#: src/components/settings/WorkspaceMembers.tsx:411
 msgid "Failed to create API key"
 msgstr "Failed to create API key"
 
@@ -11919,11 +12169,11 @@ msgstr "Failed to delete file: "
 msgid "Failed to delete folder: "
 msgstr "Failed to delete folder: "
 
-#: src/components/settings/Integrations.tsx:137
+#: src/components/settings/integrations/useIntegrationActions.ts:100
 msgid "Failed to delete integration"
 msgstr "Failed to delete integration"
 
-#: src/components/settings/WorkspaceMembers.tsx:418
+#: src/components/settings/WorkspaceMembers.tsx:462
 msgid "Failed to delete invitation"
 msgstr "Failed to delete invitation"
 
@@ -12018,7 +12268,7 @@ msgstr "Failed to fetch data: {0}"
 msgid "Failed to fetch setup status"
 msgstr "Failed to fetch setup status"
 
-#: src/pages/WorkspaceSettingsPage.tsx:160
+#: src/pages/WorkspaceSettingsPage.tsx:164
 msgid "Failed to fetch workspace members"
 msgstr "Failed to fetch workspace members"
 
@@ -12034,7 +12284,7 @@ msgstr "Failed to import template. Please check the file format."
 msgid "Failed to install the licence key"
 msgstr "Failed to install the licence key"
 
-#: src/components/settings/WorkspaceMembers.tsx:337
+#: src/components/settings/WorkspaceMembers.tsx:381
 msgid "Failed to invite member"
 msgstr "Failed to invite member"
 
@@ -12114,7 +12364,7 @@ msgstr "Failed to register webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Failed to remove custom field label"
 
-#: src/components/settings/WorkspaceMembers.tsx:399
+#: src/components/settings/WorkspaceMembers.tsx:443
 msgid "Failed to remove member"
 msgstr "Failed to remove member"
 
@@ -12126,11 +12376,11 @@ msgstr "Failed to rename the block"
 msgid "Failed to render preview"
 msgstr "Failed to render preview"
 
-#: src/components/settings/WorkspaceMembers.tsx:451
+#: src/components/settings/WorkspaceMembers.tsx:495
 msgid "Failed to resend invitation"
 msgstr "Failed to resend invitation"
 
-#: src/pages/SignInPage.tsx:256
+#: src/pages/SignInPage.tsx:257
 msgid "Failed to resend magic code"
 msgstr "Failed to resend magic code"
 
@@ -12146,6 +12396,10 @@ msgstr "Failed to resume broadcast"
 msgid "Failed to retry the recipients"
 msgstr "Failed to retry the recipients"
 
+#: src/components/settings/MCPSettings.tsx:124
+msgid "Failed to revoke the connection"
+msgstr "Failed to revoke the connection"
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:328
 msgid "Failed to save contact"
 msgstr "Failed to save contact"
@@ -12158,7 +12412,7 @@ msgstr "Failed to save contact. Please try again."
 msgid "Failed to save field"
 msgstr "Failed to save field"
 
-#: src/components/settings/Integrations.tsx:656
+#: src/components/settings/AIAssistantSettings.tsx:283
 msgid "Failed to save Firecrawl integration"
 msgstr "Failed to save Firecrawl integration"
 
@@ -12167,7 +12421,7 @@ msgstr "Failed to save Firecrawl integration"
 msgid "Failed to save integration"
 msgstr "Failed to save integration"
 
-#: src/components/settings/Integrations.tsx:635
+#: src/components/settings/AIAssistantSettings.tsx:259
 msgid "Failed to save LLM integration"
 msgstr "Failed to save LLM integration"
 
@@ -12175,7 +12429,7 @@ msgstr "Failed to save LLM integration"
 msgid "Failed to save settings"
 msgstr "Failed to save settings"
 
-#: src/components/settings/Integrations.tsx:677
+#: src/components/settings/Integrations.tsx:435
 msgid "Failed to save Supabase integration"
 msgstr "Failed to save Supabase integration"
 
@@ -12199,7 +12453,7 @@ msgstr "Failed to save webhook subscription"
 msgid "Failed to save webhook subscription: {detail}"
 msgstr "Failed to save webhook subscription: {detail}"
 
-#: src/components/settings/Integrations.tsx:241
+#: src/components/settings/Integrations.tsx:169
 msgid "Failed to save Zapier integration"
 msgstr "Failed to save Zapier integration"
 
@@ -12220,7 +12474,7 @@ msgstr "Failed to select winner"
 msgid "Failed to send broadcast"
 msgstr "Failed to send broadcast"
 
-#: src/pages/SignInPage.tsx:124
+#: src/pages/SignInPage.tsx:125
 msgid "Failed to send magic code"
 msgstr "Failed to send magic code"
 
@@ -12239,7 +12493,7 @@ msgstr "Failed to send test webhook"
 msgid "Failed to send the broadcast back to draft"
 msgstr "Failed to send the broadcast back to draft"
 
-#: src/components/settings/Integrations.tsx:126
+#: src/components/settings/Integrations.tsx:107
 msgid "Failed to set default provider"
 msgstr "Failed to set default provider"
 
@@ -12353,7 +12607,7 @@ msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Failed to update workspace settings: {errorMessage}"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:55
-#: src/pages/SignInPage.tsx:95
+#: src/pages/SignInPage.tsx:96
 msgid "Failed to verify code"
 msgstr "Failed to verify code"
 
@@ -12617,6 +12871,10 @@ msgstr "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgid "Finer precision needs Region or City on"
 msgstr "Finer precision needs Region or City on"
 
+#: src/pages/OAuthAuthorizePage.tsx:147
+msgid "Finish connecting in the browser you started in"
+msgstr "Finish connecting in the browser you started in"
+
 #: src/components/settings/data_retention/categoryText.ts:22
 msgid "Finished journeys older than this are deleted. Contacts are never enrolled twice in a one-time automation."
 msgstr "Finished journeys older than this are deleted. Contacts are never enrolled twice in a one-time automation."
@@ -12629,7 +12887,7 @@ msgstr "Fire a test data-feed request for a named recipient"
 msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 msgstr "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 
-#: src/components/settings/Integrations.tsx:655
+#: src/components/settings/AIAssistantSettings.tsx:282
 msgid "Firecrawl integration saved successfully"
 msgstr "Firecrawl integration saved successfully"
 
@@ -13017,7 +13275,7 @@ msgstr "From tomorrow"
 #~ msgid "From:"
 #~ msgstr "From:"
 
-#: src/components/settings/WorkspaceMembers.tsx:95
+#: src/components/settings/WorkspaceMembers.tsx:98
 msgid "Full access"
 msgstr "Full access"
 
@@ -13091,7 +13349,7 @@ msgstr "Gallery · {languages}"
 msgid "gap {gutter}"
 msgstr "gap {gutter}"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:64
+#: src/components/settings/AIAssistantSettings.tsx:82
 msgid "Gemini models"
 msgstr "Gemini models"
 
@@ -13112,7 +13370,7 @@ msgid "gemini-4-argon or a custom model ID"
 msgstr "gemini-4-argon or a custom model ID"
 
 #: src/components/settings/GeneralSettings.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:51
+#: src/components/settings/SettingsSidebar.tsx:54
 #: src/components/settings/SystemSettingsDrawer.tsx:277
 msgid "General"
 msgstr "General"
@@ -13187,6 +13445,14 @@ msgstr "Geography"
 msgid "Get started"
 msgstr "Get started"
 
+#: src/pages/OAuthAuthorizePage.tsx:614
+msgid "Give {name} full access?"
+msgstr "Give {name} full access?"
+
+#: src/components/settings/WorkspaceMembers.tsx:586
+msgid "Give each AI assistant its own key, so you can tell its actions apart and revoke it alone."
+msgstr "Give each AI assistant its own key, so you can tell its actions apart and revoke it alone."
+
 #: src/components/analytics/GetStartedChecklist.tsx:147
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "Give the provider a default From address, and use it for both marketing and transactional emails."
@@ -13227,6 +13493,19 @@ msgstr "Global Feed Response"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:423
 #~ msgid "Global feed URL is required when enabled"
 #~ msgstr "Global feed URL is required when enabled"
+
+#: src/pages/OAuthAuthorizePage.tsx:151
+msgid "Go back to {name} and connect again from this browser."
+msgstr "Go back to {name} and connect again from this browser."
+
+#: src/pages/OAuthAuthorizePage.tsx:162
+#: src/pages/OAuthAuthorizePage.tsx:178
+msgid "Go back to {name} and connect again."
+msgstr "Go back to {name} and connect again."
+
+#: src/pages/OAuthAuthorizePage.tsx:185
+msgid "Go back to your application and connect again."
+msgstr "Go back to your application and connect again."
 
 #: src/components/setup/SetupRestartView.tsx:106
 msgid "Go to sign in"
@@ -13622,7 +13901,6 @@ msgid "Hide done steps"
 msgstr "Hide done steps"
 
 #: src/components/integrations/LLMIntegration.tsx:264
-#: src/components/settings/Integrations.tsx:344
 msgid "High"
 msgstr "High"
 
@@ -14291,6 +14569,18 @@ msgstr "In a row"
 msgid "In any of: {segmentNames}"
 msgstr "In any of: {segmentNames}"
 
+#: src/components/settings/MCPSettings.tsx:181
+msgid "In ChatGPT, open the connector settings and create a connector."
+msgstr "In ChatGPT, open the connector settings and create a connector."
+
+#: src/components/settings/MCPSettings.tsx:194
+msgid "In Claude Code, run <0>/mcp</0> to check that notifuse is connected."
+msgstr "In Claude Code, run <0>/mcp</0> to check that notifuse is connected."
+
+#: src/components/settings/MCPSettings.tsx:174
+msgid "In claude.ai, open the connector settings and add a custom connector."
+msgstr "In claude.ai, open the connector settings and add a custom connector."
+
 #: src/components/segment/segmentLabels.ts:313
 msgid "in date range"
 msgstr "in date range"
@@ -14319,6 +14609,10 @@ msgstr "In progress"
 #: src/pages/BroadcastsPage.tsx:1182
 #~ msgid "in recipients timezone"
 #~ msgstr "in recipients timezone"
+
+#: src/components/settings/MCPSettings.tsx:206
+msgid "In the Cursor settings, check that notifuse is listed under MCP."
+msgstr "In the Cursor settings, check that notifuse is listed under MCP."
 
 #: src/components/settings/BlogSettings.tsx:395
 msgid "In the header. Without one, the workspace logo"
@@ -14535,7 +14829,7 @@ msgstr "Integration"
 msgid "Integration created successfully"
 msgstr "Integration created successfully"
 
-#: src/components/settings/Integrations.tsx:134
+#: src/components/settings/integrations/useIntegrationActions.ts:97
 msgid "Integration deleted successfully"
 msgstr "Integration deleted successfully"
 
@@ -14554,7 +14848,7 @@ msgstr "Integration ID"
 #~ msgid "Integration Name"
 #~ msgstr "Integration Name"
 
-#: src/components/settings/Integrations.tsx:144
+#: src/components/settings/Integrations.tsx:114
 msgid "Integration not found or not an email provider"
 msgstr "Integration not found or not an email provider"
 
@@ -14563,9 +14857,9 @@ msgid "Integration updated successfully"
 msgstr "Integration updated successfully"
 
 #: src/components/logs/labels.ts:12
-#: src/components/settings/Integrations.tsx:712
-#: src/components/settings/integrations/IntegrationDrawer.tsx:25
-#: src/components/settings/SettingsSidebar.tsx:53
+#: src/components/settings/Integrations.tsx:471
+#: src/components/settings/integrations/IntegrationDrawer.tsx:27
+#: src/components/settings/SettingsSidebar.tsx:56
 msgid "Integrations"
 msgstr "Integrations"
 
@@ -14669,15 +14963,15 @@ msgstr "Invalid YouTube URL"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitation accepted successfully! Welcome to the workspace."
 
-#: src/components/settings/WorkspaceMembers.tsx:414
+#: src/components/settings/WorkspaceMembers.tsx:458
 msgid "Invitation deleted successfully"
 msgstr "Invitation deleted successfully"
 
-#: src/components/settings/WorkspaceMembers.tsx:237
+#: src/components/settings/WorkspaceMembers.tsx:254
 msgid "Invitation expired"
 msgstr "Invitation expired"
 
-#: src/components/settings/WorkspaceMembers.tsx:444
+#: src/components/settings/WorkspaceMembers.tsx:488
 msgid "Invitation resent to {email}"
 msgstr "Invitation resent to {email}"
 
@@ -14685,19 +14979,19 @@ msgstr "Invitation resent to {email}"
 #~ msgid "Invitation sent"
 #~ msgstr "Invitation sent"
 
-#: src/components/settings/WorkspaceMembers.tsx:241
+#: src/components/settings/WorkspaceMembers.tsx:258
 msgid "Invitation sent {sent}, {expires}"
 msgstr "Invitation sent {sent}, {expires}"
 
-#: src/components/settings/WorkspaceMembers.tsx:327
+#: src/components/settings/WorkspaceMembers.tsx:371
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitation sent to {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:487
+#: src/components/settings/WorkspaceMembers.tsx:531
 msgid "Invite"
 msgstr "Invite"
 
-#: src/components/settings/WorkspaceMembers.tsx:548
+#: src/components/settings/WorkspaceMembers.tsx:611
 msgid "Invite member"
 msgstr "Invite member"
 
@@ -14844,6 +15138,14 @@ msgstr "It goes live on your blog; the currently published theme will be unpubli
 msgid "It is generated from the HTML at every send, so there is nothing to maintain. Its links are the links of the HTML, tracked the same way."
 msgstr "It is generated from the HTML at every send, so there is nothing to maintain. Its links are the links of the HTML, tracked the same way."
 
+#: src/pages/OAuthAuthorizePage.tsx:176
+msgid "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with {name}."
+msgstr "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with {name}."
+
+#: src/pages/OAuthAuthorizePage.tsx:183
+msgid "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with the application."
+msgstr "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with the application."
+
 #: src/components/broadcasts/useBroadcastActions.tsx:135
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
@@ -14897,7 +15199,7 @@ msgstr "Italic"
 #~ msgid "Items per feed"
 #~ msgstr "Items per feed"
 
-#: src/components/settings/Integrations.tsx:374
+#: src/components/settings/Integrations.tsx:264
 msgid "Its 6 templates and 6 transactional notifications are deleted with it, and Supabase's hooks stop working. This cannot be undone."
 msgstr "Its 6 templates and 6 transactional notifications are deleted with it, and Supabase's hooks stop working. This cannot be undone."
 
@@ -14942,7 +15244,7 @@ msgstr "Join"
 #~ msgstr "joined"
 
 #: src/components/automations/describeTrigger.ts:48
-#: src/components/settings/WorkspaceMembers.tsx:273
+#: src/components/settings/WorkspaceMembers.tsx:290
 msgid "Joined"
 msgstr "Joined"
 
@@ -15080,6 +15382,10 @@ msgstr "Key copied"
 #: src/components/settings/DomainsSettings.tsx:68
 #~ msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
 #~ msgstr "Key created for {createdDomain}. Publish its DNS record to start signing."
+
+#: src/pages/OAuthAuthorizePage.tsx:707
+msgid "Key name"
+msgstr "Key name"
 
 #: src/components/settings/DomainsSettings.tsx:146
 msgid "Key of {domain} deleted"
@@ -15291,6 +15597,10 @@ msgstr "Last success"
 msgid "Last updated first"
 msgstr "Last updated first"
 
+#: src/components/settings/MCPSettings.tsx:266
+msgid "Last used"
+msgstr "Last used"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:368
 msgid "Latitude and longitude, rounded: lower is more private"
 msgstr "Latitude and longitude, rounded: lower is more private"
@@ -15426,6 +15736,14 @@ msgstr "less than"
 msgid "less than or equal to"
 msgstr "less than or equal to"
 
+#: src/components/settings/MCPSettings.tsx:136
+msgid "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol."
+msgstr "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol."
+
+#: src/components/settings/MCPSettings.tsx:294
+msgid "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol. Each assistant connects with an API key and gets exactly that key's access."
+msgstr "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol. Each assistant connects with an API key and gets exactly that key's access."
+
 #: src/pages/SetupWizard.tsx:688
 #~ msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 #~ msgstr "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
@@ -15435,8 +15753,8 @@ msgid "Let's take a quick tour to help you get started with building beautiful e
 msgstr "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:104
-msgid "Lets the assistant read web pages and search"
-msgstr "Lets the assistant read web pages and search"
+#~ msgid "Lets the assistant read web pages and search"
+#~ msgstr "Lets the assistant read web pages and search"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:265
 msgid "Letter spacing"
@@ -15465,7 +15783,7 @@ msgstr "Library"
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:66
 #: src/components/settings/LicenseSettings.tsx:163
-#: src/components/settings/SettingsSidebar.tsx:62
+#: src/components/settings/SettingsSidebar.tsx:67
 msgid "Licence"
 msgstr "Licence"
 
@@ -15962,7 +16280,7 @@ msgstr "Live"
 msgid "LLM"
 msgstr "LLM"
 
-#: src/components/settings/Integrations.tsx:634
+#: src/components/settings/AIAssistantSettings.tsx:258
 msgid "LLM integration saved successfully"
 msgstr "LLM integration saved successfully"
 
@@ -16052,7 +16370,7 @@ msgstr "Loading template..."
 #: src/components/blog_editor/NotifuseEditor.tsx:490
 #: src/components/templates/CreateTemplateDrawer.tsx:1013
 #: src/components/templates/TemplateSelectorInput.tsx:162
-#: src/layouts/RootLayout.tsx:124
+#: src/layouts/RootLayout.tsx:128
 #: src/pages/ContactsPage.tsx:462
 msgid "Loading..."
 msgstr "Loading..."
@@ -16126,7 +16444,6 @@ msgid "Lost your phone and your recovery codes? Your Notifuse administrator can 
 msgstr "Lost your phone and your recovery codes? Your Notifuse administrator can reset two-factor authentication for your account."
 
 #: src/components/integrations/LLMIntegration.tsx:262
-#: src/components/settings/Integrations.tsx:342
 msgid "Low"
 msgstr "Low"
 
@@ -16159,7 +16476,7 @@ msgstr "Lumen"
 msgid "Magenta"
 msgstr "Magenta"
 
-#: src/pages/SignInPage.tsx:122
+#: src/pages/SignInPage.tsx:123
 msgid "Magic code sent to your email"
 msgstr "Magic code sent to your email"
 
@@ -16230,6 +16547,10 @@ msgstr "Makes the wrapper span the entire email viewport width, ignoring contain
 #: src/components/contacts/sheet/ContactProfileFields.tsx:162
 msgid "Manage"
 msgstr "Manage"
+
+#: src/components/settings/WorkspaceMembers.tsx:571
+msgid "Manage connections"
+msgstr "Manage connections"
 
 #: src/components/contacts/ContactsViewHeader.tsx:102
 msgid "Manage custom fields"
@@ -16428,6 +16749,48 @@ msgstr "Maximum range is 2 years"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "Maximum range is 2 years. Dates are read in {timezone}."
 
+#: src/components/settings/MCPSettings.tsx:135
+#: src/components/settings/MCPSettings.tsx:293
+#: src/components/settings/SettingsSidebar.tsx:64
+msgid "MCP"
+msgstr "MCP"
+
+#: src/components/settings/MCPSettings.tsx:144
+msgid "MCP is not available on the demo."
+msgstr "MCP is not available on the demo."
+
+#: src/pages/OAuthAuthorizePage.tsx:197
+msgid "MCP is not available on this server"
+msgstr "MCP is not available on this server"
+
+#: src/pages/OAuthAuthorizePage.tsx:462
+msgid "MCP is switched off in this key's workspace. An owner can switch it on in Settings › AI › MCP."
+msgstr "MCP is switched off in this key's workspace. An owner can switch it on in Settings › AI › MCP."
+
+#: src/pages/OAuthAuthorizePage.tsx:587
+msgid "MCP is switched off in this workspace. Switch it on in Settings › AI › MCP, or pick another workspace."
+msgstr "MCP is switched off in this workspace. Switch it on in Settings › AI › MCP, or pick another workspace."
+
+#: src/components/settings/MCPSettings.tsx:146
+msgid "MCP is turned off on this instance. The administrator enables it with <0>MCP_ENABLED=true</0>."
+msgstr "MCP is turned off on this instance. The administrator enables it with <0>MCP_ENABLED=true</0>."
+
+#: src/pages/OAuthAuthorizePage.tsx:697
+msgid "MCP off"
+msgstr "MCP off"
+
+#: src/components/settings/MCPSettings.tsx:322
+msgid "MCP server URL"
+msgstr "MCP server URL"
+
+#: src/components/settings/MCPSettings.tsx:106
+msgid "MCP turned off for this workspace"
+msgstr "MCP turned off for this workspace"
+
+#: src/components/settings/MCPSettings.tsx:106
+msgid "MCP turned on for this workspace"
+msgstr "MCP turned on for this workspace"
+
 #: src/components/logs/AuditLogTab.tsx:189
 msgid "Me"
 msgstr "Me"
@@ -16488,7 +16851,6 @@ msgid "Median Value"
 msgstr "Median Value"
 
 #: src/components/integrations/LLMIntegration.tsx:263
-#: src/components/settings/Integrations.tsx:343
 msgid "Medium"
 msgstr "Medium"
 
@@ -16498,17 +16860,17 @@ msgid "Mediums"
 msgstr "Mediums"
 
 #: src/components/logs/auditDisplay.ts:20
-#: src/components/settings/WorkspaceMembers.tsx:246
+#: src/components/settings/WorkspaceMembers.tsx:263
 #: src/layouts/app-shell/AccountMenu.tsx:80
 msgid "Member"
 msgstr "Member"
 
-#: src/components/settings/WorkspaceMembers.tsx:395
+#: src/components/settings/WorkspaceMembers.tsx:439
 msgid "Member removed successfully"
 msgstr "Member removed successfully"
 
 #: src/components/logs/labels.ts:10
-#: src/components/settings/WorkspaceMembers.tsx:478
+#: src/components/settings/WorkspaceMembers.tsx:522
 msgid "Members"
 msgstr "Members"
 
@@ -16632,7 +16994,6 @@ msgid "Min. sessions: {minSessions}"
 msgstr "Min. sessions: {minSessions}"
 
 #: src/components/integrations/LLMIntegration.tsx:261
-#: src/components/settings/Integrations.tsx:341
 msgid "Minimal"
 msgstr "Minimal"
 
@@ -16774,7 +17135,7 @@ msgstr "Mobile view (400px)"
 #: src/components/integrations/LLMIntegration.tsx:219
 #: src/components/integrations/LLMIntegration.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:275
-#: src/components/settings/Integrations.tsx:451
+#: src/components/settings/AIAssistantSettings.tsx:128
 msgid "Model"
 msgstr "Model"
 
@@ -16837,7 +17198,7 @@ msgstr "months"
 #: src/components/contacts/ContactsViewHeader.tsx:134
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
 #: src/components/file_manager/FileExplorer.tsx:1129
-#: src/components/settings/Integrations.tsx:282
+#: src/components/settings/Integrations.tsx:202
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:348
@@ -16927,6 +17288,7 @@ msgstr "N/A"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:404
+#: src/components/settings/AIAssistantSettings.tsx:102
 #: src/components/settings/DomainsSettings.tsx:332
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
@@ -16934,7 +17296,7 @@ msgstr "N/A"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:871
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1009
 #: src/components/settings/WebhooksSettings.tsx:531
-#: src/components/settings/WorkspaceMembers.tsx:293
+#: src/components/settings/WorkspaceMembers.tsx:310
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:204
@@ -17043,6 +17405,7 @@ msgid "Network"
 msgstr "Network"
 
 #: src/components/settings/DomainsSettings.tsx:207
+#: src/components/settings/MCPSettings.tsx:268
 msgid "Never"
 msgstr "Never"
 
@@ -17118,7 +17481,7 @@ msgstr "New folder"
 msgid "New folder (Read-only mode)"
 msgstr "New folder (Read-only mode)"
 
-#: src/components/settings/WorkspaceMembers.tsx:521
+#: src/components/settings/WorkspaceMembers.tsx:579
 msgid "New key"
 msgstr "New key"
 
@@ -17131,7 +17494,7 @@ msgstr "New key"
 msgid "New list"
 msgstr "New list"
 
-#: src/pages/SignInPage.tsx:254
+#: src/pages/SignInPage.tsx:255
 msgid "New magic code sent to your email"
 msgstr "New magic code sent to your email"
 
@@ -17295,7 +17658,7 @@ msgstr "No"
 msgid "No {0} content to preview"
 msgstr "No {0} content to preview"
 
-#: src/components/settings/WorkspaceMembers.tsx:89
+#: src/components/settings/WorkspaceMembers.tsx:92
 msgid "No access"
 msgstr "No access"
 
@@ -17320,12 +17683,11 @@ msgstr "No annotations yet"
 msgid "No answer was returned. Please try again."
 msgstr "No answer was returned. Please try again."
 
-#: src/components/settings/Integrations.tsx:309
-#: src/components/settings/Integrations.tsx:313
+#: src/components/settings/AIAssistantSettings.tsx:85
 msgid "No API key"
 msgstr "No API key"
 
-#: src/components/settings/WorkspaceMembers.tsx:532
+#: src/components/settings/WorkspaceMembers.tsx:595
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "No API keys yet. Create one to call the API or connect Zapier."
 
@@ -17414,6 +17776,10 @@ msgstr "No comparison"
 #: src/components/automations/nodes/FilterNode.tsx:45
 msgid "No conditions"
 msgstr "No conditions"
+
+#: src/components/settings/MCPSettings.tsx:475
+msgid "No connections yet"
+msgstr "No connections yet"
 
 #: src/components/segment/form_leaf.tsx:894
 msgid "No contact is deleted as inactive in this workspace: until a period is set in Settings > Data retention, this condition matches nobody."
@@ -17539,7 +17905,7 @@ msgstr "no email address"
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "No email integrations available. Please configure one in Settings."
 
-#: src/components/settings/Integrations.tsx:726
+#: src/components/settings/Integrations.tsx:485
 #: src/components/settings/integrations/EmailRoles.tsx:71
 msgid "No email provider yet"
 msgstr "No email provider yet"
@@ -17699,7 +18065,7 @@ msgstr "No marketing email provider"
 msgid "No match"
 msgstr "No match"
 
-#: src/components/settings/WorkspaceMembers.tsx:510
+#: src/components/settings/WorkspaceMembers.tsx:554
 msgid "No members found"
 msgstr "No members found"
 
@@ -17727,6 +18093,10 @@ msgstr "No meta title"
 msgid "No MJML content to export"
 msgstr "No MJML content to export"
 
+#: src/components/settings/AIAssistantSettings.tsx:317
+msgid "No model yet"
+msgstr "No model yet"
+
 #: src/components/blog/AuthorsField.tsx:137
 msgid "No name"
 msgstr "No name"
@@ -17747,7 +18117,7 @@ msgstr "No notifications match"
 #~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 #~ msgstr "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 
-#: src/pages/SignInPage.tsx:148
+#: src/pages/SignInPage.tsx:149
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 
@@ -18088,6 +18458,10 @@ msgstr "No webhooks yet"
 msgid "No workspaces"
 msgstr "No workspaces"
 
+#: src/pages/OAuthAuthorizePage.tsx:634
+msgid "Nobody sees this key. It serves only this connection, and you can delete it later in Team & API keys."
+msgstr "Nobody sees this key. It serves only this connection, and you can delete it later in Team & API keys."
+
 #: src/components/automations/NodePalette.tsx:21
 #~ msgid "Nodes"
 #~ msgstr "Nodes"
@@ -18114,9 +18488,13 @@ msgstr "none"
 #: src/components/email_builder/ui/fields/ColorField.tsx:93
 #: src/components/integrations/LLMIntegration.tsx:260
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:388
-#: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
+msgid "None"
+msgstr "None"
+
+#: src/components/settings/WorkspaceMembers.tsx:335
+msgctxt "connected applications"
 msgid "None"
 msgstr "None"
 
@@ -18185,12 +18563,13 @@ msgid "Not clicked"
 msgstr "Not clicked"
 
 #: src/components/analytics/SendingCard.tsx:82
-#: src/components/settings/Integrations.tsx:334
-#: src/components/settings/Integrations.tsx:451
+#: src/components/settings/AIAssistantSettings.tsx:132
+#: src/components/settings/Integrations.tsx:232
 msgid "Not configured"
 msgstr "Not configured"
 
 #: src/components/automations/nodes/BaseNode.tsx:49
+#: src/components/settings/AIAssistantSettings.tsx:200
 msgid "Not connected"
 msgstr "Not connected"
 
@@ -18407,6 +18786,10 @@ msgstr "Nothing in this period"
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 
+#: src/pages/OAuthAuthorizePage.tsx:198
+msgid "Nothing was shared with the application. The server's administrator can turn it on."
+msgstr "Nothing was shared with the application. The server's administrator can turn it on."
+
 #: src/components/templates/TemplateSelectorModal.tsx:708
 #: src/components/transactional/TransactionalTable.tsx:155
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:391
@@ -18454,9 +18837,17 @@ msgstr "Notifuse adds a DKIM signature to the emails your SMTP integrations send
 msgid "Notifuse creates the key. You publish one DNS record."
 msgstr "Notifuse creates the key. You publish one DNS record."
 
+#: src/pages/OAuthAuthorizePage.tsx:160
+msgid "Notifuse did not open the application's address"
+msgstr "Notifuse did not open the application's address"
+
 #: src/components/settings/WebhookDetail.tsx:443
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse disabled this webhook automatically"
+
+#: src/pages/OAuthAuthorizePage.tsx:335
+msgid "Notifuse does not know this application. Its name was chosen by whoever published it, at the address below."
+msgstr "Notifuse does not know this application. Its name was chosen by whoever published it, at the address below."
 
 #: src/pages/TemplatesPage.tsx:584
 msgid "Notifuse export (.json)"
@@ -18473,6 +18864,14 @@ msgstr "Notifuse is ready"
 #: src/components/segment/form_leaf.tsx:890
 msgid "Notifuse is still reading past activity from history: until it finishes, this condition matches nobody."
 msgstr "Notifuse is still reading past activity from history: until it finishes, this condition matches nobody."
+
+#: src/components/settings/MCPSettings.tsx:185
+msgid "Notifuse opens and asks for an API key. Paste the key you created for ChatGPT."
+msgstr "Notifuse opens and asks for an API key. Paste the key you created for ChatGPT."
+
+#: src/components/settings/MCPSettings.tsx:178
+msgid "Notifuse opens and asks for an API key. Paste the key you created for Claude."
+msgstr "Notifuse opens and asks for an API key. Paste the key you created for Claude."
 
 #: src/components/two_factor/RecoveryCodesList.tsx:25
 msgid "Notifuse recovery codes"
@@ -18655,6 +19054,7 @@ msgstr "off"
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:139
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:94
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/settings/MCPSettings.tsx:309
 #: src/components/setup/setupHooks.ts:54
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
@@ -18689,6 +19089,7 @@ msgstr "on"
 
 #: src/components/settings/BlogSettings.tsx:317
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/settings/MCPSettings.tsx:309
 #: src/components/setup/setupHooks.ts:64
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/two_factor/AccountSecurityPanel.tsx:161
@@ -18779,6 +19180,10 @@ msgstr "Only an instance administrator can view or install the licence key."
 msgid "Only an owner can change the storage settings"
 msgstr "Only an owner can change the storage settings"
 
+#: src/components/settings/MCPSettings.tsx:165
+msgid "Only an owner can change this."
+msgstr "Only an owner can change this."
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:186
 #~ msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks are still included in the Clicks total above."
 #~ msgstr "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks are still included in the Clicks total above."
@@ -18823,6 +19228,10 @@ msgstr "Only lowercase alphanumeric characters, underscore, and dash are allowed
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:52
 msgid "Only one breakpoint per email template is allowed"
 msgstr "Only one breakpoint per email template is allowed"
+
+#: src/components/settings/MCPSettings.tsx:286
+msgid "Only owners can see the connections."
+msgstr "Only owners can see the connections."
 
 #: src/components/settings/EditPermissionsDrawer.tsx:36
 msgid "Only the root account sees this. Use it when {memberEmail} has lost both their phone and their recovery codes."
@@ -19203,6 +19612,10 @@ msgstr "Optional"
 msgid "Optional bearer token"
 msgstr "Optional bearer token"
 
+#: src/components/settings/AIAssistantSettings.tsx:326
+msgid "Optional: lets the assistant read a web page you give it and search the web."
+msgstr "Optional: lets the assistant read a web page you give it and search the web."
+
 #: src/components/integrations/LLMIntegration.tsx:224
 #~ msgid "Optional. Controls how much reasoning models think. Leave as Default for non-reasoning models; some providers ignore it."
 #~ msgstr "Optional. Controls how much reasoning models think. Leave as Default for non-reasoning models; some providers ignore it."
@@ -19239,7 +19652,7 @@ msgstr "Options"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:247
-#: src/pages/SignInPage.tsx:330
+#: src/pages/SignInPage.tsx:331
 msgid "or"
 msgstr "or"
 
@@ -19247,7 +19660,7 @@ msgstr "or"
 msgid "OR"
 msgstr "OR"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:63
+#: src/components/settings/AIAssistantSettings.tsx:81
 msgid "Or any OpenAI-compatible endpoint"
 msgstr "Or any OpenAI-compatible endpoint"
 
@@ -19358,10 +19771,19 @@ msgstr "Override the workspace default email provider for this node"
 msgid "Overwrite with mine"
 msgstr "Overwrite with mine"
 
-#: src/components/settings/WorkspaceMembers.tsx:81
+#: src/components/settings/WorkspaceMembers.tsx:84
 #: src/layouts/app-shell/AccountMenu.tsx:78
+#: src/pages/OAuthAuthorizePage.tsx:326
 msgid "Owner"
 msgstr "Owner"
+
+#: src/pages/OAuthAuthorizePage.tsx:394
+msgid "Owner? Sign in to create a key here"
+msgstr "Owner? Sign in to create a key here"
+
+#: src/components/settings/MCPSettings.tsx:454
+msgid "Owners"
+msgstr "Owners"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:107
@@ -19526,9 +19948,23 @@ msgstr "Past activity has been read from history: contacts can be deleted as ina
 msgid "Past sessions"
 msgstr "Past sessions"
 
+#: src/components/settings/MCPSettings.tsx:182
+msgid "Paste <0>{url}</0> as its URL and choose OAuth as its authentication."
+msgstr "Paste <0>{url}</0> as its URL and choose OAuth as its authentication."
+
+#: src/components/settings/MCPSettings.tsx:175
+msgid "Paste <0>{url}</0> as its URL and select <1>Connect</1>."
+msgstr "Paste <0>{url}</0> as its URL and select <1>Connect</1>."
+
 #: src/components/settings/LicenseSettings.tsx:80
 #~ msgid "Paste a licence key first"
 #~ msgstr "Paste a licence key first"
+
+#: src/pages/OAuthAuthorizePage.tsx:624
+#: src/pages/OAuthAuthorizePage.tsx:648
+#: src/pages/OAuthAuthorizePage.tsx:667
+msgid "Paste an existing key"
+msgstr "Paste an existing key"
 
 #: src/components/integrations/SupabaseIntegration.tsx:191
 #: src/components/integrations/SupabaseIntegration.tsx:210
@@ -19680,7 +20116,7 @@ msgstr "Peak on {0}"
 #: src/components/contacts/contactDisplay.ts:36
 #: src/components/lists/ListHeader.tsx:39
 #: src/components/logs/labels.ts:38
-#: src/components/settings/WorkspaceMembers.tsx:85
+#: src/components/settings/WorkspaceMembers.tsx:88
 msgid "Pending"
 msgstr "Pending"
 
@@ -19767,7 +20203,7 @@ msgstr "Periods"
 msgid "Permanently delete any contact"
 msgstr "Permanently delete any contact"
 
-#: src/components/settings/WorkspaceMembers.tsx:64
+#: src/components/settings/WorkspaceMembers.tsx:67
 msgid "Permission details"
 msgstr "Permission details"
 
@@ -19777,8 +20213,9 @@ msgstr "Permission details"
 #~ msgid "Permission Details"
 #~ msgstr "Permission Details"
 
-#: src/components/settings/WorkspaceMembers.tsx:583
-#: src/components/settings/WorkspaceMembers.tsx:653
+#: src/components/settings/WorkspaceMembers.tsx:646
+#: src/components/settings/WorkspaceMembers.tsx:716
+#: src/pages/OAuthAuthorizePage.tsx:725
 msgid "Permissions"
 msgstr "Permissions"
 
@@ -19843,6 +20280,10 @@ msgctxt "newsletter status"
 msgid "Pick a winner"
 msgstr "Pick a winner"
 
+#: src/pages/OAuthAuthorizePage.tsx:690
+msgid "Pick a workspace"
+msgstr "Pick a workspace"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:463
 msgid "Pick an action and a file to see what will change."
 msgstr "Pick an action and a file to see what will change."
@@ -19902,7 +20343,7 @@ msgstr "Plain text (only safe behind a TLS-terminating proxy)"
 msgid "Plan"
 msgstr "Plan"
 
-#: src/components/settings/WorkspaceMembers.tsx:260
+#: src/components/settings/WorkspaceMembers.tsx:277
 msgid "Platform admin"
 msgstr "Platform admin"
 
@@ -20019,7 +20460,7 @@ msgstr "Please enter a URL"
 #: src/components/two_factor/ProofModal.tsx:93
 #: src/components/two_factor/SetupWizard.tsx:216
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:93
-#: src/pages/SignInPage.tsx:357
+#: src/pages/SignInPage.tsx:358
 msgid "Please enter a valid 6-digit code!"
 msgstr "Please enter a valid 6-digit code!"
 
@@ -20028,7 +20469,7 @@ msgstr "Please enter a valid 6-digit code!"
 msgid "Please enter a valid email"
 msgstr "Please enter a valid email"
 
-#: src/pages/SignInPage.tsx:316
+#: src/pages/SignInPage.tsx:317
 msgid "Please enter a valid email!"
 msgstr "Please enter a valid email!"
 
@@ -20060,8 +20501,9 @@ msgstr "Please enter a workspace name"
 msgid "Please enter an API identifier"
 msgstr "Please enter an API identifier"
 
-#: src/components/settings/WorkspaceMembers.tsx:348
-#: src/components/settings/WorkspaceMembers.tsx:638
+#: src/components/settings/WorkspaceMembers.tsx:392
+#: src/components/settings/WorkspaceMembers.tsx:701
+#: src/pages/OAuthAuthorizePage.tsx:563
 msgid "Please enter an API key name"
 msgstr "Please enter an API key name"
 
@@ -20070,8 +20512,8 @@ msgstr "Please enter an API key name"
 msgid "Please enter an automation name"
 msgstr "Please enter an automation name"
 
-#: src/components/settings/WorkspaceMembers.tsx:314
-#: src/components/settings/WorkspaceMembers.tsx:574
+#: src/components/settings/WorkspaceMembers.tsx:358
+#: src/components/settings/WorkspaceMembers.tsx:637
 msgid "Please enter an email address"
 msgstr "Please enter an email address"
 
@@ -20098,11 +20540,11 @@ msgstr "Please enter your API key"
 msgid "Please fill in all required fields before testing"
 msgstr "Please fill in all required fields before testing"
 
-#: src/pages/SignInPage.tsx:354
+#: src/pages/SignInPage.tsx:355
 msgid "Please input the magic code!"
 msgstr "Please input the magic code!"
 
-#: src/pages/SignInPage.tsx:315
+#: src/pages/SignInPage.tsx:316
 msgid "Please input your email!"
 msgstr "Please input your email!"
 
@@ -20651,7 +21093,7 @@ msgstr "Properties"
 msgid "Property name"
 msgstr "Property name"
 
-#: src/components/settings/Integrations.tsx:450
+#: src/components/settings/AIAssistantSettings.tsx:112
 msgid "Provider"
 msgstr "Provider"
 
@@ -20741,6 +21183,10 @@ msgstr "Published · signing"
 #: src/components/blog/PostsTable.tsx:269
 msgid "Published {0} · Updated {updatedAt} in {timezone}"
 msgstr "Published {0} · Updated {updatedAt} in {timezone}"
+
+#: src/pages/OAuthAuthorizePage.tsx:316
+msgid "Published at"
+msgstr "Published at"
 
 #: src/components/logs/auditPhrases.ts:27
 msgid "Published the blog post <0>{target}</0>"
@@ -20892,6 +21338,7 @@ msgstr "Reach your audience"
 msgid "Reached"
 msgstr "Reached"
 
+#: src/components/settings/MCPSettings.tsx:490
 #: src/components/settings/PermissionsMatrix.tsx:101
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:244
@@ -21116,7 +21563,6 @@ msgstr "Ready to sign in"
 #~ msgstr "Reason:"
 
 #: src/components/integrations/LLMIntegration.tsx:252
-#: src/components/settings/Integrations.tsx:458
 msgid "Reasoning effort"
 msgstr "Reasoning effort"
 
@@ -21490,7 +21936,7 @@ msgstr "Registered the provider webhooks of <0>{target}</0>"
 msgid "Regular expression"
 msgstr "Regular expression"
 
-#: src/components/settings/Integrations.tsx:407
+#: src/components/settings/Integrations.tsx:298
 msgid "Reject Disposable Email"
 msgstr "Reject Disposable Email"
 
@@ -21536,9 +21982,10 @@ msgstr "Reload the page to update your saved blocks."
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
 #: src/components/contacts/sheet/ContactListsCard.tsx:155
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:77
+#: src/components/settings/AIAssistantSettings.tsx:94
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/LogoInput.tsx:111
-#: src/components/settings/WorkspaceMembers.tsx:191
+#: src/components/settings/WorkspaceMembers.tsx:208
 msgid "Remove"
 msgstr "Remove"
 
@@ -21623,7 +22070,7 @@ msgstr "Remove from list"
 msgid "Remove from List node must have a list selected"
 msgstr "Remove from List node must have a list selected"
 
-#: src/components/settings/WorkspaceMembers.tsx:221
+#: src/components/settings/WorkspaceMembers.tsx:238
 msgid "Remove from workspace"
 msgstr "Remove from workspace"
 
@@ -21635,7 +22082,7 @@ msgstr "Remove label"
 msgid "Remove Link"
 msgstr "Remove Link"
 
-#: src/components/settings/WorkspaceMembers.tsx:186
+#: src/components/settings/WorkspaceMembers.tsx:203
 msgid "Remove member"
 msgstr "Remove member"
 
@@ -21944,11 +22391,11 @@ msgstr "Required when SSO is enabled"
 msgid "Requires a padding"
 msgstr "Requires a padding"
 
-#: src/pages/SignInPage.tsx:390
+#: src/pages/SignInPage.tsx:391
 msgid "Resend code"
 msgstr "Resend code"
 
-#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WorkspaceMembers.tsx:231
 msgid "Resend invitation"
 msgstr "Resend invitation"
 
@@ -22186,7 +22633,7 @@ msgstr "Retried the failed sends of the newsletter <0>{target}</0>"
 #: src/components/settings/DomainsSettings.tsx:278
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
-#: src/components/settings/WorkspaceMembers.tsx:496
+#: src/components/settings/WorkspaceMembers.tsx:540
 #: src/components/templates/TemplateSelectorModal.tsx:234
 #: src/components/transactional/LoadError.tsx:22
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
@@ -22224,13 +22671,26 @@ msgstr "Retry with a corrected file"
 msgid "Retrying"
 msgstr "Retrying"
 
+#: src/pages/OAuthAuthorizePage.tsx:317
+msgid "Returns to"
+msgstr "Returns to"
+
 #: src/components/email_builder/MjmlCodeEditor.tsx:208
 msgid "Reusable class"
 msgstr "Reusable class"
 
+#: src/components/settings/MCPSettings.tsx:216
+#: src/components/settings/MCPSettings.tsx:276
+msgid "Revoke"
+msgstr "Revoke"
+
 #: src/components/settings/PermissionScopePresets.tsx:54
 msgid "Revoke all"
 msgstr "Revoke all"
+
+#: src/components/settings/MCPSettings.tsx:214
+msgid "Revoke this connection?"
+msgstr "Revoke this connection?"
 
 #: src/components/logs/auditPhrases.ts:70
 msgid "Revoked a token issued to the application <0>{target}</0>"
@@ -22422,6 +22882,10 @@ msgstr "Run it again"
 msgid "Run Test"
 msgstr "Run Test"
 
+#: src/components/settings/MCPSettings.tsx:191
+msgid "Run the command below in a terminal, with the key in place of <0>YOUR_API_KEY</0>."
+msgstr "Run the command below in a terminal, with the key in place of <0>YOUR_API_KEY</0>."
+
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:255
 msgid "Run when the rule matches"
 msgstr "Run when the rule matches"
@@ -22544,8 +23008,9 @@ msgstr "Sandbox mode"
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:302
+#: src/components/settings/AIAssistantSettings.tsx:237
 #: src/components/settings/CustomFieldsConfiguration.tsx:388
-#: src/components/settings/Integrations.tsx:600
+#: src/components/settings/Integrations.tsx:400
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:853
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:994
 #: src/components/settings/SystemSettingsDrawer.tsx:263
@@ -22996,7 +23461,7 @@ msgstr "Second value must be greater than first value"
 msgid "seconds"
 msgstr "seconds"
 
-#: src/components/settings/Integrations.tsx:326
+#: src/components/settings/Integrations.tsx:224
 msgid "secret"
 msgstr "secret"
 
@@ -23054,7 +23519,7 @@ msgstr "Section with column"
 msgid "Sections"
 msgstr "Sections"
 
-#: src/components/settings/SettingsSidebar.tsx:20
+#: src/components/settings/SettingsSidebar.tsx:21
 #: src/components/settings/SystemSecuritySettings.tsx:35
 #: src/components/transactional/ApiCommandDrawer.tsx:145
 #: src/components/updates/UpdateDrawer.tsx:63
@@ -23624,7 +24089,11 @@ msgstr "Send a transactional notification using Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Send a transactional notification using TypeScript/JavaScript:"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:120
+#: src/components/settings/MCPSettings.tsx:506
+msgid "Send and delete"
+msgstr "Send and delete"
+
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:84
 msgid "Send auth emails, add new users as contacts"
 msgstr "Send auth emails, add new users as contacts"
 
@@ -23636,7 +24105,11 @@ msgstr "Send Email hook"
 msgid "Send emails and update lists when contacts do something"
 msgstr "Send emails and update lists when contacts do something"
 
-#: src/components/settings/WorkspaceMembers.tsx:564
+#: src/components/settings/MCPSettings.tsx:509
+msgid "Send emails, start automations, cancel broadcasts, delete objects. These tools are flagged so clients can ask you to confirm."
+msgstr "Send emails, start automations, cancel broadcasts, delete objects. These tools are flagged so clients can ask you to confirm."
+
+#: src/components/settings/WorkspaceMembers.tsx:627
 msgid "Send invitation"
 msgstr "Send invitation"
 
@@ -23644,7 +24117,7 @@ msgstr "Send invitation"
 #~ msgid "Send Invitation"
 #~ msgstr "Send Invitation"
 
-#: src/pages/SignInPage.tsx:324
+#: src/pages/SignInPage.tsx:325
 msgid "Send Magic Code"
 msgstr "Send Magic Code"
 
@@ -24053,7 +24526,7 @@ msgstr "Server token"
 msgid "Server Token"
 msgstr "Server Token"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:56
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:48
 msgid "Server token, message stream"
 msgstr "Server token, message stream"
 
@@ -24136,7 +24609,7 @@ msgstr "Set a priority to place this rule among the others."
 msgid "Set a priority to see which rules override this one"
 msgstr "Set a priority to see which rules override this one"
 
-#: src/components/settings/Integrations.tsx:121
+#: src/components/settings/Integrations.tsx:102
 msgid "Set as default marketing email provider"
 msgstr "Set as default marketing email provider"
 
@@ -24144,7 +24617,7 @@ msgstr "Set as default marketing email provider"
 #~ msgid "Set as default sender"
 #~ msgstr "Set as default sender"
 
-#: src/components/settings/Integrations.tsx:122
+#: src/components/settings/Integrations.tsx:103
 msgid "Set as default transactional email provider"
 msgstr "Set as default transactional email provider"
 
@@ -24298,6 +24771,10 @@ msgstr "Set up sending"
 msgid "Set up this Notifuse installation"
 msgstr "Set up this Notifuse installation"
 
+#: src/pages/OAuthAuthorizePage.tsx:646
+msgid "Set up two-factor authentication"
+msgstr "Set up two-factor authentication"
+
 #: src/components/analytics/DashboardKpis.tsx:365
 #: src/components/analytics/GetStartedChecklist.tsx:233
 msgid "Set up web analytics"
@@ -24354,7 +24831,7 @@ msgstr "Setting up…"
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
 #: src/layouts/app-shell/menuItems.ts:248
-#: src/pages/WorkspaceSettingsPage.tsx:278
+#: src/pages/WorkspaceSettingsPage.tsx:293
 msgid "Settings"
 msgstr "Settings"
 
@@ -24574,11 +25051,12 @@ msgstr "Shown when the pointer rests on the image (title attribute)."
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Shows new Notifuse versions and security fixes on the workspace list."
 
-#: src/pages/SignInPage.tsx:268
+#: src/pages/SignInPage.tsx:269
 msgid "Sign In"
 msgstr "Sign In"
 
 #: src/components/two_factor/RootSessionRefused.tsx:25
+#: src/pages/OAuthAuthorizePage.tsx:664
 msgid "Sign in again"
 msgstr "Sign in again"
 
@@ -24616,7 +25094,7 @@ msgstr "Sign in with {rootEmail}."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:657
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:342
+#: src/pages/SignInPage.tsx:343
 msgid "Sign in with SSO"
 msgstr "Sign in with SSO"
 
@@ -24643,6 +25121,10 @@ msgstr "Signed · record missing {failures}/{DKIM_DOWNGRADE_THRESHOLD}"
 #: src/components/logs/auditPhrases.ts:60
 msgid "Signed an upload URL for <0>{target}</0>"
 msgstr "Signed an upload URL for <0>{target}</0>"
+
+#: src/pages/OAuthAuthorizePage.tsx:322
+msgid "Signed in as"
+msgstr "Signed in as"
 
 #: src/components/logs/auditPhrases.ts:73
 #~ msgid "Signed in as <0>{target}</0>"
@@ -24729,12 +25211,12 @@ msgstr "Single sign-on (OpenID Connect)"
 msgid "Single sign-on (SSO)"
 msgstr "Single sign-on (SSO)"
 
-#: src/pages/SignInPage.tsx:150
+#: src/pages/SignInPage.tsx:151
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 
-#: src/pages/SignInPage.tsx:160
-#: src/pages/SignInPage.tsx:173
+#: src/pages/SignInPage.tsx:161
+#: src/pages/SignInPage.tsx:174
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "Single sign-on failed. Please try again or use a magic code."
 
@@ -24742,7 +25224,7 @@ msgstr "Single sign-on failed. Please try again or use a magic code."
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "Single sign-on is switched on, and this deployment's licence does not include it."
 
-#: src/pages/SignInPage.tsx:156
+#: src/pages/SignInPage.tsx:157
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "Single sign-on is temporarily unavailable. Please try a magic code."
 
@@ -24826,7 +25308,7 @@ msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "Slug must contain only lowercase letters, numbers, and hyphens"
 
 #: src/components/logs/MessagesTab.tsx:301
-#: src/components/settings/Integrations.tsx:550
+#: src/components/settings/Integrations.tsx:362
 msgid "SMS"
 msgstr "SMS"
 
@@ -24834,7 +25316,7 @@ msgstr "SMS"
 msgid "SMTP"
 msgstr "SMTP"
 
-#: src/components/settings/SettingsSidebar.tsx:56
+#: src/components/settings/SettingsSidebar.tsx:59
 #: src/components/settings/SMTPBridgeSettings.tsx:19
 #: src/components/setup/BridgePanel.tsx:30
 #: src/components/setup/setupHooks.ts:47
@@ -25675,7 +26157,7 @@ msgstr "Successful"
 #~ msgid "Successfully processed {successful} contacts"
 #~ msgstr "Successfully processed {successful} contacts"
 
-#: src/pages/SignInPage.tsx:42
+#: src/pages/SignInPage.tsx:44
 msgid "Successfully signed in"
 msgstr "Successfully signed in"
 
@@ -25714,7 +26196,7 @@ msgstr "Summary of {0}"
 msgid "Supabase"
 msgstr "Supabase"
 
-#: src/components/settings/Integrations.tsx:676
+#: src/components/settings/Integrations.tsx:434
 msgid "Supabase integration saved successfully"
 msgstr "Supabase integration saved successfully"
 
@@ -25837,8 +26319,8 @@ msgstr "Task type"
 #~ msgid "Team"
 #~ msgstr "Team"
 
-#: src/components/settings/SettingsSidebar.tsx:52
-#: src/components/settings/WorkspaceMembers.tsx:474
+#: src/components/settings/SettingsSidebar.tsx:55
+#: src/components/settings/WorkspaceMembers.tsx:518
 msgid "Team & API keys"
 msgstr "Team & API keys"
 
@@ -25846,7 +26328,7 @@ msgstr "Team & API keys"
 msgid "Team invitation"
 msgstr "Team invitation"
 
-#: src/components/settings/WorkspaceMembers.tsx:335
+#: src/components/settings/WorkspaceMembers.tsx:379
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "Team member limit reached. Please upgrade your plan to add more members."
 
@@ -26412,6 +26894,10 @@ msgstr "The"
 msgid "The address of the font's CSS file, or a Liquid output."
 msgstr "The address of the font's CSS file, or a Liquid output."
 
+#: src/components/settings/MCPSettings.tsx:325
+msgid "The address you give your assistant."
+msgstr "The address you give your assistant."
+
 #: src/services/api/permissions.ts:983
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
@@ -26424,9 +26910,22 @@ msgstr "The API endpoint has changed. After restart, the console will be availab
 msgid "The API identifier is not valid"
 msgstr "The API identifier is not valid"
 
+#: src/components/settings/MCPSettings.tsx:401
+#: src/pages/OAuthAuthorizePage.tsx:732
+msgid "The assistant gets every right its key has."
+msgstr "The assistant gets every right its key has."
+
+#: src/components/settings/AIAssistantSettings.tsx:298
+msgid "The assistant in the blog, the email editor and Web Analytics."
+msgstr "The assistant in the blog, the email editor and Web Analytics."
+
+#: src/components/settings/AIAssistantSettings.tsx:309
+msgid "The assistant runs on a model you connect with your own provider key. If you connect more than one, people pick the model in the assistant."
+msgstr "The assistant runs on a model you connect with your own provider key. If you connect more than one, people pick the model in the assistant."
+
 #: src/components/settings/Integrations.tsx:747
-msgid "The assistants of the email editor, the blog and web analytics"
-msgstr "The assistants of the email editor, the blog and web analytics"
+#~ msgid "The assistants of the email editor, the blog and web analytics"
+#~ msgstr "The assistants of the email editor, the blog and web analytics"
 
 #. placeholder {0}: seedResult.error
 #: src/components/email_builder/panels/TextVersionPanel.tsx:238
@@ -26806,6 +27305,10 @@ msgstr "The key is listed in Settings → Team & API keys as {0}, where its perm
 #: src/components/settings/DomainsSettings.tsx:88
 msgid "The key of {domain} changed during the check. The list shows its current state."
 msgstr "The key of {domain} changed during the check. The list shows its current state."
+
+#: src/pages/OAuthAuthorizePage.tsx:615
+msgid "The key will have every right in {workspaceName}, sending emails and deleting contacts included. It goes to the application published at {clientHost}."
+msgstr "The key will have every right in {workspaceName}, sending emails and deleting contacts included. It goes to the application published at {clientHost}."
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:140
 msgid "The last backfill failed"
@@ -27291,7 +27794,7 @@ msgstr "They're signed out everywhere."
 msgid "Thinking"
 msgstr "Thinking"
 
-#: src/pages/SignInPage.tsx:154
+#: src/pages/SignInPage.tsx:155
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "This account is already linked to a different single sign-on identity."
 
@@ -27299,8 +27802,8 @@ msgstr "This account is already linked to a different single sign-on identity."
 #: src/components/automations/list/AutomationsTable.tsx:88
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/Integrations.tsx:292
 #: src/components/settings/integrations/EmailProviderCard.tsx:190
+#: src/components/settings/integrations/useIntegrationActions.ts:107
 #: src/components/settings/WebhookDetail.tsx:343
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:30
 msgid "This action cannot be undone."
@@ -27335,6 +27838,10 @@ msgstr "This annotation was created automatically when a broadcast started. Dele
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
 #~ msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 #~ msgstr "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
+
+#: src/pages/OAuthAuthorizePage.tsx:373
+msgid "This application returns to a program on your own computer. Connect only if you started this connection yourself, just now."
+msgstr "This application returns to a program on your own computer. Connect only if you started this connection yourself, just now."
 
 #: src/components/logs/AuditEntryDetail.tsx:106
 msgid "This audit entry could not be found"
@@ -27402,6 +27909,14 @@ msgstr "This category is not created yet."
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:325
 msgid "This comes from the deployment defaults, set by the administrator of this installation."
 msgstr "This comes from the deployment defaults, set by the administrator of this installation."
+
+#: src/components/settings/MCPSettings.tsx:121
+msgid "This connection no longer exists"
+msgstr "This connection no longer exists"
+
+#: src/pages/OAuthAuthorizePage.tsx:172
+msgid "This connection request can't continue"
+msgstr "This connection request can't continue"
 
 #: src/components/license/LicenseBanner.tsx:191
 #: src/components/settings/LicenseSettings.tsx:127
@@ -27510,6 +28025,10 @@ msgstr "This integration will be removed soon: SparkPost no longer accepts new c
 msgid "This invitation link is invalid or has expired."
 msgstr "This invitation link is invalid or has expired."
 
+#: src/pages/OAuthAuthorizePage.tsx:459
+msgid "This is not a Notifuse API key, or the key was deleted. Sign-in links and invitations don't work here. Create a key in Settings › Team & API keys."
+msgstr "This is not a Notifuse API key, or the key was deleted. Sign-in links and invitations don't work here. Create a key in Settings › Team & API keys."
+
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:377
 msgid "This is not a web address. Paste a link such as https://example.com/page."
 msgstr "This is not a web address. Paste a link such as https://example.com/page."
@@ -27597,7 +28116,7 @@ msgstr "This notifuse:condition mark of a Notifuse export holds no block or no v
 msgid "This page cannot be previewed here"
 msgstr "This page cannot be previewed here"
 
-#: src/pages/SignInPage.tsx:278
+#: src/pages/SignInPage.tsx:279
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 
@@ -27642,6 +28161,10 @@ msgstr "This regular expression uses syntax the browser cannot run. The server c
 msgid "This removes the contacts and their history from the workspace. It cannot be undone."
 msgstr "This removes the contacts and their history from the workspace. It cannot be undone."
 
+#: src/pages/OAuthAuthorizePage.tsx:149
+msgid "This request was started in another browser. A connection can only be finished where it began, so that nobody can send you a link to approve their request."
+msgstr "This request was started in another browser. A connection can only be finished where it began, so that nobody can send you a link to approve their request."
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:122
 msgid "This rule"
 msgstr "This rule"
@@ -27674,6 +28197,10 @@ msgstr "This segment no longer exists"
 #: src/components/broadcasts/compose/ContentCard.tsx:214
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
+
+#: src/pages/OAuthAuthorizePage.tsx:642
+msgid "This server requires two-factor authentication before you can create a key. You can still paste an existing key."
+msgstr "This server requires two-factor authentication before you can create a key. You can still paste an existing key."
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:205
 msgid "This session is too long to show in full: only its first pages and goals are listed."
@@ -27747,7 +28274,7 @@ msgstr "This text is not updated when you change the email."
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 
-#: src/components/settings/WorkspaceMembers.tsx:673
+#: src/components/settings/WorkspaceMembers.tsx:736
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 
@@ -28082,8 +28609,13 @@ msgstr "To stop these events, turn the Zap off in Zapier instead. Zapier then re
 
 #. placeholder {0}: config.title
 #: src/components/ai-assistant/AIAssistantChat.tsx:139
-msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
-msgstr "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
+msgid "To use the {0}, connect an AI model from Anthropic, OpenAI or Gemini in Settings › AI › Assistant."
+msgstr "To use the {0}, connect an AI model from Anthropic, OpenAI or Gemini in Settings › AI › Assistant."
+
+#. placeholder {0}: config.title
+#: src/components/ai-assistant/AIAssistantChat.tsx:139
+#~ msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
+#~ msgstr "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 
 #: src/components/contacts/sheet/sheetDates.ts:16
 #: src/components/contacts/visits/ContactWebVisits.tsx:239
@@ -28121,7 +28653,11 @@ msgstr "Toggle caption"
 msgid "Token"
 msgstr "Token"
 
-#: src/pages/SignInPage.tsx:158
+#: src/pages/OAuthAuthorizePage.tsx:464
+msgid "Too many attempts from this address. Wait a minute, then try again."
+msgstr "Too many attempts from this address. Wait a minute, then try again."
+
+#: src/pages/SignInPage.tsx:159
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Too many sign-in attempts. Please wait a moment and try again."
 
@@ -28134,7 +28670,6 @@ msgid "Too many wrong codes. Try again in {minutes} minutes."
 msgstr "Too many wrong codes. Try again in {minutes} minutes."
 
 #: src/components/integrations/FirecrawlIntegration.tsx:125
-#: src/components/settings/Integrations.tsx:492
 msgid "Tools"
 msgstr "Tools"
 
@@ -28403,7 +28938,7 @@ msgstr "Transactional notification deleted successfully"
 #~ msgid "Transactional Notifications"
 #~ msgstr "Transactional Notifications"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:81
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:68
 msgid "Transactional only"
 msgstr "Transactional only"
 
@@ -28478,11 +29013,11 @@ msgstr "Trigger must have at least one event kind selected"
 msgid "Trigger on specific field changes"
 msgstr "Trigger on specific field changes"
 
-#: src/components/settings/Integrations.tsx:517
+#: src/components/settings/Integrations.tsx:327
 msgid "Triggers and actions"
 msgstr "Triggers and actions"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:127
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:91
 msgid "Triggers and actions in your Zaps"
 msgstr "Triggers and actions in your Zaps"
 
@@ -28495,6 +29030,7 @@ msgstr "true"
 #~ msgstr "Try adjusting your search or status filter"
 
 #: src/components/two_factor/SetupWizard.tsx:157
+#: src/pages/OAuthAuthorizePage.tsx:208
 msgid "Try again"
 msgstr "Try again"
 
@@ -28602,6 +29138,10 @@ msgstr "Turned the webhook <0>{target}</0> on or off"
 msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
 msgstr "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
 
+#: src/components/settings/MCPSettings.tsx:349
+msgid "Turning it back on restores existing connections: nothing is revoked."
+msgstr "Turning it back on restores existing connections: nothing is revoked."
+
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
 #~ msgstr "Two decimals is roughly one kilometer."
@@ -28653,9 +29193,13 @@ msgstr "Type {selectedCount} to confirm:"
 #~ msgid "Type:"
 #~ msgstr "Type:"
 
-#: src/components/settings/Integrations.tsx:564
+#: src/components/settings/Integrations.tsx:376
 msgid "Type: {typeName}"
 msgstr "Type: {typeName}"
+
+#: src/components/settings/MCPSettings.tsx:362
+msgid "Unavailable"
+msgstr "Unavailable"
 
 #: src/components/blog/PostsTable.tsx:330
 msgid "Uncategorized"
@@ -28733,8 +29277,10 @@ msgstr "Unique clicks counts each recipient once per link — someone who clicks
 #: src/components/contacts/ContactUpsertDrawer.tsx:434
 #: src/components/contacts/TrackingConsent.tsx:14
 #: src/components/contacts/trackingConsentOptions.ts:16
+#: src/components/settings/MCPSettings.tsx:243
 #: src/components/transactional/TransactionalDetail.tsx:424
 #: src/components/web_analytics/LiveSessionMap.tsx:57
+#: src/pages/OAuthAuthorizePage.tsx:308
 msgid "Unknown"
 msgstr "Unknown"
 
@@ -29225,7 +29771,7 @@ msgstr "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS}
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "Use 0 to keep forever, or a value between 30 and 3650"
 
-#: src/pages/SignInPage.tsx:382
+#: src/pages/SignInPage.tsx:383
 msgid "Use a different email"
 msgstr "Use a different email"
 
@@ -29399,7 +29945,7 @@ msgstr "User created and synced from Supabase"
 #~ msgid "User Created Hook Secret"
 #~ msgstr "User Created Hook Secret"
 
-#: src/components/settings/Integrations.tsx:415
+#: src/components/settings/Integrations.tsx:306
 msgid "User Metadata Field"
 msgstr "User Metadata Field"
 
@@ -29673,7 +30219,7 @@ msgstr "Verified the sign-in code of <0>{target}</0>"
 msgid "Verify"
 msgstr "Verify"
 
-#: src/pages/SignInPage.tsx:372
+#: src/pages/SignInPage.tsx:373
 msgid "Verify Code"
 msgstr "Verify Code"
 
@@ -29986,16 +30532,21 @@ msgstr "We'll automatically detect and use your website's favicon"
 msgid "Web"
 msgstr "Web"
 
+#: src/components/settings/AIAssistantSettings.tsx:323
+msgid "Web access"
+msgstr "Web access"
+
 #: src/components/contacts/sheet/describeActivity.tsx:393
 #: src/components/contacts/sheet/describeActivity.tsx:418
 #: src/components/logs/labels.ts:22
 #: src/components/settings/data_retention/categoryText.ts:11
-#: src/components/settings/SettingsSidebar.tsx:59
+#: src/components/settings/SettingsSidebar.tsx:62
 #: src/components/settings/WebAnalyticsSettings.tsx:201
 #: src/components/settings/WebAnalyticsSettings.tsx:264
 msgid "Web analytics"
 msgstr "Web analytics"
 
+#: src/components/settings/AIAssistantSettings.tsx:227
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:212
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
@@ -30042,8 +30593,8 @@ msgstr "Web analytics settings updated successfully"
 #~ msgstr "Web session"
 
 #: src/components/settings/Integrations.tsx:482
-msgid "Web tools for the AI assistant"
-msgstr "Web tools for the AI assistant"
+#~ msgid "Web tools for the AI assistant"
+#~ msgstr "Web tools for the AI assistant"
 
 #: src/components/broadcasts/compose/TrackingCard.tsx:19
 #: src/components/broadcasts/detail/BroadcastAside.tsx:181
@@ -30124,7 +30675,7 @@ msgid "Webhook URL"
 msgstr "Webhook URL"
 
 #: src/components/logs/labels.ts:13
-#: src/components/settings/SettingsSidebar.tsx:55
+#: src/components/settings/SettingsSidebar.tsx:58
 #: src/components/settings/WebhooksSettings.tsx:456
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -30257,6 +30808,10 @@ msgstr "What a feed reader shows of each post"
 #~ msgid "What a licence includes"
 #~ msgstr "What a licence includes"
 
+#: src/components/settings/MCPSettings.tsx:484
+msgid "What an assistant can do"
+msgstr "What an assistant can do"
+
 #: src/components/web_analytics/explore/CsvExportModal.tsx:147
 msgid "What gets exported"
 msgstr "What gets exported"
@@ -30348,6 +30903,14 @@ msgstr "When it applies"
 #~ msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 #~ msgstr "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 
+#: src/components/settings/MCPSettings.tsx:168
+msgid "When off, no assistant reaches this workspace, whatever key it uses."
+msgstr "When off, no assistant reaches this workspace, whatever key it uses."
+
+#: src/components/settings/MCPSettings.tsx:167
+msgid "When off, no assistant reaches this workspace. Nothing is revoked."
+msgstr "When off, no assistant reaches this workspace. Nothing is revoked."
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:244
 msgid "When one of them also matches a session, its value replaces this rule's."
 msgstr "When one of them also matches a session, its value replaces this rule's."
@@ -30375,6 +30938,14 @@ msgstr "When to send"
 #: src/components/templates/CreateTemplateDrawer.tsx:1502
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
+
+#: src/components/settings/MCPSettings.tsx:357
+msgid "Where claude.ai and ChatGPT ask for the API key."
+msgstr "Where claude.ai and ChatGPT ask for the API key."
+
+#: src/components/settings/AIAssistantSettings.tsx:349
+msgid "Where the assistant appears"
+msgstr "Where the assistant appears"
 
 #: src/components/segment/segmentLabels.ts:58
 msgid "Where the last tracking consent change came from"
@@ -30408,7 +30979,7 @@ msgstr "Which landing pages bring the most sessions, and which ones have the wor
 msgid "Which provider sends what"
 msgstr "Which provider sends what"
 
-#: src/components/settings/WorkspaceMembers.tsx:474
+#: src/components/settings/WorkspaceMembers.tsx:518
 msgid "Who can do what in this workspace"
 msgstr "Who can do what in this workspace"
 
@@ -30566,6 +31137,10 @@ msgstr "with properties"
 msgid "with status"
 msgstr "with status"
 
+#: src/components/settings/MCPSettings.tsx:485
+msgid "With the audit log licence, every action that is not a read is logged under the key that made it."
+msgstr "With the audit log licence, every action that is not a read is logged under the key that made it."
+
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:67
 msgid "With the test data"
 msgstr "With the test data"
@@ -30581,6 +31156,11 @@ msgstr "With:"
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:158
 msgid "Within"
 msgstr "Within"
+
+#: src/components/settings/MCPSettings.tsx:405
+#: src/pages/OAuthAuthorizePage.tsx:733
+msgid "Without a licence that includes custom permissions, every key has full access: the assistant can send emails, change templates and delete contacts."
+msgstr "Without a licence that includes custom permissions, every key has full access: the assistant can send emails, change templates and delete contacts."
 
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
@@ -30602,6 +31182,10 @@ msgstr "Words"
 msgid "Works once created"
 msgstr "Works once created"
 
+#: src/components/settings/AIAssistantSettings.tsx:306
+msgid "Works with Anthropic, OpenAI or an OpenAI-compatible endpoint, and Gemini. Only owners can add, change or remove a model."
+msgstr "Works with Anthropic, OpenAI or an OpenAI-compatible endpoint, and Gemini. Only owners can add, change or remove a model."
+
 #: src/components/logs/AuditEntryDetail.tsx:193
 #: src/components/logs/AuditLogTab.tsx:528
 #: src/components/logs/labels.ts:9
@@ -30610,6 +31194,7 @@ msgstr "Works once created"
 #: src/components/settings/permissionLabels.ts:12
 #: src/components/settings/SettingsSidebar.tsx:14
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
+#: src/pages/OAuthAuthorizePage.tsx:674
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Workspace"
@@ -30723,6 +31308,7 @@ msgid "Wrapper container"
 msgstr "Wrapper container"
 
 #: src/components/blog/PostDrawer.tsx:851
+#: src/components/settings/MCPSettings.tsx:498
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -30748,6 +31334,10 @@ msgstr "Write MJML markup with Liquid template tags. This content is injected di
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:98
 msgid "Writes"
 msgstr "Writes"
+
+#: src/components/settings/AIAssistantSettings.tsx:222
+msgid "Writes and edits templates"
+msgstr "Writes and edits templates"
 
 #: src/pages/BlogPage.tsx:34
 msgid "Writing or editing a post also needs Templates read and write: its content is a template."
@@ -30866,6 +31456,10 @@ msgstr "Yesterday {time}"
 #: src/components/transactional/TransactionalTable.tsx:265
 msgid "Yesterday, {time}"
 msgstr "Yesterday, {time}"
+
+#: src/pages/OAuthAuthorizePage.tsx:138
+msgid "You can close this page if nothing happens."
+msgstr "You can close this page if nothing happens."
 
 #: src/components/setup/SetupRestartView.tsx:54
 msgid "You can now sign in."
@@ -31142,7 +31736,11 @@ msgstr "Your emails will show here, day by day, from your first send."
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Your files can be uploaded to any S3 compatible storage."
 
-#: src/pages/SignInPage.tsx:152
+#: src/components/settings/AIAssistantSettings.tsx:331
+msgid "Your Firecrawl key, or your own Firecrawl server"
+msgstr "Your Firecrawl key, or your own Firecrawl server"
+
+#: src/pages/SignInPage.tsx:153
 msgid "Your identity provider has not verified your email address."
 msgstr "Your identity provider has not verified your email address."
 
@@ -31173,6 +31771,10 @@ msgstr "Your October invoice"
 #: src/components/two_factor/AccountSecurityPanel.tsx:115
 msgid "Your previous codes no longer work. This is the only time Notifuse shows these."
 msgstr "Your previous codes no longer work. This is the only time Notifuse shows these."
+
+#: src/pages/OAuthAuthorizePage.tsx:656
+msgid "Your session has expired. Sign in again to create a key here. The request stays open until it is 10 minutes old."
+msgstr "Your session has expired. Sign in again to create a key here. The request stays open until it is 10 minutes old."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:571
 msgid "Your SMTP server's name"
@@ -31221,11 +31823,11 @@ msgstr "Zapier API key"
 msgid "Zapier created this webhook for one of your Zaps."
 msgstr "Zapier created this webhook for one of your Zaps."
 
-#: src/components/settings/Integrations.tsx:238
+#: src/components/settings/Integrations.tsx:166
 msgid "Zapier integration saved successfully"
 msgstr "Zapier integration saved successfully"
 
-#: src/components/settings/Integrations.tsx:221
+#: src/components/settings/Integrations.tsx:149
 msgid "Zapier is connected, but the integration list could not be refreshed"
 msgstr "Zapier is connected, but the integration list could not be refreshed"
 

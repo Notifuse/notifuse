@@ -51,7 +51,7 @@ msgstr "- キャンセル済み"
 msgid "· applies to the whole Web Analytics section. Click a row or a country to add one."
 msgstr "· Webアナリティクスのセクション全体に適用されます。行または国をクリックするとフィルターを追加できます。"
 
-#: src/components/settings/WorkspaceMembers.tsx:111
+#: src/components/settings/WorkspaceMembers.tsx:114
 msgid "· read only"
 msgstr "· 読み取り専用"
 
@@ -128,7 +128,7 @@ msgstr "(元: {original})"
 msgid "(unknown)"
 msgstr "(不明)"
 
-#: src/components/settings/WorkspaceMembers.tsx:257
+#: src/components/settings/WorkspaceMembers.tsx:274
 msgid "(you)"
 msgstr "（あなた）"
 
@@ -699,13 +699,17 @@ msgstr "{action}（ちょうど {count} 回）"
 msgid "{active, plural, one {# active} other {# active}}"
 msgstr "{active, plural, one {有効 #} other {有効 #}}"
 
-#: src/components/settings/WorkspaceMembers.tsx:113
+#: src/components/settings/WorkspaceMembers.tsx:116
 msgid "{active} of {total} permissions granted"
 msgstr "{total} 件中 {active} 件の権限を付与"
 
 #: src/components/analytics/GetStartedChecklist.tsx:279
 msgid "{apiKeys, plural, one {# API key} other {# API keys}}"
 msgstr "{apiKeys, plural, one {APIキー #件} other {APIキー #件}}"
+
+#: src/components/settings/MCPSettings.tsx:215
+msgid "{application} loses the access it has through the key {key}. The key keeps working."
+msgstr "{application} はキー {key} によるアクセスを失います。キー自体は引き続き使えます。"
 
 #: src/components/email_builder/ui/fields/NumberUnitField.tsx:162
 msgid "{ariaLabel} mode"
@@ -894,7 +898,7 @@ msgstr "{days, plural, other {#日間で +{1}}}"
 msgid "{days, plural, one {Added in the last # day, today included} other {Added in the last # days, today included}}"
 msgstr "{days, plural, one {今日を含む過去 #日間に追加} other {今日を含む過去 #日間に追加}}"
 
-#: src/components/settings/WorkspaceMembers.tsx:240
+#: src/components/settings/WorkspaceMembers.tsx:257
 msgid "{days, plural, one {expires in # day} other {expires in # days}}"
 msgstr "{days, plural, other {あと #日で期限切れ}}"
 
@@ -1251,6 +1255,10 @@ msgstr "{n} パターン、{p} % で {h} 時間テスト"
 msgid "{name} ({weight} %)"
 msgstr "{name} ({weight} %)"
 
+#: src/pages/OAuthAuthorizePage.tsx:161
+msgid "{name} asked to return to an address that is not a web page."
+msgstr "{name} が Web ページではないアドレスへの戻りを求めました。"
+
 #: src/components/analytics/GetStartedChecklist.tsx:252
 msgid "{name} connected"
 msgstr "{name} 接続済み"
@@ -1282,6 +1290,14 @@ msgstr "{name} はメール上にドロップされませんでした。"
 #: src/components/email_builder/dnd/LibraryDnd.tsx:139
 msgid "{name} was not inserted: {reason}."
 msgstr "{name} は挿入されませんでした: {reason}。"
+
+#: src/pages/OAuthAuthorizePage.tsx:337
+msgid "{name} will work with an API key of its own. Create it here, or paste one you already have."
+msgstr "{name} は専用の APIキーで動作します。ここで作成するか、お持ちのキーを貼り付けてください。"
+
+#: src/pages/OAuthAuthorizePage.tsx:338
+msgid "{name} will work with the API key you give here, in that key's workspace and with that key's access."
+msgstr "{name} は、ここで入力した APIキーで、そのキーのワークスペースとアクセス権で動作します。"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:282
 msgid "{named} of {total} slots named"
@@ -1726,6 +1742,11 @@ msgstr "<{tag}> が閉じられていません。"
 msgid "</{tag}> closes no open tag."
 msgstr "</{tag}> は開いているタグを閉じていません。"
 
+#. placeholder {0}: window.API_ENDPOINT
+#: src/components/settings/MCPSettings.tsx:376
+msgid "<0>API_ENDPOINT</0> must use https and have no path. It is <1>{0}</1>."
+msgstr "<0>API_ENDPOINT</0> は https を使い、パスを含まない必要があります。現在の値は <1>{0}</1> です。"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:970
 #: src/components/settings/integrations/providerDetails.ts:170
 msgid "≈ {perHour} per hour · ≈ {perDay} per day"
@@ -2027,6 +2048,10 @@ msgstr "グローバルデータフィードのヘッダーに名前または値
 msgid "a header of the per-recipient data feed has no name or value"
 msgstr "宛先別データフィードのヘッダーに名前または値がありません"
 
+#: src/components/settings/MCPSettings.tsx:404
+msgid "A key with full access lets the assistant send emails, change templates and delete contacts."
+msgstr "フルアクセスのキーでは、アシスタントがメールの送信、テンプレートの変更、コンタクトの削除を行えます。"
+
 #: src/components/templates/gallery/labels.ts:17
 msgid "A limited offer: a visual, a promo code and featured products."
 msgstr "期間限定オファー: ビジュアル、プロモーションコード、おすすめ商品。"
@@ -2092,7 +2117,7 @@ msgstr "サインインや操作の確認に使うワンタイムコード。"
 msgid "A period is shorter than its category allows"
 msgstr "カテゴリーで許可された期間より短い期間があります"
 
-#: src/components/settings/WorkspaceMembers.tsx:279
+#: src/components/settings/WorkspaceMembers.tsx:296
 msgid "A platform admin reaches every workspace without joining it"
 msgstr "プラットフォーム管理者は、参加しなくてもすべてのワークスペースにアクセスできます"
 
@@ -2183,6 +2208,10 @@ msgstr "ウェビナーやイベント: 日時、プログラム、参加登録�
 msgctxt "newsletter status"
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
 msgstr "勝者が選択されました。残りの受信者にメールを送信しています。"
+
+#: src/pages/OAuthAuthorizePage.tsx:679
+msgid "A workspace with MCP off can't be picked. Switch it on in Settings › AI › MCP first."
+msgstr "MCP がオフのワークスペースは選べません。先に 設定 › AI › MCP でオンにしてください。"
 
 #: src/components/analytics/UpcomingSends.tsx:157
 #: src/components/broadcasts/BroadcastsTable.tsx:309
@@ -2336,8 +2365,9 @@ msgstr "招待を承諾"
 msgid "Accepted the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> を承諾しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:271
-#: src/components/settings/WorkspaceMembers.tsx:302
+#: src/components/settings/MCPSettings.tsx:253
+#: src/components/settings/WorkspaceMembers.tsx:288
+#: src/components/settings/WorkspaceMembers.tsx:319
 msgid "Access"
 msgstr "アクセス"
 
@@ -2387,7 +2417,7 @@ msgstr "アクション"
 #: src/components/automations/nodeTypes.ts:42
 #: src/components/blog/RecentThemesTable.tsx:173
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
-#: src/components/settings/WorkspaceMembers.tsx:227
+#: src/components/settings/WorkspaceMembers.tsx:244
 #: src/components/transactional/TransactionalTable.tsx:274
 msgid "Actions"
 msgstr "アクション"
@@ -2505,7 +2535,8 @@ msgstr "{0}を追加"
 msgid "Add {name}"
 msgstr "{name}を追加"
 
-#: src/components/settings/Integrations.tsx:596
+#: src/components/settings/AIAssistantSettings.tsx:233
+#: src/components/settings/Integrations.tsx:396
 msgid "Add {name} integration"
 msgstr "{name}連携を追加"
 
@@ -2530,6 +2561,10 @@ msgstr "フィルターを追加"
 #: src/components/segment/SegmentDrawer.tsx:360
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "最初の条件を追加してください: コンタクトプロパティ、リスト、アクティビティ、ゴールのいずれか。"
+
+#: src/components/settings/AIAssistantSettings.tsx:174
+msgid "Add a model"
+msgstr "モデルを追加"
 
 #: src/components/segment/input_event_property_filters.tsx:137
 msgid "Add a property"
@@ -2677,8 +2712,8 @@ msgstr "フィルターを追加"
 msgid "Add filter conditions"
 msgstr "フィルター条件を追加"
 
-#: src/components/settings/Integrations.tsx:579
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:162
+#: src/components/settings/Integrations.tsx:391
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:125
 msgid "Add integration"
 msgstr "連携を追加"
 
@@ -2754,6 +2789,10 @@ msgstr "送信者のドメインを追加すると、そのメールに DKIM で
 #: src/components/analytics/GetStartedChecklist.tsx:230
 msgid "Add the script to your site to count visits and see which emails bring people back."
 msgstr "サイトにスクリプトを追加して訪問数を計測し、どのメールが再訪につながっているかを確認します。"
+
+#: src/components/settings/MCPSettings.tsx:202
+msgid "Add the server below to <0>.cursor/mcp.json</0> in your project, or to <1>~/.cursor/mcp.json</1> for every project, with the key in place of <2>YOUR_API_KEY</2>."
+msgstr "下のサーバーを、プロジェクトの <0>.cursor/mcp.json</0>、またはすべてのプロジェクト用に <1>~/.cursor/mcp.json</1> に追加し、<2>YOUR_API_KEY</2> をキーに置き換えます。"
 
 #: src/components/automations/nodeTypes.ts:30
 #: src/components/contacts/BulkActionsBar.tsx:88
@@ -2965,9 +3004,13 @@ msgstr "集計"
 #~ msgid "Aggregated across all A/B variations."
 #~ msgstr ""
 
-#: src/components/settings/Integrations.tsx:438
-#: src/components/settings/Integrations.tsx:747
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:166
+#: src/components/settings/SettingsSidebar.tsx:17
+msgid "AI"
+msgstr "AI"
+
+#: src/components/settings/AIAssistantSettings.tsx:249
+#: src/components/settings/AIAssistantSettings.tsx:274
+#: src/components/settings/AIAssistantSettings.tsx:297
 msgid "AI assistant"
 msgstr "AIアシスタント"
 
@@ -2983,8 +3026,12 @@ msgstr "AIブログアシスタント"
 msgid "AI Email Designer"
 msgstr "AIメールデザイナー"
 
-#: src/components/settings/Integrations.tsx:553
+#: src/components/settings/Integrations.tsx:365
 msgid "AI model"
+msgstr "AIモデル"
+
+#: src/components/settings/AIAssistantSettings.tsx:304
+msgid "AI models"
 msgstr "AIモデル"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:282
@@ -3170,6 +3217,11 @@ msgstr "今後、すべてのトランザクションメール (通知、パス�
 msgid "All variants must be connected. Missing: {missing}"
 msgstr "すべてのパターンを接続してください。未接続: {missing}"
 
+#: src/components/settings/MCPSettings.tsx:300
+#: src/components/settings/MCPSettings.tsx:306
+msgid "Allow MCP connections"
+msgstr "MCP 接続を許可"
+
 #: src/pages/SetupWizard.tsx:583
 #~ msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 #~ msgstr "メール受信でトランザクション通知をトリガーします。TLS証明書が必要です。"
@@ -3298,6 +3350,10 @@ msgstr "API呼び出しではemail_options.sender_idで別の送信者を選べ�
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "API呼び出しではemail_options.reply_toを指定できます。翻訳では別のReply-Toを使用できます。"
 
+#: src/pages/OAuthAuthorizePage.tsx:584
+msgid "An API key already uses this name, here or in another workspace. Pick another name."
+msgstr "この名前の APIキーはすでに存在します（このワークスペースか別のワークスペース）。別の名前を選んでください。"
+
 #: src/components/contacts/sheet/describeActivity.tsx:424
 msgid "an automation"
 msgstr "オートメーション"
@@ -3342,6 +3398,10 @@ msgstr "IPアドレスと対象IDは完全一致、実行者のメールアド�
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:394
 msgid "An open never counts. Clicks, replies, confirmations, a contact's own subscriptions and identified visits always do."
 msgstr "開封はカウントされません。クリック、返信、確認、コンタクト自身による購読、識別済みの訪問は常にカウントされます。"
+
+#: src/components/settings/MCPSettings.tsx:317
+msgid "An owner turned off MCP for this workspace. Connected assistants get no answer until it is turned back on."
+msgstr "オーナーがこのワークスペースの MCP をオフにしました。再びオンにするまで、接続済みのアシスタントには応答がありません。"
 
 #: src/components/contacts/sheet/describeActivity.tsx:398
 msgid "an unknown page"
@@ -3418,6 +3478,10 @@ msgstr "匿名テレメトリー"
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "ライブラリの別の変更を実行中です。しばらくしてからもう一度お試しください。"
 
+#: src/components/settings/AIAssistantSettings.tsx:228
+msgid "Answers questions about your traffic"
+msgstr "トラフィックに関する質問に答えます"
+
 #: src/components/logs/AuditLogTab.tsx:305
 #: src/components/logs/AuditLogTab.tsx:332
 #: src/components/logs/AuditLogTab.tsx:362
@@ -3469,7 +3533,7 @@ msgstr "すべてのメンバー"
 msgid "Any send"
 msgstr "すべての送信"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:54
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:46
 msgid "Any SMTP server, basic or OAuth2 login"
 msgstr "任意のSMTPサーバー、BasicまたはOAuth2ログイン"
 
@@ -3490,7 +3554,7 @@ msgstr "いつでも"
 msgid "API"
 msgstr "API"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:58
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:50
 msgid "API and secret keys"
 msgstr "APIキーとシークレットキー"
 
@@ -3551,17 +3615,17 @@ msgstr "API識別子は{TRANSACTIONAL_ID_MAX_LENGTH}文字以内にしてくだ�
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:751
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:778
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:801
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:59
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:51
 #: src/components/settings/integrations/providerDetails.ts:34
 #: src/components/settings/integrations/providerDetails.ts:36
 #: src/components/settings/integrations/providerDetails.ts:37
 #: src/components/settings/integrations/providerDetails.ts:39
+#: src/components/settings/MCPSettings.tsx:231
 #: src/components/settings/ZapierSettings.tsx:259
+#: src/pages/OAuthAuthorizePage.tsx:478
 msgid "API key"
 msgstr "APIキー"
 
-#: src/components/settings/Integrations.tsx:465
-#: src/components/settings/Integrations.tsx:490
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:717
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:754
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:782
@@ -3572,7 +3636,7 @@ msgstr "APIキー"
 msgid "API Key (starts with SG.)"
 msgstr "APIキー (SG. で始まる)"
 
-#: src/components/settings/Integrations.tsx:537
+#: src/components/settings/Integrations.tsx:349
 msgid "API key address"
 msgstr "APIキーのアドレス"
 
@@ -3580,11 +3644,11 @@ msgstr "APIキーのアドレス"
 msgid "API key created"
 msgstr "APIキーを作成しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:361
+#: src/components/settings/WorkspaceMembers.tsx:405
 msgid "API key created successfully"
 msgstr "APIキーを作成しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:672
+#: src/components/settings/WorkspaceMembers.tsx:735
 msgid "API Key Created Successfully"
 msgstr "APIキーを作成しました"
 
@@ -3592,7 +3656,7 @@ msgstr "APIキーを作成しました"
 #~ msgid "API key name"
 #~ msgstr "APIキー名"
 
-#: src/components/settings/WorkspaceMembers.tsx:636
+#: src/components/settings/WorkspaceMembers.tsx:699
 msgid "API Key Name"
 msgstr "APIキー名"
 
@@ -3600,16 +3664,16 @@ msgstr "APIキー名"
 msgid "API key token"
 msgstr "APIキーのトークン"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:55
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:47
 msgid "API key, US or EU"
 msgstr "APIキー、USまたはEU"
 
 #: src/components/logs/labels.ts:11
-#: src/components/settings/WorkspaceMembers.tsx:517
+#: src/components/settings/WorkspaceMembers.tsx:561
 msgid "API keys"
 msgstr "APIキー"
 
-#: src/components/settings/WorkspaceMembers.tsx:679
+#: src/components/settings/WorkspaceMembers.tsx:742
 msgid "API Token"
 msgstr "APIトークン"
 
@@ -3618,6 +3682,11 @@ msgstr "APIトークン"
 #: src/components/settings/ZapierSettings.tsx:190
 msgid "API URL"
 msgstr "API URL"
+
+#: src/components/settings/MCPSettings.tsx:236
+#: src/pages/OAuthAuthorizePage.tsx:298
+msgid "Application"
+msgstr "アプリケーション"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:650
 msgid "Application (Client) ID"
@@ -3696,7 +3765,7 @@ msgstr "カテゴリを削除してもよろしいですか"
 #~ msgid "Are you sure you want to delete the invitation for {0}?"
 #~ msgstr "{0}への招待を削除してもよろしいですか?"
 
-#: src/components/settings/WorkspaceMembers.tsx:202
+#: src/components/settings/WorkspaceMembers.tsx:219
 msgid "Are you sure you want to delete the invitation for {email}?"
 msgstr "{email} への招待を削除してもよろしいですか？"
 
@@ -3747,11 +3816,11 @@ msgstr "テーマv{0}を公開しますか?これによりブログで公開さ�
 #~ msgid "Are you sure you want to remove {0}?{1}"
 #~ msgstr "{0}を削除してもよろしいですか?{1}"
 
-#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:207
 msgid "Are you sure you want to remove {email}?"
 msgstr "{email} を削除してもよろしいですか？"
 
-#: src/components/settings/WorkspaceMembers.tsx:189
+#: src/components/settings/WorkspaceMembers.tsx:206
 msgid "Are you sure you want to remove {email}? This API key will be permanently deleted."
 msgstr "{email} を削除してもよろしいですか？このAPIキーは完全に削除されます。"
 
@@ -3889,6 +3958,18 @@ msgstr "<0>{target}</0> のサインインコードを要求しました"
 msgid "Assets"
 msgstr "アセット"
 
+#: src/components/settings/SettingsSidebar.tsx:63
+msgid "Assistant"
+msgstr "アシスタント"
+
+#: src/components/settings/MCPSettings.tsx:461
+msgid "Assistants connected through the connection page. Revoking one keeps its key; deleting the key ends all its connections."
+msgstr "接続ページから接続したアシスタントです。取り消してもキーは残ります。キーを削除すると、そのキーの接続はすべて終了します。"
+
+#: src/components/settings/MCPSettings.tsx:458
+msgid "Assistants that send the key in a header (Claude Code, Cursor) are not listed here: they use the key directly."
+msgstr "ヘッダーでキーを送るアシスタント（Claude Code、Cursor）はここに表示されません。キーを直接使うためです。"
+
 #: src/components/broadcasts/compose/SendingCard.tsx:89
 msgid "At a date and time you choose"
 msgstr "指定した日時に送信"
@@ -3989,7 +4070,7 @@ msgstr "監査エントリ"
 
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
-#: src/components/settings/SettingsSidebar.tsx:60
+#: src/components/settings/SettingsSidebar.tsx:65
 #: src/components/settings/SystemSettingsDrawer.tsx:740
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
@@ -4021,7 +4102,7 @@ msgstr "認証メール"
 #~ msgid "Auth Email"
 #~ msgstr "認証メール"
 
-#: src/components/settings/Integrations.tsx:381
+#: src/components/settings/Integrations.tsx:272
 msgid "Auth Email Hook"
 msgstr "認証メールフック"
 
@@ -4029,7 +4110,7 @@ msgstr "認証メールフック"
 #~ msgid "Auth Email Hook Secret"
 #~ msgstr "認証メールフックシークレット"
 
-#: src/components/settings/Integrations.tsx:369
+#: src/components/settings/Integrations.tsx:257
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:604
 #: src/components/settings/integrations/providerDetails.ts:66
 msgid "Authentication"
@@ -4037,7 +4118,7 @@ msgstr "認証"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:90
 #: src/pages/AcceptInvitationPage.tsx:127
-#: src/pages/SignInPage.tsx:268
+#: src/pages/SignInPage.tsx:269
 msgid "Authentication code"
 msgstr "認証コード"
 
@@ -4123,7 +4204,7 @@ msgstr "メールへの自動返信"
 #~ msgid "Auto-send Winner"
 #~ msgstr "勝者を自動送信"
 
-#: src/components/settings/Integrations.tsx:399
+#: src/components/settings/Integrations.tsx:290
 msgid "Auto-subscribe to Lists"
 msgstr "リストへ自動登録"
 
@@ -4236,6 +4317,10 @@ msgstr "オートメーションの書き込みは、コンタクトの読み取
 msgid "available"
 msgstr "使用可能"
 
+#: src/components/settings/MCPSettings.tsx:366
+msgid "Available"
+msgstr "利用可能"
+
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
 msgstr "保存後に利用できます"
@@ -4292,7 +4377,7 @@ msgstr "AWSアカウント"
 msgid "AWS bills per tenant per month. Turning it on asks to confirm, then creates the tenant after saving."
 msgstr "AWSはテナントごとに月額で課金します。オンにすると確認を求め、保存後にテナントを作成します。"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:53
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:45
 msgid "AWS keys, optional tenant isolation"
 msgstr "AWSキー、テナント分離 (任意)"
 
@@ -4434,8 +4519,6 @@ msgstr "背景の種類"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:113
 #: src/components/integrations/LLMIntegration.tsx:242
-#: src/components/settings/Integrations.tsx:453
-#: src/components/settings/Integrations.tsx:500
 msgid "Base URL"
 msgstr "ベースURL"
 
@@ -4530,7 +4613,7 @@ msgstr "インポート前の確認"
 msgid "Before User Created hook"
 msgstr "ユーザー作成前フック"
 
-#: src/components/settings/Integrations.tsx:389
+#: src/components/settings/Integrations.tsx:280
 msgid "Before User Created Hook"
 msgstr "ユーザー作成前フック"
 
@@ -4705,12 +4788,13 @@ msgstr "ブロック"
 #: src/components/blog/CategoryDrawer.tsx:218
 #: src/components/blog/PostDrawer.tsx:836
 #: src/components/logs/labels.ts:20
+#: src/components/settings/AIAssistantSettings.tsx:215
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
 #: src/components/settings/BlogSettings.tsx:298
 #: src/components/settings/BlogSettings.tsx:312
 #: src/components/settings/permissionLabels.ts:14
-#: src/components/settings/SettingsSidebar.tsx:58
+#: src/components/settings/SettingsSidebar.tsx:61
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:245
 #: src/pages/BlogPage.tsx:89
@@ -5394,6 +5478,10 @@ msgstr "Notifuse は、このコンタクトが購読解除した、バウンス
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "訪問者が誰かわかったらidentify() を呼び出します。署名はワークスペースのシークレットキーを使ってサーバー側で計算する必要があります — トラッキングエンドポイントは公開されているため、署名のないアドレスは無視されます。"
 
+#: src/components/settings/MCPSettings.tsx:326
+msgid "Calls to this workspace answer \"not found\" while the switch is off."
+msgstr "スイッチがオフの間、このワークスペースへの呼び出しは \"not found\" を返します。"
+
 #: src/pages/WebAnalyticsLivePage.tsx:207
 msgid "Campaign"
 msgstr "キャンペーン"
@@ -5506,20 +5594,21 @@ msgstr "ブラウザでテストできません"
 #: src/components/settings/DomainsSettings.tsx:140
 #: src/components/settings/DomainsSettings.tsx:443
 #: src/components/settings/EditPermissionsDrawer.tsx:129
-#: src/components/settings/Integrations.tsx:272
 #: src/components/settings/integrations/EmailProviderCard.tsx:192
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:929
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:991
 #: src/components/settings/integrations/TestEmailModal.tsx:68
+#: src/components/settings/integrations/useIntegrationActions.ts:109
+#: src/components/settings/MCPSettings.tsx:218
 #: src/components/settings/SystemSettingsDrawer.tsx:193
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:576
 #: src/components/settings/WebhookDetail.tsx:595
 #: src/components/settings/WebhooksSettings.tsx:510
-#: src/components/settings/WorkspaceMembers.tsx:192
-#: src/components/settings/WorkspaceMembers.tsx:204
-#: src/components/settings/WorkspaceMembers.tsx:557
-#: src/components/settings/WorkspaceMembers.tsx:619
+#: src/components/settings/WorkspaceMembers.tsx:209
+#: src/components/settings/WorkspaceMembers.tsx:221
+#: src/components/settings/WorkspaceMembers.tsx:620
+#: src/components/settings/WorkspaceMembers.tsx:682
 #: src/components/templates/CreateTemplateDrawer.tsx:928
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:319
@@ -5540,6 +5629,9 @@ msgstr "ブラウザでテストできません"
 #: src/components/web_analytics/filters/FilterTable.tsx:356
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
+#: src/pages/OAuthAuthorizePage.tsx:512
+#: src/pages/OAuthAuthorizePage.tsx:617
+#: src/pages/OAuthAuthorizePage.tsx:749
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -5623,11 +5715,15 @@ msgstr "ニュースレター <0>{target}</0> を中止しました"
 msgid "Cancelled the web analytics backfill"
 msgstr "Webアナリティクスのバックフィルを中止しました"
 
+#: src/pages/OAuthAuthorizePage.tsx:136
+msgid "Cancelled. Returning you to {name}…"
+msgstr "キャンセルしました。{name} に戻ります…"
+
 #: src/components/lists/ListDrawer.tsx:488
 msgid "Cannot be changed, used by the API and forms."
 msgstr "変更できません。APIとフォームで使われます。"
 
-#: src/pages/SignInPage.tsx:274
+#: src/pages/SignInPage.tsx:275
 msgid "Cannot reach the configured API endpoint"
 msgstr "設定されたAPIエンドポイントに接続できません"
 
@@ -5841,7 +5937,7 @@ msgstr "変更: {section}"
 msgid "Changes"
 msgstr "変更内容"
 
-#: src/pages/SignInPage.tsx:285
+#: src/pages/SignInPage.tsx:286
 msgid "Changing your domain"
 msgstr "ドメインの変更"
 
@@ -5904,6 +6000,10 @@ msgstr "MJMLの階層と、すべてのタグが閉じられているかを確�
 #: src/components/setup/SetupRestartView.tsx:88
 msgid "Check the server logs, then reload this page. Your configuration is already saved."
 msgstr "サーバーのログを確認してから、このページを再読み込みしてください。設定はすでに保存されています。"
+
+#: src/pages/OAuthAuthorizePage.tsx:210
+msgid "Check your connection, then try again."
+msgstr "接続を確認してから、もう一度お試しください。"
 
 #. placeholder {0}: listName || config.list_id
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:37
@@ -6062,9 +6162,21 @@ msgstr "都市がオフのため、座標は地域レベルの精度（約11 km�
 msgid "City precision needs City on"
 msgstr "都市レベルには「都市」をオンにする必要があります"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:62
+#: src/components/settings/MCPSettings.tsx:381
+msgid "Claude Code and Cursor can still connect with the key in a header."
+msgstr "Claude Code と Cursor は、ヘッダーでキーを送れば引き続き接続できます。"
+
+#: src/components/settings/MCPSettings.tsx:427
+msgid "Claude Code and Cursor send the key in a header instead:"
+msgstr "Claude Code と Cursor は、代わりにヘッダーでキーを送ります。"
+
+#: src/components/settings/AIAssistantSettings.tsx:80
 msgid "Claude models"
 msgstr "Claudeモデル"
+
+#: src/components/settings/MCPSettings.tsx:356
+msgid "claude.ai and ChatGPT need it."
+msgstr "claude.ai と ChatGPT に必要です。"
 
 #: src/components/contacts/ContactsFilters.tsx:240
 #: src/components/contacts/InlineEditableField.tsx:306
@@ -6389,7 +6501,7 @@ msgstr "テンプレートを複製"
 #: src/components/logs/MessageDetail.tsx:96
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/settings/WebhookDetail.tsx:592
-#: src/components/settings/WorkspaceMembers.tsx:615
+#: src/components/settings/WorkspaceMembers.tsx:678
 #: src/components/templates/ImportErrorsModal.tsx:36
 #: src/components/transactional/ApiCommandDrawer.tsx:212
 #: src/components/updates/UpdateDrawer.tsx:31
@@ -6780,8 +6892,8 @@ msgstr "メールリンク、通知センター、Web公開用のカスタムド
 #~ msgstr "ブログのRSSおよびJSONフィードの生成方法を設定します。"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:149
-msgid "Configure Integration"
-msgstr "連携を設定"
+#~ msgid "Configure Integration"
+#~ msgstr "連携を設定"
 
 #: src/components/file_manager/FileExplorer.tsx:1036
 #: src/components/file_manager/FileExplorer.tsx:1042
@@ -6806,9 +6918,7 @@ msgstr "プロバイダーを設定"
 #~ msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 #~ msgstr "ブログのスタイルとSEO設定を行います。これらの設定はすべてのブログページに適用されます。"
 
-#: src/components/settings/Integrations.tsx:297
-#: src/components/settings/Integrations.tsx:307
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:107
+#: src/components/settings/Integrations.tsx:211
 msgid "Configured"
 msgstr "設定済み"
 
@@ -6849,10 +6959,26 @@ msgstr "{name} の購読を確認"
 msgid "Confirms an unsubscription and links to the preferences."
 msgstr "購読解除を確認し、設定ページへのリンクを表示します。"
 
-#: src/components/settings/Integrations.tsx:881
-#: src/components/settings/Integrations.tsx:1309
-#~ msgid "Connect"
-#~ msgstr "接続"
+#: src/components/settings/AIAssistantSettings.tsx:333
+#: src/pages/OAuthAuthorizePage.tsx:515
+msgid "Connect"
+msgstr "接続"
+
+#: src/pages/OAuthAuthorizePage.tsx:361
+msgid "Connect \"{name}\" to Notifuse"
+msgstr "「{name}」を Notifuse に接続"
+
+#: src/pages/OAuthAuthorizePage.tsx:361
+msgid "Connect {name} to Notifuse"
+msgstr "{name} を Notifuse に接続"
+
+#: src/components/ai-assistant/AIAssistantChat.tsx:149
+msgid "Connect an AI model"
+msgstr "AIモデルを接続"
+
+#: src/components/settings/MCPSettings.tsx:390
+msgid "Connect an assistant"
+msgstr "アシスタントを接続"
 
 #: src/components/analytics/GetStartedChecklist.tsx:136
 #: src/components/analytics/GetStartedChecklist.tsx:141
@@ -6872,18 +6998,29 @@ msgstr "S3互換のバケットを接続すると、メールやブログ用の�
 #~ msgid "Connect Notifuse to more than 8,000 apps with Zapier"
 #~ msgstr "Zapierを使ってNotifuseを8,000以上のアプリと連携"
 
-#: src/components/settings/Integrations.tsx:689
+#: src/components/settings/Integrations.tsx:448
 #: src/components/settings/ZapierSettings.tsx:291
 msgid "Connect Zapier"
 msgstr "Zapierを接続"
 
-#: src/components/settings/Integrations.tsx:520
-#: src/components/settings/Integrations.tsx:540
+#: src/components/settings/AIAssistantSettings.tsx:137
+#: src/components/settings/Integrations.tsx:330
+#: src/components/settings/Integrations.tsx:352
+#: src/components/settings/MCPSettings.tsx:261
 msgid "Connected"
 msgstr "接続日"
 
-#: src/components/settings/Integrations.tsx:748
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:167
+#: src/components/settings/AIAssistantSettings.tsx:205
+msgctxt "status"
+msgid "Connected"
+msgstr "接続済み"
+
+#: src/components/settings/WorkspaceMembers.tsx:329
+msgid "Connected applications"
+msgstr "接続済みアプリケーション"
+
+#: src/components/settings/Integrations.tsx:508
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:128
 msgid "Connected apps"
 msgstr "接続済みアプリ"
 
@@ -6903,6 +7040,10 @@ msgstr "Zapierを連携 <0>{target}</0> として接続しました"
 #~ msgid "Connected Zapier with the API key <0>{target}</0>"
 #~ msgstr "APIキー <0>{target}</0> で Zapier を接続しました"
 
+#: src/pages/OAuthAuthorizePage.tsx:136
+msgid "Connected. Returning you to {name}…"
+msgstr "接続しました。{name} に戻ります…"
+
 #: src/components/settings/ZapierSettings.tsx:171
 #~ msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
 #~ msgstr "Zapierを接続すると、Zapが新しいコンタクト、リストへの登録、コンタクトが加わったセグメントといったNotifuseのイベントに反応できるようになり、Zapからコンタクトを作成・更新してリストに登録することもできます。オンにしたZapはそれぞれ専用のWebhookサブスクリプションを登録し、設定 → Webhooksで確認できます。"
@@ -6921,10 +7062,22 @@ msgstr "接続"
 msgid "Connection Details"
 msgstr "接続詳細"
 
+#: src/components/settings/MCPSettings.tsx:353
+msgid "Connection page"
+msgstr "接続ページ"
+
+#: src/components/settings/MCPSettings.tsx:117
+msgid "Connection revoked"
+msgstr "接続を取り消しました"
+
 #: src/components/web_analytics/lib/dimensions.ts:96
 #: src/components/web_analytics/lib/filterCatalog.ts:89
 msgid "Connection Type"
 msgstr "接続の種類"
+
+#: src/components/settings/MCPSettings.tsx:452
+msgid "Connections"
+msgstr "接続"
 
 #: src/components/settings/WebhookDetail.tsx:448
 msgid "Consecutive delivery failures: {consecutiveFailures}"
@@ -7130,6 +7283,10 @@ msgstr "この期間、クリック、返信、確認、サイト訪問が一度
 msgid "Contacts without recorded consent"
 msgstr "同意が記録されていないコンタクト"
 
+#: src/components/settings/MCPSettings.tsx:493
+msgid "Contacts, lists, segments, templates, broadcasts, message history and analytics."
+msgstr "コンタクト、リスト、セグメント、テンプレート、ブロードキャスト、メッセージ履歴、分析。"
+
 #: src/components/transactional/TransactionalDetail.tsx:372
 msgid "Contacts' tracking consent still applies"
 msgstr "コンタクトのトラッキング同意は引き続き適用されます"
@@ -7250,6 +7407,9 @@ msgstr "座標の精度"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:23
 #: src/components/logs/CodeBlock.tsx:21
+#: src/components/settings/MCPSettings.tsx:340
+#: src/components/settings/MCPSettings.tsx:432
+#: src/components/settings/MCPSettings.tsx:438
 msgid "Copied"
 msgstr "コピーしました"
 
@@ -7258,6 +7418,8 @@ msgstr "コピーしました"
 #: src/components/layout/Mono.tsx:36
 #: src/components/lists/ListDrawer.tsx:485
 #: src/components/logs/CodeBlock.tsx:33
+#: src/components/settings/MCPSettings.tsx:69
+#: src/components/settings/MCPSettings.tsx:342
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
 #: src/components/settings/ZapierSettings.tsx:260
@@ -7303,6 +7465,18 @@ msgstr "リンクをコピー"
 #: src/components/settings/WebhookDetail.tsx:384
 msgid "Copy secret"
 msgstr "シークレットをコピー"
+
+#: src/components/settings/MCPSettings.tsx:437
+msgid "Copy the command"
+msgstr "コマンドをコピー"
+
+#: src/components/settings/MCPSettings.tsx:431
+msgid "Copy the configuration"
+msgstr "設定をコピー"
+
+#: src/components/settings/MCPSettings.tsx:339
+msgid "Copy the MCP server URL"
+msgstr "MCP サーバーの URL をコピー"
 
 #: src/pages/BroadcastsPage.tsx:1846
 #~ msgid "Copy to clipboard"
@@ -7418,9 +7592,21 @@ msgstr "このレポートを読み込めませんでした"
 msgid "Could not read the licence state"
 msgstr "ライセンスの状態を読み込めませんでした"
 
+#: src/pages/OAuthAuthorizePage.tsx:289
+msgid "Couldn't cancel the request. Try again."
+msgstr "リクエストをキャンセルできませんでした。もう一度お試しください。"
+
 #: src/components/templates/DeleteTemplateModal.tsx:57
 msgid "Couldn't check where this template is used"
 msgstr "このテンプレートの使用箇所を確認できませんでした"
+
+#: src/pages/OAuthAuthorizePage.tsx:466
+msgid "Couldn't connect. Try again in a moment."
+msgstr "接続できませんでした。少し待ってからもう一度お試しください。"
+
+#: src/pages/OAuthAuthorizePage.tsx:595
+msgid "Couldn't create the key. Try again."
+msgstr "キーを作成できませんでした。もう一度お試しください。"
 
 #: src/components/blog/PostsTable.tsx:397
 #: src/components/broadcasts/CouldntLoad.tsx:8
@@ -7459,6 +7645,10 @@ msgstr "オートメーションを読み込めませんでした"
 msgid "Couldn't load the broadcasts"
 msgstr "ブロードキャストを読み込めませんでした"
 
+#: src/components/settings/MCPSettings.tsx:287
+msgid "Couldn't load the connections."
+msgstr "接続を読み込めませんでした。"
+
 #: src/components/logs/OutgoingWebhooksTab.tsx:228
 msgid "Couldn't load the deliveries"
 msgstr "配信を読み込めませんでした"
@@ -7475,7 +7665,7 @@ msgstr "ドメインを読み込めませんでした"
 msgid "Couldn't load the files"
 msgstr "ファイルを読み込めませんでした"
 
-#: src/components/settings/WorkspaceMembers.tsx:495
+#: src/components/settings/WorkspaceMembers.tsx:539
 msgid "Couldn't load the members"
 msgstr "メンバーを読み込めませんでした"
 
@@ -7526,6 +7716,10 @@ msgstr "Webhookを読み込めませんでした"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 msgid "Couldn't load this broadcast"
 msgstr "このブロードキャストを読み込めませんでした"
+
+#: src/pages/OAuthAuthorizePage.tsx:207
+msgid "Couldn't load this connection request"
+msgstr "この接続リクエストを読み込めませんでした"
 
 #: src/pages/TemplatesPage.tsx:208
 msgid "Couldn't load this template"
@@ -7681,6 +7875,11 @@ msgstr "カスタムレポートを作成する"
 msgid "Create a folder in the workspace's storage (Templates or Blog write allows it)"
 msgstr "ワークスペースのストレージにフォルダを作成する (テンプレートまたはブログの書き込みで可能)"
 
+#: src/pages/OAuthAuthorizePage.tsx:390
+#: src/pages/OAuthAuthorizePage.tsx:632
+msgid "Create a key for this agent"
+msgstr "このエージェント用のキーを作成"
+
 #: src/services/api/permissions.ts:343
 msgid "Create a list"
 msgstr "リストを作成する"
@@ -7725,6 +7924,14 @@ msgstr "トランザクション通知を作成する (テンプレートの選�
 #~ msgid "Create a Zapier API key"
 #~ msgstr "Zapier用のAPIキーを作成"
 
+#: src/components/settings/MCPSettings.tsx:188
+msgid "Create an API key for Claude Code in <0>Team & API keys</0>."
+msgstr "<0>チームとAPIキー</0> で Claude Code 用の APIキーを作成します。"
+
+#: src/components/settings/MCPSettings.tsx:199
+msgid "Create an API key for Cursor in <0>Team & API keys</0>."
+msgstr "<0>チームとAPIキー</0> で Cursor 用の APIキーを作成します。"
+
 #: src/services/api/permissions.ts:746
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Webhook、メール、リストのノードを含むオートメーションを作成する"
@@ -7741,8 +7948,8 @@ msgstr "この連携用のSESテナントを作成しますか？"
 #~ msgid "Create and manage your blog content"
 #~ msgstr "ブログコンテンツを作成・管理"
 
-#: src/components/settings/WorkspaceMembers.tsx:602
-#: src/components/settings/WorkspaceMembers.tsx:626
+#: src/components/settings/WorkspaceMembers.tsx:665
+#: src/components/settings/WorkspaceMembers.tsx:689
 msgid "Create API Key"
 msgstr "APIキーを作成"
 
@@ -7769,6 +7976,11 @@ msgstr "最初のテーマを作成"
 #: src/components/settings/DomainsSettings.tsx:442
 msgid "Create key"
 msgstr "キーを作成"
+
+#: src/pages/OAuthAuthorizePage.tsx:616
+#: src/pages/OAuthAuthorizePage.tsx:757
+msgid "Create key and connect"
+msgstr "キーを作成して接続"
 
 #: src/components/lists/ListDrawer.tsx:582
 msgid "Create list"
@@ -7823,6 +8035,14 @@ msgstr "通知を作成"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:90
 msgid "Create Notification"
 msgstr "通知を作成"
+
+#: src/pages/OAuthAuthorizePage.tsx:503
+msgid "Create one in Settings › Team & API keys. Give {name} a key of its own, with only the permissions it needs. Notifuse never shows this key to {name}."
+msgstr "設定 › チームとAPIキー で作成してください。{name} には必要な権限だけを持つ専用のキーを渡してください。Notifuse がこのキーを {name} に見せることはありません。"
+
+#: src/pages/OAuthAuthorizePage.tsx:504
+msgid "Create one in Settings › Team & API keys. The application gets this key's workspace and access. Give it a key of its own."
+msgstr "設定 › チームとAPIキー で作成してください。アプリケーションはこのキーのワークスペースとアクセス権を得ます。専用のキーを渡してください。"
 
 #: src/components/blog/PostDrawer.tsx:823
 msgid "Create post"
@@ -7929,7 +8149,7 @@ msgstr "最初のテンプレートを作成して始めましょう"
 #: src/components/logs/OutgoingWebhooksTab.tsx:408
 #: src/components/settings/DomainsSettings.tsx:346
 #: src/components/settings/WebhookDetail.tsx:503
-#: src/components/settings/WorkspaceMembers.tsx:304
+#: src/components/settings/WorkspaceMembers.tsx:321
 #: src/components/transactional/TransactionalDetail.tsx:431
 msgid "Created"
 msgstr "作成日"
@@ -8296,7 +8516,7 @@ msgstr "カスタムフィールドラベルを保存しました"
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
 #: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:275
-#: src/components/settings/SettingsSidebar.tsx:57
+#: src/components/settings/SettingsSidebar.tsx:60
 msgid "Custom fields"
 msgstr "カスタムフィールド"
 
@@ -8466,7 +8686,7 @@ msgid "Daily"
 msgstr "日次"
 
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/SettingsSidebar.tsx:63
+#: src/components/settings/SettingsSidebar.tsx:68
 msgid "Danger zone"
 msgstr "危険な操作"
 
@@ -8503,7 +8723,7 @@ msgstr "データフィード"
 #: src/components/segment/input.tsx:68
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:46
 #: src/components/settings/LicenseSettings.tsx:140
-#: src/components/settings/SettingsSidebar.tsx:61
+#: src/components/settings/SettingsSidebar.tsx:66
 #: src/services/api/licenseErrors.ts:54
 msgid "Data retention"
 msgstr "データ保持"
@@ -8604,7 +8824,6 @@ msgid "default"
 msgstr "デフォルト"
 
 #: src/components/integrations/LLMIntegration.tsx:259
-#: src/components/settings/Integrations.tsx:339
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:903
 #: src/components/templates/TemplateTranslationsTab.tsx:453
 msgid "Default"
@@ -8783,16 +9002,16 @@ msgstr "遅延ノードの時間は0より大きくしてください"
 #: src/components/segment/input.tsx:313
 #: src/components/settings/DomainsSettings.tsx:139
 #: src/components/settings/DomainsSettings.tsx:356
-#: src/components/settings/Integrations.tsx:271
-#: src/components/settings/Integrations.tsx:290
+#: src/components/settings/Integrations.tsx:259
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
 #: src/components/settings/integrations/EmailProviderCard.tsx:229
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:928
+#: src/components/settings/integrations/useIntegrationActions.ts:108
 #: src/components/settings/WebhookDetail.tsx:337
 #: src/components/settings/WebhookDetail.tsx:345
 #: src/components/settings/WebhookDetail.tsx:352
-#: src/components/settings/WorkspaceMembers.tsx:191
-#: src/components/settings/WorkspaceMembers.tsx:203
+#: src/components/settings/WorkspaceMembers.tsx:208
+#: src/components/settings/WorkspaceMembers.tsx:220
 #: src/components/transactional/TransactionalDetail.tsx:333
 #: src/components/transactional/TransactionalTable.tsx:306
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:84
@@ -8998,12 +9217,12 @@ msgstr "フォルダを削除（読み取り専用モード）"
 msgid "Delete header"
 msgstr "ヘッダーを削除"
 
-#: src/components/settings/WorkspaceMembers.tsx:201
-#: src/components/settings/WorkspaceMembers.tsx:215
+#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:232
 msgid "Delete invitation"
 msgstr "招待を削除"
 
-#: src/components/settings/WorkspaceMembers.tsx:220
+#: src/components/settings/WorkspaceMembers.tsx:237
 msgid "Delete key"
 msgstr "キーを削除"
 
@@ -9074,7 +9293,7 @@ msgstr "{domain} のキーを削除しますか？"
 msgid "Delete the notification?"
 msgstr "通知を削除しますか？"
 
-#: src/components/settings/WorkspaceMembers.tsx:186
+#: src/components/settings/WorkspaceMembers.tsx:203
 msgid "Delete this API key?"
 msgstr "このAPIキーを削除しますか？"
 
@@ -9082,12 +9301,13 @@ msgstr "このAPIキーを削除しますか？"
 msgid "Delete this condition?"
 msgstr "この条件を削除しますか？"
 
-#: src/components/settings/Integrations.tsx:525
+#: src/components/settings/Integrations.tsx:336
 msgid "Delete this connection?"
 msgstr "この接続を削除しますか？"
 
-#: src/components/settings/Integrations.tsx:291
+#: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:182
+#: src/components/settings/integrations/useIntegrationActions.ts:106
 msgid "Delete this integration?"
 msgstr "この連携を削除しますか？"
 
@@ -9236,9 +9456,17 @@ msgstr "Webhook <0>{target}</0> を削除しました"
 msgid "Deleted the workspace <0>{target}</0>"
 msgstr "ワークスペース <0>{target}</0> を削除しました"
 
-#: src/components/settings/Integrations.tsx:526
+#: src/components/settings/WorkspaceMembers.tsx:565
+msgid "Deleting a key also ends the assistant connections made with it."
+msgstr "キーを削除すると、そのキーで作られたアシスタントの接続も終了します。"
+
+#: src/components/settings/Integrations.tsx:337
 msgid "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
 msgstr "削除するとこの接続が作成したAPIキーが取り消され、まだそれを使っているZapは動作しなくなります。この操作は元に戻せません。"
+
+#: src/pages/OAuthAuthorizePage.tsx:343
+msgid "Deleting the key in Notifuse ends this connection. An owner can also revoke it in Settings › AI › MCP."
+msgstr "Notifuse でキーを削除すると、この接続は終了します。オーナーは 設定 › AI › MCP で取り消すこともできます。"
 
 #: src/components/settings/WebhookDetail.tsx:579
 msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
@@ -9475,7 +9703,7 @@ msgid "Disable webhook"
 msgstr "Webhookを無効化"
 
 #: src/components/settings/BlogSettings.tsx:246
-#: src/components/settings/Integrations.tsx:408
+#: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
@@ -9531,7 +9759,7 @@ msgstr "保存されていない変更を破棄しますか？"
 msgid "Discard your changes?"
 msgstr "変更を破棄しますか？"
 
-#: src/components/settings/Integrations.tsx:524
+#: src/components/settings/Integrations.tsx:334
 msgid "Disconnect"
 msgstr "接続を解除"
 
@@ -9698,7 +9926,7 @@ msgstr "等しくない"
 msgid "Domain"
 msgstr "ドメイン"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:57
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:49
 msgid "Domain and API key, US or EU"
 msgstr "ドメインとAPIキー、USまたはEU"
 
@@ -9715,7 +9943,7 @@ msgid "Domain the visitor arrived from"
 msgstr "訪問者の流入元ドメイン"
 
 #: src/components/settings/DomainsSettings.tsx:392
-#: src/components/settings/SettingsSidebar.tsx:54
+#: src/components/settings/SettingsSidebar.tsx:57
 msgid "Domains"
 msgstr "ドメイン"
 
@@ -9833,11 +10061,19 @@ msgstr "下書き"
 msgid "Draft restored from local storage"
 msgstr "ローカルストレージから下書きを復元しました"
 
+#: src/components/settings/MCPSettings.tsx:501
+msgid "Draft templates and broadcasts, update contacts and list subscriptions."
+msgstr "テンプレートとブロードキャストの下書き、コンタクトとリスト購読の更新。"
+
 #: src/components/blog/PostsTable.tsx:435
 #: src/pages/AutomationsPage.tsx:140
 #: src/pages/BroadcastsPage.tsx:186
 msgid "Drafts"
 msgstr "下書き"
+
+#: src/components/settings/AIAssistantSettings.tsx:216
+msgid "Drafts and edits posts"
+msgstr "記事の下書きと編集"
 
 #: src/components/automations/NodePalette.tsx:55
 msgid "Drag a step onto the canvas, or use + under a step."
@@ -10062,7 +10298,8 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
 #: src/components/segment/input.tsx:394
 #: src/components/segment/input.tsx:398
-#: src/components/settings/Integrations.tsx:261
+#: src/components/settings/AIAssistantSettings.tsx:91
+#: src/components/settings/Integrations.tsx:189
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
 #: src/components/templates/TemplateSettingsAside.tsx:144
@@ -10093,7 +10330,8 @@ msgstr "{0}の翻訳を編集"
 msgid "Edit {name}"
 msgstr "{name} を編集"
 
-#: src/components/settings/Integrations.tsx:596
+#: src/components/settings/AIAssistantSettings.tsx:233
+#: src/components/settings/Integrations.tsx:396
 msgid "Edit {name} integration"
 msgstr "{name}連携を編集"
 
@@ -10217,7 +10455,7 @@ msgstr "通知を編集"
 msgid "Edit Notification"
 msgstr "通知を編集"
 
-#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:235
 msgid "Edit permissions"
 msgstr "権限を編集"
 
@@ -10325,7 +10563,7 @@ msgstr "Webhookを編集"
 #~ msgid "Edit Webhook"
 #~ msgstr "Webhookを編集"
 
-#: src/components/settings/Integrations.tsx:689
+#: src/components/settings/Integrations.tsx:448
 msgid "Edit Zapier connection"
 msgstr "Zapier接続を編集"
 
@@ -10391,12 +10629,12 @@ msgstr "経過時間"
 #: src/components/logs/MessagesTab.tsx:300
 #: src/components/logs/MessagesTab.tsx:485
 #: src/components/segment/segmentLabels.ts:17
-#: src/components/settings/Integrations.tsx:549
+#: src/components/settings/Integrations.tsx:361
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1001
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:312
-#: src/pages/SignInPage.tsx:319
+#: src/pages/SignInPage.tsx:313
+#: src/pages/SignInPage.tsx:320
 msgid "Email"
 msgstr "メール"
 
@@ -10409,7 +10647,7 @@ msgstr "メール"
 #~ msgid "Email (Required)"
 #~ msgstr "メール（必須）"
 
-#: src/components/settings/WorkspaceMembers.tsx:572
+#: src/components/settings/WorkspaceMembers.tsx:635
 msgid "Email address"
 msgstr "メールアドレス"
 
@@ -10496,6 +10734,10 @@ msgstr "メール配信済み: {name}"
 #: src/components/setup/setupHooks.ts:44
 msgid "Email delivery"
 msgstr "メール送信"
+
+#: src/components/settings/AIAssistantSettings.tsx:221
+msgid "Email editor"
+msgstr "メールエディター"
 
 #: src/components/contacts/sheet/describeActivity.tsx:145
 msgid "Email failed: {name}"
@@ -10592,12 +10834,12 @@ msgstr "メールプロバイダが必要です"
 #~ msgid "Email providers"
 #~ msgstr "メールプロバイダー"
 
-#: src/components/settings/Integrations.tsx:713
+#: src/components/settings/Integrations.tsx:472
 msgid "Email providers and connected services"
 msgstr "メールプロバイダーと接続済みサービス"
 
 #: src/components/settings/integrations/EmailRoles.tsx:78
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:164
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:127
 msgid "Email sending"
 msgstr "メール送信"
 
@@ -10877,7 +11119,7 @@ msgid "Enable webhook"
 msgstr "Webhookを有効化"
 
 #: src/components/settings/BlogSettings.tsx:241
-#: src/components/settings/Integrations.tsx:408
+#: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/SystemSettingsDrawer.tsx:490
 #: src/components/settings/SystemSettingsDrawer.tsx:575
@@ -11052,7 +11294,7 @@ msgid "Enter duration"
 msgstr "期間を入力"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:541
-#: src/components/settings/WorkspaceMembers.tsx:577
+#: src/components/settings/WorkspaceMembers.tsx:640
 msgid "Enter email address"
 msgstr "メールアドレスを入力"
 
@@ -11143,7 +11385,7 @@ msgstr "{name} の件名を入力してください"
 msgid "Enter the 6-digit code from your app"
 msgstr "アプリの6桁のコードを入力してください"
 
-#: src/pages/SignInPage.tsx:349
+#: src/pages/SignInPage.tsx:350
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "{email}に送信された6桁のコードを入力"
 
@@ -11151,7 +11393,7 @@ msgstr "{email}に送信された6桁のコードを入力"
 msgid "Enter the code from your authenticator app to accept the invitation."
 msgstr "招待を承認するには、認証アプリのコードを入力してください。"
 
-#: src/pages/SignInPage.tsx:293
+#: src/pages/SignInPage.tsx:294
 msgid "Enter the code from your authenticator app."
 msgstr "認証アプリのコードを入力してください。"
 
@@ -11422,6 +11664,10 @@ msgstr "これより古いイベントは削除されます。アクティビテ
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:81
 msgid "Every \"set\" operation needs a value"
 msgstr "「set」操作にはすべて値が必要です"
+
+#: src/components/settings/MCPSettings.tsx:393
+msgid "Every assistant needs an API key. Create one per assistant in <0>Team & API keys</0>, with only the permissions it needs."
+msgstr "アシスタントごとに APIキーが必要です。<0>チームとAPIキー</0> でアシスタントごとに 1 つ、必要な権限だけで作成してください。"
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:158
 msgid "Every condition and every operation has a value"
@@ -11711,7 +11957,6 @@ msgid "External ID copied"
 msgstr "外部IDをコピーしました"
 
 #: src/components/integrations/LLMIntegration.tsx:265
-#: src/components/settings/Integrations.tsx:345
 msgid "Extra high"
 msgstr "非常に高い"
 
@@ -11802,6 +12047,10 @@ msgstr "リストへの追加に失敗しました: {0}"
 msgid "Failed to cancel broadcast"
 msgstr "ブロードキャストのキャンセルに失敗しました"
 
+#: src/components/settings/MCPSettings.tsx:110
+msgid "Failed to change MCP access"
+msgstr "MCP のアクセスを変更できませんでした"
+
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:120
 msgid "Failed to change the sender"
 msgstr "送信者を変更できませんでした"
@@ -11833,6 +12082,7 @@ msgstr "Zapierの接続に失敗しました"
 #: src/components/layout/DrawerControls.tsx:88
 #: src/components/layout/Mono.tsx:24
 #: src/components/logs/CodeBlock.tsx:22
+#: src/components/settings/MCPSettings.tsx:161
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:41
 #: src/components/transactional/ApiCommandDrawer.tsx:97
@@ -11841,7 +12091,7 @@ msgstr "Zapierの接続に失敗しました"
 msgid "Failed to copy to clipboard"
 msgstr "クリップボードへのコピーに失敗しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:367
+#: src/components/settings/WorkspaceMembers.tsx:411
 msgid "Failed to create API key"
 msgstr "APIキーの作成に失敗しました"
 
@@ -11919,11 +12169,11 @@ msgstr "ファイルの削除に失敗しました: "
 msgid "Failed to delete folder: "
 msgstr "フォルダを削除できませんでした: "
 
-#: src/components/settings/Integrations.tsx:137
+#: src/components/settings/integrations/useIntegrationActions.ts:100
 msgid "Failed to delete integration"
 msgstr "連携の削除に失敗しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:418
+#: src/components/settings/WorkspaceMembers.tsx:462
 msgid "Failed to delete invitation"
 msgstr "招待の削除に失敗しました"
 
@@ -12018,7 +12268,7 @@ msgstr "データの取得に失敗しました: {0}"
 msgid "Failed to fetch setup status"
 msgstr "セットアップ状態の取得に失敗しました"
 
-#: src/pages/WorkspaceSettingsPage.tsx:160
+#: src/pages/WorkspaceSettingsPage.tsx:164
 msgid "Failed to fetch workspace members"
 msgstr "ワークスペースメンバーの取得に失敗しました"
 
@@ -12034,7 +12284,7 @@ msgstr "テンプレートのインポートに失敗しました。ファイル
 msgid "Failed to install the licence key"
 msgstr "ライセンスキーのインストールに失敗しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:337
+#: src/components/settings/WorkspaceMembers.tsx:381
 msgid "Failed to invite member"
 msgstr "メンバーの招待に失敗しました"
 
@@ -12114,7 +12364,7 @@ msgstr "Webhookの登録に失敗しました"
 msgid "Failed to remove custom field label"
 msgstr "カスタムフィールドラベルの削除に失敗しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:399
+#: src/components/settings/WorkspaceMembers.tsx:443
 msgid "Failed to remove member"
 msgstr "メンバーの削除に失敗しました"
 
@@ -12126,11 +12376,11 @@ msgstr "ブロック名を変更できませんでした"
 msgid "Failed to render preview"
 msgstr "プレビューのレンダリングに失敗しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:451
+#: src/components/settings/WorkspaceMembers.tsx:495
 msgid "Failed to resend invitation"
 msgstr "招待の再送信に失敗しました"
 
-#: src/pages/SignInPage.tsx:256
+#: src/pages/SignInPage.tsx:257
 msgid "Failed to resend magic code"
 msgstr "マジックコードの再送信に失敗しました"
 
@@ -12146,6 +12396,10 @@ msgstr "ブロードキャストの再開に失敗しました"
 msgid "Failed to retry the recipients"
 msgstr "宛先の再送に失敗しました"
 
+#: src/components/settings/MCPSettings.tsx:124
+msgid "Failed to revoke the connection"
+msgstr "接続を取り消せませんでした"
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:328
 msgid "Failed to save contact"
 msgstr "コンタクトの保存に失敗しました"
@@ -12158,7 +12412,7 @@ msgstr "コンタクトの保存に失敗しました。再度お試しくださ
 msgid "Failed to save field"
 msgstr "フィールドの保存に失敗しました"
 
-#: src/components/settings/Integrations.tsx:656
+#: src/components/settings/AIAssistantSettings.tsx:283
 msgid "Failed to save Firecrawl integration"
 msgstr "Firecrawl連携の保存に失敗しました"
 
@@ -12167,7 +12421,7 @@ msgstr "Firecrawl連携の保存に失敗しました"
 msgid "Failed to save integration"
 msgstr "連携の保存に失敗しました"
 
-#: src/components/settings/Integrations.tsx:635
+#: src/components/settings/AIAssistantSettings.tsx:259
 msgid "Failed to save LLM integration"
 msgstr "LLM連携の保存に失敗しました"
 
@@ -12175,7 +12429,7 @@ msgstr "LLM連携の保存に失敗しました"
 msgid "Failed to save settings"
 msgstr "設定の保存に失敗しました"
 
-#: src/components/settings/Integrations.tsx:677
+#: src/components/settings/Integrations.tsx:435
 msgid "Failed to save Supabase integration"
 msgstr "Supabase連携の保存に失敗しました"
 
@@ -12199,7 +12453,7 @@ msgstr "Webhookサブスクリプションの保存に失敗しました"
 msgid "Failed to save webhook subscription: {detail}"
 msgstr "Webhookサブスクリプションの保存に失敗しました: {detail}"
 
-#: src/components/settings/Integrations.tsx:241
+#: src/components/settings/Integrations.tsx:169
 msgid "Failed to save Zapier integration"
 msgstr "Zapier連携の保存に失敗しました"
 
@@ -12220,7 +12474,7 @@ msgstr "勝者の選択に失敗しました"
 msgid "Failed to send broadcast"
 msgstr "ブロードキャストの送信に失敗しました"
 
-#: src/pages/SignInPage.tsx:124
+#: src/pages/SignInPage.tsx:125
 msgid "Failed to send magic code"
 msgstr "マジックコードの送信に失敗しました"
 
@@ -12239,7 +12493,7 @@ msgstr "テストWebhookの送信に失敗しました"
 msgid "Failed to send the broadcast back to draft"
 msgstr "ブロードキャストを下書きに戻せませんでした"
 
-#: src/components/settings/Integrations.tsx:126
+#: src/components/settings/Integrations.tsx:107
 msgid "Failed to set default provider"
 msgstr "デフォルトプロバイダの設定に失敗しました"
 
@@ -12353,7 +12607,7 @@ msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "ワークスペース設定の更新に失敗しました: {errorMessage}"
 
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:55
-#: src/pages/SignInPage.tsx:95
+#: src/pages/SignInPage.tsx:96
 msgid "Failed to verify code"
 msgstr "コードの検証に失敗しました"
 
@@ -12617,6 +12871,10 @@ msgstr "Google Cloud Console > APIとサービス > 認証情報で確認でき�
 msgid "Finer precision needs Region or City on"
 msgstr "より細かい精度には「地域」か「都市」が必要です"
 
+#: src/pages/OAuthAuthorizePage.tsx:147
+msgid "Finish connecting in the browser you started in"
+msgstr "接続を始めたブラウザで完了してください"
+
 #: src/components/settings/data_retention/categoryText.ts:22
 msgid "Finished journeys older than this are deleted. Contacts are never enrolled twice in a one-time automation."
 msgstr "これより古い完了済みのジャーニーは削除されます。1回限りのオートメーションにコンタクトが2回登録されることはありません。"
@@ -12629,7 +12887,7 @@ msgstr "指定した受信者に対してテスト用のデータフィードリ
 msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 msgstr "サブスクリプションのURLへテスト配信を実行する — サーバーが外部へ通信するため、読み取りではなく書き込みに属する"
 
-#: src/components/settings/Integrations.tsx:655
+#: src/components/settings/AIAssistantSettings.tsx:282
 msgid "Firecrawl integration saved successfully"
 msgstr "Firecrawl連携を保存しました"
 
@@ -13017,7 +13275,7 @@ msgstr "明日から"
 #~ msgid "From:"
 #~ msgstr "差出人:"
 
-#: src/components/settings/WorkspaceMembers.tsx:95
+#: src/components/settings/WorkspaceMembers.tsx:98
 msgid "Full access"
 msgstr "フルアクセス"
 
@@ -13091,7 +13349,7 @@ msgstr "ギャラリー · {languages}"
 msgid "gap {gutter}"
 msgstr "間隔 {gutter}"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:64
+#: src/components/settings/AIAssistantSettings.tsx:82
 msgid "Gemini models"
 msgstr "Geminiモデル"
 
@@ -13112,7 +13370,7 @@ msgid "gemini-4-argon or a custom model ID"
 msgstr "gemini-4-argonまたはカスタムのモデルID"
 
 #: src/components/settings/GeneralSettings.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:51
+#: src/components/settings/SettingsSidebar.tsx:54
 #: src/components/settings/SystemSettingsDrawer.tsx:277
 msgid "General"
 msgstr "一般"
@@ -13187,6 +13445,14 @@ msgstr "地理"
 msgid "Get started"
 msgstr "はじめに"
 
+#: src/pages/OAuthAuthorizePage.tsx:614
+msgid "Give {name} full access?"
+msgstr "{name} にフルアクセスを与えますか？"
+
+#: src/components/settings/WorkspaceMembers.tsx:586
+msgid "Give each AI assistant its own key, so you can tell its actions apart and revoke it alone."
+msgstr "AI アシスタントごとに別のキーを用意すると、操作を区別でき、そのキーだけを取り消せます。"
+
 #: src/components/analytics/GetStartedChecklist.tsx:147
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "プロバイダーにデフォルトの差出人アドレスを設定し、マーケティングメールとトランザクションメールの両方に使用します。"
@@ -13227,6 +13493,19 @@ msgstr "グローバルフィードのレスポンス"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:423
 #~ msgid "Global feed URL is required when enabled"
 #~ msgstr "有効時はグローバルフィードのURLが必須です"
+
+#: src/pages/OAuthAuthorizePage.tsx:151
+msgid "Go back to {name} and connect again from this browser."
+msgstr "{name} に戻り、このブラウザからもう一度接続してください。"
+
+#: src/pages/OAuthAuthorizePage.tsx:162
+#: src/pages/OAuthAuthorizePage.tsx:178
+msgid "Go back to {name} and connect again."
+msgstr "{name} に戻り、もう一度接続してください。"
+
+#: src/pages/OAuthAuthorizePage.tsx:185
+msgid "Go back to your application and connect again."
+msgstr "アプリケーションに戻り、もう一度接続してください。"
 
 #: src/components/setup/SetupRestartView.tsx:106
 msgid "Go to sign in"
@@ -13622,7 +13901,6 @@ msgid "Hide done steps"
 msgstr "完了したステップを非表示"
 
 #: src/components/integrations/LLMIntegration.tsx:264
-#: src/components/settings/Integrations.tsx:344
 msgid "High"
 msgstr "高"
 
@@ -14291,6 +14569,18 @@ msgstr "横に並べる"
 msgid "In any of: {segmentNames}"
 msgstr "いずれかに所属: {segmentNames}"
 
+#: src/components/settings/MCPSettings.tsx:181
+msgid "In ChatGPT, open the connector settings and create a connector."
+msgstr "ChatGPT でコネクタの設定を開き、コネクタを作成します。"
+
+#: src/components/settings/MCPSettings.tsx:194
+msgid "In Claude Code, run <0>/mcp</0> to check that notifuse is connected."
+msgstr "Claude Code で <0>/mcp</0> を実行し、notifuse が接続されていることを確認します。"
+
+#: src/components/settings/MCPSettings.tsx:174
+msgid "In claude.ai, open the connector settings and add a custom connector."
+msgstr "claude.ai でコネクタの設定を開き、カスタムコネクタを追加します。"
+
 #: src/components/segment/segmentLabels.ts:313
 msgid "in date range"
 msgstr "日付範囲内"
@@ -14319,6 +14609,10 @@ msgstr "進行中"
 #: src/pages/BroadcastsPage.tsx:1182
 #~ msgid "in recipients timezone"
 #~ msgstr "受信者のタイムゾーンで"
+
+#: src/components/settings/MCPSettings.tsx:206
+msgid "In the Cursor settings, check that notifuse is listed under MCP."
+msgstr "Cursor の設定で、MCP の下に notifuse が表示されていることを確認します。"
 
 #: src/components/settings/BlogSettings.tsx:395
 msgid "In the header. Without one, the workspace logo"
@@ -14535,7 +14829,7 @@ msgstr "連携"
 msgid "Integration created successfully"
 msgstr "連携を作成しました"
 
-#: src/components/settings/Integrations.tsx:134
+#: src/components/settings/integrations/useIntegrationActions.ts:97
 msgid "Integration deleted successfully"
 msgstr "連携を削除しました"
 
@@ -14554,7 +14848,7 @@ msgstr "連携ID"
 #~ msgid "Integration Name"
 #~ msgstr "連携名"
 
-#: src/components/settings/Integrations.tsx:144
+#: src/components/settings/Integrations.tsx:114
 msgid "Integration not found or not an email provider"
 msgstr "連携が見つからないか、メールプロバイダーではありません"
 
@@ -14563,9 +14857,9 @@ msgid "Integration updated successfully"
 msgstr "連携を更新しました"
 
 #: src/components/logs/labels.ts:12
-#: src/components/settings/Integrations.tsx:712
-#: src/components/settings/integrations/IntegrationDrawer.tsx:25
-#: src/components/settings/SettingsSidebar.tsx:53
+#: src/components/settings/Integrations.tsx:471
+#: src/components/settings/integrations/IntegrationDrawer.tsx:27
+#: src/components/settings/SettingsSidebar.tsx:56
 msgid "Integrations"
 msgstr "連携"
 
@@ -14669,15 +14963,15 @@ msgstr "無効なYouTube URLです"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "招待が正常に承認されました！ワークスペースへようこそ。"
 
-#: src/components/settings/WorkspaceMembers.tsx:414
+#: src/components/settings/WorkspaceMembers.tsx:458
 msgid "Invitation deleted successfully"
 msgstr "招待を削除しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:237
+#: src/components/settings/WorkspaceMembers.tsx:254
 msgid "Invitation expired"
 msgstr "招待の期限切れ"
 
-#: src/components/settings/WorkspaceMembers.tsx:444
+#: src/components/settings/WorkspaceMembers.tsx:488
 msgid "Invitation resent to {email}"
 msgstr "{email}に招待を再送信しました"
 
@@ -14685,19 +14979,19 @@ msgstr "{email}に招待を再送信しました"
 #~ msgid "Invitation sent"
 #~ msgstr "招待を送信しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:241
+#: src/components/settings/WorkspaceMembers.tsx:258
 msgid "Invitation sent {sent}, {expires}"
 msgstr "招待送信 {sent}、{expires}"
 
-#: src/components/settings/WorkspaceMembers.tsx:327
+#: src/components/settings/WorkspaceMembers.tsx:371
 msgid "Invitation sent to {inviteEmail}"
 msgstr "{inviteEmail}に招待を送信しました"
 
-#: src/components/settings/WorkspaceMembers.tsx:487
+#: src/components/settings/WorkspaceMembers.tsx:531
 msgid "Invite"
 msgstr "招待"
 
-#: src/components/settings/WorkspaceMembers.tsx:548
+#: src/components/settings/WorkspaceMembers.tsx:611
 msgid "Invite member"
 msgstr "メンバーを招待"
 
@@ -14844,6 +15138,14 @@ msgstr "ブログで公開されます。現在公開中のテーマは自動的
 msgid "It is generated from the HTML at every send, so there is nothing to maintain. Its links are the links of the HTML, tracked the same way."
 msgstr "テキスト版は送信のたびにHTMLから生成されるため、管理は不要です。リンクはHTMLのリンクと同じで、同じ方法でトラッキングされます。"
 
+#: src/pages/OAuthAuthorizePage.tsx:176
+msgid "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with {name}."
+msgstr "作成から 10 分以上たったか、すでに使用またはキャンセルされています。{name} には何も共有されていません。"
+
+#: src/pages/OAuthAuthorizePage.tsx:183
+msgid "It is more than 10 minutes old, or it was already used or cancelled. Nothing was shared with the application."
+msgstr "作成から 10 分以上たったか、すでに使用またはキャンセルされています。アプリケーションには何も共有されていません。"
+
 #: src/components/broadcasts/useBroadcastActions.tsx:135
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "予定時刻には送信されません。編集して再度予約できます。日付は保持されます。"
@@ -14897,7 +15199,7 @@ msgstr "イタリック"
 #~ msgid "Items per feed"
 #~ msgstr "フィードあたりの件数"
 
-#: src/components/settings/Integrations.tsx:374
+#: src/components/settings/Integrations.tsx:264
 msgid "Its 6 templates and 6 transactional notifications are deleted with it, and Supabase's hooks stop working. This cannot be undone."
 msgstr "この連携の6件のテンプレートと6件のトランザクション通知も削除され、Supabaseのフックは動作しなくなります。この操作は元に戻せません。"
 
@@ -14942,7 +15244,7 @@ msgstr "参加"
 #~ msgstr "参加しました"
 
 #: src/components/automations/describeTrigger.ts:48
-#: src/components/settings/WorkspaceMembers.tsx:273
+#: src/components/settings/WorkspaceMembers.tsx:290
 msgid "Joined"
 msgstr "参加済み"
 
@@ -15080,6 +15382,10 @@ msgstr "キーをコピーしました"
 #: src/components/settings/DomainsSettings.tsx:68
 #~ msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
 #~ msgstr "{createdDomain} のキーを作成しました。DNS レコードを公開すると署名が始まります。"
+
+#: src/pages/OAuthAuthorizePage.tsx:707
+msgid "Key name"
+msgstr "キー名"
 
 #: src/components/settings/DomainsSettings.tsx:146
 msgid "Key of {domain} deleted"
@@ -15291,6 +15597,10 @@ msgstr "最終成功"
 msgid "Last updated first"
 msgstr "更新日の新しい順"
 
+#: src/components/settings/MCPSettings.tsx:266
+msgid "Last used"
+msgstr "最終使用"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:368
 msgid "Latitude and longitude, rounded: lower is more private"
 msgstr "緯度と経度を丸めます。低いほどプライバシーが高まります"
@@ -15426,6 +15736,14 @@ msgstr "より小さい"
 msgid "less than or equal to"
 msgstr "以下"
 
+#: src/components/settings/MCPSettings.tsx:136
+msgid "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol."
+msgstr "Claude、ChatGPT、Cursor などの AI アシスタントが、Model Context Protocol を通じてこのワークスペースを読み取り、作業できるようにします。"
+
+#: src/components/settings/MCPSettings.tsx:294
+msgid "Let an AI assistant such as Claude, ChatGPT or Cursor read and work in this workspace through the Model Context Protocol. Each assistant connects with an API key and gets exactly that key's access."
+msgstr "Claude、ChatGPT、Cursor などの AI アシスタントが、Model Context Protocol を通じてこのワークスペースを読み取り、作業できるようにします。各アシスタントは APIキーで接続し、そのキーと同じアクセス権を持ちます。"
+
 #: src/pages/SetupWizard.tsx:688
 #~ msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 #~ msgstr "マジックコードに加えて、外部のIDプロバイダー (Google Workspace、Keycloak、Okta など) でのサインインを許可します。"
@@ -15435,8 +15753,8 @@ msgid "Let's take a quick tour to help you get started with building beautiful e
 msgstr "MJMLを使った美しいメール作成を始めるためのクイックツアーをご案内します。"
 
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:104
-msgid "Lets the assistant read web pages and search"
-msgstr "アシスタントがWebページを読み、検索できるようにします"
+#~ msgid "Lets the assistant read web pages and search"
+#~ msgstr "アシスタントがWebページを読み、検索できるようにします"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:265
 msgid "Letter spacing"
@@ -15465,7 +15783,7 @@ msgstr "ライブラリ"
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:66
 #: src/components/settings/LicenseSettings.tsx:163
-#: src/components/settings/SettingsSidebar.tsx:62
+#: src/components/settings/SettingsSidebar.tsx:67
 msgid "Licence"
 msgstr "ライセンス"
 
@@ -15962,7 +16280,7 @@ msgstr "ライブ"
 msgid "LLM"
 msgstr "LLM"
 
-#: src/components/settings/Integrations.tsx:634
+#: src/components/settings/AIAssistantSettings.tsx:258
 msgid "LLM integration saved successfully"
 msgstr "LLM連携を保存しました"
 
@@ -16052,7 +16370,7 @@ msgstr "テンプレートを読み込み中..."
 #: src/components/blog_editor/NotifuseEditor.tsx:490
 #: src/components/templates/CreateTemplateDrawer.tsx:1013
 #: src/components/templates/TemplateSelectorInput.tsx:162
-#: src/layouts/RootLayout.tsx:124
+#: src/layouts/RootLayout.tsx:128
 #: src/pages/ContactsPage.tsx:462
 msgid "Loading..."
 msgstr "読み込み中..."
@@ -16126,7 +16444,6 @@ msgid "Lost your phone and your recovery codes? Your Notifuse administrator can 
 msgstr "スマートフォンとリカバリーコードをなくした場合は、Notifuse の管理者がアカウントの二要素認証をリセットできます。"
 
 #: src/components/integrations/LLMIntegration.tsx:262
-#: src/components/settings/Integrations.tsx:342
 msgid "Low"
 msgstr "低"
 
@@ -16159,7 +16476,7 @@ msgstr "Lumen"
 msgid "Magenta"
 msgstr "マゼンタ"
 
-#: src/pages/SignInPage.tsx:122
+#: src/pages/SignInPage.tsx:123
 msgid "Magic code sent to your email"
 msgstr "マジックコードをメールに送信しました"
 
@@ -16230,6 +16547,10 @@ msgstr "ラッパーをメールビューポート全幅に広げ、コンテナ
 #: src/components/contacts/sheet/ContactProfileFields.tsx:162
 msgid "Manage"
 msgstr "管理"
+
+#: src/components/settings/WorkspaceMembers.tsx:571
+msgid "Manage connections"
+msgstr "接続を管理"
 
 #: src/components/contacts/ContactsViewHeader.tsx:102
 msgid "Manage custom fields"
@@ -16428,6 +16749,48 @@ msgstr "最大期間は2年です"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "最大期間は2年です。日付は{timezone}で解釈されます。"
 
+#: src/components/settings/MCPSettings.tsx:135
+#: src/components/settings/MCPSettings.tsx:293
+#: src/components/settings/SettingsSidebar.tsx:64
+msgid "MCP"
+msgstr "MCP"
+
+#: src/components/settings/MCPSettings.tsx:144
+msgid "MCP is not available on the demo."
+msgstr "デモでは MCP を利用できません。"
+
+#: src/pages/OAuthAuthorizePage.tsx:197
+msgid "MCP is not available on this server"
+msgstr "このサーバーでは MCP を利用できません"
+
+#: src/pages/OAuthAuthorizePage.tsx:462
+msgid "MCP is switched off in this key's workspace. An owner can switch it on in Settings › AI › MCP."
+msgstr "このキーのワークスペースでは MCP がオフです。オーナーが 設定 › AI › MCP でオンにできます。"
+
+#: src/pages/OAuthAuthorizePage.tsx:587
+msgid "MCP is switched off in this workspace. Switch it on in Settings › AI › MCP, or pick another workspace."
+msgstr "このワークスペースでは MCP がオフです。設定 › AI › MCP でオンにするか、別のワークスペースを選んでください。"
+
+#: src/components/settings/MCPSettings.tsx:146
+msgid "MCP is turned off on this instance. The administrator enables it with <0>MCP_ENABLED=true</0>."
+msgstr "このインスタンスでは MCP がオフです。管理者は <0>MCP_ENABLED=true</0> で有効にできます。"
+
+#: src/pages/OAuthAuthorizePage.tsx:697
+msgid "MCP off"
+msgstr "MCP オフ"
+
+#: src/components/settings/MCPSettings.tsx:322
+msgid "MCP server URL"
+msgstr "MCP サーバーの URL"
+
+#: src/components/settings/MCPSettings.tsx:106
+msgid "MCP turned off for this workspace"
+msgstr "このワークスペースの MCP をオフにしました"
+
+#: src/components/settings/MCPSettings.tsx:106
+msgid "MCP turned on for this workspace"
+msgstr "このワークスペースの MCP をオンにしました"
+
 #: src/components/logs/AuditLogTab.tsx:189
 msgid "Me"
 msgstr "自分"
@@ -16488,7 +16851,6 @@ msgid "Median Value"
 msgstr "値の中央値"
 
 #: src/components/integrations/LLMIntegration.tsx:263
-#: src/components/settings/Integrations.tsx:343
 msgid "Medium"
 msgstr "中"
 
@@ -16498,17 +16860,17 @@ msgid "Mediums"
 msgstr "メディア"
 
 #: src/components/logs/auditDisplay.ts:20
-#: src/components/settings/WorkspaceMembers.tsx:246
+#: src/components/settings/WorkspaceMembers.tsx:263
 #: src/layouts/app-shell/AccountMenu.tsx:80
 msgid "Member"
 msgstr "メンバー"
 
-#: src/components/settings/WorkspaceMembers.tsx:395
+#: src/components/settings/WorkspaceMembers.tsx:439
 msgid "Member removed successfully"
 msgstr "メンバーを削除しました"
 
 #: src/components/logs/labels.ts:10
-#: src/components/settings/WorkspaceMembers.tsx:478
+#: src/components/settings/WorkspaceMembers.tsx:522
 msgid "Members"
 msgstr "メンバー"
 
@@ -16632,7 +16994,6 @@ msgid "Min. sessions: {minSessions}"
 msgstr "最小セッション数: {minSessions}"
 
 #: src/components/integrations/LLMIntegration.tsx:261
-#: src/components/settings/Integrations.tsx:341
 msgid "Minimal"
 msgstr "最小限"
 
@@ -16774,7 +17135,7 @@ msgstr "モバイルビュー（400px）"
 #: src/components/integrations/LLMIntegration.tsx:219
 #: src/components/integrations/LLMIntegration.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:275
-#: src/components/settings/Integrations.tsx:451
+#: src/components/settings/AIAssistantSettings.tsx:128
 msgid "Model"
 msgstr "モデル"
 
@@ -16837,7 +17198,7 @@ msgstr "か月"
 #: src/components/contacts/ContactsViewHeader.tsx:134
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
 #: src/components/file_manager/FileExplorer.tsx:1129
-#: src/components/settings/Integrations.tsx:282
+#: src/components/settings/Integrations.tsx:202
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:348
@@ -16927,6 +17288,7 @@ msgstr "N/A"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:404
+#: src/components/settings/AIAssistantSettings.tsx:102
 #: src/components/settings/DomainsSettings.tsx:332
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
@@ -16934,7 +17296,7 @@ msgstr "N/A"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:871
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1009
 #: src/components/settings/WebhooksSettings.tsx:531
-#: src/components/settings/WorkspaceMembers.tsx:293
+#: src/components/settings/WorkspaceMembers.tsx:310
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:204
@@ -17043,6 +17405,7 @@ msgid "Network"
 msgstr "ネットワーク"
 
 #: src/components/settings/DomainsSettings.tsx:207
+#: src/components/settings/MCPSettings.tsx:268
 msgid "Never"
 msgstr "未確認"
 
@@ -17118,7 +17481,7 @@ msgstr "新規フォルダ"
 msgid "New folder (Read-only mode)"
 msgstr "新規フォルダ（読み取り専用モード）"
 
-#: src/components/settings/WorkspaceMembers.tsx:521
+#: src/components/settings/WorkspaceMembers.tsx:579
 msgid "New key"
 msgstr "新しいキー"
 
@@ -17131,7 +17494,7 @@ msgstr "新しいキー"
 msgid "New list"
 msgstr "新しいリスト"
 
-#: src/pages/SignInPage.tsx:254
+#: src/pages/SignInPage.tsx:255
 msgid "New magic code sent to your email"
 msgstr "新しいマジックコードをメールに送信しました"
 
@@ -17295,7 +17658,7 @@ msgstr "いいえ"
 msgid "No {0} content to preview"
 msgstr "プレビューする{0}コンテンツがありません"
 
-#: src/components/settings/WorkspaceMembers.tsx:89
+#: src/components/settings/WorkspaceMembers.tsx:92
 msgid "No access"
 msgstr "アクセスなし"
 
@@ -17320,12 +17683,11 @@ msgstr "注釈はまだありません"
 msgid "No answer was returned. Please try again."
 msgstr "回答が返されませんでした。もう一度お試しください。"
 
-#: src/components/settings/Integrations.tsx:309
-#: src/components/settings/Integrations.tsx:313
+#: src/components/settings/AIAssistantSettings.tsx:85
 msgid "No API key"
 msgstr "APIキーなし"
 
-#: src/components/settings/WorkspaceMembers.tsx:532
+#: src/components/settings/WorkspaceMembers.tsx:595
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "APIキーはまだありません。APIの呼び出しやZapierとの接続のために作成してください。"
 
@@ -17414,6 +17776,10 @@ msgstr "比較なし"
 #: src/components/automations/nodes/FilterNode.tsx:45
 msgid "No conditions"
 msgstr "条件なし"
+
+#: src/components/settings/MCPSettings.tsx:475
+msgid "No connections yet"
+msgstr "まだ接続はありません"
 
 #: src/components/segment/form_leaf.tsx:894
 msgid "No contact is deleted as inactive in this workspace: until a period is set in Settings > Data retention, this condition matches nobody."
@@ -17539,7 +17905,7 @@ msgstr "メールアドレスがありません"
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "メール連携が利用できません。設定で連携を構成してください。"
 
-#: src/components/settings/Integrations.tsx:726
+#: src/components/settings/Integrations.tsx:485
 #: src/components/settings/integrations/EmailRoles.tsx:71
 msgid "No email provider yet"
 msgstr "メールプロバイダーはまだありません"
@@ -17699,7 +18065,7 @@ msgstr "マーケティングメールプロバイダーがありません"
 msgid "No match"
 msgstr "一致なし"
 
-#: src/components/settings/WorkspaceMembers.tsx:510
+#: src/components/settings/WorkspaceMembers.tsx:554
 msgid "No members found"
 msgstr "メンバーが見つかりません"
 
@@ -17727,6 +18093,10 @@ msgstr "メタタイトルなし"
 msgid "No MJML content to export"
 msgstr "エクスポートするMJMLコンテンツがありません"
 
+#: src/components/settings/AIAssistantSettings.tsx:317
+msgid "No model yet"
+msgstr "モデルはまだありません"
+
 #: src/components/blog/AuthorsField.tsx:137
 msgid "No name"
 msgstr "名前なし"
@@ -17747,7 +18117,7 @@ msgstr "一致する通知はありません"
 #~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 #~ msgstr "そのIDに紐づくNotifuseアカウントはありません。まず管理者に招待を依頼してください。"
 
-#: src/pages/SignInPage.tsx:148
+#: src/pages/SignInPage.tsx:149
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "そのIDに紐づくNotifuseアカウントはありません。招待を受けている場合は、招待メールのリンクを開いてください。そうでない場合は、管理者に招待を依頼してください。"
 
@@ -18088,6 +18458,10 @@ msgstr "Webhookはまだありません"
 msgid "No workspaces"
 msgstr "ワークスペースがありません"
 
+#: src/pages/OAuthAuthorizePage.tsx:634
+msgid "Nobody sees this key. It serves only this connection, and you can delete it later in Team & API keys."
+msgstr "このキーは誰にも表示されません。この接続専用で、あとで チームとAPIキー から削除できます。"
+
 #: src/components/automations/NodePalette.tsx:21
 #~ msgid "Nodes"
 #~ msgstr "ノード"
@@ -18114,9 +18488,13 @@ msgstr "なし"
 #: src/components/email_builder/ui/fields/ColorField.tsx:93
 #: src/components/integrations/LLMIntegration.tsx:260
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:388
-#: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
+msgid "None"
+msgstr "なし"
+
+#: src/components/settings/WorkspaceMembers.tsx:335
+msgctxt "connected applications"
 msgid "None"
 msgstr "なし"
 
@@ -18185,12 +18563,13 @@ msgid "Not clicked"
 msgstr "未クリック"
 
 #: src/components/analytics/SendingCard.tsx:82
-#: src/components/settings/Integrations.tsx:334
-#: src/components/settings/Integrations.tsx:451
+#: src/components/settings/AIAssistantSettings.tsx:132
+#: src/components/settings/Integrations.tsx:232
 msgid "Not configured"
 msgstr "未設定"
 
 #: src/components/automations/nodes/BaseNode.tsx:49
+#: src/components/settings/AIAssistantSettings.tsx:200
 msgid "Not connected"
 msgstr "未接続"
 
@@ -18407,6 +18786,10 @@ msgstr "この期間は何もありません"
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "何も記録されず、何も拒否されません。このページ、エクスポート、保持期間の設定は引き続き利用でき、ライセンスが監査ログを対象としていた間に記録された項目は引き続き閲覧できます。"
 
+#: src/pages/OAuthAuthorizePage.tsx:198
+msgid "Nothing was shared with the application. The server's administrator can turn it on."
+msgstr "アプリケーションには何も共有されていません。サーバーの管理者がオンにできます。"
+
 #: src/components/templates/TemplateSelectorModal.tsx:708
 #: src/components/transactional/TransactionalTable.tsx:155
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:391
@@ -18454,9 +18837,17 @@ msgstr "SMTP 連携がこれらのドメインから送るメールに、Notifus
 msgid "Notifuse creates the key. You publish one DNS record."
 msgstr "キーは Notifuse が作成します。公開する DNS レコードは 1 件です。"
 
+#: src/pages/OAuthAuthorizePage.tsx:160
+msgid "Notifuse did not open the application's address"
+msgstr "Notifuse はアプリケーションのアドレスを開きませんでした"
+
 #: src/components/settings/WebhookDetail.tsx:443
 msgid "Notifuse disabled this webhook automatically"
 msgstr "NotifuseがこのWebhookを自動的に無効化しました"
+
+#: src/pages/OAuthAuthorizePage.tsx:335
+msgid "Notifuse does not know this application. Its name was chosen by whoever published it, at the address below."
+msgstr "Notifuse はこのアプリケーションを知りません。名前は、下のアドレスで公開している人が付けたものです。"
 
 #: src/pages/TemplatesPage.tsx:584
 msgid "Notifuse export (.json)"
@@ -18473,6 +18864,14 @@ msgstr "Notifuseの準備ができました"
 #: src/components/segment/form_leaf.tsx:890
 msgid "Notifuse is still reading past activity from history: until it finishes, this condition matches nobody."
 msgstr "Notifuse は履歴から過去のアクティビティを読み込み中です。完了するまで、この条件に一致するコンタクトはいません。"
+
+#: src/components/settings/MCPSettings.tsx:185
+msgid "Notifuse opens and asks for an API key. Paste the key you created for ChatGPT."
+msgstr "Notifuse が開き、APIキーを求めます。ChatGPT 用に作成したキーを貼り付けます。"
+
+#: src/components/settings/MCPSettings.tsx:178
+msgid "Notifuse opens and asks for an API key. Paste the key you created for Claude."
+msgstr "Notifuse が開き、APIキーを求めます。Claude 用に作成したキーを貼り付けます。"
 
 #: src/components/two_factor/RecoveryCodesList.tsx:25
 msgid "Notifuse recovery codes"
@@ -18655,6 +19054,7 @@ msgstr "オフ"
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:139
 #: src/components/settings/data_retention/RetentionDefaultsSection.tsx:94
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/settings/MCPSettings.tsx:309
 #: src/components/setup/setupHooks.ts:54
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
@@ -18689,6 +19089,7 @@ msgstr "オン"
 
 #: src/components/settings/BlogSettings.tsx:317
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/settings/MCPSettings.tsx:309
 #: src/components/setup/setupHooks.ts:64
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/two_factor/AccountSecurityPanel.tsx:161
@@ -18779,6 +19180,10 @@ msgstr "ライセンスキーを表示またはインストールできるのは
 msgid "Only an owner can change the storage settings"
 msgstr "ストレージ設定を変更できるのはオーナーのみです"
 
+#: src/components/settings/MCPSettings.tsx:165
+msgid "Only an owner can change this."
+msgstr "変更できるのはオーナーだけです。"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:186
 #~ msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks are still included in the Clicks total above."
 #~ msgstr ""
@@ -18823,6 +19228,10 @@ msgstr "小文字の英数字、アンダースコア、ハイフンのみ使用
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:52
 msgid "Only one breakpoint per email template is allowed"
 msgstr "メールテンプレートごとに1つのブレークポイントのみ許可されています"
+
+#: src/components/settings/MCPSettings.tsx:286
+msgid "Only owners can see the connections."
+msgstr "接続を見られるのはオーナーだけです。"
 
 #: src/components/settings/EditPermissionsDrawer.tsx:36
 msgid "Only the root account sees this. Use it when {memberEmail} has lost both their phone and their recovery codes."
@@ -19203,6 +19612,10 @@ msgstr "任意"
 msgid "Optional bearer token"
 msgstr "任意のBearerトークン"
 
+#: src/components/settings/AIAssistantSettings.tsx:326
+msgid "Optional: lets the assistant read a web page you give it and search the web."
+msgstr "任意：アシスタントが指定したWebページを読み、Webを検索できるようにします。"
+
 #: src/components/integrations/LLMIntegration.tsx:224
 #~ msgid "Optional. Controls how much reasoning models think. Leave as Default for non-reasoning models; some providers ignore it."
 #~ msgstr "任意。推論モデルがどれだけ思考するかを制御します。推論モデル以外ではデフォルトのままにしてください。一部のプロバイダーではこの設定は無視されます。"
@@ -19239,7 +19652,7 @@ msgstr "オプション"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:247
-#: src/pages/SignInPage.tsx:330
+#: src/pages/SignInPage.tsx:331
 msgid "or"
 msgstr "または"
 
@@ -19247,7 +19660,7 @@ msgstr "または"
 msgid "OR"
 msgstr "または"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:63
+#: src/components/settings/AIAssistantSettings.tsx:81
 msgid "Or any OpenAI-compatible endpoint"
 msgstr "または任意のOpenAI互換エンドポイント"
 
@@ -19358,9 +19771,18 @@ msgstr "このノードでワークスペースのデフォルトメールプロ
 msgid "Overwrite with mine"
 msgstr "自分の内容で上書き"
 
-#: src/components/settings/WorkspaceMembers.tsx:81
+#: src/components/settings/WorkspaceMembers.tsx:84
 #: src/layouts/app-shell/AccountMenu.tsx:78
+#: src/pages/OAuthAuthorizePage.tsx:326
 msgid "Owner"
+msgstr "オーナー"
+
+#: src/pages/OAuthAuthorizePage.tsx:394
+msgid "Owner? Sign in to create a key here"
+msgstr "オーナーですか？サインインすると、ここでキーを作成できます"
+
+#: src/components/settings/MCPSettings.tsx:454
+msgid "Owners"
 msgstr "オーナー"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
@@ -19526,9 +19948,23 @@ msgstr "過去のアクティビティを履歴から読み込みました。非
 msgid "Past sessions"
 msgstr "過去のセッション"
 
+#: src/components/settings/MCPSettings.tsx:182
+msgid "Paste <0>{url}</0> as its URL and choose OAuth as its authentication."
+msgstr "URL に <0>{url}</0> を貼り付け、認証方式に OAuth を選びます。"
+
+#: src/components/settings/MCPSettings.tsx:175
+msgid "Paste <0>{url}</0> as its URL and select <1>Connect</1>."
+msgstr "URL に <0>{url}</0> を貼り付け、<1>Connect</1> を選びます。"
+
 #: src/components/settings/LicenseSettings.tsx:80
 #~ msgid "Paste a licence key first"
 #~ msgstr ""
+
+#: src/pages/OAuthAuthorizePage.tsx:624
+#: src/pages/OAuthAuthorizePage.tsx:648
+#: src/pages/OAuthAuthorizePage.tsx:667
+msgid "Paste an existing key"
+msgstr "既存のキーを貼り付け"
 
 #: src/components/integrations/SupabaseIntegration.tsx:191
 #: src/components/integrations/SupabaseIntegration.tsx:210
@@ -19680,7 +20116,7 @@ msgstr "{0} がピーク"
 #: src/components/contacts/contactDisplay.ts:36
 #: src/components/lists/ListHeader.tsx:39
 #: src/components/logs/labels.ts:38
-#: src/components/settings/WorkspaceMembers.tsx:85
+#: src/components/settings/WorkspaceMembers.tsx:88
 msgid "Pending"
 msgstr "保留中"
 
@@ -19767,7 +20203,7 @@ msgstr "期間"
 msgid "Permanently delete any contact"
 msgstr "任意のコンタクトを完全に削除する"
 
-#: src/components/settings/WorkspaceMembers.tsx:64
+#: src/components/settings/WorkspaceMembers.tsx:67
 msgid "Permission details"
 msgstr "権限の詳細"
 
@@ -19777,8 +20213,9 @@ msgstr "権限の詳細"
 #~ msgid "Permission Details"
 #~ msgstr "権限の詳細"
 
-#: src/components/settings/WorkspaceMembers.tsx:583
-#: src/components/settings/WorkspaceMembers.tsx:653
+#: src/components/settings/WorkspaceMembers.tsx:646
+#: src/components/settings/WorkspaceMembers.tsx:716
+#: src/pages/OAuthAuthorizePage.tsx:725
 msgid "Permissions"
 msgstr "権限"
 
@@ -19843,6 +20280,10 @@ msgctxt "newsletter status"
 msgid "Pick a winner"
 msgstr "勝者を選択"
 
+#: src/pages/OAuthAuthorizePage.tsx:690
+msgid "Pick a workspace"
+msgstr "ワークスペースを選択"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:463
 msgid "Pick an action and a file to see what will change."
 msgstr "操作とファイルを選ぶと、変更内容が表示されます。"
@@ -19902,7 +20343,7 @@ msgstr "平文 (TLS終端プロキシの背後でのみ安全)"
 msgid "Plan"
 msgstr "プラン"
 
-#: src/components/settings/WorkspaceMembers.tsx:260
+#: src/components/settings/WorkspaceMembers.tsx:277
 msgid "Platform admin"
 msgstr "プラットフォーム管理者"
 
@@ -20019,7 +20460,7 @@ msgstr "URLを入力してください"
 #: src/components/two_factor/ProofModal.tsx:93
 #: src/components/two_factor/SetupWizard.tsx:216
 #: src/components/two_factor/TwoFactorChallengeForm.tsx:93
-#: src/pages/SignInPage.tsx:357
+#: src/pages/SignInPage.tsx:358
 msgid "Please enter a valid 6-digit code!"
 msgstr "有効な6桁のコードを入力してください！"
 
@@ -20028,7 +20469,7 @@ msgstr "有効な6桁のコードを入力してください！"
 msgid "Please enter a valid email"
 msgstr "有効なメールアドレスを入力してください"
 
-#: src/pages/SignInPage.tsx:316
+#: src/pages/SignInPage.tsx:317
 msgid "Please enter a valid email!"
 msgstr "有効なメールアドレスを入力してください！"
 
@@ -20060,8 +20501,9 @@ msgstr "ワークスペース名を入力してください"
 msgid "Please enter an API identifier"
 msgstr "API識別子を入力してください"
 
-#: src/components/settings/WorkspaceMembers.tsx:348
-#: src/components/settings/WorkspaceMembers.tsx:638
+#: src/components/settings/WorkspaceMembers.tsx:392
+#: src/components/settings/WorkspaceMembers.tsx:701
+#: src/pages/OAuthAuthorizePage.tsx:563
 msgid "Please enter an API key name"
 msgstr "APIキー名を入力してください"
 
@@ -20070,8 +20512,8 @@ msgstr "APIキー名を入力してください"
 msgid "Please enter an automation name"
 msgstr "オートメーション名を入力してください"
 
-#: src/components/settings/WorkspaceMembers.tsx:314
-#: src/components/settings/WorkspaceMembers.tsx:574
+#: src/components/settings/WorkspaceMembers.tsx:358
+#: src/components/settings/WorkspaceMembers.tsx:637
 msgid "Please enter an email address"
 msgstr "メールアドレスを入力してください"
 
@@ -20098,11 +20540,11 @@ msgstr "APIキーを入力してください"
 msgid "Please fill in all required fields before testing"
 msgstr "テストする前に、すべての必須項目を入力してください"
 
-#: src/pages/SignInPage.tsx:354
+#: src/pages/SignInPage.tsx:355
 msgid "Please input the magic code!"
 msgstr "マジックコードを入力してください！"
 
-#: src/pages/SignInPage.tsx:315
+#: src/pages/SignInPage.tsx:316
 msgid "Please input your email!"
 msgstr "メールアドレスを入力してください！"
 
@@ -20651,7 +21093,7 @@ msgstr "プロパティ"
 msgid "Property name"
 msgstr "プロパティ名"
 
-#: src/components/settings/Integrations.tsx:450
+#: src/components/settings/AIAssistantSettings.tsx:112
 msgid "Provider"
 msgstr "プロバイダー"
 
@@ -20741,6 +21183,10 @@ msgstr "公開済み · 署名中"
 #: src/components/blog/PostsTable.tsx:269
 msgid "Published {0} · Updated {updatedAt} in {timezone}"
 msgstr "公開 {0} · 更新 {updatedAt}（{timezone}）"
+
+#: src/pages/OAuthAuthorizePage.tsx:316
+msgid "Published at"
+msgstr "公開元"
 
 #: src/components/logs/auditPhrases.ts:27
 msgid "Published the blog post <0>{target}</0>"
@@ -20892,6 +21338,7 @@ msgstr "オーディエンスに届ける"
 msgid "Reached"
 msgstr "到達"
 
+#: src/components/settings/MCPSettings.tsx:490
 #: src/components/settings/PermissionsMatrix.tsx:101
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:244
@@ -21116,7 +21563,6 @@ msgstr "サインインの準備完了"
 #~ msgstr "理由:"
 
 #: src/components/integrations/LLMIntegration.tsx:252
-#: src/components/settings/Integrations.tsx:458
 msgid "Reasoning effort"
 msgstr "推論の強度"
 
@@ -21490,7 +21936,7 @@ msgstr "<0>{target}</0> のプロバイダーWebhookを登録しました"
 msgid "Regular expression"
 msgstr "正規表現"
 
-#: src/components/settings/Integrations.tsx:407
+#: src/components/settings/Integrations.tsx:298
 msgid "Reject Disposable Email"
 msgstr "使い捨てメールを拒否"
 
@@ -21536,9 +21982,10 @@ msgstr "保存済みブロックを更新するにはページを再読み込み
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
 #: src/components/contacts/sheet/ContactListsCard.tsx:155
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:77
+#: src/components/settings/AIAssistantSettings.tsx:94
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/LogoInput.tsx:111
-#: src/components/settings/WorkspaceMembers.tsx:191
+#: src/components/settings/WorkspaceMembers.tsx:208
 msgid "Remove"
 msgstr "削除"
 
@@ -21623,7 +22070,7 @@ msgstr "リストから削除"
 msgid "Remove from List node must have a list selected"
 msgstr "「リストから削除」ノードでリストを選択してください"
 
-#: src/components/settings/WorkspaceMembers.tsx:221
+#: src/components/settings/WorkspaceMembers.tsx:238
 msgid "Remove from workspace"
 msgstr "ワークスペースから削除"
 
@@ -21635,7 +22082,7 @@ msgstr "ラベルを削除"
 msgid "Remove Link"
 msgstr "リンクを削除"
 
-#: src/components/settings/WorkspaceMembers.tsx:186
+#: src/components/settings/WorkspaceMembers.tsx:203
 msgid "Remove member"
 msgstr "メンバーを削除"
 
@@ -21944,11 +22391,11 @@ msgstr "SSOが有効な場合は必須です"
 msgid "Requires a padding"
 msgstr "パディングが必要です"
 
-#: src/pages/SignInPage.tsx:390
+#: src/pages/SignInPage.tsx:391
 msgid "Resend code"
 msgstr "コードを再送"
 
-#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WorkspaceMembers.tsx:231
 msgid "Resend invitation"
 msgstr "招待を再送"
 
@@ -22186,7 +22633,7 @@ msgstr "ニュースレター <0>{target}</0> の失敗した送信を再試行�
 #: src/components/settings/DomainsSettings.tsx:278
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
-#: src/components/settings/WorkspaceMembers.tsx:496
+#: src/components/settings/WorkspaceMembers.tsx:540
 #: src/components/templates/TemplateSelectorModal.tsx:234
 #: src/components/transactional/LoadError.tsx:22
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
@@ -22224,13 +22671,26 @@ msgstr "修正したファイルで再試行"
 msgid "Retrying"
 msgstr "再試行中"
 
+#: src/pages/OAuthAuthorizePage.tsx:317
+msgid "Returns to"
+msgstr "戻り先"
+
 #: src/components/email_builder/MjmlCodeEditor.tsx:208
 msgid "Reusable class"
 msgstr "再利用できるクラス"
 
+#: src/components/settings/MCPSettings.tsx:216
+#: src/components/settings/MCPSettings.tsx:276
+msgid "Revoke"
+msgstr "取り消す"
+
 #: src/components/settings/PermissionScopePresets.tsx:54
 msgid "Revoke all"
 msgstr "すべて取り消す"
+
+#: src/components/settings/MCPSettings.tsx:214
+msgid "Revoke this connection?"
+msgstr "この接続を取り消しますか？"
 
 #: src/components/logs/auditPhrases.ts:70
 msgid "Revoked a token issued to the application <0>{target}</0>"
@@ -22422,6 +22882,10 @@ msgstr "再実行"
 msgid "Run Test"
 msgstr "テストを実行"
 
+#: src/components/settings/MCPSettings.tsx:191
+msgid "Run the command below in a terminal, with the key in place of <0>YOUR_API_KEY</0>."
+msgstr "<0>YOUR_API_KEY</0> をキーに置き換えて、下のコマンドをターミナルで実行します。"
+
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:255
 msgid "Run when the rule matches"
 msgstr "ルールが一致したときに実行"
@@ -22544,8 +23008,9 @@ msgstr "サンドボックスモード"
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:302
+#: src/components/settings/AIAssistantSettings.tsx:237
 #: src/components/settings/CustomFieldsConfiguration.tsx:388
-#: src/components/settings/Integrations.tsx:600
+#: src/components/settings/Integrations.tsx:400
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:853
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:994
 #: src/components/settings/SystemSettingsDrawer.tsx:263
@@ -22996,7 +23461,7 @@ msgstr "2番目の値は1番目の値より大きくする必要があります"
 msgid "seconds"
 msgstr "秒"
 
-#: src/components/settings/Integrations.tsx:326
+#: src/components/settings/Integrations.tsx:224
 msgid "secret"
 msgstr "シークレット"
 
@@ -23054,7 +23519,7 @@ msgstr "列を含むセクション"
 msgid "Sections"
 msgstr "セクション"
 
-#: src/components/settings/SettingsSidebar.tsx:20
+#: src/components/settings/SettingsSidebar.tsx:21
 #: src/components/settings/SystemSecuritySettings.tsx:35
 #: src/components/transactional/ApiCommandDrawer.tsx:145
 #: src/components/updates/UpdateDrawer.tsx:63
@@ -23624,7 +24089,11 @@ msgstr "Pythonを使用してトランザクション通知を送信:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "TypeScript/JavaScriptを使用してトランザクション通知を送信:"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:120
+#: src/components/settings/MCPSettings.tsx:506
+msgid "Send and delete"
+msgstr "送信と削除"
+
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:84
 msgid "Send auth emails, add new users as contacts"
 msgstr "認証メールを送信し、新しいユーザーをコンタクトとして追加"
 
@@ -23636,7 +24105,11 @@ msgstr "メール送信フック"
 msgid "Send emails and update lists when contacts do something"
 msgstr "コンタクトの行動に応じてメールを送り、リストを更新します"
 
-#: src/components/settings/WorkspaceMembers.tsx:564
+#: src/components/settings/MCPSettings.tsx:509
+msgid "Send emails, start automations, cancel broadcasts, delete objects. These tools are flagged so clients can ask you to confirm."
+msgstr "メールの送信、オートメーションの開始、ブロードキャストのキャンセル、オブジェクトの削除。これらのツールには印が付いており、クライアントが確認を求められます。"
+
+#: src/components/settings/WorkspaceMembers.tsx:627
 msgid "Send invitation"
 msgstr "招待を送信"
 
@@ -23644,7 +24117,7 @@ msgstr "招待を送信"
 #~ msgid "Send Invitation"
 #~ msgstr "招待を送信"
 
-#: src/pages/SignInPage.tsx:324
+#: src/pages/SignInPage.tsx:325
 msgid "Send Magic Code"
 msgstr "マジックコードを送信"
 
@@ -24053,7 +24526,7 @@ msgstr "サーバートークン"
 msgid "Server Token"
 msgstr "サーバートークン"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:56
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:48
 msgid "Server token, message stream"
 msgstr "サーバートークン、メッセージストリーム"
 
@@ -24136,7 +24609,7 @@ msgstr "優先度を設定すると、ほかのルールの中でのこのルー
 msgid "Set a priority to see which rules override this one"
 msgstr "優先度を設定すると、このルールを上書きするルールを確認できます"
 
-#: src/components/settings/Integrations.tsx:121
+#: src/components/settings/Integrations.tsx:102
 msgid "Set as default marketing email provider"
 msgstr "デフォルトのマーケティングメールプロバイダーに設定"
 
@@ -24144,7 +24617,7 @@ msgstr "デフォルトのマーケティングメールプロバイダーに設
 #~ msgid "Set as default sender"
 #~ msgstr "デフォルトの送信者に設定"
 
-#: src/components/settings/Integrations.tsx:122
+#: src/components/settings/Integrations.tsx:103
 msgid "Set as default transactional email provider"
 msgstr "デフォルトのトランザクションメールプロバイダーに設定"
 
@@ -24298,6 +24771,10 @@ msgstr "送信の設定"
 msgid "Set up this Notifuse installation"
 msgstr "このNotifuseインストールをセットアップしました"
 
+#: src/pages/OAuthAuthorizePage.tsx:646
+msgid "Set up two-factor authentication"
+msgstr "二要素認証を設定"
+
 #: src/components/analytics/DashboardKpis.tsx:365
 #: src/components/analytics/GetStartedChecklist.tsx:233
 msgid "Set up web analytics"
@@ -24354,7 +24831,7 @@ msgstr "セットアップ中…"
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
 #: src/layouts/app-shell/menuItems.ts:248
-#: src/pages/WorkspaceSettingsPage.tsx:278
+#: src/pages/WorkspaceSettingsPage.tsx:293
 msgid "Settings"
 msgstr "設定"
 
@@ -24574,11 +25051,12 @@ msgstr "ポインターを画像に重ねたときに表示されます（title�
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Notifuseの新しいバージョンとセキュリティ修正をワークスペース一覧に表示します。"
 
-#: src/pages/SignInPage.tsx:268
+#: src/pages/SignInPage.tsx:269
 msgid "Sign In"
 msgstr "サインイン"
 
 #: src/components/two_factor/RootSessionRefused.tsx:25
+#: src/pages/OAuthAuthorizePage.tsx:664
 msgid "Sign in again"
 msgstr "もう一度サインイン"
 
@@ -24616,7 +25094,7 @@ msgstr "{rootEmail} でサインインしてください。"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:657
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:342
+#: src/pages/SignInPage.tsx:343
 msgid "Sign in with SSO"
 msgstr "SSOでサインイン"
 
@@ -24643,6 +25121,10 @@ msgstr "署名済み · レコード未検出 {failures}/{DKIM_DOWNGRADE_THRESHO
 #: src/components/logs/auditPhrases.ts:60
 msgid "Signed an upload URL for <0>{target}</0>"
 msgstr "<0>{target}</0> のアップロードURLに署名しました"
+
+#: src/pages/OAuthAuthorizePage.tsx:322
+msgid "Signed in as"
+msgstr "サインイン中のアカウント"
 
 #: src/components/logs/auditPhrases.ts:73
 #~ msgid "Signed in as <0>{target}</0>"
@@ -24729,12 +25211,12 @@ msgstr "シングルサインオン (OpenID Connect)"
 msgid "Single sign-on (SSO)"
 msgstr "シングルサインオン (SSO)"
 
-#: src/pages/SignInPage.tsx:150
+#: src/pages/SignInPage.tsx:151
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "シングルサインオンでは、お使いのメールドメインのアカウントを作成できません。招待を受けている場合は、招待メールのリンクを開いてください。そうでない場合は、管理者に招待を依頼してください。"
 
-#: src/pages/SignInPage.tsx:160
-#: src/pages/SignInPage.tsx:173
+#: src/pages/SignInPage.tsx:161
+#: src/pages/SignInPage.tsx:174
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "シングルサインオンに失敗しました。もう一度お試しいただくか、マジックコードをご利用ください。"
 
@@ -24742,7 +25224,7 @@ msgstr "シングルサインオンに失敗しました。もう一度お試し
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "シングルサインオンがオンになっていますが、このデプロイメントのライセンスには含まれていません。"
 
-#: src/pages/SignInPage.tsx:156
+#: src/pages/SignInPage.tsx:157
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "シングルサインオンは一時的に利用できません。マジックコードをお試しください。"
 
@@ -24826,7 +25308,7 @@ msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "スラッグは小文字、数字、ハイフンのみ使用できます"
 
 #: src/components/logs/MessagesTab.tsx:301
-#: src/components/settings/Integrations.tsx:550
+#: src/components/settings/Integrations.tsx:362
 msgid "SMS"
 msgstr "SMS"
 
@@ -24834,7 +25316,7 @@ msgstr "SMS"
 msgid "SMTP"
 msgstr "SMTP"
 
-#: src/components/settings/SettingsSidebar.tsx:56
+#: src/components/settings/SettingsSidebar.tsx:59
 #: src/components/settings/SMTPBridgeSettings.tsx:19
 #: src/components/setup/BridgePanel.tsx:30
 #: src/components/setup/setupHooks.ts:47
@@ -25675,7 +26157,7 @@ msgstr "成功"
 #~ msgid "Successfully processed {successful} contacts"
 #~ msgstr "{successful}件のコンタクトを正常に処理しました"
 
-#: src/pages/SignInPage.tsx:42
+#: src/pages/SignInPage.tsx:44
 msgid "Successfully signed in"
 msgstr "正常にサインインしました"
 
@@ -25714,7 +26196,7 @@ msgstr "{0}の概要"
 msgid "Supabase"
 msgstr "Supabase"
 
-#: src/components/settings/Integrations.tsx:676
+#: src/components/settings/Integrations.tsx:434
 msgid "Supabase integration saved successfully"
 msgstr "Supabase連携が正常に保存されました"
 
@@ -25837,8 +26319,8 @@ msgstr "タスクの種類"
 #~ msgid "Team"
 #~ msgstr "チーム"
 
-#: src/components/settings/SettingsSidebar.tsx:52
-#: src/components/settings/WorkspaceMembers.tsx:474
+#: src/components/settings/SettingsSidebar.tsx:55
+#: src/components/settings/WorkspaceMembers.tsx:518
 msgid "Team & API keys"
 msgstr "チームとAPIキー"
 
@@ -25846,7 +26328,7 @@ msgstr "チームとAPIキー"
 msgid "Team invitation"
 msgstr "チームへの招待"
 
-#: src/components/settings/WorkspaceMembers.tsx:335
+#: src/components/settings/WorkspaceMembers.tsx:379
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "チームメンバーの上限に達しました。メンバーを追加するにはプランをアップグレードしてください。"
 
@@ -26412,6 +26894,10 @@ msgstr "The"
 msgid "The address of the font's CSS file, or a Liquid output."
 msgstr "フォントのCSSファイルのアドレス、またはLiquidの出力。"
 
+#: src/components/settings/MCPSettings.tsx:325
+msgid "The address you give your assistant."
+msgstr "アシスタントに渡すアドレスです。"
+
 #: src/services/api/permissions.ts:983
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "AIアシスタント: ワークスペースに設定されたLLM連携を介したチャットと、それが呼び出し得るサーバー側のツール。"
@@ -26424,9 +26910,22 @@ msgstr "APIエンドポイントが変更されました。再起動後、コン
 msgid "The API identifier is not valid"
 msgstr "API識別子が無効です"
 
+#: src/components/settings/MCPSettings.tsx:401
+#: src/pages/OAuthAuthorizePage.tsx:732
+msgid "The assistant gets every right its key has."
+msgstr "アシスタントはキーが持つすべての権限を得ます。"
+
+#: src/components/settings/AIAssistantSettings.tsx:298
+msgid "The assistant in the blog, the email editor and Web Analytics."
+msgstr "ブログ、メールエディター、Webアナリティクスのアシスタントです。"
+
+#: src/components/settings/AIAssistantSettings.tsx:309
+msgid "The assistant runs on a model you connect with your own provider key. If you connect more than one, people pick the model in the assistant."
+msgstr "アシスタントは、ご自身のプロバイダーキーで接続したモデルで動作します。複数接続すると、アシスタント内でモデルを選べます。"
+
 #: src/components/settings/Integrations.tsx:747
-msgid "The assistants of the email editor, the blog and web analytics"
-msgstr "メールエディター、ブログ、Webアナリティクスのアシスタント"
+#~ msgid "The assistants of the email editor, the blog and web analytics"
+#~ msgstr "メールエディター、ブログ、Webアナリティクスのアシスタント"
 
 #. placeholder {0}: seedResult.error
 #: src/components/email_builder/panels/TextVersionPanel.tsx:238
@@ -26806,6 +27305,10 @@ msgstr "このキーは設定 → チームとAPIキー に {0} として表示�
 #: src/components/settings/DomainsSettings.tsx:88
 msgid "The key of {domain} changed during the check. The list shows its current state."
 msgstr "確認中に {domain} のキーが変更されました。一覧には現在の状態が表示されています。"
+
+#: src/pages/OAuthAuthorizePage.tsx:615
+msgid "The key will have every right in {workspaceName}, sending emails and deleting contacts included. It goes to the application published at {clientHost}."
+msgstr "このキーには {workspaceName} のすべての権限があり、メールの送信や連絡先の削除も含まれます。キーは {clientHost} で公開されているアプリケーションに渡ります。"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:140
 msgid "The last backfill failed"
@@ -27291,7 +27794,7 @@ msgstr "すべての場所でサインアウトされます。"
 msgid "Thinking"
 msgstr "思考中"
 
-#: src/pages/SignInPage.tsx:154
+#: src/pages/SignInPage.tsx:155
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "このアカウントはすでに別のシングルサインオンのIDに紐づけられています。"
 
@@ -27299,8 +27802,8 @@ msgstr "このアカウントはすでに別のシングルサインオンのID�
 #: src/components/automations/list/AutomationsTable.tsx:88
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/settings/DeleteWorkspace.tsx:44
-#: src/components/settings/Integrations.tsx:292
 #: src/components/settings/integrations/EmailProviderCard.tsx:190
+#: src/components/settings/integrations/useIntegrationActions.ts:107
 #: src/components/settings/WebhookDetail.tsx:343
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:30
 msgid "This action cannot be undone."
@@ -27335,6 +27838,10 @@ msgstr "この注釈は、ブロードキャストの開始時に自動的に作
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
 #~ msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 #~ msgstr "これはブラウザでメールを表示する際のブラウザタブや一部のメールクライアントに表示されます。通常、メールの件名と同じか関連した内容です。"
+
+#: src/pages/OAuthAuthorizePage.tsx:373
+msgid "This application returns to a program on your own computer. Connect only if you started this connection yourself, just now."
+msgstr "このアプリケーションはお使いのコンピューター上のプログラムに戻ります。たった今ご自身でこの接続を始めた場合にのみ接続してください。"
 
 #: src/components/logs/AuditEntryDetail.tsx:106
 msgid "This audit entry could not be found"
@@ -27402,6 +27909,14 @@ msgstr "このカテゴリはまだ作成されていません。"
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:325
 msgid "This comes from the deployment defaults, set by the administrator of this installation."
 msgstr "この値は、このインストールの管理者が設定したデプロイメントのデフォルトです。"
+
+#: src/components/settings/MCPSettings.tsx:121
+msgid "This connection no longer exists"
+msgstr "この接続はもう存在しません"
+
+#: src/pages/OAuthAuthorizePage.tsx:172
+msgid "This connection request can't continue"
+msgstr "この接続リクエストは続行できません"
 
 #: src/components/license/LicenseBanner.tsx:191
 #: src/components/settings/LicenseSettings.tsx:127
@@ -27510,6 +28025,10 @@ msgstr "この連携はまもなく削除されます：SparkPostは新規顧客
 msgid "This invitation link is invalid or has expired."
 msgstr "この招待リンクは無効または期限切れです。"
 
+#: src/pages/OAuthAuthorizePage.tsx:459
+msgid "This is not a Notifuse API key, or the key was deleted. Sign-in links and invitations don't work here. Create a key in Settings › Team & API keys."
+msgstr "Notifuse の APIキーではないか、キーが削除されています。サインインリンクや招待はここでは使えません。設定 › チームとAPIキー でキーを作成してください。"
+
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:377
 msgid "This is not a web address. Paste a link such as https://example.com/page."
 msgstr "Webアドレスではありません。https://example.com/pageのようなリンクを貼り付けてください。"
@@ -27597,7 +28116,7 @@ msgstr "Notifuseエクスポートのこのnotifuse:conditionマークには、�
 msgid "This page cannot be previewed here"
 msgstr "このページはここでプレビューできません"
 
-#: src/pages/SignInPage.tsx:278
+#: src/pages/SignInPage.tsx:279
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "このページは {pageOrigin} から配信されていますが、このインスタンスはリクエストを {unreachableEndpoint} に送信しており、応答がありませんでした。Notifuseを {pageOrigin} に移行した場合は、環境変数API_ENDPOINTをそのアドレスに設定してサーバーを再起動してください。"
 
@@ -27642,6 +28161,10 @@ msgstr "この正規表現は、ブラウザで実行できない構文を使用
 msgid "This removes the contacts and their history from the workspace. It cannot be undone."
 msgstr "コンタクトとその履歴がワークスペースから削除されます。元に戻せません。"
 
+#: src/pages/OAuthAuthorizePage.tsx:149
+msgid "This request was started in another browser. A connection can only be finished where it began, so that nobody can send you a link to approve their request."
+msgstr "このリクエストは別のブラウザで開始されました。接続は開始した場所でしか完了できないため、他人が自分のリクエストを承認させるリンクを送ってくることはできません。"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:122
 msgid "This rule"
 msgstr "このルール"
@@ -27674,6 +28197,10 @@ msgstr "このセグメントはもう存在しません"
 #: src/components/broadcasts/compose/ContentCard.tsx:214
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "この送信者はマーケティングメール連携に含まれなくなりました。別の送信者を選ぶか、欄を空にしてテンプレートの送信者を使ってください。"
+
+#: src/pages/OAuthAuthorizePage.tsx:642
+msgid "This server requires two-factor authentication before you can create a key. You can still paste an existing key."
+msgstr "このサーバーでは、キーを作成する前に二要素認証が必要です。既存のキーの貼り付けはできます。"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:205
 msgid "This session is too long to show in full: only its first pages and goals are listed."
@@ -27747,7 +28274,7 @@ msgstr "メールを変更しても、このテキストは更新されません
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "このトークンは一度だけ表示され、再度取得することはできません。今すぐコピーしてZapierに貼り付けてください。"
 
-#: src/components/settings/WorkspaceMembers.tsx:673
+#: src/components/settings/WorkspaceMembers.tsx:736
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "このトークンは一度だけ表示されます。安全な場所に保存してください。再度取得することはできません。"
 
@@ -28082,8 +28609,13 @@ msgstr "これらのイベントを止めるには、代わりにZapierでZapを
 
 #. placeholder {0}: config.title
 #: src/components/ai-assistant/AIAssistantChat.tsx:139
-msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
-msgstr "{0}を使用するには、ワークスペース設定でAnthropic連携を設定する必要があります。"
+msgid "To use the {0}, connect an AI model from Anthropic, OpenAI or Gemini in Settings › AI › Assistant."
+msgstr "{0}を使うには、設定 › AI › アシスタントでAnthropic、OpenAI、GeminiのいずれかのAIモデルを接続してください。"
+
+#. placeholder {0}: config.title
+#: src/components/ai-assistant/AIAssistantChat.tsx:139
+#~ msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
+#~ msgstr "{0}を使用するには、ワークスペース設定でAnthropic連携を設定する必要があります。"
 
 #: src/components/contacts/sheet/sheetDates.ts:16
 #: src/components/contacts/visits/ContactWebVisits.tsx:239
@@ -28121,7 +28653,11 @@ msgstr "キャプションを切り替え"
 msgid "Token"
 msgstr "トークン"
 
-#: src/pages/SignInPage.tsx:158
+#: src/pages/OAuthAuthorizePage.tsx:464
+msgid "Too many attempts from this address. Wait a minute, then try again."
+msgstr "このアドレスからの試行が多すぎます。1 分待ってから、もう一度お試しください。"
+
+#: src/pages/SignInPage.tsx:159
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "サインインの試行回数が多すぎます。しばらく待ってからもう一度お試しください。"
 
@@ -28134,7 +28670,6 @@ msgid "Too many wrong codes. Try again in {minutes} minutes."
 msgstr "誤ったコードが多すぎます。{minutes} 分後にもう一度試してください。"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:125
-#: src/components/settings/Integrations.tsx:492
 msgid "Tools"
 msgstr "ツール"
 
@@ -28403,7 +28938,7 @@ msgstr "トランザクション通知が正常に削除されました"
 #~ msgid "Transactional Notifications"
 #~ msgstr "トランザクション通知"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:81
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:68
 msgid "Transactional only"
 msgstr "トランザクションのみ"
 
@@ -28478,11 +29013,11 @@ msgstr "トリガーでイベントの種類を1つ以上選択してくださ�
 msgid "Trigger on specific field changes"
 msgstr "特定のフィールド変更でトリガー"
 
-#: src/components/settings/Integrations.tsx:517
+#: src/components/settings/Integrations.tsx:327
 msgid "Triggers and actions"
 msgstr "トリガーとアクション"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:127
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:91
 msgid "Triggers and actions in your Zaps"
 msgstr "Zapのトリガーとアクション"
 
@@ -28495,6 +29030,7 @@ msgstr "真"
 #~ msgstr "検索条件やステータスフィルターを調整してみてください"
 
 #: src/components/two_factor/SetupWizard.tsx:157
+#: src/pages/OAuthAuthorizePage.tsx:208
 msgid "Try again"
 msgstr "再試行"
 
@@ -28602,6 +29138,10 @@ msgstr "Webhook <0>{target}</0> をオンまたはオフにしました"
 msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
 msgstr "ダブルオプトインをオフにしても、「保留中」のコンタクトは変わりません。確認するまで保留中のままです。"
 
+#: src/components/settings/MCPSettings.tsx:349
+msgid "Turning it back on restores existing connections: nothing is revoked."
+msgstr "オンに戻すと既存の接続が復元されます。何も取り消されません。"
+
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
 #~ msgstr ""
@@ -28653,9 +29193,13 @@ msgstr "確認のため{selectedCount}と入力してください:"
 #~ msgid "Type:"
 #~ msgstr "タイプ:"
 
-#: src/components/settings/Integrations.tsx:564
+#: src/components/settings/Integrations.tsx:376
 msgid "Type: {typeName}"
 msgstr "種類: {typeName}"
+
+#: src/components/settings/MCPSettings.tsx:362
+msgid "Unavailable"
+msgstr "利用不可"
 
 #: src/components/blog/PostsTable.tsx:330
 msgid "Uncategorized"
@@ -28733,8 +29277,10 @@ msgstr "ユニーククリックは、リンクごとに各受信者を1回だ�
 #: src/components/contacts/ContactUpsertDrawer.tsx:434
 #: src/components/contacts/TrackingConsent.tsx:14
 #: src/components/contacts/trackingConsentOptions.ts:16
+#: src/components/settings/MCPSettings.tsx:243
 #: src/components/transactional/TransactionalDetail.tsx:424
 #: src/components/web_analytics/LiveSessionMap.tsx:57
+#: src/pages/OAuthAuthorizePage.tsx:308
 msgid "Unknown"
 msgstr "不明"
 
@@ -29225,7 +29771,7 @@ msgstr "永久に保持するには0、または {AUDIT_LOG_MIN_RETENTION_DAYS} 
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "永久に保持するには 0、または 30 から 3650 の値を指定してください"
 
-#: src/pages/SignInPage.tsx:382
+#: src/pages/SignInPage.tsx:383
 msgid "Use a different email"
 msgstr "別のメールを使用"
 
@@ -29399,7 +29945,7 @@ msgstr "Supabaseからユーザーを作成し同期"
 #~ msgid "User Created Hook Secret"
 #~ msgstr "ユーザー作成フックシークレット"
 
-#: src/components/settings/Integrations.tsx:415
+#: src/components/settings/Integrations.tsx:306
 msgid "User Metadata Field"
 msgstr "ユーザーメタデータフィールド"
 
@@ -29673,7 +30219,7 @@ msgstr "<0>{target}</0> のサインインコードを確認しました"
 msgid "Verify"
 msgstr "確認"
 
-#: src/pages/SignInPage.tsx:372
+#: src/pages/SignInPage.tsx:373
 msgid "Verify Code"
 msgstr "コードを確認"
 
@@ -29986,16 +30532,21 @@ msgstr "ウェブサイトのファビコンを自動検出して使用します
 msgid "Web"
 msgstr "ウェブ"
 
+#: src/components/settings/AIAssistantSettings.tsx:323
+msgid "Web access"
+msgstr "Webアクセス"
+
 #: src/components/contacts/sheet/describeActivity.tsx:393
 #: src/components/contacts/sheet/describeActivity.tsx:418
 #: src/components/logs/labels.ts:22
 #: src/components/settings/data_retention/categoryText.ts:11
-#: src/components/settings/SettingsSidebar.tsx:59
+#: src/components/settings/SettingsSidebar.tsx:62
 #: src/components/settings/WebAnalyticsSettings.tsx:201
 #: src/components/settings/WebAnalyticsSettings.tsx:264
 msgid "Web analytics"
 msgstr "Webアナリティクス"
 
+#: src/components/settings/AIAssistantSettings.tsx:227
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:212
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
@@ -30042,8 +30593,8 @@ msgstr "Webアナリティクス設定を正常に更新しました"
 #~ msgstr "Webセッション"
 
 #: src/components/settings/Integrations.tsx:482
-msgid "Web tools for the AI assistant"
-msgstr "AIアシスタント用のWebツール"
+#~ msgid "Web tools for the AI assistant"
+#~ msgstr "AIアシスタント用のWebツール"
 
 #: src/components/broadcasts/compose/TrackingCard.tsx:19
 #: src/components/broadcasts/detail/BroadcastAside.tsx:181
@@ -30124,7 +30675,7 @@ msgid "Webhook URL"
 msgstr "Webhook URL"
 
 #: src/components/logs/labels.ts:13
-#: src/components/settings/SettingsSidebar.tsx:55
+#: src/components/settings/SettingsSidebar.tsx:58
 #: src/components/settings/WebhooksSettings.tsx:456
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -30257,6 +30808,10 @@ msgstr "フィードリーダーが各記事で表示する内容"
 #~ msgid "What a licence includes"
 #~ msgstr ""
 
+#: src/components/settings/MCPSettings.tsx:484
+msgid "What an assistant can do"
+msgstr "アシスタントにできること"
+
 #: src/components/web_analytics/explore/CsvExportModal.tsx:147
 msgid "What gets exported"
 msgstr "エクスポートされる内容"
@@ -30348,6 +30903,14 @@ msgstr "適用されるタイミング"
 #~ msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 #~ msgstr "オフ (推奨) の場合、SSOでサインインできるのはすでに招待済みのユーザーのみです。オンの場合、許可されたドメインの検証済みメールアドレスがあれば自動的にアカウントが作成されます。"
 
+#: src/components/settings/MCPSettings.tsx:168
+msgid "When off, no assistant reaches this workspace, whatever key it uses."
+msgstr "オフのときは、どのキーを使ってもアシスタントはこのワークスペースに届きません。"
+
+#: src/components/settings/MCPSettings.tsx:167
+msgid "When off, no assistant reaches this workspace. Nothing is revoked."
+msgstr "オフのときは、アシスタントはこのワークスペースに届きません。何も取り消されません。"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:244
 msgid "When one of them also matches a session, its value replaces this rule's."
 msgstr "そのいずれかがセッションにも一致すると、その値がこのルールの値を置き換えます。"
@@ -30375,6 +30938,14 @@ msgstr "送信タイミング"
 #: src/components/templates/CreateTemplateDrawer.tsx:1502
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "ブロックを選択すると、その設定がここに表示されます。色、テキスト、間隔、配置、その他のプロパティを変更してメールデザインをカスタマイズできます。"
+
+#: src/components/settings/MCPSettings.tsx:357
+msgid "Where claude.ai and ChatGPT ask for the API key."
+msgstr "claude.ai と ChatGPT が APIキーを求めるページです。"
+
+#: src/components/settings/AIAssistantSettings.tsx:349
+msgid "Where the assistant appears"
+msgstr "アシスタントが表示される場所"
 
 #: src/components/segment/segmentLabels.ts:58
 msgid "Where the last tracking consent change came from"
@@ -30408,7 +30979,7 @@ msgstr "最も多くのセッションをもたらしているランディング
 msgid "Which provider sends what"
 msgstr "どのプロバイダーが何を送信するか"
 
-#: src/components/settings/WorkspaceMembers.tsx:474
+#: src/components/settings/WorkspaceMembers.tsx:518
 msgid "Who can do what in this workspace"
 msgstr "このワークスペースで誰が何をできるか"
 
@@ -30566,6 +31137,10 @@ msgstr "プロパティ付き"
 msgid "with status"
 msgstr "ステータス付き"
 
+#: src/components/settings/MCPSettings.tsx:485
+msgid "With the audit log licence, every action that is not a read is logged under the key that made it."
+msgstr "監査ログのライセンスがあれば、読み取り以外の操作はすべて実行したキーの名前で記録されます。"
+
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:67
 msgid "With the test data"
 msgstr "テストデータでの結果"
@@ -30581,6 +31156,11 @@ msgstr "含む内容:"
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:158
 msgid "Within"
 msgstr "対象"
+
+#: src/components/settings/MCPSettings.tsx:405
+#: src/pages/OAuthAuthorizePage.tsx:733
+msgid "Without a licence that includes custom permissions, every key has full access: the assistant can send emails, change templates and delete contacts."
+msgstr "カスタム権限を含むライセンスがない場合、すべてのキーがフルアクセスです。アシスタントはメールの送信、テンプレートの変更、コンタクトの削除ができます。"
 
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
@@ -30602,6 +31182,10 @@ msgstr "単語数"
 msgid "Works once created"
 msgstr "作成後に使用できます"
 
+#: src/components/settings/AIAssistantSettings.tsx:306
+msgid "Works with Anthropic, OpenAI or an OpenAI-compatible endpoint, and Gemini. Only owners can add, change or remove a model."
+msgstr "Anthropic、OpenAIまたはOpenAI互換エンドポイント、Geminiに対応しています。モデルの追加、変更、削除はオーナーのみが行えます。"
+
 #: src/components/logs/AuditEntryDetail.tsx:193
 #: src/components/logs/AuditLogTab.tsx:528
 #: src/components/logs/labels.ts:9
@@ -30610,6 +31194,7 @@ msgstr "作成後に使用できます"
 #: src/components/settings/permissionLabels.ts:12
 #: src/components/settings/SettingsSidebar.tsx:14
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
+#: src/pages/OAuthAuthorizePage.tsx:674
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "ワークスペース"
@@ -30723,6 +31308,7 @@ msgid "Wrapper container"
 msgstr "ラッパーのコンテナ"
 
 #: src/components/blog/PostDrawer.tsx:851
+#: src/components/settings/MCPSettings.tsx:498
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -30748,6 +31334,10 @@ msgstr "Liquidのテンプレートタグを使ってMJMLマークアップを�
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:98
 msgid "Writes"
 msgstr "書き込み"
+
+#: src/components/settings/AIAssistantSettings.tsx:222
+msgid "Writes and edits templates"
+msgstr "テンプレートの作成と編集"
 
 #: src/pages/BlogPage.tsx:34
 msgid "Writing or editing a post also needs Templates read and write: its content is a template."
@@ -30866,6 +31456,10 @@ msgstr "昨日 {time}"
 #: src/components/transactional/TransactionalTable.tsx:265
 msgid "Yesterday, {time}"
 msgstr "昨日 {time}"
+
+#: src/pages/OAuthAuthorizePage.tsx:138
+msgid "You can close this page if nothing happens."
+msgstr "何も起こらない場合は、このページを閉じてかまいません。"
 
 #: src/components/setup/SetupRestartView.tsx:54
 msgid "You can now sign in."
@@ -31142,7 +31736,11 @@ msgstr "初回送信後、メールがここに日ごとに表示されます。
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "ファイルは任意のS3互換ストレージにアップロードできます。"
 
-#: src/pages/SignInPage.tsx:152
+#: src/components/settings/AIAssistantSettings.tsx:331
+msgid "Your Firecrawl key, or your own Firecrawl server"
+msgstr "Firecrawlのキー、または独自のFirecrawlサーバー"
+
+#: src/pages/SignInPage.tsx:153
 msgid "Your identity provider has not verified your email address."
 msgstr "お使いのIDプロバイダーはあなたのメールアドレスを検証していません。"
 
@@ -31173,6 +31771,10 @@ msgstr "10月分の請求書"
 #: src/components/two_factor/AccountSecurityPanel.tsx:115
 msgid "Your previous codes no longer work. This is the only time Notifuse shows these."
 msgstr "以前のコードは使えなくなりました。Notifuse がこれらを表示するのは今回だけです。"
+
+#: src/pages/OAuthAuthorizePage.tsx:656
+msgid "Your session has expired. Sign in again to create a key here. The request stays open until it is 10 minutes old."
+msgstr "セッションの有効期限が切れました。ここでキーを作成するには、もう一度サインインしてください。リクエストは開始から 10 分間有効です。"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:571
 msgid "Your SMTP server's name"
@@ -31221,11 +31823,11 @@ msgstr "ZapierのAPIキー"
 msgid "Zapier created this webhook for one of your Zaps."
 msgstr "ZapierがあなたのZapのためにこのWebhookを作成しました。"
 
-#: src/components/settings/Integrations.tsx:238
+#: src/components/settings/Integrations.tsx:166
 msgid "Zapier integration saved successfully"
 msgstr "Zapier連携を保存しました"
 
-#: src/components/settings/Integrations.tsx:221
+#: src/components/settings/Integrations.tsx:149
 msgid "Zapier is connected, but the integration list could not be refreshed"
 msgstr "Zapierは接続されましたが、連携リストを更新できませんでした"
 

@@ -1830,6 +1830,8 @@ func (a *App) InitHandlers() error {
 		a.oidcService.IsEnabled,
 		a.config.OIDC.ButtonLabel,
 		a.config.Webhook.AllowPrivateDeliveryHosts,
+		a.config.MCP.Enabled,
+		a.config.IsDemo(),
 	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { MessageDescriptor } from '@lingui/core'
 import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
-import { BadgeCheck, Blocks, BookOpen, Braces, ChartLine, Globe, Hourglass, Mail, ScrollText, ShieldAlert, SlidersHorizontal, Users, Webhook } from 'lucide-react'
+import { BadgeCheck, Blocks, BookOpen, Braces, ChartLine, Globe, Hourglass, Mail, Plug, ScrollText, ShieldAlert, SlidersHorizontal, Sparkles, Users, Webhook } from 'lucide-react'
 import { RailItem, RailSection } from '../layout'
 
 /**
@@ -14,6 +14,7 @@ export const SETTINGS_GROUPS = [
   { title: msg`Workspace`, sections: ['general', 'team'] },
   { title: msg({ message: 'Sending', context: 'section' }), sections: ['integrations', 'domains', 'webhooks', 'smtp-bridge'] },
   { title: msg`Content`, sections: ['custom-fields', 'blog', 'web-analytics'] },
+  { title: msg`AI`, sections: ['ai-assistant', 'mcp'] },
   // Licence is deployment-wide rather than workspace-wide, and rendered only for a root user —
   // but listed here unconditionally, because this list is what makes a URL valid and a root user
   // must be able to reach /settings/licence from the banner whatever workspace they are in.
@@ -41,6 +42,8 @@ const ICONS: Record<SettingsSection, ReactNode> = {
   'custom-fields': <Braces size={ICON_SIZE} />,
   blog: <BookOpen size={ICON_SIZE} />,
   'web-analytics': <ChartLine size={ICON_SIZE} />,
+  'ai-assistant': <Sparkles size={ICON_SIZE} />,
+  mcp: <Plug size={ICON_SIZE} />,
   'audit-logs': <ScrollText size={ICON_SIZE} />,
   'data-retention': <Hourglass size={ICON_SIZE} />,
   licence: <BadgeCheck size={ICON_SIZE} />,
@@ -57,6 +60,8 @@ const LABELS: Record<SettingsSection, MessageDescriptor> = {
   'custom-fields': msg`Custom fields`,
   blog: msg`Blog`,
   'web-analytics': msg`Web analytics`,
+  'ai-assistant': msg`Assistant`,
+  mcp: msg`MCP`,
   'audit-logs': msg`Audit log`,
   'data-retention': msg`Data retention`,
   licence: msg`Licence`,

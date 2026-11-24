@@ -12,6 +12,8 @@ import { WorkspaceLayout } from "./layouts/WorkspaceLayout";
 import { SignInPage } from "./pages/SignInPage";
 import { LogoutPage } from "./pages/LogoutPage";
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage";
+import { OAuthAuthorizePage } from "./pages/OAuthAuthorizePage";
+import { parseSignInReturnTo, type SignInReturnTo } from "./components/two_factor/signInAgain";
 import { AccountSecurityPage } from "./pages/AccountSecurityPage";
 import { CreateWorkspacePage } from "./pages/CreateWorkspacePage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -104,8 +106,9 @@ function trackingConsentFilter(value: unknown): TrackingConsentFilter | undefine
 
 export interface SignInSearch {
   email?: string;
-  // Where to go once signed in: one of a fixed list (signInAgain.ts), never a path.
-  return_to?: "security";
+  // Where to go once signed in: the account security page, or the MCP connection page of one
+  // request (signInAgain.ts). Any other value is dropped.
+  return_to?: SignInReturnTo;
   // OIDC failure flag (non-secret enum). The success one-time code arrives in the
   // URL fragment (#oidc_code=…), which is NOT a search param, so it is not listed here.
   oidc_error?: string;
@@ -198,8 +201,33 @@ const signinRoute = createRoute({
     email: search.email as string | undefined,
     oidc_error:
       typeof search.oidc_error === "string" ? search.oidc_error : undefined,
-    return_to: search.return_to === "security" ? "security" : undefined,
+    return_to: parseSignInReturnTo(search.return_to),
   }),
+});
+
+export interface OAuthAuthorizeSearch {
+  request?: string;
+}
+
+/**
+ * The request ID of the MCP connection page. A free-text value: the router reads `?request=123`
+ * as a number, which is read back as text.
+ */
+export function validateOAuthAuthorizeSearch(search: Record<string, unknown>): OAuthAuthorizeSearch {
+  const value = Array.isArray(search.request) ? search.request[0] : search.request;
+  if (typeof value === "number" && Number.isFinite(value)) return { request: String(value) };
+  if (typeof value !== "string") return {};
+  const trimmed = value.trim();
+  return trimmed === "" ? {} : { request: trimmed };
+}
+
+// The MCP connection page, outside any workspace and open without a session: an application sent
+// the browser here through GET /oauth/authorize.
+const oauthAuthorizeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/console/oauth/authorize",
+  component: OAuthAuthorizePage,
+  validateSearch: validateOAuthAuthorizeSearch,
 });
 
 // Account security, outside any workspace: the page a session lands on when the instance
@@ -507,6 +535,7 @@ const routeTree = rootRoute.addChildren([
   logoutRoute,
   setupRoute,
   acceptInvitationRoute,
+  oauthAuthorizeRoute,
   workspaceCreateRoute,
   workspaceRoute.addChildren([
     workspaceIndexRoute,
