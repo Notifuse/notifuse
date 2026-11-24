@@ -108,7 +108,9 @@ jobs:
   # with the certificate committed in console/certificates, so the name must resolve here.
   e2e:
     name: E2E tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, where this Playwright release cannot install its
+    # Chromium. Move it on with a Playwright upgrade that supports the newer image.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./console
