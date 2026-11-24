@@ -1028,11 +1028,10 @@ export function formatChangePercent(current: number, previous: number): string {
 /**
  * CSV is the cheapest tabular encoding a model reads reliably.
  *
- * The parameter is the ROW ARRAY, never the AnalyticsResponse: meta.query is the
- * fully rendered SQL and meta.params the bind values (services/api/analytics.ts
- * :57-65), and neither may ever reach a model. Keeping the response object out
- * of every formatter makes that a structural property of this file rather than
- * a rule someone must remember.
+ * The parameter is the ROW ARRAY, never the AnalyticsResponse: nothing of the
+ * response's meta may ever reach a model. Keeping the response object out of
+ * every formatter makes that a structural property of this file rather than a
+ * rule someone must remember.
  */
 export function formatRows(
   rows: Record<string, unknown>[],

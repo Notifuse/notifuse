@@ -44,25 +44,33 @@ func NewAnalyticsRepository(workspaceRepo domain.WorkspaceRepository, logger log
 
 // resolveSchemas merges the static predefined schemas with the workspace's
 // web analytics schemas (which carry per-workspace bounce threshold and
-// custom dimension titles).
-func (r *analyticsRepository) resolveSchemas(ctx context.Context, workspaceID string, timezone string) map[string]analytics.SchemaDefinition {
-	var webAnalytics *domain.WebAnalyticsSettings
+// custom dimension titles). A workspace that cannot be read fails the call:
+// answering without the web schemas would refuse a web analytics query as an
+// unknown schema, or list a catalogue without them.
+func (r *analyticsRepository) resolveSchemas(ctx context.Context, workspaceID string, timezone string) (map[string]analytics.SchemaDefinition, error) {
 	workspace, err := r.workspaceRepo.GetByID(ctx, workspaceID)
 	if err != nil {
-		r.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to load workspace for schema resolution")
-	} else if workspace != nil {
+		return nil, fmt.Errorf("failed to load workspace for schema resolution: %w", err)
+	}
+	var webAnalytics *domain.WebAnalyticsSettings
+	if workspace != nil {
 		webAnalytics = workspace.Settings.WebAnalytics
 	}
-	return domain.ResolveAnalyticsSchemas(webAnalytics, timezone)
+	return domain.ResolveAnalyticsSchemas(webAnalytics, timezone), nil
 }
 
-// Query executes an analytics query and returns the results
+// Query executes an analytics query and returns the results. It reads the workspace once to
+// resolve the schemas, and the query is validated once, by analytics.Query.Query, against the
+// schema it names.
 func (r *analyticsRepository) Query(ctx context.Context, workspaceID string, query analytics.Query) (*analytics.Response, error) {
-	schemas := r.resolveSchemas(ctx, workspaceID, query.GetDefaultTimezone())
+	schemas, err := r.resolveSchemas(ctx, workspaceID, query.GetDefaultTimezone())
+	if err != nil {
+		r.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to resolve analytics schemas")
+		return nil, err
+	}
 	schema, exists := schemas[query.Schema]
 	if !exists {
-		r.logger.WithField("schema", query.Schema).WithField("workspace_id", workspaceID).Error("Unknown schema in analytics query")
-		return nil, fmt.Errorf("unknown schema: %s", query.Schema)
+		return nil, analytics.UnknownSchemaError(query.Schema)
 	}
 
 	// Get workspace database connection
@@ -74,9 +82,21 @@ func (r *analyticsRepository) Query(ctx context.Context, workspaceID string, que
 
 	response, err := r.executeQuery(ctx, db, query, schema)
 	if err != nil {
-		r.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to execute analytics query")
+		// A refusal is the caller's to fix; the service logs it as a warning.
+		var queryErr *analytics.QueryError
+		if !errors.As(err, &queryErr) {
+			r.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to execute analytics query")
+		}
 		return nil, fmt.Errorf("failed to execute analytics query: %w", err)
 	}
+
+	// The generated SQL and its values never leave the server: they are logged here, at debug
+	// level, for whoever investigates a query.
+	r.logger.WithField("workspace_id", workspaceID).
+		WithField("schema", query.Schema).
+		WithField("sql", response.Meta.Query).
+		WithField("params", response.Meta.Params).
+		Debug("Analytics query executed")
 
 	return response, nil
 }
@@ -143,5 +163,10 @@ func classifyQueryError(err error) error {
 func (r *analyticsRepository) GetSchemas(ctx context.Context, workspaceID string) (map[string]analytics.SchemaDefinition, error) {
 	// The catalog describes what can be queried, not one query's output, so
 	// its dimension expressions are the UTC ones.
-	return r.resolveSchemas(ctx, workspaceID, "UTC"), nil
+	schemas, err := r.resolveSchemas(ctx, workspaceID, "UTC")
+	if err != nil {
+		r.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to resolve analytics schemas")
+		return nil, err
+	}
+	return schemas, nil
 }

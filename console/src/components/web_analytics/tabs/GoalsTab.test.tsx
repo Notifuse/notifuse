@@ -64,7 +64,7 @@ function renderTab() {
 function answer(goals: Record<string, unknown>[]) {
   query.mockReset().mockImplementation(async (q: AnalyticsQuery) => ({
     data: q.schema === 'web_goals' ? goals : [{ sessions: 100 }],
-    meta: { total: 0, query: '', params: [] }
+    meta: { total: 0 }
   }))
 }
 

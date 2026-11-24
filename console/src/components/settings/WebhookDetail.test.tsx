@@ -96,7 +96,7 @@ const invalidatedKeys = (invalidate: ReturnType<typeof vi.spyOn>) =>
 describe('WebhookDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(analyticsService.query).mockResolvedValue({ data: [], meta: { total: 0, query: '', params: [] } })
+    vi.mocked(analyticsService.query).mockResolvedValue({ data: [], meta: { total: 0 } })
   })
 
   it('shows the row of the list while the subscription loads', async () => {
@@ -263,7 +263,7 @@ describe('WebhookDetail', () => {
   it('counts the deliveries of the period it shows', async () => {
     vi.mocked(analyticsService.query).mockResolvedValue({
       data: [{ subscription_id: 'wh1', count_delivered: 8, count_failed: 2 }],
-      meta: { total: 1, query: '', params: [] }
+      meta: { total: 1 }
     })
     const { panel } = await showDetail()
 

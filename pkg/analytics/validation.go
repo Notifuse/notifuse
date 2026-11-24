@@ -73,12 +73,17 @@ func ValidateTimezone(timezone string) error {
 	return nil
 }
 
+// UnknownSchemaError is the refusal of a query on a schema the workspace does not have.
+func UnknownSchemaError(name string) error {
+	return invalid(ErrInvalidSchema, "unknown schema %q", name)
+}
+
 // DefaultValidate checks a query against its schema. Every error it returns is a *QueryError
 // whose message names what to change.
 func DefaultValidate(query Query, schemas map[string]SchemaDefinition) error {
 	schema, exists := schemas[query.Schema]
 	if !exists {
-		return invalid(ErrInvalidSchema, "unknown schema %q", query.Schema)
+		return UnknownSchemaError(query.Schema)
 	}
 
 	if len(query.Measures) == 0 && len(query.Dimensions) == 0 && len(query.TimeDimensions) == 0 {

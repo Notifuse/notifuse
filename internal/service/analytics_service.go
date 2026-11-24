@@ -66,31 +66,14 @@ func (s *AnalyticsService) Query(ctx context.Context, workspaceID string, query 
 		)
 	}
 
-	// Get schemas for validation
-	schemas, err := s.repo.GetSchemas(ctx, workspaceID)
-	if err != nil {
-		s.logger.WithField("workspace_id", workspaceID).
-			WithField("user_id", user.ID).
-			WithField("error", err.Error()).
-			Error("Failed to get schemas for validation")
-		return nil, fmt.Errorf("failed to get schemas: %w", err)
-	}
-
-	// Validate the query using default validation. A refused query is the caller's to fix, so
-	// it answers as a validation error (400 over HTTP, validation_error over MCP).
-	if err := analytics.DefaultValidate(query, schemas); err != nil {
-		s.logger.WithField("workspace_id", workspaceID).
-			WithField("user_id", user.ID).
-			WithField("error", err.Error()).
-			Warn("Analytics query validation failed")
-		return nil, domain.NewValidationError(err.Error())
-	}
-
-	// Execute the query through the repository
+	// The repository resolves the workspace's schemas and the engine validates the query
+	// against them, once each, before running it.
 	response, err := s.repo.Query(ctx, workspaceID, query)
 	if err != nil {
-		// Refusals that only the run can tell: a result past the row bound, a statement past
-		// the time bound, a value the database cannot read as its column's type.
+		// A query the caller has to change answers as a validation error (400 over HTTP,
+		// validation_error over MCP): a schema the workspace lacks, a member or operator the
+		// schema does not take, a result past the row bound, a statement past the time bound,
+		// a value the database cannot read as its column's type.
 		var queryErr *analytics.QueryError
 		if errors.As(err, &queryErr) {
 			s.logger.WithField("workspace_id", workspaceID).

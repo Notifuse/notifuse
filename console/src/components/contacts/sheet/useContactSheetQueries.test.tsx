@@ -20,7 +20,7 @@ vi.mock('../../../services/api/analytics', () => ({
               count: 12
             }
       ],
-      meta: { total: 1, query: '', params: [] }
+      meta: { total: 1 }
     }))
   }
 }))

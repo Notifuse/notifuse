@@ -3,6 +3,7 @@ package analytics
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -118,18 +119,44 @@ func TestQuery_GetOffset(t *testing.T) {
 	}
 }
 
-func TestMeta(t *testing.T) {
-	meta := Meta{
-		Total:         100,
-		ExecutionTime: 500 * time.Millisecond,
-		Query:         "SELECT COUNT(*) FROM message_history",
-		Params:        []interface{}{"workspace-123"},
+// The generated SQL and its values stay on the server: a response carries its rows and their
+// count, and nothing else.
+func TestResponse_JSONCarriesNoSQL(t *testing.T) {
+	response := Response{
+		Data: []map[string]interface{}{{"count": 1}},
+		Meta: Meta{
+			Total:  1,
+			Query:  "SELECT COUNT(*) FROM message_history WHERE contact_email = $1",
+			Params: []interface{}{"ada@example.com"},
+		},
 	}
 
-	assert.Equal(t, 100, meta.Total)
-	assert.Equal(t, 500*time.Millisecond, meta.ExecutionTime)
-	assert.Equal(t, "SELECT COUNT(*) FROM message_history", meta.Query)
-	assert.Equal(t, []interface{}{"workspace-123"}, meta.Params)
+	body, err := json.Marshal(response)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"data":[{"count":1}],"meta":{"total":1}}`, string(body))
+}
+
+// A schema is described by its members' names, types, titles and descriptions; the SQL that
+// computes them is not part of it.
+func TestSchemaDefinition_JSONCarriesNoSQL(t *testing.T) {
+	schema := SchemaDefinition{
+		Name: "message_history",
+		Measures: map[string]MeasureDefinition{
+			"count_sent": {Type: "count", Title: "Sent", SQL: "*", Description: "Sent messages",
+				Filters: []MeasureFilter{{SQL: "sent_at IS NOT NULL"}}},
+		},
+		Dimensions: map[string]DimensionDefinition{
+			"channel": {Type: "string", Title: "Channel", SQL: "COALESCE(channel, '')", Description: "Message channel"},
+		},
+	}
+
+	body, err := json.Marshal(schema)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+		"name":"message_history",
+		"measures":{"count_sent":{"type":"count","title":"Sent","description":"Sent messages"}},
+		"dimensions":{"channel":{"type":"string","title":"Channel","description":"Message channel"}}
+	}`, string(body))
 }
 
 func TestQuery_Query(t *testing.T) {

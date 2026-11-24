@@ -55,10 +55,11 @@ func TestAnalyticsRepository_Query_Success(t *testing.T) {
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := logger.NewLogger()
 
+	// One query reads the workspace once.
 	mockWorkspaceRepo.EXPECT().
 		GetByID(gomock.Any(), "workspace-123").
 		Return(&domain.Workspace{ID: "workspace-123"}, nil).
-		AnyTimes()
+		Times(1)
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace-123").
 		Return(db, nil)
@@ -106,9 +107,67 @@ func TestAnalyticsRepository_Query_UnknownSchema(t *testing.T) {
 
 	response, err := repo.Query(context.Background(), "workspace-123", query)
 
-	assert.Error(t, err)
 	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "unknown schema")
+	// A schema the workspace does not have is the caller's to fix.
+	var queryErr *analytics.QueryError
+	require.True(t, errors.As(err, &queryErr), "%v", err)
+	assert.ErrorIs(t, err, analytics.ErrInvalidSchema)
+	assert.Equal(t, `unknown schema "unknown_schema"`, queryErr.Message)
+}
+
+// A workspace that cannot be read fails the query and the catalogue with its error. Answering
+// without the web schemas would refuse a web analytics query as an unknown schema and list a
+// catalogue without them.
+func TestAnalyticsRepository_WorkspaceLookupFailureIsReturned(t *testing.T) {
+	lookupErr := errors.New("system database unavailable")
+	newRepo := func(t *testing.T) domain.AnalyticsRepository {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		// No GetConnection: the query stops at the lookup.
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(nil, lookupErr)
+		return NewAnalyticsRepository(mockWorkspaceRepo, logger.NewLogger(), "")
+	}
+
+	t.Run("query", func(t *testing.T) {
+		for _, schema := range []string{"web_sessions", "message_history"} {
+			response, err := newRepo(t).Query(context.Background(), "workspace-123", analytics.Query{Schema: schema, Measures: []string{"count"}})
+			assert.Nil(t, response)
+			assert.ErrorIs(t, err, lookupErr, schema)
+			var queryErr *analytics.QueryError
+			assert.False(t, errors.As(err, &queryErr), "%s: an outage is not the caller's to fix", schema)
+		}
+	})
+
+	t.Run("schemas", func(t *testing.T) {
+		schemas, err := newRepo(t).GetSchemas(context.Background(), "workspace-123")
+		assert.Nil(t, schemas)
+		assert.ErrorIs(t, err, lookupErr)
+	})
+}
+
+// The web schemas come from the workspace's settings: listed when it has them, absent when not.
+func TestAnalyticsRepository_GetSchemasFollowsTheWorkspaceSettings(t *testing.T) {
+	for name, workspace := range map[string]*domain.Workspace{
+		"with web analytics":    {ID: "workspace-123", Settings: domain.WorkspaceSettings{WebAnalytics: &domain.WebAnalyticsSettings{BounceThresholdSeconds: 10}}},
+		"without web analytics": {ID: "workspace-123"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil)
+
+			schemas, err := NewAnalyticsRepository(mockWorkspaceRepo, logger.NewLogger(), "").GetSchemas(context.Background(), "workspace-123")
+			require.NoError(t, err)
+			assert.Contains(t, schemas, "message_history")
+			if workspace.Settings.WebAnalytics != nil {
+				assert.Contains(t, schemas, "web_sessions")
+			} else {
+				assert.NotContains(t, schemas, "web_sessions")
+			}
+		})
+	}
 }
 
 func TestAnalyticsRepository_Query_DatabaseError(t *testing.T) {

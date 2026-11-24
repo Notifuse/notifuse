@@ -32,20 +32,21 @@ const RANGE: ResolvedRange = {
   endUtc: '2026-08-14T23:59:59.999Z'
 }
 
-const EMPTY: AnalyticsResponse = { data: [], meta: { total: 0, query: 'SELECT 1', params: [] } }
-
 /**
- * meta.query is rendered SQL and meta.params are bind values; every response a stub
- * hands back carries both, so any formatter that leaked them would show up in an
- * assertion on the result content.
+ * Every response a stub hands back carries recognisable metadata beyond the total the
+ * API sends, so any formatter that read meta would show up in an assertion on the
+ * result content.
  */
+const LEAKY_META = {
+  query: 'SELECT sessions FROM web_sessions WHERE tenant = $1',
+  params: ['bind-value-42']
+}
+
+const EMPTY: AnalyticsResponse = { data: [], meta: { ...LEAKY_META, total: 0 } }
+
 const respond = (data: Record<string, unknown>[]): AnalyticsResponse => ({
   data,
-  meta: {
-    total: data.length,
-    query: 'SELECT sessions FROM web_sessions WHERE tenant = $1',
-    params: ['bind-value-42']
-  }
+  meta: { ...LEAKY_META, total: data.length }
 })
 
 // Identity-ish labels: the handlers own the wording of the model-facing content, and
@@ -203,7 +204,7 @@ describe('query_web_analytics', () => {
     ])
   })
 
-  it('never puts the rendered SQL or its bind values in the model-facing result', async () => {
+  it('never puts the response metadata in the model-facing result', async () => {
     const { run, query } = createHarness()
     query.mockResolvedValue(respond([{ sessions: 10 }]))
 

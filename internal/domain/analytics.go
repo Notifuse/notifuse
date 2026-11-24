@@ -67,6 +67,11 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "COUNT(*)",
 				Description: "Total number of message history records",
 			},
+			// Email is the only channel written to message_history today
+			// (TransactionalChannelEmail), so a measure without a channel filter counts
+			// email messages all the same: count_sent and count_sent_emails count the
+			// same rows. The measures that filter on channel would stay email-only if
+			// another channel were added; the others would then count every channel.
 			"count_sent": {
 				Type:        "count",
 				Title:       "Sent",
@@ -589,6 +594,9 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "completed_at",
 				Description: "Broadcast completion timestamp",
 			},
+			// Each workspace has a database of its own, so this column holds the same
+			// value on every row the query reads: grouping or filtering by it changes
+			// nothing. It stays for callers that already name it.
 			"workspace_id": {
 				Type:        "string",
 				Title:       "Workspace ID",

@@ -96,13 +96,13 @@ beforeEach(() => {
             { goal_at_day: '2026-11-01T00:00:00Z', goals: 5, sum_goal_value: 100, median_goal_value: 50 },
             { goal_at_day: '2026-11-02T00:00:00Z', goals: 7, sum_goal_value: 150, median_goal_value: 75 }
           ],
-          meta: { total: 0, query: '', params: [] }
+          meta: { total: 0 }
         }
       : {
           // The period aggregate: the engine's median over every conversion,
           // which no combination of the daily medians above reproduces.
           data: [{ goals: 12, sum_goal_value: 250, median_goal_value: 80 }],
-          meta: { total: 0, query: '', params: [] }
+          meta: { total: 0 }
         }
   )
 })

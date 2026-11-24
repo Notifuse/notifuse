@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The `email_queue` analytics measure `count_retryable` no longer counts emails given up on after one attempt. The new `count_paused` counts the emails of paused broadcasts.
 
+- **Change**: `analytics.query` no longer returns the generated SQL and its values (`meta.query`, `meta.params`) or `meta.executionTime`, which was always 0. `analytics.schemas` no longer returns the SQL of each measure and dimension.
+
 - **Fix**: The web analytics `page_entry_type` dimension, the contact timeline and segments no longer count the first page of each browser tab as a landing page. In the timeline and segments, pages recorded before 45.0 keep the old value.
 
 - **Feature**: Claude, ChatGPT, Cursor and other MCP clients can read and work in a workspace at `<API_ENDPOINT>/mcp`. They connect with an API key and get exactly its access; claude.ai and ChatGPT ask for the key on a Notifuse connection page. Owners turn MCP off per workspace and see the connections in **Settings** → **AI** → **MCP**, and `MCP_ENABLED=false` turns it off for the instance.

@@ -142,6 +142,8 @@ func TestListAnalyticsSchemas_AKeyWithoutAnyResourceGetsNone(t *testing.T) {
 	assert.JSONEq(t, `{"workspace":{"id":"ws1","name":"Acme"},"schemas":[]}`, string(result.StructuredContent))
 }
 
+// One call is one service query: the service resolves the schemas and validates the query, so
+// the tool reads no catalogue of its own (GetSchemas has no expectation).
 func TestQueryAnalytics_SendsTheQueryAndDropsTheSQL(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
@@ -158,7 +160,6 @@ func TestQueryAnalytics_SendsTheQueryAndDropsTheSQL(t *testing.T) {
 		Order:          map[string]string{"count": "desc"},
 		Limit:          &queried, Offset: &offset,
 	}
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil)
 	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, want).
 		DoAndReturn(func(ctx context.Context, _ string, _ analytics.Query) (*analytics.Response, error) {
 			deadline, ok := ctx.Deadline()
@@ -166,7 +167,7 @@ func TestQueryAnalytics_SendsTheQueryAndDropsTheSQL(t *testing.T) {
 			assert.WithinDuration(t, time.Now().Add(analyticsTimeout), deadline, 2*time.Second)
 			return &analytics.Response{
 				Data: []map[string]any{{"contact_email": "ada@acme.com", "count": 3, "sent_at": "2026-11-20T00:00:00Z"}},
-				Meta: analytics.Meta{Total: 1, ExecutionTime: time.Second, Query: "SELECT secret_generated_sql", Params: []any{"secret_param"}},
+				Meta: analytics.Meta{Total: 1, Query: "SELECT secret_generated_sql", Params: []any{"secret_param"}},
 			}, nil
 		})
 
@@ -194,7 +195,6 @@ func TestQueryAnalytics_SendsTheQueryAndDropsTheSQL(t *testing.T) {
 func TestQueryAnalytics_DefaultLimitAndTheCap(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil).Times(3)
 	rows := func(n int) []map[string]any {
 		out := []map[string]any{}
 		for i := range n {
@@ -241,7 +241,6 @@ func TestQueryAnalytics_DefaultLimitAndTheCap(t *testing.T) {
 func TestQueryAnalytics_ACompletePageIsNotCut(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil)
 	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).
 		Return(&analytics.Response{Data: []map[string]any{{"count": 1}, {"count": 2}, {"count": 3}}}, nil)
 
@@ -257,7 +256,6 @@ func TestQueryAnalytics_ACompletePageIsNotCut(t *testing.T) {
 func TestQueryAnalytics_CapsTextCells(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil)
 	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).Return(&analytics.Response{Data: []map[string]any{
 		{"contact_email": "ok@acme.com"},
 		{"contact_email": "a\x1b" + strings.Repeat("e", 2000)},
@@ -273,10 +271,24 @@ func TestQueryAnalytics_CapsTextCells(t *testing.T) {
 	assert.Equal(t, []string{"rows[1].contact_email"}, out.TruncatedFields)
 }
 
-func TestQueryAnalytics_RefusesBeforeTheQuery(t *testing.T) {
+// validatingAnalyticsService stands for AnalyticsService.Query on testSchemas: a query the
+// engine refuses comes back as a validation error, and any other must not have been sent.
+func validatingAnalyticsService(t *testing.T) func(context.Context, string, analytics.Query) (*analytics.Response, error) {
+	return func(_ context.Context, _ string, query analytics.Query) (*analytics.Response, error) {
+		if err := analytics.DefaultValidate(query, testSchemas()); err != nil {
+			return nil, domain.NewValidationError(err.Error())
+		}
+		t.Errorf("a valid query reached the service: %+v", query)
+		return nil, errors.New("unexpected query")
+	}
+}
+
+// A query is refused as a validation error, by the tool's own checks of its arguments or by
+// the service's validation against the schemas.
+func TestQueryAnalytics_RefusesAnInvalidQuery(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(domain.NewFullPermissions())
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil).AnyTimes()
+	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(validatingAnalyticsService(t)).AnyTimes()
 
 	for name, args := range map[string]map[string]any{
 		"the webhook_deliveries schema": analyticsArgs(map[string]any{"schema": "webhook_deliveries"}),
@@ -345,7 +357,6 @@ func TestQueryAnalytics_ADateRangeWithTimesFillsTheHours(t *testing.T) {
 	mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"count", "created_at_hour"}).
 		AddRow(4, time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC)))
 	schema := domain.PredefinedSchemas["message_history"]
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(domain.PredefinedSchemas, nil)
 	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, _ string, query analytics.Query) (*analytics.Response, error) {
 			return query.Query(ctx, db, schema)
@@ -373,7 +384,7 @@ func TestQueryAnalytics_ADateRangeWithTimesFillsTheHours(t *testing.T) {
 func TestQueryAnalytics_AMeasureInFiltersPointsToHaving(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(domain.NewFullPermissions())
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil)
+	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).DoAndReturn(validatingAnalyticsService(t))
 
 	toolErr := f.callTool("query_analytics", analyticsArgs(map[string]any{"filters": []map[string]any{
 		{"member": "count_opened", "operator": "gt", "values": []string{"1"}},
@@ -395,7 +406,6 @@ func TestQueryAnalytics_ASeriesPastTheLimitKeepsItsRows(t *testing.T) {
 		mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"count", "created_at_hour"}).
 			AddRow(1, hour(8)).AddRow(4, hour(9)).AddRow(2, hour(10)).AddRow(3, hour(11)))
 		schema := domain.PredefinedSchemas["message_history"]
-		f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(domain.PredefinedSchemas, nil)
 		f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, _ string, query analytics.Query) (*analytics.Response, error) {
 				return query.Query(ctx, db, schema)
@@ -442,7 +452,6 @@ func TestQueryAnalytics_ATimeoutSaysToNarrowTheQuery(t *testing.T) {
 	t.Cleanup(func() { analyticsTimeout = saved })
 	f := newFixture(t)
 	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil)
 	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, _ string, _ analytics.Query) (*analytics.Response, error) {
 			// What lib/pq answers when the context ends mid-query.
@@ -458,7 +467,6 @@ func TestQueryAnalytics_ATimeoutSaysToNarrowTheQuery(t *testing.T) {
 func TestQueryAnalytics_AFailedQueryIsInternal(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
-	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil)
 	f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).Return(nil, errors.New("pq: relation message_history on db-host-7"))
 	assert.Equal(t, ToolError{Code: CodeInternal, Message: "internal error"}, f.callTool("query_analytics", analyticsArgs(nil)).errorOf(t))
 }

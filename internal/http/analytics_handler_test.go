@@ -296,7 +296,7 @@ func TestAnalyticsHandler_handleGetSchemas(t *testing.T) {
 					Return((map[string]analytics.SchemaDefinition)(nil), assert.AnError)
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedError:  "Failed to get schemas:",
+			expectedError:  "Failed to get schemas",
 		},
 	}
 
@@ -439,10 +439,7 @@ func TestAnalyticsHandler_Integration(t *testing.T) {
 			{"channel": "email", "count": 100},
 			{"channel": "sms", "count": 50},
 		},
-		Meta: analytics.Meta{
-			Query:  "SELECT channel, COUNT(*) FROM message_history GROUP BY channel",
-			Params: []interface{}{},
-		},
+		Meta: analytics.Meta{Total: 2},
 	}
 	mockService.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
 		Return(response, nil)
@@ -493,9 +490,7 @@ func TestAnalyticsHandler_Integration(t *testing.T) {
 	assert.Equal(t, float64(50), secondRow["count"])
 
 	// Verify meta
-	meta := responseData["meta"].(map[string]interface{})
-	assert.Contains(t, meta["query"].(string), "SELECT")
-	assert.Contains(t, meta["query"].(string), "message_history")
+	assert.Equal(t, map[string]interface{}{"total": float64(2)}, responseData["meta"])
 
 	// Expectations are automatically verified by gomock
 }
@@ -616,5 +611,71 @@ func TestAnalyticsHandler_handleQueryErrors(t *testing.T) {
 			`"filters":[{"member":"contact_email","operator":"in","values":[` + values + `"x"]}]}}`
 		w := post(t, oversized, nil)
 		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+	})
+}
+
+// The answers of analytics.query and analytics.schemas carry no SQL: not the generated query
+// and its values, and not the SQL of a schema's members. Nor the text of a failure, which can
+// be the database's own.
+func TestAnalyticsHandler_AnswersCarryNoSQL(t *testing.T) {
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	newHandler := func(t *testing.T) (*AnalyticsHandler, *mocks.MockAnalyticsService) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockService := mocks.NewMockAnalyticsService(ctrl)
+		return NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, logger.NewLogger()), mockService
+	}
+	post := func(handle http.HandlerFunc, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		handle(w, req)
+		return w
+	}
+
+	t.Run("analytics.query", func(t *testing.T) {
+		handler, mockService := newHandler(t)
+		mockService.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).Return(&analytics.Response{
+			Data: []map[string]interface{}{{"count": 2}},
+			Meta: analytics.Meta{Total: 1, Query: "SELECT secret_sql FROM message_history WHERE contact_email = $1", Params: []interface{}{"ada@example.com"}},
+		}, nil)
+
+		w := post(handler.handleQuery, `{"workspace_id":"test-workspace","query":{"schema":"message_history","measures":["count"]}}`)
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{"data":[{"count":2}],"meta":{"total":1}}`, w.Body.String())
+	})
+
+	t.Run("analytics.schemas", func(t *testing.T) {
+		handler, mockService := newHandler(t)
+		mockService.EXPECT().GetSchemas(gomock.Any(), "test-workspace").Return(map[string]analytics.SchemaDefinition{
+			"message_history": {
+				Name: "message_history",
+				Measures: map[string]analytics.MeasureDefinition{
+					"count_sent": {Type: "count", Title: "Sent", SQL: "secret_measure_sql", Description: "Sent messages",
+						Filters: []analytics.MeasureFilter{{SQL: "secret_filter_sql"}}},
+				},
+				Dimensions: map[string]analytics.DimensionDefinition{
+					"channel": {Type: "string", Title: "Channel", SQL: "secret_dimension_sql", Description: "Message channel"},
+				},
+			},
+		}, nil)
+
+		w := post(handler.handleGetSchemas, `{"workspace_id":"test-workspace"}`)
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{"schemas":{"message_history":{
+			"name":"message_history",
+			"measures":{"count_sent":{"type":"count","title":"Sent","description":"Sent messages"}},
+			"dimensions":{"channel":{"type":"string","title":"Channel","description":"Message channel"}}
+		}}}`, w.Body.String())
+	})
+
+	t.Run("a failure of analytics.schemas", func(t *testing.T) {
+		handler, mockService := newHandler(t)
+		mockService.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
+			Return(nil, errors.New(`failed to load workspace for schema resolution: pq: password authentication failed for user "notifuse"`))
+
+		w := post(handler.handleGetSchemas, `{"workspace_id":"test-workspace"}`)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.JSONEq(t, `{"error":true,"message":"Failed to get schemas"}`, w.Body.String())
 	})
 }

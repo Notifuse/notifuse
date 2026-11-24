@@ -75,7 +75,7 @@ const rows = (perDay: (day: string, origin: string) => Record<string, number>) =
       ...perDay(day, origin)
     }))
   ),
-  meta: { total: ORIGINS.length * days.length, query: '', params: [] }
+  meta: { total: ORIGINS.length * days.length }
 })
 
 beforeEach(() => {

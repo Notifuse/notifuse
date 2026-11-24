@@ -32,7 +32,7 @@ const renderChart = (b: Broadcast) =>
 
 describe('EngagementChart', () => {
   beforeEach(() => {
-    vi.mocked(runBroadcastQuery).mockReset().mockResolvedValue({ data: [], meta: { total: 0, query: '', params: [] } })
+    vi.mocked(runBroadcastQuery).mockReset().mockResolvedValue({ data: [], meta: { total: 0 } })
   })
 
   it('draws the whole 30 days of a broadcast sent 6 days ago, with a Now marker and the days to come empty', async () => {

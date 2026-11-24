@@ -35,8 +35,8 @@ export interface AIAssistantConfig {
  * consumer also opted in with `maxToolRounds > 1`.
  *
  * `content` is model-facing text, sent verbatim as prompt tokens on every
- * subsequent round of the turn. Keep it compact, and never put a rendered SQL
- * string (`meta.query`) or bind values (`meta.params`) in it.
+ * subsequent round of the turn. Keep it compact, and never put the meta of an
+ * analytics response in it.
  */
 export interface ToolResult {
   content: string

@@ -284,7 +284,7 @@ export function buildWebAnalyticsToolHandlers(deps: WebAnalyticsAiDeps): Map<str
         return
       }
 
-      // Only `data` crosses into the formatter. meta.query / meta.params never do.
+      // Only `data` crosses into the formatter, never the response's meta.
       const rows = response.data ?? []
       const bucketColumn = granularity ? bucketColumnFor(schema, granularity) : undefined
       const columns = orderedColumns({ bucket: bucketColumn, dimensions, measures })

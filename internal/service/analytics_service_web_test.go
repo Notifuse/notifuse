@@ -60,13 +60,6 @@ func TestAnalyticsService_WebSchemaRequiresWebAnalyticsPermission(t *testing.T) 
 		svc, mockRepo := newService(t, domain.UserPermissions{
 			domain.PermissionResourceMessageHistory: {Read: true},
 		})
-		mockRepo.EXPECT().GetSchemas(gomock.Any(), "ws1").
-			Return(map[string]analytics.SchemaDefinition{
-				"message_history": {
-					Name:     "message_history",
-					Measures: map[string]analytics.MeasureDefinition{"count": {Type: "count", SQL: "COUNT(*)"}},
-				},
-			}, nil)
 		mockRepo.EXPECT().Query(gomock.Any(), "ws1", gomock.Any()).
 			Return(&analytics.Response{Data: []map[string]interface{}{{"count": 1}}}, nil)
 
@@ -80,13 +73,6 @@ func TestAnalyticsService_WebSchemaRequiresWebAnalyticsPermission(t *testing.T) 
 		svc, mockRepo := newService(t, domain.UserPermissions{
 			domain.PermissionResourceWebAnalytics: {Read: true},
 		})
-		mockRepo.EXPECT().GetSchemas(gomock.Any(), "ws1").
-			Return(map[string]analytics.SchemaDefinition{
-				"web_sessions": {
-					Name:     "web_sessions",
-					Measures: map[string]analytics.MeasureDefinition{"sessions": {Type: "count", SQL: "COUNT(*)"}},
-				},
-			}, nil)
 		mockRepo.EXPECT().Query(gomock.Any(), "ws1", gomock.Any()).
 			Return(&analytics.Response{Data: []map[string]interface{}{{"sessions": 3}}}, nil)
 

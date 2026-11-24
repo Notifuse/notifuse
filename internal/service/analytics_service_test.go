@@ -35,6 +35,16 @@ func analyticsMember(resources ...domain.PermissionResource) *domain.UserWorkspa
 	}
 }
 
+// validatingRepoQuery stands for the repository's Query on a query the engine refuses: it
+// returns the validation error, wrapped as the repository wraps it.
+func validatingRepoQuery(_ context.Context, _ string, query analytics.Query) (*analytics.Response, error) {
+	schemas := map[string]analytics.SchemaDefinition{"message_history": domain.PredefinedSchemas["message_history"]}
+	if err := analytics.DefaultValidate(query, schemas); err != nil {
+		return nil, fmt.Errorf("failed to execute analytics query: %w", err)
+	}
+	return &analytics.Response{Data: []map[string]interface{}{}}, nil
+}
+
 func TestNewAnalyticsService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -73,19 +83,11 @@ func TestAnalyticsService_Query(t *testing.T) {
 				mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
 					Return(ctx, user, userWorkspace, nil)
 
-				schemas := map[string]analytics.SchemaDefinition{
-					"message_history": domain.PredefinedSchemas["message_history"],
-				}
-				mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
-					Return(schemas, nil)
-
+				// The repository resolves the schemas while it runs the query: the service
+				// reads none of its own (GetSchemas has no expectation).
 				response := &analytics.Response{
 					Data: []map[string]interface{}{
 						{"count": 42},
-					},
-					Meta: analytics.Meta{
-						Query:  "SELECT COUNT(*) AS count FROM message_history",
-						Params: []interface{}{},
 					},
 				}
 				mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
@@ -109,26 +111,6 @@ func TestAnalyticsService_Query(t *testing.T) {
 			expectedError: "failed to authenticate user",
 		},
 		{
-			name:        "schema retrieval failure",
-			workspaceID: "test-workspace",
-			query: analytics.Query{
-				Schema:   "message_history",
-				Measures: []string{"count"},
-			},
-			setupMocks: func(mockRepo *mocks.MockAnalyticsRepository, mockAuth *mocks.MockAuthService) {
-				user := &domain.User{ID: "user-123", Email: "test@example.com"}
-				userWorkspace := analyticsMember(domain.PermissionResourceMessageHistory)
-				ctx := context.Background()
-
-				mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
-					Return(ctx, user, userWorkspace, nil)
-
-				mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
-					Return((map[string]analytics.SchemaDefinition)(nil), assert.AnError)
-			},
-			expectedError: "failed to get schemas",
-		},
-		{
 			name:        "query validation failure",
 			workspaceID: "test-workspace",
 			query: analytics.Query{
@@ -143,11 +125,9 @@ func TestAnalyticsService_Query(t *testing.T) {
 				mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
 					Return(ctx, user, userWorkspace, nil)
 
-				schemas := map[string]analytics.SchemaDefinition{
-					"message_history": domain.PredefinedSchemas["message_history"],
-				}
-				mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
-					Return(schemas, nil)
+				// The engine validates the query as the repository runs it.
+				mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
+					DoAndReturn(validatingRepoQuery)
 			},
 			expectedError: `measure "invalid_measure" is not in schema "message_history"`,
 		},
@@ -165,12 +145,6 @@ func TestAnalyticsService_Query(t *testing.T) {
 
 				mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
 					Return(ctx, user, userWorkspace, nil)
-
-				schemas := map[string]analytics.SchemaDefinition{
-					"message_history": domain.PredefinedSchemas["message_history"],
-				}
-				mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
-					Return(schemas, nil)
 
 				mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
 					Return((*analytics.Response)(nil), assert.AnError)
@@ -348,15 +322,8 @@ func TestAnalyticsService_ContextPropagation(t *testing.T) {
 	mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
 		Return(modifiedCtx, user, userWorkspace, nil)
 
-	schemas := map[string]analytics.SchemaDefinition{
-		"message_history": domain.PredefinedSchemas["message_history"],
-	}
-	mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
-		Return(schemas, nil)
-
 	response := &analytics.Response{
 		Data: []map[string]interface{}{{"count": 42}},
-		Meta: analytics.Meta{Query: "SELECT COUNT(*) FROM test", Params: []interface{}{}},
 	}
 	mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
 		Return(response, nil)
@@ -417,15 +384,6 @@ func TestAnalyticsService_SchemaPermissionEnforcement(t *testing.T) {
 		return NewAnalyticsService(mockRepo, mockAuth, logger.NewLogger()), mockRepo
 	}
 
-	countSchema := func(name string) map[string]analytics.SchemaDefinition {
-		return map[string]analytics.SchemaDefinition{
-			name: {
-				Name:     name,
-				Measures: map[string]analytics.MeasureDefinition{"count": {Type: "count", SQL: "COUNT(*)"}},
-			},
-		}
-	}
-
 	for schema, resource := range owning {
 		t.Run(schema+" is refused without read on "+string(resource), func(t *testing.T) {
 			// Every grant except read on the owning resource, which is granted
@@ -452,8 +410,6 @@ func TestAnalyticsService_SchemaPermissionEnforcement(t *testing.T) {
 			svc, mockRepo := newService(t, domain.UserPermissions{
 				resource: domain.ResourcePermissions{Read: true},
 			})
-			mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
-				Return(countSchema(schema), nil)
 			mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
 				Return(&analytics.Response{Data: []map[string]interface{}{{"count": 1}}}, nil)
 
@@ -555,10 +511,10 @@ func TestAnalyticsService_RefusalsAreValidationErrors(t *testing.T) {
 		mockAuth := mocks.NewMockAuthService(ctrl)
 		mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
 			Return(context.Background(), &domain.User{ID: "user-123"}, analyticsMember(domain.PermissionResourceMessageHistory), nil)
-		mockRepo.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
-			Return(map[string]analytics.SchemaDefinition{"message_history": domain.PredefinedSchemas["message_history"]}, nil)
 		if repoErr != nil {
 			mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).Return(nil, repoErr)
+		} else {
+			mockRepo.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).DoAndReturn(validatingRepoQuery)
 		}
 		_, err := NewAnalyticsService(mockRepo, mockAuth, logger.NewLogger()).Query(context.Background(), "test-workspace", query)
 		require.Error(t, err)

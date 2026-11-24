@@ -159,7 +159,7 @@ function answer(q: AnalyticsQuery) {
           statsRow('password_reset', { count_sent: 500, count_delivered: 480 })
         ]
       : currentRows
-  return Promise.resolve({ data, meta: { total: data.length, query: '', params: [] } })
+  return Promise.resolve({ data, meta: { total: data.length } })
 }
 
 const full: StoredPermissions = {

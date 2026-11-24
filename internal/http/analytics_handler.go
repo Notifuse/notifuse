@@ -3,7 +3,6 @@ package http
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -127,7 +126,8 @@ func (h *AnalyticsHandler) handleGetSchemas(w http.ResponseWriter, r *http.Reque
 		if writeServiceError(w, err, "You do not have access to this workspace") {
 			return
 		}
-		h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get schemas: %v", err))
+		// The error is logged above. Its text can hold the database's own message.
+		h.writeErrorResponse(w, http.StatusInternalServerError, "Failed to get schemas")
 		return
 	}
 

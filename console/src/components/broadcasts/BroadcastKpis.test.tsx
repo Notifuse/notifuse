@@ -52,10 +52,10 @@ describe('BroadcastKpis', () => {
     let call = 0
     vi.mocked(runBroadcastQuery).mockReset().mockImplementation(async (query: AnalyticsQuery) => {
       if (query.schema === 'web_sessions') {
-        return { data: [{ utm_campaign: 'news', year: 2000, month: 1, day: 1, sessions: 9 }], meta: { total: 1, query: '', params: [] } }
+        return { data: [{ utm_campaign: 'news', year: 2000, month: 1, day: 1, sessions: 9 }], meta: { total: 1 } }
       }
       // L4 is asked before L5.
-      return { data: [call++ === 0 ? current : previous], meta: { total: 1, query: '', params: [] } }
+      return { data: [call++ === 0 ? current : previous], meta: { total: 1 } }
     })
     vi.mocked(broadcastApi.list).mockReset().mockResolvedValue({ broadcasts: [], total_count: 0 })
   })
