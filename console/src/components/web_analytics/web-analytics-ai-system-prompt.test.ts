@@ -321,6 +321,33 @@ describe('WEB_ANALYTICS_AI_SYSTEM_PROMPT dimension vocabulary', () => {
     expect(WEB_ANALYTICS_AI_SYSTEM_PROMPT).toMatch(/never expect a "\(none\)" bucket/)
   })
 
+  // Every engagement measure of web_sessions leaves automated traffic out, so a slice
+  // of crawlers alone gives null on all six: a model that knows only two reads the
+  // other four's null as a broken query, or as 0.
+  it('names every measure that is null on a slice with only automated traffic', () => {
+    const sentence = WEB_ANALYTICS_AI_SYSTEM_PROMPT.split('\n').find((line) =>
+      line.includes('On a slice with only automated sessions')
+    )
+    expect(sentence).toBeDefined()
+    // The measures named as null, not elsewhere in the line.
+    const nullClause = sentence!.slice(
+      sentence!.indexOf('On a slice with only automated sessions'),
+      sentence!.indexOf('(null)')
+    )
+    for (const measure of [
+      'median_duration',
+      'bounce_rate',
+      'median_scroll',
+      'avg_scroll',
+      'pages_per_session',
+      'median_page_duration'
+    ]) {
+      expect(nullClause).toContain(measure)
+    }
+    expect(sentence).toMatch(/no human traffic/)
+    expect(sentence).toMatch(/never read it as 0/)
+  })
+
   // Without this the model reads the ingestion lag as a traffic collapse and
   // tells the operator their site just died.
   it('states the ingestion lag so a partial period is not read as a drop', () => {

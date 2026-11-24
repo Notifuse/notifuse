@@ -44,6 +44,43 @@ func TestWebAnalyticsSchemas(t *testing.T) {
 		assert.Equal(t, "COUNT(*)", measures["sessions"].SQL, "sessions still count automated traffic")
 	})
 
+	// Scroll depth, pages per session and time on a page read the same population as
+	// TimeScore: an automated session scrolls nothing and views one page, so counting it
+	// pulled these down on the sites crawlers visit most.
+	t.Run("every engagement measure reads human sessions only", func(t *testing.T) {
+		measures := WebAnalyticsSchemas(nil, "UTC")["web_sessions"].Measures
+		human := "FILTER (WHERE " + webSessionHumanSQL + ")"
+		for _, name := range []string{"median_duration", "bounce_rate", "avg_scroll", "median_scroll", "pages_per_session", "median_page_duration"} {
+			assert.Contains(t, measures[name].SQL, human, name)
+			assert.Contains(t, measures[name].Description, "automated traffic is left out", name)
+		}
+		assert.Equal(t, "ROUND(AVG(max_scroll) FILTER (WHERE NOT (beat_seq <= 1 AND duration_ms < 1000)), 1)", measures["avg_scroll"].SQL)
+		assert.Equal(t, "ROUND(AVG(pageview_count) FILTER (WHERE NOT (beat_seq <= 1 AND duration_ms < 1000)), 2)", measures["pages_per_session"].SQL)
+		// Volume measures still count every session.
+		for _, name := range []string{"sessions", "pageviews", "goal_conversions", "contacts"} {
+			assert.NotContains(t, measures[name].SQL, human, name)
+		}
+	})
+
+	// The page measures cannot tell a session's automated traffic from a page row, and say
+	// so: their titles are the web_sessions measures' that leave it out.
+	t.Run("page measures say they include automated traffic", func(t *testing.T) {
+		measures := WebAnalyticsSchemas(nil, "UTC")["web_pages"].Measures
+		for _, name := range []string{"page_duration", "page_scroll"} {
+			assert.Contains(t, measures[name].Description, "Includes automated traffic", name)
+			assert.NotContains(t, measures[name].SQL, webSessionHumanSQL, name)
+		}
+	})
+
+	// The entry type is read from is_landing, which the ingestion recomputes across the
+	// session's tabs. A page stored before 45.0 keeps the per-tab entry_type: the first
+	// page of a second tab holds 'landing' there although it entered nothing.
+	t.Run("page entry type follows the session's landing page", func(t *testing.T) {
+		dimension := WebAnalyticsSchemas(nil, "UTC")["web_pages"].Dimensions["page_entry_type"]
+		assert.Equal(t, "(CASE WHEN is_landing THEN '"+WebEntryTypeLanding+"' ELSE '"+WebEntryTypeNavigation+"' END)", dimension.SQL)
+		assert.NotContains(t, dimension.SQL, "entry_type")
+	})
+
 	t.Run("automated traffic: dimension and measures share one rule", func(t *testing.T) {
 		schema := WebAnalyticsSchemas(nil, "UTC")["web_sessions"]
 		assert.Equal(t, "(CASE WHEN (beat_seq <= 1 AND duration_ms < 1000) THEN 'automated' ELSE 'human' END)",

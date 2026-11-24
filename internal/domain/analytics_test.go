@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/pkg/analytics"
@@ -262,22 +263,23 @@ func TestPredefinedSchemasWithFilters(t *testing.T) {
 			expected: "COUNT(*) FILTER (WHERE sent_at IS NOT NULL AND failed_at IS NULL AND channel = 'email')",
 		},
 		{
-			name:     "contacts - count active",
-			schema:   "contacts",
-			measure:  "count_active",
-			expected: "COUNT(*) FILTER (WHERE status = 'active')",
-		},
-		{
 			name:     "broadcasts - count completed",
 			schema:   "broadcasts",
 			measure:  "completed_broadcasts_count",
-			expected: "COUNT(*) FILTER (WHERE status = 'completed')",
+			expected: "COUNT(*) FILTER (WHERE status = '" + string(BroadcastStatusProcessed) + "')",
 		},
 		{
 			name:     "broadcasts - avg recipients completed",
 			schema:   "broadcasts",
 			measure:  "avg_recipients_completed",
-			expected: "AVG(recipient_count) FILTER (WHERE status = 'completed')",
+			expected: "AVG(enqueued_count) FILTER (WHERE status = '" + string(BroadcastStatusProcessed) + "' AND enqueued_count > 0)",
+		},
+		{
+			name:    "broadcasts - count sending",
+			schema:  "broadcasts",
+			measure: "count_sending",
+			expected: "COUNT(*) FILTER (WHERE status IN ('" + string(BroadcastStatusProcessing) + "', '" +
+				string(BroadcastStatusTesting) + "', '" + string(BroadcastStatusWinnerSelected) + "'))",
 		},
 		{
 			name:     "email_queue - count pending",
@@ -289,7 +291,13 @@ func TestPredefinedSchemasWithFilters(t *testing.T) {
 			name:     "email_queue - count retryable",
 			schema:   "email_queue",
 			measure:  "count_retryable",
-			expected: "COUNT(*) FILTER (WHERE status = 'failed' AND attempts < max_attempts)",
+			expected: "COUNT(*) FILTER (WHERE status = 'failed' AND next_retry_at IS NOT NULL)",
+		},
+		{
+			name:     "email_queue - count paused",
+			schema:   "email_queue",
+			measure:  "count_paused",
+			expected: "COUNT(*) FILTER (WHERE status = '" + string(EmailQueueStatusPaused) + "')",
 		},
 		{
 			name:     "automation_node_executions - count entered",
@@ -301,7 +309,43 @@ func TestPredefinedSchemasWithFilters(t *testing.T) {
 			name:     "automation_node_executions - count completed",
 			schema:   "automation_node_executions",
 			measure:  "count_completed",
-			expected: "COUNT(*) FILTER (WHERE action = 'completed')",
+			expected: "COUNT(*) FILTER (WHERE action = 'completed' AND (output->>'skipped' = 'true') IS NOT TRUE AND output->'error' IS NULL)",
+		},
+		{
+			name:     "automation_node_executions - count skipped",
+			schema:   "automation_node_executions",
+			measure:  "count_skipped",
+			expected: "COUNT(*) FILTER (WHERE action = '" + string(NodeActionCompleted) + "' AND (output->>'skipped' = 'true'))",
+		},
+		{
+			name:     "automation_node_executions - count failed",
+			schema:   "automation_node_executions",
+			measure:  "count_failed",
+			expected: "COUNT(*) FILTER (WHERE action = '" + string(NodeActionFailed) + "' AND completed_at IS NULL)",
+		},
+		{
+			name:     "automation_node_executions - count errors",
+			schema:   "automation_node_executions",
+			measure:  "count_errors",
+			expected: "COUNT(*) FILTER (WHERE action = '" + string(NodeActionCompleted) + "' AND output->'error' IS NOT NULL)",
+		},
+		{
+			name:     "broadcasts - count with ab test",
+			schema:   "broadcasts",
+			measure:  "count_with_ab_test",
+			expected: "COUNT(*) FILTER (WHERE (test_settings->>'enabled') = 'true')",
+		},
+		{
+			name:     "broadcasts - winner recipients",
+			schema:   "broadcasts",
+			measure:  "winner_recipients",
+			expected: "SUM(winner_phase_recipient_count) FILTER (WHERE winner_sent_at IS NOT NULL)",
+		},
+		{
+			name:     "broadcasts - min recipients",
+			schema:   "broadcasts",
+			measure:  "min_recipients",
+			expected: "MIN(enqueued_count) FILTER (WHERE status = '" + string(BroadcastStatusProcessed) + "' AND enqueued_count > 0)",
 		},
 	}
 
@@ -497,9 +541,10 @@ func TestTransactionalMessagesMeasureFollowsTheOrigin(t *testing.T) {
 	}, sql)
 }
 
-// Every measure and dimension has a title: list_analytics_schemas shows it to
-// MCP clients, and an empty one leaves them to guess from the name.
-func TestAnalyticsSchemas_EveryMemberHasATitle(t *testing.T) {
+// Every measure and dimension has a title and a description: list_analytics_schemas
+// shows both to MCP clients, and an empty one leaves them to guess the unit and the
+// values from the name.
+func TestAnalyticsSchemas_EveryMemberHasATitleAndADescription(t *testing.T) {
 	schemas := ResolveAnalyticsSchemas(&WebAnalyticsSettings{}, "UTC")
 	for name, schema := range PredefinedSchemas {
 		schemas[name] = schema
@@ -507,9 +552,131 @@ func TestAnalyticsSchemas_EveryMemberHasATitle(t *testing.T) {
 	for name, schema := range schemas {
 		for member, measure := range schema.Measures {
 			assert.NotEmpty(t, measure.Title, "%s measure %s", name, member)
+			assert.NotEmpty(t, measure.Description, "%s measure %s", name, member)
 		}
 		for member, dimension := range schema.Dimensions {
 			assert.NotEmpty(t, dimension.Title, "%s dimension %s", name, member)
+			assert.NotEmpty(t, dimension.Description, "%s dimension %s", name, member)
 		}
 	}
+}
+
+// measureFilterValues returns the values a measure's filters compare column with, from
+// "column = 'v'" and "column IN ('a', 'b')", and whether any filter is on column.
+func measureFilterValues(t *testing.T, m analytics.MeasureDefinition, column string) ([]string, bool) {
+	t.Helper()
+	var values []string
+	found := false
+	for _, f := range m.Filters {
+		var list string
+		switch {
+		case strings.HasPrefix(f.SQL, column+" = "):
+			list = strings.TrimPrefix(f.SQL, column+" = ")
+		case strings.HasPrefix(f.SQL, column+" IN ("):
+			list = strings.TrimSuffix(strings.TrimPrefix(f.SQL, column+" IN ("), ")")
+		default:
+			continue
+		}
+		found = true
+		for _, v := range strings.Split(list, ", ") {
+			require.True(t, len(v) >= 2 && v[0] == '\'' && v[len(v)-1] == '\'', "filter %q holds an unquoted value", f.SQL)
+			values = append(values, v[1:len(v)-1])
+		}
+	}
+	return values, found
+}
+
+// Every measure filter that compares a status-like column with a value must name a value the
+// column can hold: one that does not exist matches no row, and the measure counts zero
+// forever without an error. The known values come from the Go constants that write them.
+func TestAnalyticsMeasureFiltersUseKnownValues(t *testing.T) {
+	broadcastStatuses := map[string]bool{}
+	for _, s := range []BroadcastStatus{
+		BroadcastStatusDraft, BroadcastStatusScheduled, BroadcastStatusProcessing, BroadcastStatusPaused,
+		BroadcastStatusProcessed, BroadcastStatusCancelled, BroadcastStatusFailed, BroadcastStatusTesting,
+		BroadcastStatusTestCompleted, BroadcastStatusWinnerSelected,
+	} {
+		require.True(t, s.IsValid())
+		broadcastStatuses[string(s)] = true
+	}
+	known := map[string]map[string]map[string]bool{
+		"broadcasts": {"status": broadcastStatuses},
+		"email_queue": {
+			"status": {
+				string(EmailQueueStatusPending): true, string(EmailQueueStatusProcessing): true,
+				string(EmailQueueStatusFailed): true, string(EmailQueueStatusPaused): true,
+			},
+			"source_type": {string(EmailQueueSourceBroadcast): true, string(EmailQueueSourceAutomation): true},
+		},
+		"webhook_deliveries": {
+			"status": {
+				WebhookDeliveryStatusPending: true, WebhookDeliveryStatusDelivering: true,
+				WebhookDeliveryStatusDelivered: true, WebhookDeliveryStatusFailed: true,
+			},
+		},
+		"automation_node_executions": {
+			"action": {
+				string(NodeActionEntered): true, string(NodeActionProcessing): true, string(NodeActionCompleted): true,
+				// Not NodeActionSkipped: nothing writes it. A skipped email is a completed
+				// step with skipped in its output.
+				string(NodeActionFailed): true,
+			},
+		},
+		"message_history": {"channel": {string(TransactionalChannelEmail): true}},
+	}
+
+	for schemaName, columns := range known {
+		schema, ok := PredefinedSchemas[schemaName]
+		require.True(t, ok, schemaName)
+		for column, values := range columns {
+			for name, m := range schema.Measures {
+				got, _ := measureFilterValues(t, m, column)
+				for _, v := range got {
+					assert.True(t, values[v], "%s.%s filters %s on %q, which the column never holds", schemaName, name, column, v)
+				}
+			}
+		}
+	}
+
+	// The contacts table has no status column: a contact's status is per list.
+	for name, m := range PredefinedSchemas["contacts"].Measures {
+		_, found := measureFilterValues(t, m, "status")
+		assert.False(t, found, "contacts.%s filters on status, which the contacts table does not have", name)
+	}
+}
+
+// A sending broadcast is one whose task is queueing its emails; a completed one has queued
+// them all.
+func TestBroadcastsStatusMeasures(t *testing.T) {
+	schema := PredefinedSchemas["broadcasts"]
+	statuses := func(measure string) []string {
+		m, ok := schema.Measures[measure]
+		require.True(t, ok, measure)
+		values, found := measureFilterValues(t, m, "status")
+		require.True(t, found, "%s should filter on status", measure)
+		return values
+	}
+
+	assert.ElementsMatch(t, []string{
+		string(BroadcastStatusProcessing),
+		string(BroadcastStatusTesting),
+		string(BroadcastStatusWinnerSelected),
+	}, statuses("count_sending"))
+	assert.Equal(t, []string{string(BroadcastStatusProcessed)}, statuses("completed_broadcasts_count"))
+	assert.Equal(t, []string{string(BroadcastStatusDraft)}, statuses("count_draft"))
+	assert.Equal(t, []string{string(BroadcastStatusScheduled)}, statuses("count_scheduled"))
+
+	// The recipients of a broadcast are the emails it queued: the table has no other count.
+	// A processed broadcast at 0, such as one sent before 21.0 added the column, recorded
+	// none and is left out.
+	for _, measure := range []string{"avg_recipients", "sum_recipients", "max_recipients", "min_recipients", "avg_recipients_completed", "sum_recipients_completed"} {
+		assert.Equal(t, "enqueued_count", schema.Measures[measure].SQL, measure)
+		assert.Equal(t, []string{string(BroadcastStatusProcessed)}, statuses(measure), measure)
+		assert.Contains(t, schema.Measures[measure].Filters, analytics.MeasureFilter{SQL: "enqueued_count > 0"}, measure)
+	}
+
+	// The winner phase count is RecipientOffset - WinnerPhaseStartOffset: the contacts the
+	// phase went through, those whose email failed to queue included.
+	assert.Contains(t, schema.Measures["winner_recipients"].Description, "Contacts processed in the winner phase")
+	assert.NotContains(t, schema.Measures["winner_recipients"].Description, "Emails queued")
 }

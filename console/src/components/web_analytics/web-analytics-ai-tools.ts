@@ -177,14 +177,14 @@ export const MEASURES_BY_SCHEMA: Record<WebSchema, Record<string, string>> = {
   web_sessions: {
     sessions: 'Number of sessions',
     median_duration: 'Median engaged time per human session, in seconds (the "TimeScore"); automated traffic is left out',
-    avg_scroll: 'Average maximum scroll depth, in percent',
-    median_scroll: 'Median maximum scroll depth, in percent',
+    avg_scroll: 'Average maximum scroll depth of human sessions, in percent; automated traffic is left out',
+    median_scroll: 'Median maximum scroll depth of human sessions, in percent; automated traffic is left out',
     bounce_rate: 'Share of human sessions below the workspace engaged-time threshold, in percent',
     automated_sessions: 'Sessions that loaded a page and sent no further signal: crawlers, AI agents, headless browsers',
     automated_share: 'Share of sessions that are automated traffic, in percent',
     pageviews: 'Total pageviews across sessions',
-    pages_per_session: 'Average pageviews per session',
-    median_page_duration: 'Median time on a page, in seconds',
+    pages_per_session: 'Average pageviews per human session; automated traffic is left out',
+    median_page_duration: 'Median time on a page in human sessions, in seconds; automated traffic is left out',
     goal_conversions: 'Sessions that fired at least one goal',
     goal_value: 'Sum of goal value attributed to sessions',
     contacts: 'Distinct identified contacts'
