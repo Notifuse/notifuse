@@ -147,7 +147,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					Values:   []string{"example"},
 				}},
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1",
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1 ESCAPE '\\'",
 			expectedArgs: []interface{}{"%example%"},
 		},
 		{
@@ -212,7 +212,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 				},
 				Limit: intPtr(100),
 			},
-			expectedSQL: "SELECT (COUNT(*)) AS count, (COUNT(*) FILTER (WHERE sent_at IS NOT NULL)) AS count_sent, contact_email AS contact_email, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE broadcast_id <> $1 AND created_at >= $2 AND created_at <= $3 GROUP BY contact_email, created_at_day ORDER BY created_at DESC LIMIT 100",
+			expectedSQL: "SELECT (COUNT(*)) AS count, (COUNT(*) FILTER (WHERE sent_at IS NOT NULL)) AS count_sent, contact_email AS contact_email, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE broadcast_id <> $1 AND created_at >= $2 AND created_at <= $3 GROUP BY contact_email, created_at_day ORDER BY created_at_day DESC LIMIT 100",
 			expectedArgs: []interface{}{
 				"test-broadcast",
 				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -297,7 +297,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					Values:   []string{"admin"},
 				}},
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1",
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1 ESCAPE '\\'",
 			expectedArgs: []interface{}{"admin%"},
 		},
 		{
@@ -311,7 +311,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					Values:   []string{".gov"},
 				}},
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1",
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1 ESCAPE '\\'",
 			expectedArgs: []interface{}{"%.gov"},
 		},
 		{
@@ -365,7 +365,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					},
 				},
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE broadcast_id IS NOT NULL AND contact_email LIKE $1 AND created_at > $2",
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE broadcast_id IS NOT NULL AND contact_email LIKE $1 ESCAPE '\\' AND created_at > $2",
 			expectedArgs: []interface{}{"%.com", "2024-01-01"},
 		},
 	}
@@ -537,7 +537,7 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 				Operator: "contains",
 				Values:   []string{"example"},
 			},
-			expectedSQL:  "contact_email LIKE ?",
+			expectedSQL:  "contact_email LIKE ? ESCAPE '\\'",
 			expectedArgs: []interface{}{"%example%"},
 		},
 		{
@@ -625,7 +625,7 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 				Operator: "notContains",
 				Values:   []string{"spam"},
 			},
-			expectedSQL:  "contact_email NOT LIKE ?",
+			expectedSQL:  "contact_email NOT LIKE ? ESCAPE '\\'",
 			expectedArgs: []interface{}{"%spam%"},
 		},
 		{
@@ -635,7 +635,7 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 				Operator: "startsWith",
 				Values:   []string{"admin"},
 			},
-			expectedSQL:  "contact_email LIKE ?",
+			expectedSQL:  "contact_email LIKE ? ESCAPE '\\'",
 			expectedArgs: []interface{}{"admin%"},
 		},
 		{
@@ -645,7 +645,7 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 				Operator: "notStartsWith",
 				Values:   []string{"test"},
 			},
-			expectedSQL:  "contact_email NOT LIKE ?",
+			expectedSQL:  "contact_email NOT LIKE ? ESCAPE '\\'",
 			expectedArgs: []interface{}{"test%"},
 		},
 		{
@@ -655,7 +655,7 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 				Operator: "endsWith",
 				Values:   []string{".com"},
 			},
-			expectedSQL:  "contact_email LIKE ?",
+			expectedSQL:  "contact_email LIKE ? ESCAPE '\\'",
 			expectedArgs: []interface{}{"%.com"},
 		},
 		{
@@ -665,7 +665,7 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 				Operator: "notEndsWith",
 				Values:   []string{".spam"},
 			},
-			expectedSQL:  "contact_email NOT LIKE ?",
+			expectedSQL:  "contact_email NOT LIKE ? ESCAPE '\\'",
 			expectedArgs: []interface{}{"%.spam"},
 		},
 		{
@@ -1944,7 +1944,7 @@ func TestProcessRows(t *testing.T) {
 			defer func() { _ = rows.Close() }()
 
 			// Test ProcessRows function
-			data, err := ProcessRows(rows, tt.query, nil)
+			data, err := ProcessRows(rows, tt.query, nil, nil)
 			require.NoError(t, err, tt.description)
 
 			// Verify results
@@ -1998,7 +1998,7 @@ func TestProcessRows_ErrorHandling(t *testing.T) {
 	defer func() { _ = rows2.Close() }()
 
 	// This should handle the scanning error
-	data, err := ProcessRows(rows2, query, nil)
+	data, err := ProcessRows(rows2, query, nil, nil)
 	// The error handling depends on the driver, but we expect either an error or empty data
 	if err == nil {
 		// If no error, data should be handled gracefully
@@ -2734,7 +2734,7 @@ func TestProcessRowsEmptyBreakdownSerializesAsArray(t *testing.T) {
 		Schema:     "web_sessions",
 		Measures:   []string{"sessions"},
 		Dimensions: []string{"country"},
-	}, nil)
+	}, nil, nil)
 	require.NoError(t, err)
 
 	assert.NotNil(t, data, "an empty breakdown must be an empty slice, not nil")

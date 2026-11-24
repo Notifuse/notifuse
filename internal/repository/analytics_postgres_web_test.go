@@ -57,8 +57,11 @@ func TestAnalyticsRepository_WebSchemas(t *testing.T) {
 			Return(webAnalyticsWorkspace(25), nil)
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
 
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectExec(`SET LOCAL statement_timeout`).WillReturnResult(sqlmock.NewResult(0, 0))
 		sqlMock.ExpectQuery(`SELECT .+duration_ms < 25000.+ FROM web_sessions`).
 			WillReturnRows(sqlmock.NewRows([]string{"bounce_rate"}).AddRow(42.5))
+		sqlMock.ExpectCommit()
 
 		repo := NewAnalyticsRepository(mockWorkspaceRepo, logger.NewLogger(), "")
 		response, err := repo.Query(context.Background(), "workspace-123", analytics.Query{
@@ -98,6 +101,7 @@ func TestAnalyticsRepository_WorkMem(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
 
 		sqlMock.ExpectBegin()
+		sqlMock.ExpectExec(`SET LOCAL statement_timeout = 60000`).WillReturnResult(sqlmock.NewResult(0, 0))
 		sqlMock.ExpectExec(`SET LOCAL work_mem = '64MB'`).WillReturnResult(sqlmock.NewResult(0, 0))
 		sqlMock.ExpectQuery(`SELECT .+ FROM web_sessions`).
 			WillReturnRows(sqlmock.NewRows([]string{"sessions"}).AddRow(7))
@@ -124,9 +128,12 @@ func TestAnalyticsRepository_WorkMem(t *testing.T) {
 			Return(webAnalyticsWorkspace(10), nil)
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
 
-		// No ExpectBegin: the query must run without a transaction.
+		// The statement timeout and no work_mem.
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectExec(`SET LOCAL statement_timeout = 60000`).WillReturnResult(sqlmock.NewResult(0, 0))
 		sqlMock.ExpectQuery(`SELECT .+ FROM web_sessions`).
 			WillReturnRows(sqlmock.NewRows([]string{"sessions"}).AddRow(7))
+		sqlMock.ExpectCommit()
 
 		repo := NewAnalyticsRepository(mockWorkspaceRepo, logger.NewLogger(), "64MB; DROP TABLE x")
 		_, err = repo.Query(context.Background(), "workspace-123", analytics.Query{

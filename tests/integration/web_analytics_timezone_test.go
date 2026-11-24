@@ -297,7 +297,7 @@ func TestWebAnalyticsNonUTCDatabaseSession(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = rows.Close() }()
 
-	data, err := analytics.ProcessRows(rows, query, schemas["web_sessions"].MeasureTypes())
+	data, err := analytics.ProcessRows(rows, query, schemas["web_sessions"].MeasureTypes(), schemas["web_sessions"].DimensionTypes())
 	require.NoError(t, err)
 
 	byBucket := map[string]float64{}

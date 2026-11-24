@@ -299,6 +299,21 @@ func TestQueryAnalytics_RefusesBeforeTheQuery(t *testing.T) {
 			{"member": "contact_email", "operator": "equals"},
 		}}),
 		"no schema": {"workspace_id": testWorkspaceID, "measures": []string{"count"}},
+		// Go reads Local as the server's zone; PostgreSQL knows no such zone.
+		"the Local timezone": analyticsArgs(map[string]any{"timezone": "Local"}),
+		"a measure in filters": analyticsArgs(map[string]any{"filters": []map[string]any{
+			{"member": "count_opened", "operator": "gt", "values": []string{"1"}},
+		}}),
+		"two time dimensions": analyticsArgs(map[string]any{"time_dimensions": []map[string]any{
+			{"dimension": "sent_at", "granularity": "day", "date_range": []string{"2026-11-01", "2026-11-02"}},
+			{"dimension": "sent_at", "granularity": "hour"},
+		}}),
+		"a text dimension as the time dimension": analyticsArgs(map[string]any{"time_dimensions": []map[string]any{
+			{"dimension": "contact_email", "granularity": "day"},
+		}}),
+		"a range of centuries by the hour": analyticsArgs(map[string]any{"time_dimensions": []map[string]any{
+			{"dimension": "sent_at", "granularity": "hour", "date_range": []string{"0001-01-01", "9999-12-31"}},
+		}}),
 	} {
 		t.Run(name, func(t *testing.T) {
 			assert.Equal(t, CodeValidation, f.callTool("query_analytics", args).errorOf(t).Code)
@@ -352,6 +367,73 @@ func TestQueryAnalytics_ADateRangeWithTimesFillsTheHours(t *testing.T) {
 		"limit_reached":false
 	}`, string(result.StructuredContent))
 	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// The message of a refusal says what to change.
+func TestQueryAnalytics_AMeasureInFiltersPointsToHaving(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(domain.NewFullPermissions())
+	f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(testSchemas(), nil)
+
+	toolErr := f.callTool("query_analytics", analyticsArgs(map[string]any{"filters": []map[string]any{
+		{"member": "count_opened", "operator": "gt", "values": []string{"1"}},
+	}})).errorOf(t)
+	assert.Equal(t, CodeValidation, toolErr.Code)
+	assert.Contains(t, toolErr.Message, "put conditions on measures in having")
+}
+
+// A series longer than the limit keeps its real rows: the limit applies after the filling and
+// in the requested order, and the offset pages through the filled periods.
+func TestQueryAnalytics_ASeriesPastTheLimitKeepsItsRows(t *testing.T) {
+	hour := func(h int) time.Time { return time.Date(2026, 11, 20, h, 0, 0, 0, time.UTC) }
+	run := func(t *testing.T, extra map[string]any) string {
+		f := newFixture(t)
+		f.reachable(domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}})
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"count", "created_at_hour"}).
+			AddRow(1, hour(8)).AddRow(4, hour(9)).AddRow(2, hour(10)).AddRow(3, hour(11)))
+		schema := domain.PredefinedSchemas["message_history"]
+		f.analytics.EXPECT().GetSchemas(gomock.Any(), testWorkspaceID).Return(domain.PredefinedSchemas, nil)
+		f.analytics.EXPECT().Query(gomock.Any(), testWorkspaceID, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, _ string, query analytics.Query) (*analytics.Response, error) {
+				return query.Query(ctx, db, schema)
+			})
+		args := analyticsArgs(map[string]any{
+			"time_dimensions": []map[string]any{{"dimension": "created_at", "granularity": "hour", "date_range": []string{"2026-11-20T08:00:00Z", "2026-11-20T11:00:00Z"}}},
+			"order":           []map[string]any{{"member": "count", "direction": "desc"}},
+			"limit":           2,
+		})
+		for key, value := range extra {
+			args[key] = value
+		}
+		result := f.callTool("query_analytics", args)
+		require.False(t, result.IsError, string(result.StructuredContent))
+		return string(result.StructuredContent)
+	}
+
+	assert.JSONEq(t, `{
+		"workspace":{"id":"ws1","name":"Acme"},
+		"schema":"message_history",
+		"rows":[
+			{"count":4,"created_at_hour":"2026-11-20T09:00:00Z"},
+			{"count":3,"created_at_hour":"2026-11-20T11:00:00Z"}
+		],
+		"row_count":2,
+		"limit_reached":true
+	}`, run(t, nil))
+
+	assert.JSONEq(t, `{
+		"workspace":{"id":"ws1","name":"Acme"},
+		"schema":"message_history",
+		"rows":[
+			{"count":2,"created_at_hour":"2026-11-20T10:00:00Z"},
+			{"count":1,"created_at_hour":"2026-11-20T08:00:00Z"}
+		],
+		"row_count":2,
+		"limit_reached":false
+	}`, run(t, map[string]any{"offset": 2}))
 }
 
 func TestQueryAnalytics_ATimeoutSaysToNarrowTheQuery(t *testing.T) {
