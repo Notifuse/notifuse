@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { useState } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { cleanup, render, screen, fireEvent } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -93,6 +93,21 @@ const renderChat = (overrides: Partial<AIAssistantChatProps> = {}) =>
   )
 
 describe('AIAssistantChat', () => {
+  it('keeps room for the floating button at the end of a page only when asked, and not while hidden', () => {
+    const room = (container: HTMLElement) => container.querySelectorAll('div[aria-hidden="true"].h-20')
+
+    expect(room(renderChat({ open: false }).container)).toHaveLength(0)
+    cleanup()
+    expect(room(renderChat({ open: false, reserveRoom: true }).container)).toHaveLength(1)
+    cleanup()
+    expect(room(renderChat({ open: false, reserveRoom: true, hidden: true }).container)).toHaveLength(0)
+    cleanup()
+    // A workspace without an AI model still shows the button, so it keeps the room too.
+    expect(
+      room(renderChat({ open: false, reserveRoom: true, llmIntegration: undefined, llmIntegrations: [] }).container)
+    ).toHaveLength(1)
+  })
+
   it('sends a workspace without an AI model to Settings › AI › Assistant', () => {
     renderChat({ llmIntegration: undefined, llmIntegrations: [] })
 

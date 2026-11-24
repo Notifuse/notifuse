@@ -2221,7 +2221,7 @@ msgctxt "newsletter status"
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
 msgstr "Une gagnante a été choisie. Les emails partent vers les destinataires restants."
 
-#: src/pages/OAuthAuthorizePage.tsx:679
+#: src/pages/OAuthAuthorizePage.tsx:678
 msgid "A workspace with MCP off can't be picked. Switch it on in Settings › AI › MCP first."
 msgstr "Un espace de travail où MCP est désactivé ne peut pas être choisi. Activez-le d'abord dans Paramètres › IA › MCP."
 
@@ -3026,7 +3026,7 @@ msgstr "IA"
 msgid "AI assistant"
 msgstr "Assistant IA"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:137
+#: src/components/ai-assistant/AIAssistantChat.tsx:142
 msgid "AI Assistant Not Configured"
 msgstr "Assistant IA non configuré"
 
@@ -3362,7 +3362,7 @@ msgstr "Un appel API peut choisir un autre expéditeur avec email_options.sender
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "Un appel API peut définir email_options.reply_to. Une traduction peut en utiliser un autre."
 
-#: src/pages/OAuthAuthorizePage.tsx:584
+#: src/pages/OAuthAuthorizePage.tsx:583
 msgid "An API key already uses this name, here or in another workspace. Pick another name."
 msgstr "Une clé API porte déjà ce nom, ici ou dans un autre espace de travail. Choisissez un autre nom."
 
@@ -3634,7 +3634,7 @@ msgstr "L'identifiant API doit comporter au plus {TRANSACTIONAL_ID_MAX_LENGTH} c
 #: src/components/settings/integrations/providerDetails.ts:39
 #: src/components/settings/MCPSettings.tsx:231
 #: src/components/settings/ZapierSettings.tsx:259
-#: src/pages/OAuthAuthorizePage.tsx:478
+#: src/pages/OAuthAuthorizePage.tsx:477
 msgid "API key"
 msgstr "Clé API"
 
@@ -3974,11 +3974,11 @@ msgstr "Ressources"
 msgid "Assistant"
 msgstr "Assistant"
 
-#: src/components/settings/MCPSettings.tsx:461
+#: src/components/settings/MCPSettings.tsx:462
 msgid "Assistants connected through the connection page. Revoking one keeps its key; deleting the key ends all its connections."
 msgstr "Assistants connectés par la page de connexion. En révoquer un garde sa clé ; supprimer la clé met fin à toutes ses connexions."
 
-#: src/components/settings/MCPSettings.tsx:458
+#: src/components/settings/MCPSettings.tsx:459
 msgid "Assistants that send the key in a header (Claude Code, Cursor) are not listed here: they use the key directly."
 msgstr "Les assistants qui envoient la clé dans un en-tête (Claude Code, Cursor) ne figurent pas ici : ils utilisent la clé directement."
 
@@ -5656,9 +5656,9 @@ msgstr "Impossible à tester dans le navigateur"
 #: src/components/web_analytics/filters/FilterTable.tsx:356
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
-#: src/pages/OAuthAuthorizePage.tsx:512
-#: src/pages/OAuthAuthorizePage.tsx:617
-#: src/pages/OAuthAuthorizePage.tsx:749
+#: src/pages/OAuthAuthorizePage.tsx:511
+#: src/pages/OAuthAuthorizePage.tsx:616
+#: src/pages/OAuthAuthorizePage.tsx:748
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -6194,8 +6194,8 @@ msgid "Claude Code and Cursor can still connect with the key in a header."
 msgstr "Claude Code et Cursor peuvent toujours se connecter avec la clé dans un en-tête."
 
 #: src/components/settings/MCPSettings.tsx:427
-msgid "Claude Code and Cursor send the key in a header instead:"
-msgstr "Claude Code et Cursor envoient plutôt la clé dans un en-tête :"
+#~ msgid "Claude Code and Cursor send the key in a header instead:"
+#~ msgstr "Claude Code et Cursor envoient plutôt la clé dans un en-tête :"
 
 #: src/components/settings/AIAssistantSettings.tsx:80
 msgid "Claude models"
@@ -6992,19 +6992,19 @@ msgid "Confirms an unsubscription and links to the preferences."
 msgstr "Confirme un désabonnement et renvoie vers les préférences."
 
 #: src/components/settings/AIAssistantSettings.tsx:333
-#: src/pages/OAuthAuthorizePage.tsx:515
+#: src/pages/OAuthAuthorizePage.tsx:514
 msgid "Connect"
 msgstr "Connecter"
 
-#: src/pages/OAuthAuthorizePage.tsx:361
+#: src/pages/OAuthAuthorizePage.tsx:360
 msgid "Connect \"{name}\" to Notifuse"
 msgstr "Connecter « {name} » à Notifuse"
 
-#: src/pages/OAuthAuthorizePage.tsx:361
+#: src/pages/OAuthAuthorizePage.tsx:360
 msgid "Connect {name} to Notifuse"
 msgstr "Connecter {name} à Notifuse"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:149
+#: src/components/ai-assistant/AIAssistantChat.tsx:154
 msgid "Connect an AI model"
 msgstr "Connecter un modèle d'IA"
 
@@ -7107,7 +7107,7 @@ msgstr "Connexion révoquée"
 msgid "Connection Type"
 msgstr "Type de connexion"
 
-#: src/components/settings/MCPSettings.tsx:452
+#: src/components/settings/MCPSettings.tsx:453
 msgid "Connections"
 msgstr "Connexions"
 
@@ -7315,7 +7315,7 @@ msgstr "Contacts qui n'ont ni cliqué, ni répondu, ni confirmé, ni visité pen
 msgid "Contacts without recorded consent"
 msgstr "Contacts sans consentement enregistré"
 
-#: src/components/settings/MCPSettings.tsx:493
+#: src/components/settings/MCPSettings.tsx:494
 msgid "Contacts, lists, segments, templates, broadcasts, message history and analytics."
 msgstr "Contacts, listes, segments, modèles, newsletters, historique des messages et statistiques."
 
@@ -7632,11 +7632,11 @@ msgstr "Impossible d'annuler la demande. Réessayez."
 msgid "Couldn't check where this template is used"
 msgstr "Impossible de vérifier où ce modèle est utilisé"
 
-#: src/pages/OAuthAuthorizePage.tsx:466
+#: src/pages/OAuthAuthorizePage.tsx:465
 msgid "Couldn't connect. Try again in a moment."
 msgstr "Connexion impossible. Réessayez dans un instant."
 
-#: src/pages/OAuthAuthorizePage.tsx:595
+#: src/pages/OAuthAuthorizePage.tsx:594
 msgid "Couldn't create the key. Try again."
 msgstr "Impossible de créer la clé. Réessayez."
 
@@ -7909,8 +7909,13 @@ msgstr "Créer un dossier dans le stockage de l'espace de travail (l'écriture M
 
 #: src/pages/OAuthAuthorizePage.tsx:390
 #: src/pages/OAuthAuthorizePage.tsx:632
-msgid "Create a key for this agent"
-msgstr "Créer une clé pour cet agent"
+#~ msgid "Create a key for this agent"
+#~ msgstr "Créer une clé pour cet agent"
+
+#: src/pages/OAuthAuthorizePage.tsx:389
+#: src/pages/OAuthAuthorizePage.tsx:631
+msgid "Create a key for this assistant"
+msgstr "Créer une clé pour cet assistant"
 
 #: src/services/api/permissions.ts:343
 msgid "Create a list"
@@ -8009,8 +8014,8 @@ msgstr "Créer le premier thème"
 msgid "Create key"
 msgstr "Créer la clé"
 
-#: src/pages/OAuthAuthorizePage.tsx:616
-#: src/pages/OAuthAuthorizePage.tsx:757
+#: src/pages/OAuthAuthorizePage.tsx:615
+#: src/pages/OAuthAuthorizePage.tsx:756
 msgid "Create key and connect"
 msgstr "Créer la clé et connecter"
 
@@ -8068,11 +8073,11 @@ msgstr "Créer la notification"
 msgid "Create Notification"
 msgstr "Créer une notification"
 
-#: src/pages/OAuthAuthorizePage.tsx:503
+#: src/pages/OAuthAuthorizePage.tsx:502
 msgid "Create one in Settings › Team & API keys. Give {name} a key of its own, with only the permissions it needs. Notifuse never shows this key to {name}."
 msgstr "Créez-en une dans Paramètres › Équipe et clés API. Donnez à {name} une clé rien qu'à lui, avec les seules permissions dont il a besoin. Notifuse ne montre jamais cette clé à {name}."
 
-#: src/pages/OAuthAuthorizePage.tsx:504
+#: src/pages/OAuthAuthorizePage.tsx:503
 msgid "Create one in Settings › Team & API keys. The application gets this key's workspace and access. Give it a key of its own."
 msgstr "Créez-en une dans Paramètres › Équipe et clés API. L'application obtient l'espace de travail et les accès de cette clé. Donnez-lui une clé rien qu'à elle."
 
@@ -9506,7 +9511,7 @@ msgstr "Supprimer une clé met aussi fin aux connexions d'assistants faites avec
 msgid "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
 msgstr "La suppression révoque la clé API créée par cette connexion : tout Zap qui l'utilise encore cesse de fonctionner. Cette action est irréversible."
 
-#: src/pages/OAuthAuthorizePage.tsx:343
+#: src/pages/OAuthAuthorizePage.tsx:342
 msgid "Deleting the key in Notifuse ends this connection. An owner can also revoke it in Settings › AI › MCP."
 msgstr "Supprimer la clé dans Notifuse met fin à cette connexion. Un propriétaire peut aussi la révoquer dans Paramètres › IA › MCP."
 
@@ -10103,7 +10108,7 @@ msgstr "Brouillon"
 msgid "Draft restored from local storage"
 msgstr "Brouillon restauré depuis le stockage local"
 
-#: src/components/settings/MCPSettings.tsx:501
+#: src/components/settings/MCPSettings.tsx:502
 msgid "Draft templates and broadcasts, update contacts and list subscriptions."
 msgstr "Rédiger des modèles et des newsletters, mettre à jour les contacts et les abonnements aux listes."
 
@@ -13499,7 +13504,7 @@ msgstr "Géographie"
 msgid "Get started"
 msgstr "Premiers pas"
 
-#: src/pages/OAuthAuthorizePage.tsx:614
+#: src/pages/OAuthAuthorizePage.tsx:613
 msgid "Give {name} full access?"
 msgstr "Donner un accès complet à {name} ?"
 
@@ -15445,7 +15450,7 @@ msgstr "Clé copiée"
 #~ msgid "Key created for {createdDomain}. Publish its DNS record to start signing."
 #~ msgstr "Clé créée pour {createdDomain}. Publiez son enregistrement DNS pour commencer à signer."
 
-#: src/pages/OAuthAuthorizePage.tsx:707
+#: src/pages/OAuthAuthorizePage.tsx:706
 msgid "Key name"
 msgstr "Nom de la clé"
 
@@ -16829,11 +16834,11 @@ msgstr "MCP n'est pas disponible sur la démo."
 msgid "MCP is not available on this server"
 msgstr "MCP n'est pas disponible sur ce serveur"
 
-#: src/pages/OAuthAuthorizePage.tsx:462
+#: src/pages/OAuthAuthorizePage.tsx:461
 msgid "MCP is switched off in this key's workspace. An owner can switch it on in Settings › AI › MCP."
 msgstr "MCP est désactivé dans l'espace de travail de cette clé. Un propriétaire peut l'activer dans Paramètres › IA › MCP."
 
-#: src/pages/OAuthAuthorizePage.tsx:587
+#: src/pages/OAuthAuthorizePage.tsx:586
 msgid "MCP is switched off in this workspace. Switch it on in Settings › AI › MCP, or pick another workspace."
 msgstr "MCP est désactivé dans cet espace de travail. Activez-le dans Paramètres › IA › MCP, ou choisissez un autre espace de travail."
 
@@ -16841,7 +16846,7 @@ msgstr "MCP est désactivé dans cet espace de travail. Activez-le dans Paramèt
 msgid "MCP is turned off on this instance. The administrator enables it with <0>MCP_ENABLED=true</0>."
 msgstr "MCP est désactivé sur cette instance. L'administrateur l'active avec <0>MCP_ENABLED=true</0>."
 
-#: src/pages/OAuthAuthorizePage.tsx:697
+#: src/pages/OAuthAuthorizePage.tsx:696
 msgid "MCP off"
 msgstr "MCP désactivé"
 
@@ -17535,7 +17540,7 @@ msgstr "Nouveaux contacts"
 #~ msgid "New Contacts"
 #~ msgstr "Nouveaux contacts"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:377
+#: src/components/ai-assistant/AIAssistantChat.tsx:383
 msgid "New conversation"
 msgstr "Nouvelle conversation"
 
@@ -17843,7 +17848,7 @@ msgstr "Aucune comparaison"
 msgid "No conditions"
 msgstr "Pas de conditions"
 
-#: src/components/settings/MCPSettings.tsx:475
+#: src/components/settings/MCPSettings.tsx:476
 msgid "No connections yet"
 msgstr "Aucune connexion pour l'instant"
 
@@ -18524,7 +18529,7 @@ msgstr "Aucun webhook pour l'instant"
 msgid "No workspaces"
 msgstr "Aucun espace de travail"
 
-#: src/pages/OAuthAuthorizePage.tsx:634
+#: src/pages/OAuthAuthorizePage.tsx:633
 msgid "Nobody sees this key. It serves only this connection, and you can delete it later in Team & API keys."
 msgstr "Personne ne voit cette clé. Elle ne sert qu'à cette connexion, et vous pourrez la supprimer plus tard dans Équipe et clés API."
 
@@ -19847,11 +19852,11 @@ msgstr "Écraser avec ma version"
 msgid "Owner"
 msgstr "Propriétaire"
 
-#: src/pages/OAuthAuthorizePage.tsx:394
+#: src/pages/OAuthAuthorizePage.tsx:393
 msgid "Owner? Sign in to create a key here"
 msgstr "Propriétaire ? Connectez-vous pour créer une clé ici"
 
-#: src/components/settings/MCPSettings.tsx:454
+#: src/components/settings/MCPSettings.tsx:455
 msgid "Owners"
 msgstr "Propriétaires"
 
@@ -20030,9 +20035,9 @@ msgstr "Collez <0>{url}</0> comme URL et sélectionnez <1>Connect</1>."
 #~ msgid "Paste a licence key first"
 #~ msgstr "Collez d'abord une clé de licence"
 
-#: src/pages/OAuthAuthorizePage.tsx:624
-#: src/pages/OAuthAuthorizePage.tsx:648
-#: src/pages/OAuthAuthorizePage.tsx:667
+#: src/pages/OAuthAuthorizePage.tsx:623
+#: src/pages/OAuthAuthorizePage.tsx:647
+#: src/pages/OAuthAuthorizePage.tsx:666
 msgid "Paste an existing key"
 msgstr "Coller une clé existante"
 
@@ -20285,7 +20290,7 @@ msgstr "Détail des permissions"
 
 #: src/components/settings/WorkspaceMembers.tsx:646
 #: src/components/settings/WorkspaceMembers.tsx:716
-#: src/pages/OAuthAuthorizePage.tsx:725
+#: src/pages/OAuthAuthorizePage.tsx:724
 msgid "Permissions"
 msgstr "Permissions"
 
@@ -20350,7 +20355,7 @@ msgctxt "newsletter status"
 msgid "Pick a winner"
 msgstr "Choisir une gagnante"
 
-#: src/pages/OAuthAuthorizePage.tsx:690
+#: src/pages/OAuthAuthorizePage.tsx:689
 msgid "Pick a workspace"
 msgstr "Choisissez un espace de travail"
 
@@ -20573,7 +20578,7 @@ msgstr "Veuillez entrer un identifiant API"
 
 #: src/components/settings/WorkspaceMembers.tsx:392
 #: src/components/settings/WorkspaceMembers.tsx:701
-#: src/pages/OAuthAuthorizePage.tsx:563
+#: src/pages/OAuthAuthorizePage.tsx:562
 msgid "Please enter an API key name"
 msgstr "Veuillez entrer un nom de clé API"
 
@@ -21409,7 +21414,7 @@ msgstr "Toucher votre audience"
 msgid "Reached"
 msgstr "Atteints"
 
-#: src/components/settings/MCPSettings.tsx:490
+#: src/components/settings/MCPSettings.tsx:491
 #: src/components/settings/PermissionsMatrix.tsx:101
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:244
@@ -24192,7 +24197,7 @@ msgstr "Envoyer une notification transactionnelle avec Python :"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envoyer une notification transactionnelle avec TypeScript/JavaScript :"
 
-#: src/components/settings/MCPSettings.tsx:506
+#: src/components/settings/MCPSettings.tsx:507
 msgid "Send and delete"
 msgstr "Envoi et suppression"
 
@@ -24208,7 +24213,7 @@ msgstr "Hook d'envoi d'email"
 msgid "Send emails and update lists when contacts do something"
 msgstr "Envoyez des e-mails et mettez à jour des listes quand vos contacts agissent"
 
-#: src/components/settings/MCPSettings.tsx:509
+#: src/components/settings/MCPSettings.tsx:510
 msgid "Send emails, start automations, cancel broadcasts, delete objects. These tools are flagged so clients can ask you to confirm."
 msgstr "Envoyer des emails, lancer des automations, annuler des newsletters, supprimer des objets. Ces outils sont signalés pour que les clients puissent vous demander de confirmer."
 
@@ -24874,7 +24879,7 @@ msgstr "Configurer l'envoi"
 msgid "Set up this Notifuse installation"
 msgstr "A configuré cette installation de Notifuse"
 
-#: src/pages/OAuthAuthorizePage.tsx:646
+#: src/pages/OAuthAuthorizePage.tsx:645
 msgid "Set up two-factor authentication"
 msgstr "Configurer la double authentification"
 
@@ -25163,7 +25168,7 @@ msgid "Sign In"
 msgstr "Connexion"
 
 #: src/components/two_factor/RootSessionRefused.tsx:25
-#: src/pages/OAuthAuthorizePage.tsx:664
+#: src/pages/OAuthAuthorizePage.tsx:663
 msgid "Sign in again"
 msgstr "Se reconnecter"
 
@@ -27018,7 +27023,7 @@ msgid "The API identifier is not valid"
 msgstr "L'identifiant API n'est pas valide"
 
 #: src/components/settings/MCPSettings.tsx:401
-#: src/pages/OAuthAuthorizePage.tsx:732
+#: src/pages/OAuthAuthorizePage.tsx:731
 msgid "The assistant gets every right its key has."
 msgstr "L'assistant obtient tous les droits de sa clé."
 
@@ -27413,7 +27418,7 @@ msgstr "La clé apparaît dans Paramètres → Équipe et clés API sous le nom 
 msgid "The key of {domain} changed during the check. The list shows its current state."
 msgstr "La clé de {domain} a changé pendant la vérification. La liste affiche son état actuel."
 
-#: src/pages/OAuthAuthorizePage.tsx:615
+#: src/pages/OAuthAuthorizePage.tsx:614
 msgid "The key will have every right in {workspaceName}, sending emails and deleting contacts included. It goes to the application published at {clientHost}."
 msgstr "La clé aura tous les droits dans {workspaceName}, y compris l'envoi d'emails et la suppression de contacts. Elle revient à l'application publiée sur {clientHost}."
 
@@ -27901,7 +27906,7 @@ msgstr "Il leur sera demandé de l'activer à leur prochaine ouverture de Notifu
 msgid "They're signed out everywhere."
 msgstr "Toutes ses sessions sont fermées."
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:315
+#: src/components/ai-assistant/AIAssistantChat.tsx:321
 msgid "Thinking"
 msgstr "Réflexion"
 
@@ -27954,7 +27959,7 @@ msgstr "Cette annotation a été créée automatiquement au démarrage d'une dif
 #~ msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 #~ msgstr "Ceci apparaît dans les onglets du navigateur lors de la visualisation de l'email dans un navigateur web et dans certains clients email. C'est généralement identique ou lié à votre ligne d'objet."
 
-#: src/pages/OAuthAuthorizePage.tsx:373
+#: src/pages/OAuthAuthorizePage.tsx:372
 msgid "This application returns to a program on your own computer. Connect only if you started this connection yourself, just now."
 msgstr "Cette application revient vers un programme sur votre propre ordinateur. Ne connectez que si vous venez de lancer cette connexion vous-même."
 
@@ -28148,7 +28153,7 @@ msgstr "Cette intégration sera bientôt supprimée : SparkPost n'accepte plus d
 msgid "This invitation link is invalid or has expired."
 msgstr "Ce lien d'invitation est invalide ou a expiré."
 
-#: src/pages/OAuthAuthorizePage.tsx:459
+#: src/pages/OAuthAuthorizePage.tsx:458
 msgid "This is not a Notifuse API key, or the key was deleted. Sign-in links and invitations don't work here. Create a key in Settings › Team & API keys."
 msgstr "Ce n'est pas une clé API Notifuse, ou la clé a été supprimée. Les liens de connexion et les invitations ne marchent pas ici. Créez une clé dans Paramètres › Équipe et clés API."
 
@@ -28321,7 +28326,7 @@ msgstr "Ce segment n'existe plus"
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Cet expéditeur ne fait plus partie de l'intégration email marketing. Choisissez-en un autre ou videz le champ pour garder celui du modèle."
 
-#: src/pages/OAuthAuthorizePage.tsx:642
+#: src/pages/OAuthAuthorizePage.tsx:641
 msgid "This server requires two-factor authentication before you can create a key. You can still paste an existing key."
 msgstr "Ce serveur exige la double authentification avant de créer une clé. Vous pouvez toujours coller une clé existante."
 
@@ -28743,7 +28748,7 @@ msgid "To stop these events, turn the Zap off in Zapier instead. Zapier then rem
 msgstr "Pour arrêter ces événements, désactivez plutôt le Zap dans Zapier. Zapier supprimera alors ce webhook pour vous."
 
 #. placeholder {0}: config.title
-#: src/components/ai-assistant/AIAssistantChat.tsx:139
+#: src/components/ai-assistant/AIAssistantChat.tsx:144
 msgid "To use the {0}, connect an AI model from Anthropic, OpenAI or Gemini in Settings › AI › Assistant."
 msgstr "Pour utiliser {0}, connectez un modèle d'IA d'Anthropic, d'OpenAI ou de Gemini dans Paramètres › IA › Assistant."
 
@@ -28788,7 +28793,7 @@ msgstr "Afficher/masquer la légende"
 msgid "Token"
 msgstr "Jeton"
 
-#: src/pages/OAuthAuthorizePage.tsx:464
+#: src/pages/OAuthAuthorizePage.tsx:463
 msgid "Too many attempts from this address. Wait a minute, then try again."
 msgstr "Trop de tentatives depuis cette adresse. Attendez une minute, puis réessayez."
 
@@ -30969,7 +30974,7 @@ msgstr "Ce qu'un lecteur de flux montre de chaque article"
 #~ msgid "What a licence includes"
 #~ msgstr "Ce qu'inclut une licence"
 
-#: src/components/settings/MCPSettings.tsx:484
+#: src/components/settings/MCPSettings.tsx:485
 msgid "What an assistant can do"
 msgstr "Ce qu'un assistant peut faire"
 
@@ -31298,7 +31303,7 @@ msgstr "avec les propriétés"
 msgid "with status"
 msgstr "avec statut"
 
-#: src/components/settings/MCPSettings.tsx:485
+#: src/components/settings/MCPSettings.tsx:486
 msgid "With the audit log licence, every action that is not a read is logged under the key that made it."
 msgstr "Avec la licence du journal d'audit, chaque action autre qu'une lecture est journalisée sous la clé qui l'a faite."
 
@@ -31319,7 +31324,7 @@ msgid "Within"
 msgstr "Dans"
 
 #: src/components/settings/MCPSettings.tsx:405
-#: src/pages/OAuthAuthorizePage.tsx:733
+#: src/pages/OAuthAuthorizePage.tsx:732
 msgid "Without a licence that includes custom permissions, every key has full access: the assistant can send emails, change templates and delete contacts."
 msgstr "Sans une licence qui inclut les permissions personnalisées, chaque clé a un accès complet : l'assistant peut envoyer des emails, modifier les modèles et supprimer des contacts."
 
@@ -31359,7 +31364,7 @@ msgstr "Fonctionne avec Anthropic, OpenAI ou un endpoint compatible OpenAI, et G
 #: src/components/settings/permissionLabels.ts:12
 #: src/components/settings/SettingsSidebar.tsx:14
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
-#: src/pages/OAuthAuthorizePage.tsx:674
+#: src/pages/OAuthAuthorizePage.tsx:673
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Espace de travail"
@@ -31473,7 +31478,7 @@ msgid "Wrapper container"
 msgstr "Conteneur wrapper"
 
 #: src/components/blog/PostDrawer.tsx:851
-#: src/components/settings/MCPSettings.tsx:498
+#: src/components/settings/MCPSettings.tsx:499
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -31945,7 +31950,7 @@ msgstr "Votre facture d'octobre"
 msgid "Your previous codes no longer work. This is the only time Notifuse shows these."
 msgstr "Vos anciens codes ne fonctionnent plus. Notifuse n'affiche ceux-ci qu'une seule fois, maintenant."
 
-#: src/pages/OAuthAuthorizePage.tsx:656
+#: src/pages/OAuthAuthorizePage.tsx:655
 msgid "Your session has expired. Sign in again to create a key here. The request stays open until it is 10 minutes old."
 msgstr "Votre session a expiré. Reconnectez-vous pour créer une clé ici. La demande reste ouverte pendant 10 minutes après son début."
 

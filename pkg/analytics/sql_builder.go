@@ -3,10 +3,14 @@ package analytics
 import (
 	"database/sql"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Masterminds/squirrel"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 // SQLBuilder provides methods to convert analytics queries to SQL
@@ -106,18 +110,17 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 			}
 		}
 
-		// Check if filter member exists in schema
+		// A filter applies to rows, before aggregation, so its member is a dimension. A measure's
+		// SQL in WHERE is either invalid (* or an aggregate) or, for a column measure, the bare
+		// column without its aggregate and its filters: a silently different number.
 		var memberSQL string
-		if measureDef, exists := schema.Measures[filter.Member]; exists {
-			memberSQL = measureDef.SQL
-			if memberSQL == "" {
-				memberSQL = filter.Member
-			}
-		} else if dimensionDef, exists := schema.Dimensions[filter.Member]; exists {
+		if dimensionDef, exists := schema.Dimensions[filter.Member]; exists {
 			memberSQL = dimensionDef.SQL
 			if memberSQL == "" {
 				memberSQL = filter.Member
 			}
+		} else if _, exists := schema.Measures[filter.Member]; exists {
+			return "", nil, invalid(ErrUnsupportedDimension, "filters take dimensions, and %q is a measure: put conditions on measures in having", filter.Member)
 		} else {
 			return "", nil, fmt.Errorf("filter member '%s' not found in schema", filter.Member)
 		}
@@ -235,8 +238,11 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		selectBuilder = selectBuilder.Having(condition)
 	}
 
-	// Add ORDER BY clause
-	for field, direction := range query.Order {
+	// Add ORDER BY clause, in the caller's priority (OrderKeys). columnOrder is the same order
+	// on the columns the query returns, for the ranking of topGroupCells.
+	var orderClauses, columnOrder []string
+	for _, field := range query.OrderKeys() {
+		direction := query.Order[field]
 		orderDirection := strings.ToUpper(direction)
 		if orderDirection != "ASC" && orderDirection != "DESC" {
 			orderDirection = "ASC"
@@ -245,7 +251,7 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		// Check if field exists in measures or dimensions. A measure orders by its aggregate,
 		// as HAVING filters by it: its raw SQL (* for a count, a column for a max) is not valid
 		// outside the aggregate, and the aggregate does not need the measure to be selected.
-		var fieldSQL string
+		var fieldSQL, column string
 		// A measure can be NULL (a median or a rate over a group with nothing to count), and
 		// PostgreSQL puts NULLs first in a descending sort: a group with no value would top every
 		// "best first" ranking. Ascending already sorts them last.
@@ -257,16 +263,33 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 				measureSQL = field
 			}
 			fieldSQL = sb.buildMeasureSQL(measureDef.Type, measureSQL, measureDef.Filters)
-		} else if dimensionDef, exists := schema.Dimensions[field]; exists {
+			column = field
+		} else if dimensionDef, exists := schema.Dimensions[field]; exists && slices.Contains(query.Dimensions, field) {
 			fieldSQL = dimensionDef.SQL
 			if fieldSQL == "" {
 				fieldSQL = field
 			}
+			column = field
+		} else if bucket, ok := timeDimensionColumn(query, field); ok {
+			// The time dimension is grouped by its bucket, so it sorts by the bucket's alias:
+			// the bare column is not in GROUP BY.
+			fieldSQL = bucket
+			column = bucket
+		} else if exists {
+			return "", nil, invalid(ErrInvalidQuery, "order by dimension %q needs it in dimensions or as the time dimension", field)
 		} else {
 			return "", nil, fmt.Errorf("order field '%s' not found in schema", field)
 		}
 
-		selectBuilder = selectBuilder.OrderBy(fmt.Sprintf("%s %s%s", fieldSQL, orderDirection, nulls))
+		orderClauses = append(orderClauses, fmt.Sprintf("%s %s%s", fieldSQL, orderDirection, nulls))
+		columnOrder = append(columnOrder, fmt.Sprintf("%s %s%s", column, orderDirection, nulls))
+	}
+
+	if query.topGroupCells != nil && len(query.Dimensions) > 0 {
+		return sb.topGroupsSQL(query, selectBuilder, timeDimensionColumns, columnOrder)
+	}
+	if len(orderClauses) > 0 {
+		selectBuilder = selectBuilder.OrderBy(orderClauses...)
 	}
 
 	// Add LIMIT and OFFSET
@@ -283,6 +306,43 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		return "", nil, fmt.Errorf("failed to build SQL: %w", err)
 	}
 
+	return sql, args, nil
+}
+
+// topGroupsSQL wraps the grouped query so that it returns the full series of the groups that
+// hold its first topGroupCells rows, in the query's order, and nothing of the other groups.
+// The rows of the query are ranked over the whole range (cell_rank), each group takes the
+// rank of its best row (group_rank), and the groups ranked within topGroupCells are kept.
+// The page the caller asked for is among their rows, and since each kept group comes back
+// whole, the gap filling adds zeros only where that group has no row.
+func (sb *SQLBuilder) topGroupsSQL(query Query, grouped squirrel.SelectBuilder, timeDimensionColumns []string, columnOrder []string) (string, []interface{}, error) {
+	innerSQL, args, err := grouped.ToSql()
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to build SQL: %w", err)
+	}
+
+	columns := make([]string, 0, len(query.Measures)+len(query.Dimensions)+len(timeDimensionColumns))
+	columns = append(columns, query.Measures...)
+	columns = append(columns, query.Dimensions...)
+	columns = append(columns, timeDimensionColumns...)
+	selected := strings.Join(columns, ", ")
+
+	orderSQL := strings.Join(columnOrder, ", ")
+	outerOrder := ""
+	if orderSQL != "" {
+		outerOrder = " ORDER BY " + orderSQL
+	}
+	limit := ""
+	if query.Limit != nil {
+		limit = fmt.Sprintf(" LIMIT %d", *query.Limit)
+	}
+
+	sql := fmt.Sprintf("SELECT %s FROM ("+
+		"SELECT ranked.*, MIN(analytics_cell_rank) OVER (PARTITION BY %s) AS analytics_group_rank FROM ("+
+		"SELECT cells.*, ROW_NUMBER() OVER (ORDER BY %s) AS analytics_cell_rank FROM (%s) AS cells"+
+		") AS ranked"+
+		") AS top_groups WHERE analytics_group_rank <= %d%s%s",
+		selected, strings.Join(query.Dimensions, ", "), orderSQL, innerSQL, *query.topGroupCells, outerOrder, limit)
 	return sql, args, nil
 }
 
@@ -357,36 +417,11 @@ func (sb *SQLBuilder) buildFilterCondition(memberSQL string, filter Filter) (squ
 			return squirrel.NotEq{memberSQL: filter.Values[0]}, nil
 		}
 		return squirrel.NotEq{memberSQL: filter.Values}, nil
-	case "contains":
+	case "contains", "notContains", "startsWith", "notStartsWith", "endsWith", "notEndsWith":
 		if len(filter.Values) != 1 {
-			return nil, fmt.Errorf("contains operator requires exactly one value")
+			return nil, fmt.Errorf("%s operator requires exactly one value", filter.Operator)
 		}
-		return squirrel.Like{memberSQL: fmt.Sprintf("%%%s%%", filter.Values[0])}, nil
-	case "notContains":
-		if len(filter.Values) != 1 {
-			return nil, fmt.Errorf("notContains operator requires exactly one value")
-		}
-		return squirrel.NotLike{memberSQL: fmt.Sprintf("%%%s%%", filter.Values[0])}, nil
-	case "startsWith":
-		if len(filter.Values) != 1 {
-			return nil, fmt.Errorf("startsWith operator requires exactly one value")
-		}
-		return squirrel.Like{memberSQL: fmt.Sprintf("%s%%", filter.Values[0])}, nil
-	case "notStartsWith":
-		if len(filter.Values) != 1 {
-			return nil, fmt.Errorf("notStartsWith operator requires exactly one value")
-		}
-		return squirrel.NotLike{memberSQL: fmt.Sprintf("%s%%", filter.Values[0])}, nil
-	case "endsWith":
-		if len(filter.Values) != 1 {
-			return nil, fmt.Errorf("endsWith operator requires exactly one value")
-		}
-		return squirrel.Like{memberSQL: fmt.Sprintf("%%%s", filter.Values[0])}, nil
-	case "notEndsWith":
-		if len(filter.Values) != 1 {
-			return nil, fmt.Errorf("notEndsWith operator requires exactly one value")
-		}
-		return squirrel.NotLike{memberSQL: fmt.Sprintf("%%%s", filter.Values[0])}, nil
+		return likeCondition(memberSQL, filter.Operator, filter.Values[0]), nil
 	case "gt":
 		if len(filter.Values) != 1 {
 			return nil, fmt.Errorf("gt operator requires exactly one value")
@@ -446,6 +481,30 @@ func (sb *SQLBuilder) buildFilterCondition(memberSQL string, filter Filter) (squ
 	default:
 		return nil, fmt.Errorf("unsupported operator: %s", filter.Operator)
 	}
+}
+
+// likeEscaper escapes the LIKE wildcards of a value, so that it matches as written: a _ or a
+// % in a path or a campaign name would otherwise match any character.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// likeCondition builds the LIKE of a text operator on an escaped value. The ESCAPE clause
+// names the escape character rather than relying on PostgreSQL's default.
+func likeCondition(memberSQL, operator, value string) squirrel.Sqlizer {
+	escaped := likeEscaper.Replace(value)
+	var pattern, keyword string
+	switch operator {
+	case "contains", "notContains":
+		pattern = "%" + escaped + "%"
+	case "startsWith", "notStartsWith":
+		pattern = escaped + "%"
+	default: // endsWith, notEndsWith
+		pattern = "%" + escaped
+	}
+	keyword = "LIKE"
+	if strings.HasPrefix(operator, "not") {
+		keyword = "NOT LIKE"
+	}
+	return squirrel.Expr(fmt.Sprintf(`%s %s ? ESCAPE '\'`, memberSQL, keyword), pattern)
 }
 
 // buildMeasureSQL wraps the SQL expression with the appropriate aggregate function based on measure type
@@ -625,12 +684,27 @@ func ScanRows(rows *sql.Rows) ([]map[string]interface{}, error) {
 
 // ProcessRows scans SQL rows and fills time series gaps if the query has time dimensions.
 // measureTypes maps each measure to its type (SchemaDefinition.MeasureTypes), which says what
-// a filled period holds for it.
-func ProcessRows(rows *sql.Rows, query Query, measureTypes map[string]string) ([]map[string]interface{}, error) {
+// a filled period holds for it; dimensionTypes maps each dimension to its type
+// (SchemaDefinition.DimensionTypes), which says how a sort compares its values.
+//
+// A gap-filled query (a time dimension with a dateRange) is read whole and sorted, offset and
+// limited here, after the filling: cut in SQL, a real row would come back as a filled zero
+// and the filled rows would land outside the requested order (executionQuery). Any other
+// query got its order, offset and limit in SQL. A query without a limit is refused when it
+// returns more than MaxRows rows.
+func ProcessRows(rows *sql.Rows, query Query, measureTypes, dimensionTypes map[string]string) ([]map[string]interface{}, error) {
 	// First scan the rows normally
 	data, err := ScanRows(rows)
 	if err != nil {
 		return nil, err
+	}
+
+	if (query.Limit == nil || query.isGapFilled()) && len(data) > MaxRows {
+		if query.isGapFilled() && query.Limit != nil && len(query.Dimensions) > 0 {
+			return nil, invalid(ErrInvalidQuery, "the series of the groups that hold the first %d rows return more than %d rows: lower the limit or the offset, shorten the date range or use a coarser granularity",
+				*query.Limit+query.GetOffset(), MaxRows)
+		}
+		return nil, invalid(ErrInvalidQuery, "the query returns more than %d rows: set a limit, narrow its filters or group by fewer dimensions", MaxRows)
 	}
 
 	// Check if this is a time series query that needs gap filling
@@ -647,7 +721,149 @@ func ProcessRows(rows *sql.Rows, query Query, measureTypes map[string]string) ([
 	}
 
 	// For time series queries, fill gaps with zero values
-	return fillTimeSeriesGaps(data, query, measureTypes)
+	filled, err := fillTimeSeriesGaps(data, query, measureTypes)
+	if err != nil {
+		return nil, err
+	}
+	if !query.isGapFilled() {
+		return filled, nil
+	}
+	sortRows(filled, query, dimensionTypes)
+	return pageRows(filled, query.Offset, query.Limit), nil
+}
+
+// pageRows applies an offset and a limit to rows already in order.
+func pageRows(data []map[string]interface{}, offset, limit *int) []map[string]interface{} {
+	if offset != nil {
+		if *offset >= len(data) {
+			return data[:0]
+		}
+		data = data[*offset:]
+	}
+	if limit != nil && *limit < len(data) {
+		data = data[:*limit]
+	}
+	return data
+}
+
+// sortRows sorts gap-filled rows by the query's order, as the SQL would have: a measure puts
+// its nulls last both ways, as BuildSQL's NULLS LAST does, and a dimension or the time bucket
+// puts them where PostgreSQL does by default (last ascending, first descending). The sort is
+// stable, so rows equal on every key keep the filler's order: by period, then by combination.
+// A measure and a number dimension compare as numbers, even when the database returns them
+// as text (NUMERIC). Other text compares by the Unicode collation (collate, language.Und),
+// which orders 'apple', 'Banana', 'éclair' as a database with a linguistic collation such as
+// en_US.UTF-8 does, where a byte comparison would put 'Banana' first and 'éclair' after 'z'.
+func sortRows(data []map[string]interface{}, query Query, dimensionTypes map[string]string) {
+	type key struct {
+		column  string
+		desc    bool
+		measure bool
+		numeric bool
+	}
+	var keys []key
+	for _, field := range query.OrderKeys() {
+		k := key{column: field, desc: strings.EqualFold(query.Order[field], "desc")}
+		switch {
+		case slices.Contains(query.Measures, field):
+			k.measure = true
+			k.numeric = true
+		case slices.Contains(query.Dimensions, field):
+			k.numeric = dimensionTypes[field] == "number"
+		default:
+			column, ok := timeDimensionColumn(query, field)
+			if !ok {
+				continue
+			}
+			k.column = column
+		}
+		keys = append(keys, k)
+	}
+	if len(keys) == 0 {
+		return
+	}
+	// A Collator is not safe for concurrent use: one per sort.
+	collator := collate.New(language.Und)
+	slices.SortStableFunc(data, func(a, b map[string]interface{}) int {
+		for _, k := range keys {
+			va, vb := a[k.column], b[k.column]
+			if va == nil || vb == nil {
+				if va == nil && vb == nil {
+					continue
+				}
+				// nil sorts last, unless a descending dimension puts it first.
+				nilFirst := k.desc && !k.measure
+				if (va == nil) == nilFirst {
+					return -1
+				}
+				return 1
+			}
+			c := compareCells(va, vb, k.numeric, collator)
+			if k.desc {
+				c = -c
+			}
+			if c != 0 {
+				return c
+			}
+		}
+		return 0
+	})
+}
+
+// compareCells compares two non-nil cells. Numbers compare as numbers, whatever their Go type;
+// with numericText, text that reads as a number (a NUMERIC) compares as one too. Other text
+// compares with the collator, and as bytes when the collator finds two strings equal.
+func compareCells(a, b interface{}, numericText bool, collator *collate.Collator) int {
+	fa, okA := cellNumber(a, numericText)
+	fb, okB := cellNumber(b, numericText)
+	if okA && okB {
+		switch {
+		case fa < fb:
+			return -1
+		case fa > fb:
+			return 1
+		}
+		return 0
+	}
+	if ba, ok := a.(bool); ok {
+		if bb, ok := b.(bool); ok {
+			switch {
+			case ba == bb:
+				return 0
+			case !ba:
+				return -1
+			}
+			return 1
+		}
+	}
+	sa, sb := fmt.Sprint(a), fmt.Sprint(b)
+	if c := collator.CompareString(sa, sb); c != 0 {
+		return c
+	}
+	return strings.Compare(sa, sb)
+}
+
+// cellNumber reads a cell as a number.
+func cellNumber(v interface{}, numericText bool) (float64, bool) {
+	switch n := v.(type) {
+	case int:
+		return float64(n), true
+	case int32:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case float32:
+		return float64(n), true
+	case float64:
+		return n, true
+	case string:
+		if numericText {
+			if f, err := strconv.ParseFloat(strings.TrimSpace(n), 64); err == nil {
+				return f, true
+			}
+		}
+	}
+	return 0, false
 }
 
 // emptyMeasureValue is what a measure of this type is over no row: 0 for a count or a sum,
@@ -690,7 +906,7 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 		return data, nil
 	}
 
-	// For now, handle single time dimension (most common case)
+	// A query has at most one time dimension (DefaultValidate).
 	timeDim := query.TimeDimensions[0]
 
 	// If no date range specified, return data as-is
@@ -703,18 +919,22 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 
 	// Determine time range strategy based on granularity and data
 	var timeRange []string
-	startTime, err := time.Parse("2006-01-02", timeDim.DateRange[0])
+	timezone := query.GetDefaultTimezone()
+	startTime, endTime, sameDay, err := gapFillRange(timeDim, timezone)
 	if err != nil {
-		return data, fmt.Errorf("failed to parse start date: %w", err)
+		return data, err
 	}
 
-	endTime, err := time.Parse("2006-01-02", timeDim.DateRange[1])
-	if err != nil {
-		return data, fmt.Errorf("failed to parse end date: %w", err)
+	// Counted before anything is allocated: a range of centuries by the hour would otherwise
+	// build millions of keys before any bound could refuse it. DefaultValidate refuses it
+	// first; this keeps the filler safe on its own.
+	if countPeriods(startTime, endTime, timeDim.Granularity) > maxGapFilledRows {
+		return data, invalid(ErrInvalidQuery, "dateRange of %q holds more than %d periods of a %s: shorten the range or use a coarser granularity",
+			timeDim.Dimension, maxGapFilledRows, timeDim.Granularity)
 	}
 
 	// For hour granularity with same-day range and existing data, use data-driven approach
-	if timeDim.Granularity == "hour" && startTime.Equal(endTime) && len(data) > 0 {
+	if timeDim.Granularity == "hour" && sameDay && len(data) > 0 {
 		timeRange = generateTimeRangeFromData(data, timeDimColumn, timeDim)
 	} else {
 		// For other cases, use the full date range
@@ -788,69 +1008,118 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 	return result, nil
 }
 
-// maxGapFilledRows bounds the rows the gap filling may return.
-const maxGapFilledRows = 50000
+// gapFillRange returns the bounds of a time dimension's range as the gap filler reads them
+// (gapFillBound), and whether it is a single bare day. A bare end date names a whole day at
+// every granularity, as in the SQL: it ends on the last millisecond of that day, so hourly
+// periods run to its last hour, and a range that starts during that day does not end before
+// it starts.
+func gapFillRange(timeDim TimeDimension, timezone string) (start, end time.Time, sameDay bool, err error) {
+	start, err = gapFillBound(timeDim.DateRange[0], timezone)
+	if err != nil {
+		return start, end, false, fmt.Errorf("failed to parse start date: %w", err)
+	}
+	end, err = gapFillBound(timeDim.DateRange[1], timezone)
+	if err != nil {
+		return start, end, false, fmt.Errorf("failed to parse end date: %w", err)
+	}
+	sameDay = isDateOnlyBound(timeDim.DateRange[0]) && isDateOnlyBound(timeDim.DateRange[1]) && start.Equal(end)
+	if isDateOnlyBound(timeDim.DateRange[1]) && !sameDay {
+		end = end.AddDate(0, 0, 1).Add(-time.Millisecond)
+	}
+	return start, end, sameDay, nil
+}
 
-// generateTimeRange generates a slice of time strings based on start, end, and granularity
-func generateTimeRange(start, end time.Time, granularity string) []string {
-	var times []string
-	current := start
+// gapFillBound parses a dateRange bound like the SQL does (parseDateRangeBound) and returns
+// its wall clock in the query's timezone, labeled UTC. The buckets come back that way: they are
+// truncated in the query's timezone and serialized as UTC.
+func gapFillBound(value string, timezone string) (time.Time, error) {
+	parsed, err := parseDateRangeBound(value, timezone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	local := parsed.In(loc)
+	return time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), local.Minute(), local.Second(), local.Nanosecond(), time.UTC), nil
+}
 
-	// Ensure we're working with UTC and truncated times
-	current = current.UTC()
-	end = end.UTC()
+// maxGapFilledRows bounds the rows the gap filling may return, and so the periods of a range.
+const maxGapFilledRows = MaxRows
 
+// truncatePeriod returns the start of the period of t, in UTC. A week starts on Monday.
+func truncatePeriod(t time.Time, granularity string) time.Time {
+	t = t.UTC()
 	switch granularity {
 	case "hour":
-		current = time.Date(current.Year(), current.Month(), current.Day(), current.Hour(), 0, 0, 0, time.UTC)
-		end = time.Date(end.Year(), end.Month(), end.Day(), end.Hour(), 0, 0, 0, time.UTC)
-		for current.Before(end) || current.Equal(end) {
-			times = append(times, current.Format(time.RFC3339))
-			current = current.Add(time.Hour)
-		}
-	case "day":
-		current = time.Date(current.Year(), current.Month(), current.Day(), 0, 0, 0, 0, time.UTC)
-		end = time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
-		for current.Before(end) || current.Equal(end) {
-			times = append(times, current.Format(time.RFC3339))
-			current = current.AddDate(0, 0, 1)
-		}
+		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, time.UTC)
 	case "week":
-		// Start from beginning of week (Monday)
-		weekday := current.Weekday()
+		weekday := t.Weekday()
 		if weekday == time.Sunday {
 			weekday = 7
 		}
-		current = current.AddDate(0, 0, -int(weekday-time.Monday))
-		current = time.Date(current.Year(), current.Month(), current.Day(), 0, 0, 0, 0, time.UTC)
-
-		endWeekday := end.Weekday()
-		if endWeekday == time.Sunday {
-			endWeekday = 7
-		}
-		end = end.AddDate(0, 0, -int(endWeekday-time.Monday))
-		end = time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
-
-		for current.Before(end) || current.Equal(end) {
-			times = append(times, current.Format(time.RFC3339))
-			current = current.AddDate(0, 0, 7)
-		}
+		t = t.AddDate(0, 0, -int(weekday-time.Monday))
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 	case "month":
-		current = time.Date(current.Year(), current.Month(), 1, 0, 0, 0, 0, time.UTC)
-		end = time.Date(end.Year(), end.Month(), 1, 0, 0, 0, 0, time.UTC)
-		for current.Before(end) || current.Equal(end) {
-			times = append(times, current.Format(time.RFC3339))
-			current = current.AddDate(0, 1, 0)
-		}
+		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
 	case "year":
-		current = time.Date(current.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
-		end = time.Date(end.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
-		for current.Before(end) || current.Equal(end) {
-			times = append(times, current.Format(time.RFC3339))
+		return time.Date(t.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+	default: // day
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+	}
+}
+
+// countPeriods returns how many periods generateTimeRange makes from start to end, computed
+// from the bounds alone. Seconds since the epoch rather than time.Duration, which saturates
+// past 292 years and would undercount.
+func countPeriods(start, end time.Time, granularity string) int64 {
+	start, end = truncatePeriod(start, granularity), truncatePeriod(end, granularity)
+	if end.Before(start) {
+		return 0
+	}
+	seconds := end.Unix() - start.Unix()
+	switch granularity {
+	case "hour":
+		return seconds/3600 + 1
+	case "day":
+		return seconds/86400 + 1
+	case "week":
+		return seconds/(7*86400) + 1
+	case "month":
+		return int64(end.Year()-start.Year())*12 + int64(end.Month()-start.Month()) + 1
+	case "year":
+		return int64(end.Year()-start.Year()) + 1
+	}
+	return 0
+}
+
+// generateTimeRange generates a slice of time strings based on start, end, and granularity.
+// Callers bound the count first (countPeriods).
+func generateTimeRange(start, end time.Time, granularity string) []string {
+	switch granularity {
+	case "hour", "day", "week", "month", "year":
+	default:
+		return nil
+	}
+	current := truncatePeriod(start, granularity)
+	end = truncatePeriod(end, granularity)
+	times := make([]string, 0, countPeriods(current, end, granularity))
+	for !current.After(end) {
+		times = append(times, current.Format(time.RFC3339))
+		switch granularity {
+		case "hour":
+			current = current.Add(time.Hour)
+		case "day":
+			current = current.AddDate(0, 0, 1)
+		case "week":
+			current = current.AddDate(0, 0, 7)
+		case "month":
+			current = current.AddDate(0, 1, 0)
+		case "year":
 			current = current.AddDate(1, 0, 0)
 		}
 	}
-
 	return times
 }
 

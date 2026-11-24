@@ -3,9 +3,11 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -160,7 +162,7 @@ func TestAnalyticsHandler_handleQuery(t *testing.T) {
 					Return((*analytics.Response)(nil), assert.AnError)
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedError:  "Query failed:",
+			expectedError:  "Query failed",
 		},
 	}
 
@@ -571,5 +573,48 @@ func TestAnalyticsHandler_DenialsAnswer403(t *testing.T) {
 		}))
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+// The answer to a refused query is a 400 that says what to change; the answer to a failure
+// is a 500 that names nothing internal; a body past the bound is a 413.
+func TestAnalyticsHandler_handleQueryErrors(t *testing.T) {
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	post := func(t *testing.T, body string, serviceErr error) *httptest.ResponseRecorder {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockService := mocks.NewMockAnalyticsService(ctrl)
+		if serviceErr != nil {
+			mockService.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).Return(nil, serviceErr)
+		}
+		handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, logger.NewLogger())
+		req := httptest.NewRequest(http.MethodPost, "/api/analytics.query", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		handler.handleQuery(w, req)
+		return w
+	}
+	const body = `{"workspace_id":"test-workspace","query":{"schema":"message_history","measures":["count"]}}`
+
+	t.Run("a validation error is a 400 with its message", func(t *testing.T) {
+		w := post(t, body, domain.NewValidationError(`operator "contains" does not apply to number dimension "priority"`))
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), `operator \"contains\" does not apply to number dimension \"priority\"`)
+	})
+
+	t.Run("a failure is a 500 without the database's text", func(t *testing.T) {
+		w := post(t, body, errors.New(`failed to execute query: pq: column "secret_col" does not exist`))
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.NotContains(t, w.Body.String(), "pq:")
+		assert.NotContains(t, w.Body.String(), "secret_col")
+	})
+
+	t.Run("a body past the bound is a 413", func(t *testing.T) {
+		values := strings.Repeat(`"x",`, maxAnalyticsQueryBytes/4)
+		oversized := `{"workspace_id":"test-workspace","query":{"schema":"message_history","measures":["count"],` +
+			`"filters":[{"member":"contact_email","operator":"in","values":[` + values + `"x"]}]}}`
+		w := post(t, oversized, nil)
+		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
 	})
 }

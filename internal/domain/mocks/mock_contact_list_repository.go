@@ -138,6 +138,21 @@ func (mr *MockContactListRepositoryMockRecorder) GetListsByEmail(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetListsByEmail", reflect.TypeOf((*MockContactListRepository)(nil).GetListsByEmail), arg0, arg1, arg2)
 }
 
+// GetOptOutsRestoredOnInsert mocks base method.
+func (m *MockContactListRepository) GetOptOutsRestoredOnInsert(arg0 context.Context, arg1, arg2 string, arg3 []string) ([]*domain.ContactList, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOptOutsRestoredOnInsert", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]*domain.ContactList)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOptOutsRestoredOnInsert indicates an expected call of GetOptOutsRestoredOnInsert.
+func (mr *MockContactListRepositoryMockRecorder) GetOptOutsRestoredOnInsert(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptOutsRestoredOnInsert", reflect.TypeOf((*MockContactListRepository)(nil).GetOptOutsRestoredOnInsert), arg0, arg1, arg2, arg3)
+}
+
 // MarkContactListUnsubscribed mocks base method.
 func (m *MockContactListRepository) MarkContactListUnsubscribed(arg0 context.Context, arg1, arg2, arg3 string, arg4 time.Time) (bool, error) {
 	m.ctrl.T.Helper()

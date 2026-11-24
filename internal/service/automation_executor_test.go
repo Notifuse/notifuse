@@ -705,7 +705,7 @@ func TestAutomationExecutor_handleError_Retry(t *testing.T) {
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 
-	err := executor.handleError(context.Background(), workspaceID, ca, errors.New("test error"), "test context")
+	err := executor.handleError(context.Background(), workspaceID, ca, nil, errors.New("test error"), "test context")
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, ca.RetryCount)
@@ -750,7 +750,7 @@ func TestAutomationExecutor_handleError_MaxRetriesExceeded(t *testing.T) {
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
-	err := executor.handleError(context.Background(), workspaceID, ca, errors.New("test error"), "test context")
+	err := executor.handleError(context.Background(), workspaceID, ca, nil, errors.New("test error"), "test context")
 	require.NoError(t, err)
 
 	assert.Equal(t, 3, ca.RetryCount)
@@ -2293,7 +2293,7 @@ func TestAutomationExecutor_HandleError_DoesNotResurrectConcurrentlyExitedJourne
 	// The unconditional update (which would resurrect the exited row) must never run.
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
-	err := executor.handleError(context.Background(), workspaceID, ca, errors.New("boom"), "node failed")
+	err := executor.handleError(context.Background(), workspaceID, ca, nil, errors.New("boom"), "node failed")
 	assert.NoError(t, err)
 }
 

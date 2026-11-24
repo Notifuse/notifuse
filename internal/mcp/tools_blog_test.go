@@ -249,7 +249,8 @@ func TestGetBlogPost_WithBody(t *testing.T) {
 			"body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Hello"}]}]},
 			"body_version":5,
 			"follows_latest_body":true
-		}
+		},
+		"blog_enabled":false
 	}`, string(result.StructuredContent))
 	for _, dropped := range []string{"rendered-html", "plain-text-index", "test-data", "tpl-body", "Spring body", "deleted_at"} {
 		assert.NotContains(t, result.Content[0].Text, dropped)
@@ -334,16 +335,69 @@ func TestGetBlogPost_BodyNotFound(t *testing.T) {
 		f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}).errorOf(t), "a failure is not an absent body")
 }
 
+// not_found names the value the caller gave, slug or ID.
 func TestGetBlogPost_NotFound(t *testing.T) {
 	f := newFixture(t)
 	f.reachable(blogAndTemplatesRead())
-	f.blog.EXPECT().GetPostBySlug(gomock.Any(), "nope").Return(nil, &domain.ErrNotFound{Entity: "blog post", ID: "nope"})
-	assert.Equal(t, CodeNotFound, f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "slug": "nope"}).errorOf(t).Code)
+	f.blog.EXPECT().GetPostBySlug(gomock.Any(), "nope").Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: "nope"}).Times(2)
+	assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: nope"},
+		f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "slug": "nope"}).errorOf(t))
+	assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: nope"},
+		f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "nope"}).errorOf(t), "a slug given as id")
 
 	deleted := scheduledPost()
 	deleted.DeletedAt = &blogEpoch
 	f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(deleted, nil)
-	assert.Equal(t, CodeNotFound, f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}).errorOf(t).Code)
+	f.blog.EXPECT().GetPostBySlug(gomock.Any(), testPostID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+	assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: " + testPostID},
+		f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}).errorOf(t))
+}
+
+// id takes a slug too, as the blog write tools do.
+func TestGetBlogPost_IDTakesASlug(t *testing.T) {
+	f := newFixture(t)
+	f.reachable(blogReadPermission())
+	f.blog.EXPECT().GetPostBySlug(gomock.Any(), "spring-release").Return(scheduledPost(), nil)
+
+	var out struct {
+		Post struct {
+			ID string `json:"id"`
+		} `json:"post"`
+	}
+	f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "spring-release"}).decode(t, &out)
+	assert.Equal(t, testPostID, out.Post.ID)
+}
+
+// blog_enabled is there, false, only when the workspace's blog is turned off.
+func TestBlogTools_ReportATurnedOffBlog(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		f := newFixture(t)
+		workspace := testWorkspace()
+		workspace.Settings.BlogEnabled = enabled
+		f.reachableIn(blogReadPermission(), workspace)
+		f.blog.EXPECT().ListCategories(gomock.Any()).Return(&domain.BlogCategoryListResponse{}, nil)
+		f.blog.EXPECT().ListPosts(gomock.Any(), gomock.Any()).Return(&domain.BlogPostListResponse{}, nil)
+		f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(scheduledPost(), nil)
+
+		for tool, args := range map[string]map[string]any{
+			"list_blog_categories": {"workspace_id": testWorkspaceID},
+			"list_blog_posts":      {"workspace_id": testWorkspaceID},
+			"get_blog_post":        {"workspace_id": testWorkspaceID, "id": testPostID},
+		} {
+			var out map[string]json.RawMessage
+			f.callTool(tool, args).decode(t, &out)
+			if enabled {
+				assert.NotContains(t, out, "blog_enabled", tool)
+			} else {
+				assert.Equal(t, "false", string(out["blog_enabled"]), tool)
+			}
+		}
+	}
+	for _, tool := range newBareServer(Deps{}).catalogue() {
+		if strings.Contains(tool.Name, "blog") {
+			assert.Contains(t, tool.Description, "blog_enabled set to false: the blog then serves no page", tool.Name)
+		}
+	}
 }
 
 func TestGetBlogPost_IDOrSlugNotBoth(t *testing.T) {
@@ -353,7 +407,6 @@ func TestGetBlogPost_IDOrSlugNotBoth(t *testing.T) {
 		"neither":      {},
 		"both":         {"id": testPostID, "slug": "spring-release"},
 		"empty values": {"id": "", "slug": ""},
-		"ID not UUID":  {"id": "spring-release"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			args["workspace_id"] = testWorkspaceID
@@ -392,7 +445,8 @@ func TestListBlogCategories(t *testing.T) {
 			{"id":"c","slug":"c","name":"C","description":""}
 		],
 		"total":3,
-		"next_cursor":"`+first.NextCursor+`"
+		"next_cursor":"`+first.NextCursor+`",
+		"blog_enabled":false
 	}`, string(result.StructuredContent))
 	assert.NotContains(t, result.Content[0].Text, "seo-default")
 
@@ -554,11 +608,11 @@ func TestBlogWriteTools_Definitions(t *testing.T) {
 	assert.Equal(t, []Pair{{Resource: "templates", Verb: "write"}, {Resource: "templates", Verb: "read"}}, update.ArgumentPairs(map[string]any{"body": map[string]any{}}))
 	assert.Empty(t, update.ArgumentPairs(map[string]any{"title": "x"}))
 	// Publishing sends no email: a write that does not count in mcp_send.
-	assertWriteTool(t, catalogueTool(t, "publish_blog_post"), "publish_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+	assertWriteToolDefinition(t, catalogueTool(t, "publish_blog_post"), "publish_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
 		[]Pair{blogWrite}, "blogPosts.publish", id)
-	assertWriteTool(t, catalogueTool(t, "unpublish_blog_post"), "unpublish_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
+	assertWriteToolDefinition(t, catalogueTool(t, "unpublish_blog_post"), "unpublish_blog_post", ClassWrite, writeHints{destructive: false, openWorld: false, idempotent: true},
 		[]Pair{blogWrite}, "blogPosts.unpublish", id)
-	assertWriteTool(t, catalogueTool(t, "delete_blog_post"), "delete_blog_post", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
+	assertWriteToolDefinition(t, catalogueTool(t, "delete_blog_post"), "delete_blog_post", ClassDestructive, writeHints{destructive: true, openWorld: false, idempotent: true},
 		[]Pair{blogWrite}, "blogPosts.delete", id)
 	for _, name := range []string{"create_blog_post", "update_blog_post", "publish_blog_post", "unpublish_blog_post", "delete_blog_post"} {
 		assert.False(t, catalogueTool(t, name).countsAsSend(), name)
@@ -904,7 +958,7 @@ func TestUpdateBlogPost_RefusalsComeBeforeTheBodyIsSaved(t *testing.T) {
 		for args, message := range map[string]string{
 			`{"id":"` + testPostID + `"}`:                              "give at least one field to change besides id and base_version",
 			`{"id":"` + testPostID + `","title":"x","base_version":3}`: "base_version goes with body, and must be 1 or more",
-			`{"id":"spring-release","title":"x"}`:                      "id must be the post's ID (a UUID), from list_blog_posts",
+			`{"id":" ","title":"x"}`:                                   "id is required: the post's ID or slug, from list_blog_posts",
 		} {
 			var decoded map[string]any
 			require.NoError(t, json.Unmarshal([]byte(args), &decoded))
@@ -916,8 +970,43 @@ func TestUpdateBlogPost_RefusalsComeBeforeTheBodyIsSaved(t *testing.T) {
 	t.Run("a post that does not exist", func(t *testing.T) {
 		f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
 		f.blog.EXPECT().GetPost(gomock.Any(), testPostID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
-		assert.Equal(t, CodeNotFound, f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "title": "x"}).errorOf(t).Code)
+		f.blog.EXPECT().GetPostBySlug(gomock.Any(), testPostID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+		assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: " + testPostID},
+			f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID, "title": "x"}).errorOf(t))
 		assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
+
+		f.blog.EXPECT().GetPostBySlug(gomock.Any(), "spring").Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: "spring"})
+		assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: spring"},
+			f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "spring", "title": "x"}).errorOf(t))
+		assert.Equal(t, "spring", audit.last(t).Metadata["slug"])
+	})
+
+	// The post is found by its current slug and written under its ID.
+	t.Run("by slug", func(t *testing.T) {
+		f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{Read: true}))
+		f.blog.EXPECT().GetPostBySlug(gomock.Any(), "spring-release").Return(scheduledPost(), nil)
+		f.blog.EXPECT().UpdatePost(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.UpdateBlogPostRequest) (*domain.BlogPost, error) {
+			assert.Equal(t, testPostID, req.ID)
+			assert.Equal(t, "Spring", req.Title)
+			assert.Equal(t, "spring-release", req.Slug, "the slug the post is found by is kept")
+			updated := scheduledPost()
+			updated.Settings.Title = req.Title
+			return updated, nil
+		})
+		f.templates.EXPECT().GetTemplateByID(gomock.Any(), testWorkspaceID, "tpl-body", int64(0)).Return(bodyTemplate(), nil)
+
+		var out struct {
+			Post struct {
+				ID    string `json:"id"`
+				Title string `json:"title"`
+			} `json:"post"`
+		}
+		f.callTool("update_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "spring-release", "title": "Spring"}).decode(t, &out)
+		assert.Equal(t, testPostID, out.Post.ID)
+		assert.Equal(t, "Spring", out.Post.Title)
+		row := audit.last(t)
+		assert.Equal(t, testPostID, row.TargetID)
+		assert.Equal(t, http.StatusOK, row.StatusCode)
 	})
 }
 
@@ -960,7 +1049,7 @@ func TestPublishBlogPost(t *testing.T) {
 		later := time.Now().Add(48 * time.Hour).UTC().Truncate(time.Second)
 		f.blog.EXPECT().PublishPost(gomock.Any(), &domain.PublishBlogPostRequest{ID: testPostID, PublishedAt: &later}).Return(nil)
 		result := f.callTool("publish_blog_post", args(map[string]any{"published_at": later.In(time.FixedZone("CET", 3600)).Format(time.RFC3339)}))
-		assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"scheduled","published_at":%q,"already":false}`,
+		assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"scheduled","published_at":%q,"already":false,"blog_enabled":false}`,
 			testPostID, later.Format(time.RFC3339)), string(result.StructuredContent))
 	})
 
@@ -969,7 +1058,7 @@ func TestPublishBlogPost(t *testing.T) {
 			f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
 			f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to publish post: %w", domain.NewInvalidStateError("blog_post", testPostID, "publish", status)))
 			result := f.callTool("publish_blog_post", args(nil))
-			assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":%q,"published_at":null,"already":true}`, testPostID, status),
+			assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":%q,"published_at":null,"already":true,"blog_enabled":false}`, testPostID, status),
 				string(result.StructuredContent))
 			row := audit.last(t)
 			assert.Equal(t, true, row.Metadata["already"])
@@ -981,7 +1070,31 @@ func TestPublishBlogPost(t *testing.T) {
 		f, _ := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
 		assert.Equal(t, CodeValidation, f.callTool("publish_blog_post", args(map[string]any{"published_at": "tomorrow"})).errorOf(t).Code)
 		f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to publish post: %w", &domain.ErrNotFound{Entity: "blog_post", ID: testPostID}))
-		assert.Equal(t, CodeNotFound, f.callTool("publish_blog_post", args(nil)).errorOf(t).Code)
+		f.blog.EXPECT().GetPostBySlug(gomock.Any(), testPostID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+		assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: " + testPostID}, f.callTool("publish_blog_post", args(nil)).errorOf(t))
+	})
+
+	// A slug is looked up, then the post is published under its ID.
+	t.Run("by slug", func(t *testing.T) {
+		f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+		draft := scheduledPost()
+		draft.PublishedAt = nil
+		f.blog.EXPECT().GetPostBySlug(gomock.Any(), "spring-release").Return(draft, nil)
+		f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.PublishBlogPostRequest) error {
+			assert.Equal(t, testPostID, req.ID)
+			return nil
+		})
+		var out blogPostStateOutput
+		f.callTool("publish_blog_post", args(map[string]any{"id": "spring-release"})).decode(t, &out)
+		assert.Equal(t, testPostID, out.PostID)
+		assert.Equal(t, "published", out.Status)
+		row := audit.last(t)
+		assert.Equal(t, testPostID, row.TargetID)
+		assert.Equal(t, "What's new this spring", row.TargetName)
+		assert.Equal(t, "spring-release", row.Metadata["slug"])
+
+		f.blog.EXPECT().GetPostBySlug(gomock.Any(), "autumn").Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: "autumn"})
+		assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: autumn"}, f.callTool("publish_blog_post", args(map[string]any{"id": "autumn"})).errorOf(t))
 	})
 }
 
@@ -990,15 +1103,16 @@ func TestUnpublishBlogPost(t *testing.T) {
 	args := map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}
 	f.blog.EXPECT().UnpublishPost(gomock.Any(), &domain.UnpublishBlogPostRequest{ID: testPostID}).Return(nil)
 	result := f.callTool("unpublish_blog_post", args)
-	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"draft","published_at":null,"already":false}`, testPostID), string(result.StructuredContent))
+	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"draft","published_at":null,"already":false,"blog_enabled":false}`, testPostID), string(result.StructuredContent))
 	assert.Equal(t, "blogPosts.unpublish", audit.last(t).Action)
 
 	f.blog.EXPECT().UnpublishPost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("x: %w", domain.NewInvalidStateError("blog_post", testPostID, "unpublish", "draft")))
 	result = f.callTool("unpublish_blog_post", args)
-	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"draft","published_at":null,"already":true}`, testPostID), string(result.StructuredContent))
+	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"status":"draft","published_at":null,"already":true,"blog_enabled":false}`, testPostID), string(result.StructuredContent))
 	assert.Equal(t, true, audit.last(t).Metadata["already"])
 
 	f.blog.EXPECT().UnpublishPost(gomock.Any(), gomock.Any()).Return(&domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+	f.blog.EXPECT().GetPostBySlug(gomock.Any(), testPostID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
 	assert.Equal(t, CodeNotFound, f.callTool("unpublish_blog_post", args).errorOf(t).Code)
 	assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
 }
@@ -1011,7 +1125,7 @@ func TestDeleteBlogPost_DeletesThenAnswersNotFound(t *testing.T) {
 		return nil
 	})
 	result := f.callTool("delete_blog_post", args)
-	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"deleted":true}`, testPostID), string(result.StructuredContent))
+	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"deleted":true,"blog_enabled":false}`, testPostID), string(result.StructuredContent))
 	row := audit.last(t)
 	assert.Equal(t, "blogPosts.delete", row.Action)
 	assert.Equal(t, domain.AuditTargetBlogPost, row.TargetType)
@@ -1019,11 +1133,97 @@ func TestDeleteBlogPost_DeletesThenAnswersNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusOK, row.StatusCode)
 
 	f.blog.EXPECT().DeletePost(gomock.Any(), gomock.Any()).Return(fmt.Errorf("post not found: %w", &domain.ErrNotFound{Entity: "blog_post", ID: testPostID}))
-	assert.Equal(t, CodeNotFound, f.callTool("delete_blog_post", args).errorOf(t).Code)
+	f.blog.EXPECT().GetPostBySlug(gomock.Any(), testPostID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+	assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: " + testPostID}, f.callTool("delete_blog_post", args).errorOf(t))
 	assert.Equal(t, http.StatusNotFound, audit.last(t).StatusCode)
 
-	// The column is a UUID: anything else never reaches PostgreSQL.
-	assert.Equal(t, CodeValidation, f.callTool("delete_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "spring"}).errorOf(t).Code)
+	// A slug is looked up by slug, never sent to the UUID column.
+	f.blog.EXPECT().GetPostBySlug(gomock.Any(), "spring-release").Return(scheduledPost(), nil)
+	f.blog.EXPECT().DeletePost(gomock.Any(), &domain.DeleteBlogPostRequest{ID: testPostID}).Return(nil)
+	result = f.callTool("delete_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "spring-release"})
+	assert.JSONEq(t, fmt.Sprintf(`{"workspace":{"id":"ws1","name":"Acme"},"post_id":%q,"deleted":true,"blog_enabled":false}`, testPostID), string(result.StructuredContent))
+	f.blog.EXPECT().GetPostBySlug(gomock.Any(), "spring-release").Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: "spring-release"})
+	assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: spring-release"},
+		f.callTool("delete_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": "spring-release"}).errorOf(t))
+}
+
+// A slug is looked up with the blog service's read: a key that may write the
+// blog but not read it gives the post's ID.
+func TestBlogWriteTools_ASlugNeedsBlogRead(t *testing.T) {
+	f, _ := blogWriteFixture(t, domain.UserPermissions{domain.PermissionResourceBlog: {Write: true}})
+	for _, tool := range []string{"publish_blog_post", "unpublish_blog_post", "delete_blog_post"} {
+		toolErr := f.callTool(tool, map[string]any{"workspace_id": testWorkspaceID, "id": "spring-release"}).errorOf(t)
+		assert.Equal(t, ToolError{Code: CodePermissionDenied, Message: "this API key lacks the blog read permission", Resource: "blog", Permission: "read"}, toolErr, tool)
+		assert.Equal(t, []Pair{{Resource: "blog", Verb: "read"}}, catalogueTool(t, tool).ArgumentPairs(map[string]any{"id": "spring-release"}), tool)
+		assert.Empty(t, catalogueTool(t, tool).ArgumentPairs(map[string]any{"id": testPostID}), tool)
+	}
+}
+
+// A slug can look like a UUID, hyphenated or as 32 hex digits. When no post has
+// that ID, the value is tried as a slug, and kept as given for the lookup.
+func TestBlogTools_ASlugThatLooksLikeAUUID(t *testing.T) {
+	slugs := map[string]string{
+		"8c1f6a2e-4b3d-4e5f-9a0b-1c2d3e4f5a6b": "8c1f6a2e-4b3d-4e5f-9a0b-1c2d3e4f5a6b",
+		"8c1f6a2e4b3d4e5f9a0b1c2d3e4f5a6b":     "8c1f6a2e-4b3d-4e5f-9a0b-1c2d3e4f5a6b",
+	}
+	for slug, asID := range slugs {
+		t.Run("get_blog_post "+slug, func(t *testing.T) {
+			f := newFixture(t)
+			f.reachable(blogReadPermission())
+			f.blog.EXPECT().GetPost(gomock.Any(), asID).Return(nil, &domain.ErrNotFound{Entity: "blog_post", ID: asID})
+			f.blog.EXPECT().GetPostBySlug(gomock.Any(), slug).Return(scheduledPost(), nil)
+			var out struct {
+				Post struct {
+					ID string `json:"id"`
+				} `json:"post"`
+			}
+			f.callTool("get_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": slug}).decode(t, &out)
+			assert.Equal(t, testPostID, out.Post.ID)
+		})
+
+		t.Run("write tools "+slug, func(t *testing.T) {
+			f, audit := blogWriteFixture(t, blogWritePermissions(domain.ResourcePermissions{}))
+			missing := fmt.Errorf("failed to get post: %w", &domain.ErrNotFound{Entity: "blog_post", ID: asID})
+			draft := scheduledPost()
+			draft.PublishedAt = nil
+			f.blog.EXPECT().GetPostBySlug(gomock.Any(), slug).Return(draft, nil).Times(3)
+			gomock.InOrder(
+				f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.PublishBlogPostRequest) error {
+					assert.Equal(t, asID, req.ID)
+					return missing
+				}),
+				f.blog.EXPECT().PublishPost(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.PublishBlogPostRequest) error {
+					assert.Equal(t, testPostID, req.ID)
+					return nil
+				}),
+			)
+			gomock.InOrder(
+				f.blog.EXPECT().UnpublishPost(gomock.Any(), &domain.UnpublishBlogPostRequest{ID: asID}).Return(missing),
+				f.blog.EXPECT().UnpublishPost(gomock.Any(), &domain.UnpublishBlogPostRequest{ID: testPostID}).Return(nil),
+			)
+			gomock.InOrder(
+				f.blog.EXPECT().DeletePost(gomock.Any(), &domain.DeleteBlogPostRequest{ID: asID}).Return(missing),
+				f.blog.EXPECT().DeletePost(gomock.Any(), &domain.DeleteBlogPostRequest{ID: testPostID}).Return(nil),
+			)
+			for _, tool := range []string{"publish_blog_post", "unpublish_blog_post", "delete_blog_post"} {
+				var out struct {
+					PostID string `json:"post_id"`
+				}
+				f.callTool(tool, map[string]any{"workspace_id": testWorkspaceID, "id": slug}).decode(t, &out)
+				assert.Equal(t, testPostID, out.PostID, tool)
+				assert.Equal(t, testPostID, audit.last(t).TargetID, tool)
+			}
+		})
+	}
+
+	// The slug is read with the blog service's read: without blog:read, a UUID
+	// that names no post answers not_found.
+	t.Run("without blog read", func(t *testing.T) {
+		f, _ := blogWriteFixture(t, domain.UserPermissions{domain.PermissionResourceBlog: {Write: true}})
+		f.blog.EXPECT().DeletePost(gomock.Any(), gomock.Any()).Return(&domain.ErrNotFound{Entity: "blog_post", ID: testPostID})
+		assert.Equal(t, ToolError{Code: CodeNotFound, Message: "blog post not found: " + testPostID},
+			f.callTool("delete_blog_post", map[string]any{"workspace_id": testWorkspaceID, "id": testPostID}).errorOf(t))
+	})
 }
 
 // A key that may only read the blog sees none of the write tools.

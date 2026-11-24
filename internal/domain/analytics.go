@@ -2,12 +2,59 @@ package domain
 
 import (
 	"context"
+	"strings"
 
 	"github.com/Notifuse/notifuse/pkg/analytics"
 )
 
 //go:generate mockgen -destination mocks/mock_analytics_service.go -package mocks github.com/Notifuse/notifuse/internal/domain AnalyticsService
 //go:generate mockgen -destination mocks/mock_analytics_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain AnalyticsRepository
+
+// broadcastSendingStatuses are the statuses of a broadcast whose task is queueing its
+// emails: processing, and an A/B test's test phase (testing) and winner phase
+// (winner_selected). A paused broadcast queues nothing until it is resumed, and an A/B test
+// waiting for its winner (test_completed) has nothing to queue until one is picked. A
+// processed broadcast is complete: its task queued every email.
+var broadcastSendingStatuses = []string{
+	string(BroadcastStatusProcessing),
+	string(BroadcastStatusTesting),
+	string(BroadcastStatusWinnerSelected),
+}
+
+// broadcastProcessedFilter keeps the processed broadcasts, the only ones whose
+// enqueued_count is written.
+var broadcastProcessedFilter = []analytics.MeasureFilter{
+	{SQL: valueFilter("status", string(BroadcastStatusProcessed))},
+}
+
+// broadcastRecipientsFilter keeps the processed broadcasts that recorded how many emails
+// they queued. v21 (21.0) added enqueued_count with a default of 0 and renamed the sent
+// broadcasts processed, so a broadcast sent before 21.0 is processed with 0: counting it
+// would read as a broadcast sent to nobody. A processed broadcast that queued nothing
+// (an empty audience) is left out with it, and it sent nothing either. Rebuilding the old
+// counts from message_history was not done: it reads the whole table, and a message
+// history pruned by data retention, or a send that failed to queue, would give a count
+// the broadcast never had.
+var broadcastRecipientsFilter = []analytics.MeasureFilter{
+	{SQL: valueFilter("status", string(BroadcastStatusProcessed))},
+	{SQL: "enqueued_count > 0"},
+}
+
+// automationStepSkippedSQL is true on the row of an email step that skipped its
+// contact: the executor records it as completed, with skipped in its output. The
+// skipped action has no writer.
+const automationStepSkippedSQL = "(output->>'skipped' = 'true')"
+
+// valueFilter is the measure filter keeping the rows whose column holds one of values.
+// Measures build their filters from the Go constants of the column's values, so that a
+// value that does not exist cannot be typed in: a filter on one matches no row and the
+// measure silently counts zero.
+func valueFilter(column string, values ...string) string {
+	if len(values) == 1 {
+		return column + " = '" + values[0] + "'"
+	}
+	return column + " IN ('" + strings.Join(values, "', '") + "')"
+}
 
 // PredefinedSchemas contains all available analytics schemas for Notifuse
 var PredefinedSchemas = map[string]analytics.SchemaDefinition{
@@ -108,7 +155,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Filters: []analytics.MeasureFilter{
 					{SQL: "sent_at IS NOT NULL"},
 					{SQL: "failed_at IS NULL"},
-					{SQL: "channel = 'email'"},
+					{SQL: valueFilter("channel", string(TransactionalChannelEmail))},
 				},
 			},
 			"count_delivered_emails": {
@@ -118,7 +165,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Description: "Total number of delivered email messages",
 				Filters: []analytics.MeasureFilter{
 					{SQL: "delivered_at IS NOT NULL"},
-					{SQL: "channel = 'email'"},
+					{SQL: valueFilter("channel", string(TransactionalChannelEmail))},
 				},
 			},
 			// The denominators of the open and click rates: emails sent with the
@@ -132,7 +179,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Filters: []analytics.MeasureFilter{
 					{SQL: "sent_at IS NOT NULL"},
 					{SQL: "failed_at IS NULL"},
-					{SQL: "channel = 'email'"},
+					{SQL: valueFilter("channel", string(TransactionalChannelEmail))},
 					{SQL: "opens_tracked IS NOT FALSE"},
 				},
 			},
@@ -144,7 +191,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Filters: []analytics.MeasureFilter{
 					{SQL: "sent_at IS NOT NULL"},
 					{SQL: "failed_at IS NULL"},
-					{SQL: "channel = 'email'"},
+					{SQL: valueFilter("channel", string(TransactionalChannelEmail))},
 					{SQL: "clicks_tracked IS NOT FALSE"},
 				},
 			},
@@ -292,33 +339,8 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Total number of contacts",
 			},
-			"count_active": {
-				Type:        "count",
-				Title:       "Active Contacts",
-				SQL:         "*",
-				Description: "Total number of active contacts",
-				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'active'"},
-				},
-			},
-			"count_unsubscribed": {
-				Type:        "count",
-				Title:       "Unsubscribed Contacts",
-				SQL:         "*",
-				Description: "Total number of unsubscribed contacts",
-				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'unsubscribed'"},
-				},
-			},
-			"count_bounced": {
-				Type:        "count",
-				Title:       "Bounced Contacts",
-				SQL:         "*",
-				Description: "Total number of bounced contacts",
-				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'bounced'"},
-				},
-			},
+			// No status measures: a contact has no status of its own, only one per list
+			// (contact_lists), and the contacts table has no status column to filter on.
 			"count_recent_contacts": {
 				Type:        "count",
 				Title:       "Recent Contacts",
@@ -326,16 +348,6 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Description: "Contacts created in the last 30 days",
 				Filters: []analytics.MeasureFilter{
 					{SQL: "created_at >= NOW() - INTERVAL '30 days'"},
-				},
-			},
-			"count_with_source": {
-				Type:        "count",
-				Title:       "Contacts with Source",
-				SQL:         "*",
-				Description: "Contacts with a known source",
-				Filters: []analytics.MeasureFilter{
-					{SQL: "source IS NOT NULL"},
-					{SQL: "source != ''"},
 				},
 			},
 			"avg_created_days_ago": {
@@ -405,7 +417,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Total number of draft broadcasts",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'draft'"},
+					{SQL: valueFilter("status", string(BroadcastStatusDraft))},
 				},
 			},
 			"count_scheduled": {
@@ -414,16 +426,16 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Total number of scheduled broadcasts",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'scheduled'"},
+					{SQL: valueFilter("status", string(BroadcastStatusScheduled))},
 				},
 			},
 			"count_sending": {
 				Type:        "count",
 				Title:       "Sending Broadcasts",
 				SQL:         "*",
-				Description: "Total number of broadcasts currently sending",
+				Description: "Broadcasts queueing their emails: processing, or an A/B test sending its test or its winner. A paused broadcast and an A/B test waiting for its winner are not sending.",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'sending'"},
+					{SQL: valueFilter("status", broadcastSendingStatuses...)},
 				},
 			},
 			"count_recent": {
@@ -435,29 +447,40 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 					{SQL: "created_at >= NOW() - INTERVAL '30 days'"},
 				},
 			},
+			// A broadcast's recipients are the emails its task queued, enqueued_count: the
+			// table keeps no other recipient count (an A/B test adds its winner phase to
+			// its test phase there). The task writes it once, when the broadcast is
+			// processed; until then, and for a broadcast paused, cancelled or waiting for
+			// its winner, it holds 0. Every recipient measure therefore reads processed
+			// broadcasts with a count only (broadcastRecipientsFilter): a draft's 0, or
+			// the 0 of a broadcast sent before 21.0, is not a broadcast sent to nobody.
 			"avg_recipients": {
 				Type:        "avg",
 				Title:       "Average Recipients",
-				SQL:         "recipient_count",
-				Description: "Average number of recipients per broadcast",
+				SQL:         "enqueued_count",
+				Description: "Average emails queued per processed broadcast. Counted when a broadcast finishes; others are left out. Broadcasts with a count of 0, such as those sent before version 21.0, which recorded none, are left out.",
+				Filters:     broadcastRecipientsFilter,
 			},
 			"sum_recipients": {
 				Type:        "sum",
 				Title:       "Total Recipients",
-				SQL:         "recipient_count",
-				Description: "Total number of recipients across all broadcasts",
+				SQL:         "enqueued_count",
+				Description: "Emails queued by processed broadcasts. Counted when a broadcast finishes; others are left out. Broadcasts with a count of 0, such as those sent before version 21.0, which recorded none, are left out.",
+				Filters:     broadcastRecipientsFilter,
 			},
 			"max_recipients": {
 				Type:        "max",
 				Title:       "Max Recipients",
-				SQL:         "recipient_count",
-				Description: "Maximum recipients in a single broadcast",
+				SQL:         "enqueued_count",
+				Description: "Most emails queued by one processed broadcast. Counted when a broadcast finishes; others are left out. Broadcasts with a count of 0, such as those sent before version 21.0, which recorded none, are left out.",
+				Filters:     broadcastRecipientsFilter,
 			},
 			"min_recipients": {
 				Type:        "min",
 				Title:       "Min Recipients",
-				SQL:         "recipient_count",
-				Description: "Minimum recipients in a single broadcast",
+				SQL:         "enqueued_count",
+				Description: "Fewest emails queued by one processed broadcast. Counted when a broadcast finishes; others are left out. Broadcasts with a count of 0, such as those sent before version 21.0, which recorded none, are left out.",
+				Filters:     broadcastRecipientsFilter,
 			},
 			"test_recipients": {
 				Type:        "sum",
@@ -469,26 +492,31 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Type:        "count",
 				Title:       "Completed Broadcasts",
 				SQL:         "*",
-				Description: "Total number of completed broadcasts",
-				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'completed'"},
-				},
+				Description: "Broadcasts that finished queueing their emails (processed)",
+				Filters:     broadcastProcessedFilter,
 			},
 			"avg_recipients_completed": {
 				Type:        "avg",
-				SQL:         "recipient_count",
-				Description: "Average recipients for completed broadcasts only",
-				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'completed'"},
-				},
+				Title:       "Average Recipients (Completed)",
+				SQL:         "enqueued_count",
+				Description: "Average emails queued per processed broadcast. Same as avg_recipients.",
+				Filters:     broadcastRecipientsFilter,
 			},
 			"winner_recipients": {
 				Type:        "sum",
+				Title:       "Winner Recipients",
 				SQL:         "winner_phase_recipient_count",
-				Description: "Total winner phase recipients",
+				Description: "Contacts processed in the winner phase of A/B tests whose winner was sent, including any whose email failed to queue",
+				// An A/B test that ends its test phase writes the winner phase it plans;
+				// once the winner phase finishes, the count is the contacts it went
+				// through (RecipientOffset - WinnerPhaseStartOffset), queued or not.
+				Filters: []analytics.MeasureFilter{
+					{SQL: "winner_sent_at IS NOT NULL"},
+				},
 			},
 			"avg_test_recipients": {
 				Type:        "avg",
+				Title:       "Average Test Recipients",
 				SQL:         "test_phase_recipient_count",
 				Description: "Average test phase recipients per broadcast",
 				Filters: []analytics.MeasureFilter{
@@ -497,62 +525,73 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 			"sum_recipients_completed": {
 				Type:        "sum",
-				SQL:         "recipient_count",
-				Description: "Total recipients for completed broadcasts",
-				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'completed'"},
-				},
+				Title:       "Total Recipients (Completed)",
+				SQL:         "enqueued_count",
+				Description: "Emails queued by processed broadcasts. Same as sum_recipients.",
+				Filters:     broadcastRecipientsFilter,
 			},
 			"count_with_ab_test": {
 				Type:        "count",
+				Title:       "A/B Tested Broadcasts",
 				SQL:         "*",
-				Description: "Broadcasts with A/B testing enabled",
+				Description: "Broadcasts with A/B testing enabled, whatever their status",
+				// The switch itself: test_phase_recipient_count is written only once the
+				// test phase ends, so it misses drafts and tests still running.
 				Filters: []analytics.MeasureFilter{
-					{SQL: "test_phase_recipient_count > 0"},
+					{SQL: "(test_settings->>'enabled') = 'true'"},
 				},
 			},
 			"count_large_broadcasts": {
 				Type:        "count",
+				Title:       "Large Broadcasts",
 				SQL:         "*",
-				Description: "Broadcasts with more than 1000 recipients",
+				Description: "Processed broadcasts that queued more than 1000 emails. Broadcasts with a count of 0, such as those sent before version 21.0, which recorded none, are left out.",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "recipient_count > 1000"},
+					{SQL: valueFilter("status", string(BroadcastStatusProcessed))},
+					{SQL: "enqueued_count > 1000"},
 				},
 			},
 		},
 		Dimensions: map[string]analytics.DimensionDefinition{
 			"id": {
 				Type:        "string",
+				Title:       "Broadcast ID",
 				SQL:         "id",
 				Description: "Broadcast identifier",
 			},
 			"name": {
 				Type:        "string",
+				Title:       "Name",
 				SQL:         "name",
 				Description: "Broadcast name",
 			},
 			"status": {
 				Type:        "string",
+				Title:       "Status",
 				SQL:         "status",
 				Description: "Broadcast status",
 			},
 			"created_at": {
 				Type:        "time",
+				Title:       "Created At",
 				SQL:         "created_at",
 				Description: "Broadcast creation timestamp",
 			},
 			"started_at": {
 				Type:        "time",
+				Title:       "Started At",
 				SQL:         "started_at",
 				Description: "Broadcast start timestamp",
 			},
 			"completed_at": {
 				Type:        "time",
+				Title:       "Completed At",
 				SQL:         "completed_at",
 				Description: "Broadcast completion timestamp",
 			},
 			"workspace_id": {
 				Type:        "string",
+				Title:       "Workspace ID",
 				SQL:         "workspace_id",
 				Description: "Associated workspace ID",
 			},
@@ -573,7 +612,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Successfully delivered webhooks",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'delivered'"},
+					{SQL: valueFilter("status", WebhookDeliveryStatusDelivered)},
 				},
 			},
 			"count_failed": {
@@ -582,7 +621,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Failed webhook deliveries",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'failed'"},
+					{SQL: valueFilter("status", WebhookDeliveryStatusFailed)},
 				},
 			},
 		},
@@ -622,7 +661,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Emails waiting to be sent",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'pending'"},
+					{SQL: valueFilter("status", string(EmailQueueStatusPending))},
 				},
 			},
 			"count_processing": {
@@ -631,16 +670,25 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Emails currently being processed",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'processing'"},
+					{SQL: valueFilter("status", string(EmailQueueStatusProcessing))},
 				},
 			},
 			"count_failed": {
 				Type:        "count",
 				Title:       "Failed",
 				SQL:         "*",
-				Description: "Emails that failed and awaiting retry",
+				Description: "Emails in failed status, whether waiting for a retry or given up (see count_retryable)",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'failed'"},
+					{SQL: valueFilter("status", string(EmailQueueStatusFailed))},
+				},
+			},
+			"count_paused": {
+				Type:        "count",
+				Title:       "Paused",
+				SQL:         "*",
+				Description: "Emails held while their broadcast is paused",
+				Filters: []analytics.MeasureFilter{
+					{SQL: valueFilter("status", string(EmailQueueStatusPaused))},
 				},
 			},
 			"count_broadcast": {
@@ -649,7 +697,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Emails from broadcasts",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "source_type = 'broadcast'"},
+					{SQL: valueFilter("source_type", string(EmailQueueSourceBroadcast))},
 				},
 			},
 			"count_automation": {
@@ -658,7 +706,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Emails from automations",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "source_type = 'automation'"},
+					{SQL: valueFilter("source_type", string(EmailQueueSourceAutomation))},
 				},
 			},
 			"avg_attempts": {
@@ -671,16 +719,19 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Type:        "max",
 				Title:       "Max Attempts",
 				SQL:         "attempts",
-				Description: "Maximum number of send attempts",
+				Description: "Most send attempts made so far by one email (not the retry limit)",
 			},
 			"count_retryable": {
 				Type:        "count",
 				Title:       "Retryable",
 				SQL:         "*",
-				Description: "Failed emails that can still be retried",
+				Description: "Failed emails with a retry scheduled",
+				// A failure given up on has no retry date, whatever its attempt count: a
+				// rejection not worth repeating (a mailbox that does not exist) is given up
+				// on at its first attempt. The worker retries only rows with a date.
 				Filters: []analytics.MeasureFilter{
-					{SQL: "status = 'failed'"},
-					{SQL: "attempts < max_attempts"},
+					{SQL: valueFilter("status", string(EmailQueueStatusFailed))},
+					{SQL: "next_retry_at IS NOT NULL"},
 				},
 			},
 		},
@@ -707,7 +758,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Type:        "string",
 				Title:       "Status",
 				SQL:         "status",
-				Description: "Queue entry status (pending, processing, failed)",
+				Description: "Queue entry status (pending, processing, failed, paused)",
 			},
 			"source_type": {
 				Type:        "string",
@@ -762,40 +813,66 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "*",
 				Description: "Total node executions",
 			},
+			// The executor writes one row per step it runs ('processing', then
+			// 'completed' or 'failed'); the enrollment writes 'entered' on the trigger
+			// node. A skipped email is a step that ran: 'completed' with output.skipped.
+			// count_completed, count_skipped and count_errors split the 'completed' rows
+			// between them: the node stats (nodeStatsVisitsSQL) count the first two
+			// together as completed, and the last as errors. count_failed counts as the
+			// node stats' failed attempts do.
 			"count_entered": {
 				Type:        "count",
-				Title:       "Entered",
+				Title:       "Enrolled",
 				SQL:         "*",
-				Description: "Contacts that entered nodes",
+				Description: "Contacts enrolled in the automation: one row per enrollment, on its trigger node",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "action = 'entered'"},
+					{SQL: valueFilter("action", string(NodeActionEntered))},
 				},
 			},
 			"count_completed": {
 				Type:        "count",
 				Title:       "Completed",
 				SQL:         "*",
-				Description: "Successfully completed executions",
+				Description: "Steps that ran and succeeded. Skipped emails (count_skipped) and steps that recorded an error (count_errors) are left out; the automation's step statistics count count_completed and count_skipped together as completed.",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "action = 'completed'"},
+					{SQL: valueFilter("action", string(NodeActionCompleted))},
+					{SQL: automationStepSkippedSQL + " IS NOT TRUE"},
+					{SQL: "output->'error' IS NULL"},
 				},
 			},
 			"count_failed": {
 				Type:        "count",
 				Title:       "Failed",
 				SQL:         "*",
-				Description: "Failed executions",
+				Description: "Failed attempts at a step, one per attempt. A step cut short by a shutdown is not a failure.",
+				// A failed attempt writes two rows: the step's own row closed as failed
+				// (completed_at set) and the failure record (no completed_at). A step cut
+				// short writes only the first. Counting the second counts each attempt once.
 				Filters: []analytics.MeasureFilter{
-					{SQL: "action = 'failed'"},
+					{SQL: valueFilter("action", string(NodeActionFailed))},
+					{SQL: "completed_at IS NULL"},
+				},
+			},
+			"count_errors": {
+				Type:        "count",
+				Title:       "Completed with Errors",
+				SQL:         "*",
+				Description: "Steps that completed but recorded an error, such as an add-to-list or remove-from-list step that failed to write the list before version 44.0. The automation's step statistics count these as errors.",
+				// output ? 'error' in the node stats: the builder's placeholders would
+				// rewrite a ?, and -> gives the same answer, a JSON null included.
+				Filters: []analytics.MeasureFilter{
+					{SQL: valueFilter("action", string(NodeActionCompleted))},
+					{SQL: "output->'error' IS NOT NULL"},
 				},
 			},
 			"count_skipped": {
 				Type:        "count",
 				Title:       "Skipped",
 				SQL:         "*",
-				Description: "Skipped executions",
+				Description: "Email steps that sent nothing because the contact had unsubscribed, bounced or complained",
 				Filters: []analytics.MeasureFilter{
-					{SQL: "action = 'skipped'"},
+					{SQL: valueFilter("action", string(NodeActionCompleted))},
+					{SQL: automationStepSkippedSQL},
 				},
 			},
 		},

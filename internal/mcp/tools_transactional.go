@@ -566,7 +566,7 @@ func (s *Server) sendTransactionalTool() *Tool {
 		Description: "Sends a transactional notification's email to one address now, through the transactional email integration, and returns its message_id. " +
 			"The address is added as a contact when it is not one; its other contact fields are not changed. " +
 			"This emails a real person, so confirm the recipient and the content with the user first. " +
-			"external_id is your key for this one send: a second call with the same key sends nothing and returns the first message_id. " +
+			"external_id is your key for this one send: a second call with the same key sends nothing and returns the first message_id with already set to true. A first send has already set to false. " +
 			"That holds even when the first send failed, so retry a failed send with a new external_id. " +
 			"cc and bcc need permission to read contacts.",
 		Class:         ClassSend,
@@ -602,6 +602,9 @@ type sendTransactionalOutput struct {
 	MessageID      string       `json:"message_id"`
 	NotificationID string       `json:"notification_id"`
 	ExternalID     string       `json:"external_id"`
+	// Already is true when a message already held external_id: nothing was
+	// sent, and MessageID is that message.
+	Already bool `json:"already"`
 }
 
 func (s *Server) sendTransactional(ctx context.Context, call *Call) (any, error) {
@@ -653,12 +656,17 @@ func (s *Server) sendTransactional(ctx context.Context, call *Call) (any, error)
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	messageID, err := s.deps.Transactional.SendNotification(ctx, call.WorkspaceID, req.Notification)
+	result, err := s.deps.Transactional.SendNotificationWithResult(ctx, call.WorkspaceID, req.Notification)
 	if err != nil {
 		return nil, err
 	}
-	call.Audit.AddMetadata("message_id", messageID)
-	return sendTransactionalOutput{Workspace: call.WorkspaceRef(), MessageID: messageID, NotificationID: id, ExternalID: externalID}, nil
+	call.Audit.AddMetadata("message_id", result.MessageID)
+	if result.Deduplicated {
+		call.Audit.AddMetadata("already", true)
+	}
+	return sendTransactionalOutput{
+		Workspace: call.WorkspaceRef(), MessageID: result.MessageID, NotificationID: id, ExternalID: externalID, Already: result.Deduplicated,
+	}, nil
 }
 
 func (s *Server) sendTemplateTestTool() *Tool {

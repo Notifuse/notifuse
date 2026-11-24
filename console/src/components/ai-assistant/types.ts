@@ -166,6 +166,12 @@ export interface AIAssistantChatProps {
   bubbleItems: BubbleItem[]
   resetConversation: () => void
   hidden?: boolean
+  /**
+   * Keeps 80px free where the assistant is mounted, the height of the floating button and
+   * its margin, so the end of a page can scroll clear of the button. For a page that mounts
+   * the assistant as its last element; a full-height editor leaves it off.
+   */
+  reserveRoom?: boolean
   chatBoxTop?: number
   /**
    * Panel width in px. Defaults to the historical 420, which suits a prose

@@ -295,12 +295,18 @@ describe('MCP settings: connecting an assistant', () => {
     const steps = () => (document.querySelector('[data-mcp-steps]') as HTMLElement).textContent
     expect(steps()).toContain('In claude.ai, open the connector settings and add a custom connector.')
     expect(steps()).toContain('Paste https://notifuse.acme.io/mcp as its URL')
-    expect(
-      within(block('connect')).getByText(/claude mcp add --transport http notifuse https:\/\/notifuse\.acme\.io\/mcp/)
-    ).toBeInTheDocument()
+    // claude.ai and ChatGPT connect through the connection page: no header command under them.
+    expect(within(block('connect')).queryByText(/claude mcp add/)).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: 'ChatGPT' }))
     expect(steps()).toContain('Paste the key you created for ChatGPT.')
+    expect(within(block('connect')).queryByText(/claude mcp add/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Claude Code' }))
+    expect(
+      within(block('connect')).getByText(/claude mcp add --transport http notifuse https:\/\/notifuse\.acme\.io\/mcp/)
+    ).toBeInTheDocument()
+    expect(within(block('connect')).queryByText(/instead/)).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Cursor' }))
     expect(steps()).toContain('.cursor/mcp.json')
@@ -309,6 +315,7 @@ describe('MCP settings: connecting an assistant', () => {
 
   it('copies the command with the URL', async () => {
     renderPage()
+    fireEvent.click(screen.getByRole('tab', { name: 'Claude Code' }))
     fireEvent.click(screen.getByRole('button', { name: 'Copy the command' }))
     await waitFor(() =>
       expect(copyToClipboard).toHaveBeenCalledWith(

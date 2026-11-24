@@ -1162,7 +1162,7 @@ func (s *BroadcastService) UnscheduleBroadcast(ctx context.Context, request *dom
 			}
 
 			if bcast.Status == domain.BroadcastStatusDraft && task == nil {
-				return domain.NewValidationError("the broadcast is not scheduled")
+				return &domain.BroadcastNotScheduledError{ID: bcast.ID}
 			}
 			if bcast.Status == domain.BroadcastStatusScheduled && task != nil && taskShowsSendStarted(task, time.Now().UTC()) {
 				return errUnscheduleSendStarted
