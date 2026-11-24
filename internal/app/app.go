@@ -1036,7 +1036,7 @@ func (a *App) InitServices() error {
 	a.contactService.SetErasureRepository(a.contactErasureRepo)
 
 	// Data retention: the policies, their daily run (from the Lot 0 worker) and the
-	// erasure of the history of the contacts it deletes. Holds no licence provider.
+	// erasure of the history of the contacts it deletes. Only the saves ask the licence (G7).
 	a.dataRetentionService = service.NewDataRetentionService(
 		a.workspaceRepo,
 		a.settingRepo,
@@ -1045,6 +1045,7 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.mailer,
 		a.auditLogService,
+		a.licenseService,
 		a.logger,
 	)
 	a.dataRetentionWorker.SetRunner(a.dataRetentionService)

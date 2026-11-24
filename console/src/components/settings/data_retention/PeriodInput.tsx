@@ -11,11 +11,13 @@ interface PeriodInputProps {
   onChange: (days: number) => void
   label: string
   disabled?: boolean
+  /** Without a licence: the category can be switched off, not on, and its period is fixed. */
+  offOnly?: boolean
 }
 
 // A switch, a whole number and a unit. The unit is the person's choice, kept here: deriving it
 // from the days as they type would switch "30 days" to "1 month" in the middle of "300".
-export function PeriodInput({ days, onDays, onChange, label, disabled }: PeriodInputProps) {
+export function PeriodInput({ days, onDays, onChange, label, disabled, offOnly }: PeriodInputProps) {
   const { t } = useLingui()
   const [unit, setUnit] = useState<PeriodUnit>(() => fromDays(days > 0 ? days : onDays).unit)
   const on = days > 0
@@ -24,7 +26,7 @@ export function PeriodInput({ days, onDays, onChange, label, disabled }: PeriodI
       <Switch
         size="small"
         checked={on}
-        disabled={disabled}
+        disabled={disabled || (offOnly && !on)}
         aria-label={t`Limit how long ${label} is kept`}
         onChange={(checked) => {
           if (checked) setUnit(fromDays(onDays).unit)
@@ -37,7 +39,7 @@ export function PeriodInput({ days, onDays, onChange, label, disabled }: PeriodI
         max={maxInUnit(unit)}
         precision={0}
         className="w-20"
-        disabled={disabled || !on}
+        disabled={disabled || !on || offOnly}
         aria-label={t`${label}: period`}
         value={on ? inUnit(days, unit) : null}
         onChange={(value) => {
@@ -47,7 +49,7 @@ export function PeriodInput({ days, onDays, onChange, label, disabled }: PeriodI
       <Select<PeriodUnit>
         size="small"
         className="w-24"
-        disabled={disabled || !on}
+        disabled={disabled || !on || offOnly}
         aria-label={t`${label}: unit`}
         value={unit}
         options={[

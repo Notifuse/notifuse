@@ -28,6 +28,7 @@ func TestFeatureIsValid(t *testing.T) {
 		{"sso is a feature this build gates", FeatureSSO, true},
 		{"audit_logs is a feature this build gates", FeatureAuditLogs, true},
 		{"template_i18n is a feature this build gates", FeatureTemplateI18n, true},
+		{"data_retention is a feature this build gates", FeatureDataRetention, true},
 		{"branding is a feature this build gates", FeatureBranding, true},
 		{"a feature name this build does not know is rejected", Feature("web_analytics"), false},
 		{"the empty feature is rejected", Feature(""), false},
@@ -52,6 +53,8 @@ func TestFeatureWireStrings(t *testing.T) {
 		assert.Equal(t, "sso", string(FeatureSSO))
 		assert.Equal(t, "audit_logs", string(FeatureAuditLogs))
 		assert.Equal(t, "template_i18n", string(FeatureTemplateI18n))
+		// The homepage and the cloud's tier list already carry this exact string.
+		assert.Equal(t, "data_retention", string(FeatureDataRetention))
 		assert.Equal(t, "branding", string(FeatureBranding))
 	})
 
@@ -246,6 +249,12 @@ func TestErrFeatureNotLicensed(t *testing.T) {
 			feature:      FeatureAuditLogs,
 			requiredTier: "Enterprise",
 			message:      "Audit logs require a Notifuse Enterprise licence.",
+		},
+		{
+			name:         "data retention is sold from the top plan",
+			feature:      FeatureDataRetention,
+			requiredTier: "Enterprise",
+			message:      "Data retention policies require a Notifuse Enterprise licence. A policy already saved keeps running, and switching a category off is always allowed.",
 		},
 		{
 			name:         "instance branding is sold from the agency plan",
@@ -608,7 +617,7 @@ func TestTheConsoleNamesTheSameTierTheServerDoes(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, f := range []Feature{
-		FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n, FeatureBranding,
+		FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n, FeatureDataRetention, FeatureBranding,
 	} {
 		entry := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(string(f)) + `: '([A-Za-z]+)'`)
 		match := entry.FindSubmatch(source)

@@ -58,6 +58,7 @@ func allDevFeatures() []domain.Feature {
 		domain.FeatureSSO,
 		domain.FeatureAuditLogs,
 		domain.FeatureTemplateI18n,
+		domain.FeatureDataRetention,
 		domain.FeatureBranding,
 	}
 }

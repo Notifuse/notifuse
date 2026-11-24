@@ -25,6 +25,7 @@ export const LICENSE_FEATURES = [
   'sso',
   'audit_logs',
   'template_i18n',
+  'data_retention',
   'branding'
 ] as const
 
@@ -82,6 +83,7 @@ export const LICENSE_REQUIRED_TIER: Record<LicenseFeature, string> = {
   sso: 'Enterprise',
   audit_logs: 'Enterprise',
   template_i18n: 'Studio',
+  data_retention: 'Enterprise',
   branding: 'Agency'
 }
 

@@ -6,10 +6,13 @@ import { I18nProvider } from '@lingui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RetentionDefaultsSection } from './RetentionDefaultsSection'
 import { api } from '../../../services/api/client'
+import { LicenseContext, UNKNOWN_LICENSE } from '../../../contexts/licenseState'
 
 vi.mock('../../../services/api/client', () => ({
   api: { get: vi.fn(), post: vi.fn(), download: vi.fn() }
 }))
+// The licence notice's button routes to Settings › Licence.
+vi.mock('@tanstack/react-router', () => ({ useNavigate: () => vi.fn() }))
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -32,8 +35,8 @@ const specs = Object.keys(defaults).map((category) => ({
   default_days: 0
 }))
 
-const renderSection = () =>
-  render(
+const renderSection = (unlicensed = false) => {
+  const section = (
     <I18nProvider i18n={i18n}>
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <App>
@@ -42,12 +45,24 @@ const renderSection = () =>
       </QueryClientProvider>
     </I18nProvider>
   )
+  if (!unlicensed) return render(section)
+  const none = { tier: '', org: '', sub: '', max_workspaces: 3, features: [], state: 'none' as const, expires_at: '0001-01-01T00:00:00Z' }
+  return render(<LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, entitlements: none }}>{section}</LicenseContext.Provider>)
+}
 
 describe('RetentionDefaultsSection', () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset()
     vi.mocked(api.post).mockReset()
     vi.mocked(api.post).mockResolvedValue({ stored: { categories: defaults }, defaults })
+  })
+
+  it('without a licence, a default can be switched off but not on', async () => {
+    vi.mocked(api.get).mockResolvedValue({ defaults, stored: { categories: defaults }, categories: specs })
+    renderSection(true)
+    expect(await screen.findByRole('switch', { name: /Message history/ })).toBeEnabled()
+    expect(screen.getByRole('switch', { name: /Inactive contacts/ })).toBeDisabled()
+    expect(screen.getByText('Data retention policies require a Notifuse Enterprise licence.')).toBeInTheDocument()
   })
 
   it('saves every category, a switched-off one as 0', async () => {

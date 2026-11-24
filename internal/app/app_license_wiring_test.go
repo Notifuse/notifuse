@@ -72,6 +72,12 @@ var licenceConsumers = []struct {
 		holder: func(a *App) interface{} { return a.templateService },
 	},
 	{
+		// G7, the data retention gate: configuring a policy or the deployment defaults.
+		name:   "the data retention service",
+		field:  "entitlements",
+		holder: func(a *App) interface{} { return a.dataRetentionService },
+	},
+	{
 		// The SSO gate. OIDCServiceConfig is a struct literal, so omitting this field is a
 		// nil no compiler and no unit test would otherwise see: IsEnabled tolerates nil by
 		// design — an unwired licence subsystem must not remove a capability — and every

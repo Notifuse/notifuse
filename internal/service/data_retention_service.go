@@ -56,9 +56,9 @@ type auditRecorder interface {
 	Record(ctx context.Context, log *domain.AuditLog)
 }
 
-// DataRetentionService configures and runs the data retention policies. The run holds no
-// licence provider and must never be given one: a policy saved under a key keeps running
-// after it lapses, and licensing never blocks a deletion (D3).
+// DataRetentionService configures and runs the data retention policies. Only SetPolicy and
+// SetDefaults ask the licence (G7); the run never does and must never be made to: a policy
+// saved under a key keeps running after it lapses, and licensing never blocks a deletion (D3).
 type DataRetentionService struct {
 	workspaces domain.WorkspaceRepository
 	settings   domain.SettingRepository
@@ -67,18 +67,28 @@ type DataRetentionService struct {
 	auth       domain.AuthService
 	mailer     mailer.Mailer
 	audit      auditRecorder
-	tasks      backfillTasks
+	// entitlements answers whether this deployment may configure a policy (G7).
+	entitlements domain.EntitlementProvider
+	tasks        backfillTasks
 	logger     logger.Logger
 	now        func() time.Time
 }
 
 // NewDataRetentionService creates the service.
 func NewDataRetentionService(workspaces domain.WorkspaceRepository, settings domain.SettingRepository, repo domain.DataRetentionRepository,
-	eraser contactHistoryEraser, auth domain.AuthService, m mailer.Mailer, audit auditRecorder, log logger.Logger) *DataRetentionService {
+	eraser contactHistoryEraser, auth domain.AuthService, m mailer.Mailer, audit auditRecorder,
+	entitlements domain.EntitlementProvider, log logger.Logger) *DataRetentionService {
 	return &DataRetentionService{
 		workspaces: workspaces, settings: settings, repo: repo, eraser: eraser, auth: auth,
-		mailer: m, audit: audit, logger: log, now: time.Now,
+		mailer: m, audit: audit, entitlements: entitlements, logger: log, now: time.Now,
 	}
+}
+
+// licensed answers whether the deployment may configure a policy (G7). A nil provider leaves
+// the gate inert, the convention of the other gates; production always passes one, and
+// app_license_wiring_test.go checks it.
+func (s *DataRetentionService) licensed() bool {
+	return s.entitlements == nil || s.entitlements.Entitlements().Has(domain.FeatureDataRetention)
 }
 
 // SetTaskRepository supplies the task repository, for RetryBackfill.
@@ -382,6 +392,11 @@ func (s *DataRetentionService) SetPolicy(ctx context.Context, workspaceID string
 		return nil, err
 	}
 	stored := workspace.Settings.DataRetention
+	// G7: without a licence, a save may only switch categories off, remove exemptions, or
+	// keep what the workspace has in force or waiting.
+	if !s.licensed() && domain.RetentionPolicyNeedsLicence(stored, policy, defaults.ResolvedDefaults(now)) {
+		return nil, domain.NewFeatureNotLicensedError(domain.FeatureDataRetention)
+	}
 	revision := 0
 	if stored != nil {
 		revision = stored.Revision
@@ -475,6 +490,10 @@ func (s *DataRetentionService) SetDefaults(ctx context.Context, categories map[d
 	requested := domain.BuiltinRetentionDefaults()
 	for k, v := range categories {
 		requested[k] = v
+	}
+	// G7, as for a workspace policy.
+	if !s.licensed() && domain.RetentionDefaultsNeedLicence(stored, requested, now) {
+		return nil, domain.NewFeatureNotLicensedError(domain.FeatureDataRetention)
 	}
 	next := &domain.RetentionDefaults{Categories: currentDays}
 	deletesMore := domain.Resolve(nil, requested).DeletesMore(domain.Resolve(nil, currentDays))

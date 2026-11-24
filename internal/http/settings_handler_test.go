@@ -1709,4 +1709,12 @@ func TestSettingsHandler_RetentionDefaults(t *testing.T) {
 		handler, _, _, _ := setupSettingsHandler(t)
 		assert.Equal(t, http.StatusServiceUnavailable, post(handler, "root-user-id", `{"categories": {}}`).Code)
 	})
+
+	t.Run("a default the licence does not cover is a 402 naming the feature", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		handler.SetDataRetention(&fakeRetentionDefaults{err: domain.NewFeatureNotLicensedError(domain.FeatureDataRetention)})
+		w := post(handler, "root-user-id", `{"categories": {"message_history": 730}}`)
+		assert.Equal(t, http.StatusPaymentRequired, w.Code)
+		assert.Contains(t, w.Body.String(), `"data_retention"`)
+	})
 }

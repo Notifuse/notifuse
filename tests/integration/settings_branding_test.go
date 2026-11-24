@@ -24,7 +24,7 @@ func licensedWithout(t *testing.T, missing ...domain.Feature) func(*config.Confi
 	var features []domain.Feature
 	for _, f := range []domain.Feature{
 		domain.FeatureRBAC, domain.FeatureSESTenant, domain.FeatureSSO,
-		domain.FeatureAuditLogs, domain.FeatureTemplateI18n, domain.FeatureBranding,
+		domain.FeatureAuditLogs, domain.FeatureTemplateI18n, domain.FeatureDataRetention, domain.FeatureBranding,
 	} {
 		keep := true
 		for _, m := range missing {

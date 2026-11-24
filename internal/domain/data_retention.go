@@ -590,3 +590,81 @@ func ContactPolicyMirrorAt(settings *DataRetentionSettings, defaults *RetentionD
 	}
 	return mirror
 }
+
+// RetentionPolicyNeedsLicence reports whether saving policy configures something the
+// workspace did not have (the licence gate, G7). A period passes when it is 0 (off), its
+// built-in default, or the value the workspace has in force or waiting; an exemption when
+// the workspace already has it; the engagement event names when they are the ones in force
+// or the ones waiting. So switching a category off, removing an exemption, and saving the
+// page again unchanged need no licence (D3). defaults are the deployment's resolved
+// defaults, which a category the workspace does not set follows.
+func RetentionPolicyNeedsLicence(stored *DataRetentionSettings, policy *DataRetentionPolicy, defaults map[RetentionCategory]int) bool {
+	var inForce *DataRetentionPolicy
+	if stored != nil {
+		inForce = stored.Policy
+	}
+	known := []EffectiveRetention{Resolve(inForce, defaults)}
+	if stored != nil && stored.Pending != nil {
+		known = append(known, Resolve(stored.Pending.Policy, defaults))
+	}
+	requested := Resolve(policy, defaults)
+
+	for _, spec := range RetentionCategorySpecs {
+		days := requested.Days[spec.Category]
+		if days == 0 || days == spec.DefaultDays {
+			continue
+		}
+		found := false
+		for _, k := range known {
+			found = found || k.Days[spec.Category] == days
+		}
+		if !found {
+			return true
+		}
+	}
+	if addsExemption(requested.ExemptListIDs, known, func(e EffectiveRetention) []string { return e.ExemptListIDs }) ||
+		addsExemption(requested.ExemptSegmentIDs, known, func(e EffectiveRetention) []string { return e.ExemptSegmentIDs }) {
+		return true
+	}
+	for _, k := range known {
+		if sameSet(requested.EngagementEventNames, k.EngagementEventNames) {
+			return false
+		}
+	}
+	return true
+}
+
+// addsExemption reports whether requested holds an id none of the known policies has.
+func addsExemption(requested []string, known []EffectiveRetention, ids func(EffectiveRetention) []string) bool {
+	have := map[string]struct{}{}
+	for _, k := range known {
+		for _, id := range ids(k) {
+			have[id] = struct{}{}
+		}
+	}
+	for _, id := range requested {
+		if _, ok := have[id]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
+// RetentionDefaultsNeedLicence reports whether root's new deployment defaults configure
+// something the deployment did not have (G7). requested holds every category. A period passes
+// when it is 0 (off), its built-in default, or the default in force or waiting.
+func RetentionDefaultsNeedLicence(stored *RetentionDefaults, requested map[RetentionCategory]int, now time.Time) bool {
+	current := stored.ResolvedDefaults(now)
+	pending, _ := stored.PendingDefaults(now)
+	for _, spec := range RetentionCategorySpecs {
+		days := requested[spec.Category]
+		if days == 0 || days == spec.DefaultDays || days == current[spec.Category] {
+			continue
+		}
+		if pending != nil && days == pending[spec.Category] {
+			continue
+		}
+		return true
+	}
+	return false
+}

@@ -12,6 +12,8 @@ import {
 import { CATEGORY_LABELS } from './categoryText'
 import { fromDays } from './periods'
 import { PeriodInput } from './PeriodInput'
+import { useLicense } from '../../../hooks/useLicense'
+import { LicenceGateNotice } from '../../license/LicenceGateNotice'
 
 const { Title, Text } = Typography
 
@@ -72,6 +74,8 @@ function DefaultsForm({ view }: { view: RetentionDefaultsView }) {
   }, [view])
   const [draft, setDraft] = useState(initial)
   const dirty = CATEGORIES.some((c) => draft[c] !== initial[c])
+  const { has } = useLicense()
+  const locked = !has('data_retention')
 
   const save = useMutation({
     mutationFn: (categories: RetentionDays) => dataRetentionApi.setDefaults(categories),
@@ -106,6 +110,7 @@ function DefaultsForm({ view }: { view: RetentionDefaultsView }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <LicenceGateNotice feature="data_retention" className="" />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {CATEGORIES.map((category) => {
           const days = draft[category] ?? 0
@@ -117,6 +122,7 @@ function DefaultsForm({ view }: { view: RetentionDefaultsView }) {
                 days={days}
                 onDays={suggested(category)}
                 label={label}
+                offOnly={locked && (specs.find((spec) => spec.category === category)?.default_days ?? 0) === 0}
                 onChange={(next) => setDraft((d) => ({ ...d, [category]: next }))}
               />
               {days > 0 && days < minimum(category) ? (
