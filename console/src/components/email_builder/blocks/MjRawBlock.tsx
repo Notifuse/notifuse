@@ -1,4 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { MJMLComponentType, EmailBlock, MJRawAttributes, MergedBlockAttributes } from '../types'
 import {
@@ -367,7 +369,7 @@ export class MjRawBlock extends BaseEmailBlock {
   }
 
   getLabel(): string {
-    return 'Raw HTML'
+    return i18n._(msg({ message: 'Raw HTML', context: 'email block' }))
   }
 
   getDescription(): React.ReactNode {

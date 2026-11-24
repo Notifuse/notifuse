@@ -1,3 +1,5 @@
+import { i18n, type MessageDescriptor } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import type { LLMTool } from '../../services/api/llm'
 import {
   computeDateRange,
@@ -16,7 +18,6 @@ import {
   DATE_PRESETS,
   DIMENSION_FILTER_OPERATORS,
   METRIC_FILTER_OPERATORS,
-  SESSION_METRICS,
   WEB_ANALYTICS_TABS,
   type ComparisonMode,
   type DatePreset,
@@ -1097,35 +1098,39 @@ export function bucketColumnFor(schema: WebSchema, granularity: Granularity): st
 /**
  * Operator-facing name for a measure id.
  *
- * The four session metrics take their wording from SESSION_METRICS, so a step line
- * and the KPI tile above it call the same number the same thing rather than drifting
- * into two vocabularies. The rest are named here because MEASURES_BY_SCHEMA holds
- * sentence-long descriptions written FOR THE MODEL - "Median engaged time per
- * session, in seconds (the "TimeScore")" is not a label - and only the ids that
- * title-case badly need an entry.
+ * The four session metrics use the wording of the KPI tiles (SESSION_METRICS, and
+ * the same messages in DashboardTab), so a step line and the tile above it call the
+ * same number the same thing rather than drifting into two vocabularies. The rest are
+ * named here because MEASURES_BY_SCHEMA holds sentence-long descriptions written FOR
+ * THE MODEL - "Median engaged time per session, in seconds (the "TimeScore")" is not
+ * a label - and only the ids that title-case badly need an entry.
+ *
+ * Descriptors, resolved in the console language when the line is built.
  *
  * An unknown id title-cases rather than falling through raw, the same shape
  * getDimensionLabel uses, so a measure added to a schema is readable here before
  * anyone remembers this map exists.
  */
-const MEASURE_LABELS: Record<string, string> = {
-  ...Object.fromEntries(SESSION_METRICS.map((metric) => [metric.key, metric.label])),
-  avg_scroll: 'Average Scroll Depth',
-  pages_per_session: 'Pages per Session',
-  median_page_duration: 'Median Time on Page',
-  page_count: 'Page Views',
-  page_duration: 'Time on Page',
-  page_scroll: 'Scroll Depth',
-  landing_page_count: 'Landing Page Views',
-  exit_page_count: 'Exit Page Views',
-  sum_goal_value: 'Total Goal Value',
-  avg_goal_value: 'Average Goal Value',
-  unique_sessions_with_goals: 'Converting Sessions'
+const MEASURE_LABELS: Record<string, MessageDescriptor> = {
+  sessions: msg`Sessions`,
+  median_duration: msg`Median TimeScore`,
+  bounce_rate: msg`Bounce Rate`,
+  median_scroll: msg`Median Scroll Depth`,
+  avg_scroll: msg`Average Scroll Depth`,
+  pages_per_session: msg`Pages per Session`,
+  median_page_duration: msg`Median Time on Page`,
+  page_count: msg`Page Views`,
+  page_duration: msg`Time on Page`,
+  page_scroll: msg`Scroll Depth`,
+  landing_page_count: msg`Landing Page Views`,
+  exit_page_count: msg`Exit Page Views`,
+  sum_goal_value: msg`Total Goal Value`,
+  avg_goal_value: msg`Average Goal Value`,
+  unique_sessions_with_goals: msg`Converting Sessions`
 }
 
 export function getMeasureLabel(name: string): string {
-  const known = MEASURE_LABELS[name]
-  if (known) return known
+  if (Object.prototype.hasOwnProperty.call(MEASURE_LABELS, name)) return i18n._(MEASURE_LABELS[name])
   return name
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

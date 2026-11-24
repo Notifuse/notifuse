@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
+- **Fix**: More of the console now shows in its language. The email editor's block names (in the structure tree, the breadcrumb, the block library and the settings panel), the email AI assistant's step lines, the web analytics dimensions, fields and measures, country names, the automation canvas cards and the automation save errors were in English in every language. The preview's **Open** button on a broadcast now reads as a verb in French, and a contact's last activity shows the provider event as a translated status (**Delivered**) instead of `Email · delivered`.
+
 - **Feature**: Data retention deletes old data on a schedule. In **Settings** → **Data retention**, a workspace owner sets how long to keep inactive contacts, message history, the contact timeline, custom events, automation history, web analytics and provider events, and the root user can set defaults for every workspace. A change that deletes more waits 7 days and the owners get an email. The segment condition "will be deleted as inactive within N days" lets an automation ask those contacts to stay before they go. Setting a policy needs an Enterprise licence.
 
 - **Feature**: Two-factor authentication with an authenticator app, and ten single-use recovery codes. Each person turns it on in **Account security**, from the account menu. The root user can require it for the whole instance in **System settings** → **Security**, or with `REQUIRE_TWO_FACTOR=true`, and can reset it for someone who lost their phone. Sign-ins through single sign-on and API keys are not affected.

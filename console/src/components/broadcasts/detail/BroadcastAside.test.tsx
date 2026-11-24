@@ -3,6 +3,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { App as AntApp } from 'antd'
+import { i18n } from '@lingui/core'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 import { BroadcastAside, type BroadcastAsideProps } from './BroadcastAside'
 import { previewVariationOf } from './previewVariation'
 import type { Broadcast } from '../../../services/api/broadcast'
@@ -103,6 +105,18 @@ describe('BroadcastAside', () => {
     expect(within(preview).getByText('Preview tpl-a')).toBeInTheDocument()
     expect(within(preview).getByTestId('frame')).toHaveTextContent('tpl-a')
     expect(within(preview).getByRole('button', { name: 'Open' })).toBeInTheDocument()
+  })
+
+  it('names the preview button with the verb, not the open event, in another language', () => {
+    // The verb has a context of its own: the catalog holds both words under different ids
+    i18n.load('fr', { [generateMessageId('Open', 'action')]: 'Ouvrir', Open: 'Ouverture' })
+    i18n.activate('fr')
+    try {
+      renderAside()
+      expect(within(block('Preview')).getByRole('button', { name: 'Ouvrir' })).toBeInTheDocument()
+    } finally {
+      i18n.activate('en')
+    }
   })
 
   it('leaves the sender lines to the A/B panel when a test runs', () => {

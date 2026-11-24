@@ -5,6 +5,8 @@ import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { ChevronDown, CircleHelp, Monitor, Smartphone } from 'lucide-react'
 import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import type { editor as MonacoEditor } from 'monaco-editor'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { MjmlCompileError } from '../../services/api/template'
 import { TextVersionPanel } from './panels/TextVersionPanel'
@@ -94,127 +96,127 @@ const MJML_TAGS = [
     label: 'mj-section',
     insertText:
       '<mj-section>\n\t<mj-column>\n\t\t<mj-text>Content</mj-text>\n\t</mj-column>\n</mj-section>',
-    detail: 'Section with column'
+    detail: msg`Section with column`
   },
   {
     label: 'mj-column',
     insertText: '<mj-column>\n\t$0\n</mj-column>',
-    detail: 'Column container'
+    detail: msg`Column container`
   },
   {
     label: 'mj-text',
     insertText: '<mj-text>$0</mj-text>',
-    detail: 'Text block'
+    detail: msg`Text block`
   },
   {
     label: 'mj-image',
     insertText: '<mj-image src="$1" alt="$2" />',
-    detail: 'Image block'
+    detail: msg`Image block`
   },
   {
     label: 'mj-button',
     insertText: '<mj-button href="$1">$2</mj-button>',
-    detail: 'Button block'
+    detail: msg`Button block`
   },
   {
     label: 'mj-divider',
     insertText: '<mj-divider border-color="#cccccc" />',
-    detail: 'Horizontal divider'
+    detail: msg`Horizontal divider`
   },
   {
     label: 'mj-spacer',
     insertText: '<mj-spacer height="20px" />',
-    detail: 'Vertical spacer'
+    detail: msg`Vertical spacer`
   },
   {
     label: 'mj-wrapper',
     insertText: '<mj-wrapper>\n\t$0\n</mj-wrapper>',
-    detail: 'Wrapper container'
+    detail: msg`Wrapper container`
   },
   {
     label: 'mj-hero',
     insertText:
       '<mj-hero background-color="#ffffff" background-url="$1">\n\t<mj-text>$2</mj-text>\n</mj-hero>',
-    detail: 'Hero section'
+    detail: msg`Hero section`
   },
   {
     label: 'mj-navbar',
     insertText:
       '<mj-navbar>\n\t<mj-navbar-link href="$1">$2</mj-navbar-link>\n</mj-navbar>',
-    detail: 'Navigation bar'
+    detail: msg`Navigation bar`
   },
   {
     label: 'mj-social',
     insertText:
       '<mj-social>\n\t<mj-social-element name="facebook" href="$1" />\n</mj-social>',
-    detail: 'Social icons'
+    detail: msg`Social icons`
   },
   {
     label: 'mj-table',
     insertText:
       '<mj-table>\n\t<tr>\n\t\t<td>$0</td>\n\t</tr>\n</mj-table>',
-    detail: 'HTML table'
+    detail: msg`HTML table`
   },
   {
     label: 'mj-raw',
     insertText: '<mj-raw>\n\t$0\n</mj-raw>',
-    detail: 'Raw HTML'
+    detail: msg`Raw HTML`
   },
   {
     label: 'mj-liquid',
     insertText: '{% for item in $1 %}\n\t$0\n{% endfor %}',
-    detail: 'Liquid template block'
+    detail: msg`Liquid template block`
   },
   {
     label: 'mj-head',
     insertText: '<mj-head>\n\t$0\n</mj-head>',
-    detail: 'Head section'
+    detail: msg`Head section`
   },
   {
     label: 'mj-attributes',
     insertText: '<mj-attributes>\n\t<mj-all font-family="$1" />\n</mj-attributes>',
-    detail: 'Default attributes'
+    detail: msg`Default attributes`
   },
   {
     label: 'mj-breakpoint',
     insertText: '<mj-breakpoint width="$1" />',
-    detail: 'Responsive breakpoint'
+    detail: msg`Responsive breakpoint`
   },
   {
     label: 'mj-font',
     insertText: '<mj-font name="$1" href="$2" />',
-    detail: 'Custom font'
+    detail: msg`Custom font`
   },
   {
     label: 'mj-style',
     insertText: '<mj-style>\n\t$0\n</mj-style>',
-    detail: 'Inline CSS styles'
+    detail: msg`Inline CSS styles`
   },
   {
     label: 'mj-preview',
     insertText: '<mj-preview>$0</mj-preview>',
-    detail: 'Preview text'
+    detail: msg`Preview text`
   },
   {
     label: 'mj-title',
     insertText: '<mj-title>$0</mj-title>',
-    detail: 'Email title'
+    detail: msg`Email title`
   },
   {
     label: 'mj-class',
     insertText: '<mj-class name="$1" $2 />',
-    detail: 'Reusable class'
+    detail: msg`Reusable class`
   },
   {
     label: 'mj-html-attributes',
     insertText:
       '<mj-html-attributes>\n\t<mj-selector path="$1">\n\t\t<mj-html-attribute name="$2">$3</mj-html-attribute>\n\t</mj-selector>\n</mj-html-attributes>',
-    detail: 'HTML attributes override'
+    detail: msg`HTML attributes override`
   },
   {
     label: 'mj-all',
     insertText: '<mj-all $0 />',
-    detail: 'Global defaults'
+    detail: msg`Global defaults`
   }
 ]
 
@@ -437,7 +439,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           kind: monaco.languages.CompletionItemKind.Snippet,
           insertText: tag.insertText,
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          detail: tag.detail,
+          detail: i18n._(tag.detail),
           range
         }))
 
@@ -494,7 +496,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           label: key,
           kind: monaco.languages.CompletionItemKind.Variable,
           insertText: textUntilPosition.includes('{{') ? `${key} }}` : key,
-          detail: 'Template variable',
+          detail: i18n._(msg`Template variable`),
           range
         }))
 
@@ -791,7 +793,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
                       >
                         {detail.line > 0 && (
                           <span style={{ color: '#999', marginRight: 8 }}>
-                            Line {detail.line}
+                            {i18n._(msg`Line ${{ line: detail.line }}`)}
                           </span>
                         )}
                         {detail.tagName && (

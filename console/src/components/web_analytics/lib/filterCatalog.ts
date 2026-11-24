@@ -1,3 +1,5 @@
+import { i18n, type MessageDescriptor } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import {
   WEB_FILTER_SOURCE_FIELDS,
@@ -23,6 +25,17 @@ export type FilterFieldCategory =
   | 'Geo'
   | 'Custom'
 
+/** The group titles of the rule pickers. */
+const CATEGORY_LABELS: Record<FilterFieldCategory, MessageDescriptor> = {
+  Channel: msg`Channel`,
+  UTM: msg`UTM`,
+  Traffic: msg`Traffic`,
+  Pages: msg`Pages`,
+  Device: msg`Device`,
+  Geo: msg`Geo`,
+  Custom: msg`Custom`
+}
+
 /** Order the categories are rendered in, in every rule picker. */
 const CATEGORY_ORDER: FilterFieldCategory[] = [
   'Channel',
@@ -36,12 +49,13 @@ const CATEGORY_ORDER: FilterFieldCategory[] = [
 
 export interface FilterFieldInfo {
   value: string
-  label: string
+  /** Resolved in the active language when shown: i18n._(field.label). */
+  label: MessageDescriptor
   category: FilterFieldCategory
 }
 
 interface FieldMeta {
-  label: string
+  label: MessageDescriptor
   category: FilterFieldCategory
 }
 
@@ -49,58 +63,58 @@ type SourceFieldName = (typeof WEB_FILTER_SOURCE_FIELDS)[number]
 type WritableDimensionName = (typeof WEB_FILTER_WRITABLE_DIMENSIONS)[number]
 
 const SOURCE_FIELD_META: Record<SourceFieldName, FieldMeta> = {
-  utm_source: { label: 'UTM Source', category: 'UTM' },
-  utm_medium: { label: 'UTM Medium', category: 'UTM' },
-  utm_campaign: { label: 'UTM Campaign', category: 'UTM' },
-  utm_term: { label: 'UTM Term', category: 'UTM' },
-  utm_content: { label: 'UTM Content', category: 'UTM' },
-  utm_id: { label: 'UTM ID', category: 'UTM' },
-  utm_id_from: { label: 'UTM ID From', category: 'UTM' },
+  utm_source: { label: msg`UTM Source`, category: 'UTM' },
+  utm_medium: { label: msg`UTM Medium`, category: 'UTM' },
+  utm_campaign: { label: msg`UTM Campaign`, category: 'UTM' },
+  utm_term: { label: msg`UTM Term`, category: 'UTM' },
+  utm_content: { label: msg`UTM Content`, category: 'UTM' },
+  utm_id: { label: msg`UTM ID`, category: 'UTM' },
+  utm_id_from: { label: msg`UTM ID From`, category: 'UTM' },
 
-  referrer: { label: 'Referrer', category: 'Traffic' },
-  referrer_domain: { label: 'Referrer Domain', category: 'Traffic' },
-  referrer_path: { label: 'Referrer Path', category: 'Traffic' },
-  is_direct: { label: 'Is Direct', category: 'Traffic' },
+  referrer: { label: msg`Referrer`, category: 'Traffic' },
+  referrer_domain: { label: msg`Referrer Domain`, category: 'Traffic' },
+  referrer_path: { label: msg`Referrer Path`, category: 'Traffic' },
+  is_direct: { label: msg`Is Direct`, category: 'Traffic' },
 
-  landing_page: { label: 'Landing Page', category: 'Pages' },
-  landing_domain: { label: 'Landing Domain', category: 'Pages' },
-  landing_path: { label: 'Landing Path', category: 'Pages' },
-  path: { label: 'Current Path', category: 'Pages' },
+  landing_page: { label: msg`Landing Page`, category: 'Pages' },
+  landing_domain: { label: msg`Landing Domain`, category: 'Pages' },
+  landing_path: { label: msg`Landing Path`, category: 'Pages' },
+  path: { label: msg`Current Path`, category: 'Pages' },
 
-  device: { label: 'Device', category: 'Device' },
-  browser: { label: 'Browser', category: 'Device' },
-  browser_type: { label: 'Browser Type', category: 'Device' },
-  os: { label: 'Operating System', category: 'Device' },
-  user_agent: { label: 'User Agent', category: 'Device' },
-  connection_type: { label: 'Connection Type', category: 'Device' },
+  device: { label: msg`Device`, category: 'Device' },
+  browser: { label: msg`Browser`, category: 'Device' },
+  browser_type: { label: msg`Browser Type`, category: 'Device' },
+  os: { label: msg`Operating System`, category: 'Device' },
+  user_agent: { label: msg`User Agent`, category: 'Device' },
+  connection_type: { label: msg`Connection Type`, category: 'Device' },
 
-  language: { label: 'Language', category: 'Geo' },
-  timezone: { label: 'Timezone', category: 'Geo' }
+  language: { label: msg`Language`, category: 'Geo' },
+  timezone: { label: msg`Timezone`, category: 'Geo' }
 }
 
 const WRITABLE_DIMENSION_META: Record<WritableDimensionName, FieldMeta> = {
-  channel: { label: 'Channel', category: 'Channel' },
-  channel_group: { label: 'Channel Group', category: 'Channel' },
+  channel: { label: msg`Channel`, category: 'Channel' },
+  channel_group: { label: msg`Channel Group`, category: 'Channel' },
 
-  custom_1: { label: 'Custom 1', category: 'Custom' },
-  custom_2: { label: 'Custom 2', category: 'Custom' },
-  custom_3: { label: 'Custom 3', category: 'Custom' },
-  custom_4: { label: 'Custom 4', category: 'Custom' },
-  custom_5: { label: 'Custom 5', category: 'Custom' },
-  custom_6: { label: 'Custom 6', category: 'Custom' },
-  custom_7: { label: 'Custom 7', category: 'Custom' },
-  custom_8: { label: 'Custom 8', category: 'Custom' },
-  custom_9: { label: 'Custom 9', category: 'Custom' },
-  custom_10: { label: 'Custom 10', category: 'Custom' },
+  custom_1: { label: msg`Custom 1`, category: 'Custom' },
+  custom_2: { label: msg`Custom 2`, category: 'Custom' },
+  custom_3: { label: msg`Custom 3`, category: 'Custom' },
+  custom_4: { label: msg`Custom 4`, category: 'Custom' },
+  custom_5: { label: msg`Custom 5`, category: 'Custom' },
+  custom_6: { label: msg`Custom 6`, category: 'Custom' },
+  custom_7: { label: msg`Custom 7`, category: 'Custom' },
+  custom_8: { label: msg`Custom 8`, category: 'Custom' },
+  custom_9: { label: msg`Custom 9`, category: 'Custom' },
+  custom_10: { label: msg`Custom 10`, category: 'Custom' },
 
-  utm_source: { label: 'UTM Source', category: 'UTM' },
-  utm_medium: { label: 'UTM Medium', category: 'UTM' },
-  utm_campaign: { label: 'UTM Campaign', category: 'UTM' },
-  utm_term: { label: 'UTM Term', category: 'UTM' },
-  utm_content: { label: 'UTM Content', category: 'UTM' },
+  utm_source: { label: msg`UTM Source`, category: 'UTM' },
+  utm_medium: { label: msg`UTM Medium`, category: 'UTM' },
+  utm_campaign: { label: msg`UTM Campaign`, category: 'UTM' },
+  utm_term: { label: msg`UTM Term`, category: 'UTM' },
+  utm_content: { label: msg`UTM Content`, category: 'UTM' },
 
-  referrer_domain: { label: 'Referrer Domain', category: 'Traffic' },
-  is_direct: { label: 'Is Direct', category: 'Traffic' }
+  referrer_domain: { label: msg`Referrer Domain`, category: 'Traffic' },
+  is_direct: { label: msg`Is Direct`, category: 'Traffic' }
 }
 
 /** Fields a rule condition may read. */
@@ -167,6 +181,7 @@ export interface FilterFieldOptionGroup {
   options: FilterFieldOption[]
 }
 
+/** Resolves the labels in the active language: call it when rendering, not at module load. */
 function groupFields(
   fields: FilterFieldInfo[],
   labelFor: (field: FilterFieldInfo) => string
@@ -179,22 +194,25 @@ function groupFields(
     else groups.set(field.category, [option])
   }
   return CATEGORY_ORDER.filter((category) => groups.has(category)).map((category) => ({
-    label: category,
+    label: i18n._(CATEGORY_LABELS[category]),
     options: groups.get(category) as FilterFieldOption[]
   }))
 }
 
-export const SOURCE_FIELD_OPTIONS: FilterFieldOptionGroup[] = groupFields(
-  SOURCE_FIELDS,
-  (field) => field.label
-)
+/** The fields a rule condition may read, grouped, in the active language. */
+export function buildSourceFieldOptions(): FilterFieldOptionGroup[] {
+  return groupFields(SOURCE_FIELDS, (field) => i18n._(field.label))
+}
 
-const SOURCE_FIELD_LABELS: Record<string, string> = Object.fromEntries(
+const SOURCE_FIELD_LABELS: Record<string, MessageDescriptor> = Object.fromEntries(
   SOURCE_FIELDS.map((field) => [field.value, field.label])
 )
 
 export function getSourceFieldLabel(field: string): string {
-  return SOURCE_FIELD_LABELS[field] ?? field
+  const label = Object.prototype.hasOwnProperty.call(SOURCE_FIELD_LABELS, field)
+    ? SOURCE_FIELD_LABELS[field]
+    : undefined
+  return label ? i18n._(label) : field
 }
 
 /** Custom slots are renamed per workspace, so the options depend on settings. */

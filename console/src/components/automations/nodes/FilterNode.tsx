@@ -1,6 +1,7 @@
 import React from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 import { BaseNode } from './BaseNode'
 import { OutputNames } from './OutputNames'
 import { outputLeft } from './outputLayout'
@@ -46,7 +47,7 @@ export const FilterNode: React.FC<FilterNodeProps> = ({ id, data, selected }) =>
           // Just the count: the description used to be folded into this line, but it is now
           // rendered by BaseNode like every other node type's.
           <div className="text-xs text-ink-2">
-            {`${conditionCount} ${conditionCount !== 1 ? t`conditions` : t`condition`}`}
+            {plural(conditionCount, { one: '# condition', other: '# conditions' })}
           </div>
         )}
       </BaseNode>

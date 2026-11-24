@@ -57,7 +57,8 @@ interface TooltipParams {
 
 export function CountryMapView(props: CountryMapViewProps): ReactNode {
   const { data, metric, loading, onSelect } = props
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
+  const locale = i18n.locale
 
   ensureWorldMap()
 
@@ -100,7 +101,7 @@ export function CountryMapView(props: CountryMapViewProps): ReactNode {
         trigger: 'item',
         formatter: (params: TooltipParams) => {
           const iso3 = params.name ? GEO_NAME_TO_ISO3[params.name] : undefined
-          const label = iso3 ? countryName(iso3) : (params.name ?? '')
+          const label = iso3 ? countryName(iso3, locale) : (params.name ?? '')
           const value = params.data?.value
           if (value === undefined || value === null || Number.isNaN(value)) return label
           return `<div style="font-weight:500">${label}</div><div>${metricLabel}: ${formatValue(
@@ -138,7 +139,7 @@ export function CountryMapView(props: CountryMapViewProps): ReactNode {
       },
       series: [{ name: 'country', type: 'map', geoIndex: 0, data: mapData }]
     }),
-    [mapData, maxValue, metricLabel]
+    [mapData, maxValue, metricLabel, locale]
   )
 
   const onEvents = useMemo(() => {
