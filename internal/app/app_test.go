@@ -1962,6 +1962,10 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		cfg.TaskScheduler.Interval = 60 * time.Second // Long interval so it doesn't run during test
 		cfg.TaskScheduler.MaxTasks = 10
 		cfg.Server.Port = 19000 + (time.Now().Nanosecond() % 1000)
+		// The automation scheduler starts at once in the test config and queries the database in
+		// the background; overlapping a startup read, it made the pool open a second connection,
+		// and sqlmock counts one Close per connection against the single ExpectClose below.
+		cfg.AutomationScheduler.Delay = time.Hour
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -2046,6 +2050,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 
 		// Create app with test config and mocks
 		cfg := createTestConfig()
+		cfg.AutomationScheduler.Delay = time.Hour // keep its background queries out of the mock (see above)
 		cfg.TaskScheduler.Enabled = true
 		cfg.TaskScheduler.Interval = 60 * time.Second
 		cfg.TaskScheduler.MaxTasks = 10
@@ -2114,7 +2119,8 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		// Test that when task scheduler is disabled, it doesn't start at all
 
 		cfg := createTestConfig()
-		cfg.TaskScheduler.Enabled = false // Disabled
+		cfg.AutomationScheduler.Delay = time.Hour // keep its background queries out of the mock (see above)
+		cfg.TaskScheduler.Enabled = false         // Disabled
 		cfg.Server.Port = 19800 + (time.Now().Nanosecond() % 1000)
 
 		ctrl := gomock.NewController(t)
