@@ -88,6 +88,20 @@ var licenceConsumers = []struct {
 		field:  "entitlements",
 		holder: func(a *App) interface{} { return a.oidcService },
 	},
+	{
+		// G7, the branding save gate. A nil provider refuses every brand rather than
+		// granting one, so an unwired service fails closed — and silently: no brand could
+		// ever be saved on a licensed deployment.
+		name:   "the setting service",
+		field:  "entitlements",
+		holder: func(a *App) interface{} { return a.settingService },
+	},
+	{
+		// G7, the display gate: unwired, every surface would show Notifuse whatever the key.
+		name:   "the branding service",
+		field:  "entitlements",
+		holder: func(a *App) interface{} { return a.brandingService },
+	},
 }
 
 func TestAppLicenceWiring(t *testing.T) {
@@ -153,9 +167,10 @@ func TestAppLicenceWiring(t *testing.T) {
 func initialisedApp(t *testing.T, mutate func(*config.Config)) *App {
 	t.Helper()
 
-	mockDB, _, err := sqlmock.New()
+	mockDB, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = mockDB.Close() })
+	expectNoInstanceBranding(mock)
 
 	cfg := createTestConfig()
 	if mutate != nil {

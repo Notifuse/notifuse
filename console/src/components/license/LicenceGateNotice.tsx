@@ -55,7 +55,8 @@ export function LicenceGateNotice({
     sso: t`Single sign-on requires a Notifuse ${tier} licence.`,
     audit_logs: t`Audit logs require a Notifuse ${tier} licence.`,
     template_i18n: t`Template translations require a Notifuse ${tier} licence.`,
-    data_retention: t`Data retention policies require a Notifuse ${tier} licence.`
+    data_retention: t`Data retention policies require a Notifuse ${tier} licence.`,
+    branding: t`Custom branding requires a Notifuse ${tier} licence.`
   }
 
   // What the deployment keeps. Each mirrors the rule the backend actually enforces: a full
@@ -67,7 +68,8 @@ export function LicenceGateNotice({
     sso: t`Everyone signs in with a login code in the meantime; nobody is locked out.`,
     audit_logs: t`Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable.`,
     template_i18n: t`Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence.`,
-    data_retention: t`A policy already saved keeps running. Switching a category off and removing an exemption are always allowed. Anything else needs a licence.`
+    data_retention: t`A policy already saved keeps running. Switching a category off and removing an exemption are always allowed. Anything else needs a licence.`,
+    branding: t`Without a licence, this instance shows the Notifuse identity. Your saved brand comes back when a licence covers it.`
   }
 
   return (

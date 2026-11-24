@@ -24,6 +24,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
 	"github.com/Notifuse/notifuse/internal/service/queue"
+	"github.com/Notifuse/notifuse/pkg/branding"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	pkgCrypto "github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
@@ -180,6 +181,7 @@ type App struct {
 	segmentService                   *service.SegmentService
 	blogService                      *service.BlogService
 	settingService                   *service.SettingService
+	brandingService                  *service.BrandingService
 	setupService                     *service.SetupService
 	supabaseService                  *service.SupabaseService
 	taskScheduler                    *service.TaskScheduler
@@ -642,7 +644,7 @@ func (a *App) InitMailer() error {
 
 	if a.config.IsDevelopment() {
 		// Use console mailer in development
-		a.mailer = mailer.NewConsoleMailer()
+		a.mailer = mailer.NewConsoleMailerWithBrand(a.brandName)
 		a.logger.Info("Using console mailer for development")
 	} else {
 		// Use SMTP mailer in production
@@ -656,6 +658,7 @@ func (a *App) InitMailer() error {
 			APIEndpoint:  a.config.APIEndpoint,
 			UseTLS:       a.config.SMTP.UseTLS,
 			EHLOHostname: a.config.SMTP.EHLOHostname,
+			BrandName:    a.brandName,
 		}
 
 		a.mailer = mailer.NewSMTPMailer(mailerConfig)
@@ -663,6 +666,13 @@ func (a *App) InitMailer() error {
 	}
 
 	return nil
+}
+
+// brandName is the name system emails print where they would print Notifuse. The mailer is
+// built before the services, so it reads the branding service at each send rather than
+// receiving it; until the service exists, the answer is the Notifuse name.
+func (a *App) brandName() string {
+	return a.brandingService.Name()
 }
 
 // InitRepositories initializes all repositories
@@ -722,9 +732,33 @@ func (a *App) InitRepositories() error {
 	// Initialize email queue repository
 	a.emailQueueRepo = repository.NewEmailQueueRepository(a.workspaceRepo)
 
-	// Initialize setting service
-	a.settingService = service.NewSettingService(a.settingRepo)
+	// The setting service is built in InitServices, once the licence service exists: it gates
+	// instance branding writes.
 
+	return nil
+}
+
+// instanceBrandingLoadTimeout bounds the read of the stored brand at startup.
+const instanceBrandingLoadTimeout = 5 * time.Second
+
+// loadInstanceBranding reads the stored brand once, for the life of the process: a save of the
+// settings restarts the process, so the snapshot never goes stale. A database error stops the
+// start. A stored value that is not valid is logged and replaced by the Notifuse identity for
+// every public surface, while settings.get and settings.update keep reporting it as an error,
+// so a save can never overwrite it without anyone noticing.
+func (a *App) loadInstanceBranding() error {
+	ctx, cancel := context.WithTimeout(context.Background(), instanceBrandingLoadTimeout)
+	defer cancel()
+
+	stored, err := a.settingService.GetInstanceBranding(ctx)
+	switch {
+	case errors.Is(err, branding.ErrInvalidStored):
+		a.logger.WithField("error", err.Error()).Error("The stored instance branding is invalid and is not shown: the console shows the Notifuse identity until the instance_branding setting is repaired")
+		stored = branding.Branding{}
+	case err != nil:
+		return fmt.Errorf("failed to load the instance branding: %w", err)
+	}
+	a.brandingService = service.NewBrandingService(stored, a.licenseService)
 	return nil
 }
 
@@ -750,6 +784,14 @@ func (a *App) InitServices() error {
 		OIDCEnabled: a.config.OIDC.Enabled,
 		Logger:      a.logger,
 	})
+
+	if a.settingRepo == nil {
+		return fmt.Errorf("repositories must be initialized before services: the setting repository is missing")
+	}
+	a.settingService = service.NewSettingService(a.settingRepo, a.licenseService)
+	if err := a.loadInstanceBranding(); err != nil {
+		return err
+	}
 
 	// Initialize auth service with JWT secret provider callback
 	// Secret is loaded on-demand, so this never fails
@@ -1833,12 +1875,14 @@ func (a *App) InitHandlers() error {
 		a.config.MCP.Enabled,
 		a.config.IsDemo(),
 	)
+	rootHandler.SetBranding(a.brandingService.Effective)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,
 		a.settingService,
 		a.logger,
 		a, // Pass app for shutdown capability
 	)
+	setupHandler.SetBrandingRevision(a.brandingService.Revision)
 	a.settingsHandler = httpHandler.NewSettingsHandler(
 		a.setupService,
 		a.settingService,
@@ -1853,6 +1897,7 @@ func (a *App) InitHandlers() error {
 		a.twoFactorService,
 		a.config.EnvValues.RequireTwoFactor,
 	)
+	a.settingsHandler.SetBootID(setupHandler.BootID())
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
 		a.authService,

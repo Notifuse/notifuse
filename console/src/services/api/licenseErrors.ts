@@ -52,6 +52,7 @@ export const LICENSE_FEATURE_LABELS: Record<string, MessageDescriptor> = {
   audit_logs: msg`Audit logs`,
   template_i18n: msg`Template translations`,
   data_retention: msg`Data retention`,
+  branding: msg`Custom branding`,
   workspaces: msg`Workspaces`
 }
 

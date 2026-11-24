@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/Notifuse/notifuse/pkg/branding"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -38,6 +39,26 @@ type SetupHandler struct {
 	// bootID is drawn once per handler, so once per process: the setup page tells
 	// the restarted server from the one shutting down by a different value.
 	bootID string
+	// brandingRevision reports the revision of the brand this process serves; nil reports
+	// the revision of the default identity.
+	brandingRevision func() string
+}
+
+// BootID is the identifier this process reports on /api/setup.status.
+func (h *SetupHandler) BootID() string {
+	return h.bootID
+}
+
+// SetBrandingRevision supplies the revision of the brand snapshot this process serves.
+func (h *SetupHandler) SetBrandingRevision(revision func() string) {
+	h.brandingRevision = revision
+}
+
+func (h *SetupHandler) servedBrandingRevision() string {
+	if h.brandingRevision == nil {
+		return branding.Branding{}.Revision()
+	}
+	return h.brandingRevision()
 }
 
 // NewSetupHandler creates a new setup handler
@@ -70,6 +91,10 @@ type StatusResponse struct {
 	// BootID is random and changes at each start of the process; it says nothing
 	// about the host or the time.
 	BootID string `json:"boot_id"`
+	// BrandingRevision identifies the instance brand this process loaded at start, never a
+	// fresh read of the database: after a save, the console waits for a process that reports
+	// both another BootID and the saved revision.
+	BrandingRevision string `json:"branding_revision"`
 }
 
 // InitializeRequest represents the setup initialization request
@@ -153,6 +178,7 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 		SMTPBridgeConfigured:  configStatus.SMTPBridgeConfigured,
 		OIDCConfigured:        configStatus.OIDCConfigured,
 		BootID:                h.bootID,
+		BrandingRevision:      h.servedBrandingRevision(),
 	}
 	if !isInstalled {
 		for key, set := range h.setupService.GetEnvOverrides() {

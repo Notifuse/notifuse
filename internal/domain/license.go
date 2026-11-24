@@ -32,6 +32,12 @@ import (
 // send, never a read, never a deletion, never a login. HasPermission, the SES send path,
 // endpoint and custom-domain resolution, the OIDC guards and magic-code login are all outside
 // its reach, and the "never touch" list on EntitlementProvider names them one by one.
+//
+// One display follows the licence, by a written decision: the instance's own branding
+// (FeatureBranding). Without the feature, every surface that would show the stored brand shows
+// Notifuse's identity instead, from the console to the system emails. The stored brand is never
+// altered or deleted, and it is shown again as soon as a licence covers it. The read refuses
+// nothing and blocks no send: an email that cannot tell goes out under the Notifuse name.
 
 // Feature names one licence-gated capability.
 //
@@ -92,6 +98,14 @@ const (
 	// key lapses: licensing never blocks a deletion, and a deployment must always be able to
 	// delete less.
 	FeatureDataRetention Feature = "data_retention"
+
+	// FeatureBranding gates the instance's own identity: a name, logo and icon shown instead of
+	// Notifuse's, and the switch that hides the Help menu. It is checked twice. A save that sets
+	// or changes a brand value is refused without it, while clearing one is always allowed. And
+	// the brand is SHOWN only while a licence covers it: without the feature, the console and the
+	// system emails fall back to the Notifuse identity, and the stored values are kept untouched
+	// for the day a licence returns. That second check is the one display gate in this file.
+	FeatureBranding Feature = "branding"
 )
 
 // IsValid reports whether the feature is one this build knows how to gate.
@@ -101,7 +115,7 @@ const (
 // point — and IsValid is how a caller filters it out.
 func (f Feature) IsValid() bool {
 	switch f {
-	case FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n, FeatureDataRetention:
+	case FeatureRBAC, FeatureSESTenant, FeatureSSO, FeatureAuditLogs, FeatureTemplateI18n, FeatureDataRetention, FeatureBranding:
 		return true
 	default:
 		return false
@@ -226,6 +240,7 @@ func CommunityEntitlements() Entitlements {
 // no gate can reach for them.
 const (
 	tierStudio     = "Studio"
+	tierAgency     = "Agency"
 	tierEnterprise = "Enterprise"
 )
 
@@ -295,6 +310,12 @@ func NewFeatureNotLicensedError(f Feature) *ErrFeatureNotLicensed {
 			Feature:      f,
 			RequiredTier: tierEnterprise,
 			Message:      "Data retention policies require a Notifuse Enterprise licence. A policy already saved keeps running, and switching a category off is always allowed.",
+		}
+	case FeatureBranding:
+		return &ErrFeatureNotLicensed{
+			Feature:      f,
+			RequiredTier: tierAgency,
+			Message:      "Custom branding requires a Notifuse licence (Agency or above).",
 		}
 	default:
 		return &ErrFeatureNotLicensed{
@@ -395,6 +416,10 @@ func (e *ErrWorkspaceQuotaReached) Error() string {
 //     internal/http/root_handler.go reads the same IsEnabled through a func() bool so that
 //     the OIDC_ENABLED flag in config.js cannot disagree with the endpoint the button leads
 //     to; it does not consult this interface itself.
+//   - internal/service/setting_service.go, SetSystemConfig — FeatureBranding (G7), only when
+//     the save sets or changes a branding value. Clearing a field, unticking the Help switch
+//     and sending the stored values back all pass, so a save of the SMTP settings never fails
+//     over a brand recorded earlier.
 //
 // Readers — consumers that report the grant without refusing anything. They are listed
 // because "where is this consulted" is the question the list exists to answer, and an
@@ -415,6 +440,14 @@ func (e *ErrWorkspaceQuotaReached) Error() string {
 // style, and it made both invisible to the honesty test below until it was taught to look
 // for the CALL as well as the type. If a third such reader is added, the test sees it.
 //
+// Display gate — the one consumer that decides what is SHOWN, by the written exception in the
+// header of this file. It refuses nothing and writes nothing:
+//
+//   - internal/service/branding_service.go, Effective — FeatureBranding (G7). Without the
+//     feature, the console, the public pages and the system emails show the Notifuse identity
+//     instead of the stored brand, which is kept untouched. Every surface reads the brand
+//     through this one method, so no surface can disagree with another.
+//
 // # Widenings
 //
 // None. There is no place in the codebase where the absence of a licence grants more.
@@ -429,7 +462,7 @@ func (e *ErrWorkspaceQuotaReached) Error() string {
 //
 // # Never
 //
-// Nothing outside the three lists above asks. In particular this interface must never be
+// Nothing outside the four lists above asks. In particular this interface must never be
 // consulted by: HasPermission or any of its call sites; AmazonSESSettings.ResolveTenant or
 // applySESSendingContext, or anything else on the send path; WorkspaceSettings.ResolveEndpoint,
 // GetWorkspaceByCustomDomain or any other read that resolves a live tracking, unsubscribe or
@@ -441,6 +474,14 @@ func (e *ErrWorkspaceQuotaReached) Error() string {
 // written, and from the retention purge to record that it purged; it is not reached from any
 // of the paths above. PauseForCircuitBreaker in particular stays unrecorded for that reason:
 // it runs on the send path, and recording it would put a licence read there.
+//
+// One indirect read may reach two of those paths, and it is allowed because it refuses
+// nothing: the system emails, the magic-code email and the broadcast-paused alert among them,
+// may print the brand name, which the mailer takes from the display gate at send time. That
+// read never fails and never blocks the send. It can wait, at most, for one bounded retry of
+// the licence key read, and only while that key could not be read; whatever happens, the
+// email goes out, under the Notifuse name if need be. The login itself and the pause itself
+// still never ask.
 //
 // The OIDC service was on this list until the SSO gate replaced the console read-only wall.
 // The wall is what the exclusion existed to protect: refusing SSO itself was rejected while

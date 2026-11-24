@@ -723,11 +723,11 @@ msgstr "{ariaLabel}: Einheit"
 msgid "{bounced, plural, one {# address} other {# addresses}}"
 msgstr "{bounced, plural, one {# Adresse} other {# Adressen}}"
 
-#: src/services/api/licenseErrors.ts:119
+#: src/services/api/licenseErrors.ts:120
 msgid "{capability} requires a Notifuse {tier} licence."
 msgstr "{capability} erfordert eine Notifuse-{tier}-Lizenz."
 
-#: src/services/api/licenseErrors.ts:121
+#: src/services/api/licenseErrors.ts:122
 msgid "{capability} requires a Notifuse licence."
 msgstr "{capability} erfordert eine Notifuse-Lizenz."
 
@@ -2121,7 +2121,7 @@ msgstr "Ein Zeitraum ist kürzer, als seine Kategorie erlaubt"
 msgid "A platform admin reaches every workspace without joining it"
 msgstr "Ein Plattform-Administrator hat Zugriff auf alle Arbeitsbereiche, ohne ihnen beizutreten"
 
-#: src/components/license/LicenceGateNotice.tsx:70
+#: src/components/license/LicenceGateNotice.tsx:71
 msgid "A policy already saved keeps running. Switching a category off and removing an exemption are always allowed. Anything else needs a licence."
 msgstr "Eine bereits gespeicherte Regel läuft weiter. Eine Kategorie abzuschalten und eine Ausnahme zu entfernen ist immer erlaubt. Für alles andere ist eine Lizenz nötig."
 
@@ -2397,7 +2397,7 @@ msgstr "Kontoname in der App: Notifuse ({account})"
 
 #: src/components/two_factor/AccountSecurityDrawer.tsx:26
 #: src/layouts/app-shell/AccountMenu.tsx:87
-#: src/pages/AccountSecurityPage.tsx:63
+#: src/pages/AccountSecurityPage.tsx:66
 msgid "Account security"
 msgstr "Kontosicherheit"
 
@@ -4116,7 +4116,7 @@ msgstr "Auth-E-Mail-Hook"
 msgid "Authentication"
 msgstr "Authentifizierung"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:109
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:106
 msgid "Authentication code"
 msgstr "Authentifizierungscode"
 
@@ -4399,7 +4399,7 @@ msgstr "AWS-Region"
 msgid "Back"
 msgstr "Zurück"
 
-#: src/pages/AccountSecurityPage.tsx:50
+#: src/pages/AccountSecurityPage.tsx:51
 msgid "Back to {workspaceName}"
 msgstr "Zurück zu {workspaceName}"
 
@@ -4422,11 +4422,11 @@ msgstr "Zurück zum Entwurf"
 msgid "Back to draft?"
 msgstr "Zurück zum Entwurf?"
 
-#: src/pages/AccountSecurityPage.tsx:39
+#: src/pages/AccountSecurityPage.tsx:40
 msgid "Back to Notifuse"
 msgstr "Zurück zu Notifuse"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:76
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:73
 msgid "Back to sign in"
 msgstr "Zurück zur Anmeldung"
 
@@ -5464,7 +5464,7 @@ msgstr "Schaltflächenbeschriftung"
 msgid "Button width"
 msgstr "Schaltflächenbreite"
 
-#: src/components/settings/LicenseSettings.tsx:222
+#: src/components/settings/LicenseSettings.tsx:223
 msgid "Buy a licence"
 msgstr "Lizenz kaufen"
 
@@ -5741,7 +5741,7 @@ msgstr "Upload im Nur-Lese-Modus nicht möglich"
 msgid "Canonical URL"
 msgstr "Kanonische URL"
 
-#: src/components/settings/LicenseSettings.tsx:188
+#: src/components/settings/LicenseSettings.tsx:189
 msgid "Capabilities"
 msgstr "Funktionen"
 
@@ -6669,7 +6669,7 @@ msgstr "Übliche Ports: 587 (STARTTLS), 465 (implizites TLS), 25 (unverschlüsse
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Gängige Ports: 587 (TLS), 465 (SSL), 25 (unverschlüsselt)"
 
-#: src/components/settings/LicenseSettings.tsx:182
+#: src/components/settings/LicenseSettings.tsx:183
 msgid "Community"
 msgstr "Community"
 
@@ -8393,6 +8393,15 @@ msgstr "Benutzerdefiniert 9"
 #: src/components/email_builder/ui/fields/BackgroundFields.tsx:248
 msgid "Custom background size"
 msgstr "Eigene Hintergrundgröße"
+
+#: src/components/settings/LicenseSettings.tsx:141
+#: src/services/api/licenseErrors.ts:55
+msgid "Custom branding"
+msgstr "Eigenes Branding"
+
+#: src/components/license/LicenceGateNotice.tsx:59
+msgid "Custom branding requires a Notifuse {tier} licence."
+msgstr "Eigenes Branding erfordert eine Notifuse-{tier}-Lizenz."
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:185
 msgctxt "email block"
@@ -11353,16 +11362,16 @@ msgstr "Logo-URL eingeben oder Bild auswählen"
 msgid "Enter number..."
 msgstr "Zahl eingeben..."
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:85
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:82
 msgid "Enter one of the recovery codes you saved when you turned on two-factor authentication."
 msgstr "Geben Sie einen der Wiederherstellungscodes ein, die Sie beim Aktivieren der Zwei-Faktor-Authentifizierung gespeichert haben."
 
 #: src/components/two_factor/ProofModal.tsx:90
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:102
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:99
 msgid "Enter one of your recovery codes"
 msgstr "Geben Sie einen Ihrer Wiederherstellungscodes ein"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:84
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:81
 msgid "Enter one of your recovery codes to accept the invitation."
 msgstr "Geben Sie einen Ihrer Wiederherstellungscodes ein, um die Einladung anzunehmen."
 
@@ -11388,7 +11397,7 @@ msgstr "Geben Sie den Betreff ({name}) ein"
 
 #: src/components/two_factor/ProofModal.tsx:92
 #: src/components/two_factor/SetupWizard.tsx:215
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:111
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:108
 msgid "Enter the 6-digit code from your app"
 msgstr "Geben Sie den 6-stelligen Code aus Ihrer App ein"
 
@@ -11396,11 +11405,11 @@ msgstr "Geben Sie den 6-stelligen Code aus Ihrer App ein"
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Geben Sie den 6-stelligen Code ein, der an {email} gesendet wurde"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:87
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:84
 msgid "Enter the code from your authenticator app to accept the invitation."
 msgstr "Geben Sie den Code aus Ihrer Authenticator-App ein, um die Einladung anzunehmen."
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:88
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:85
 msgid "Enter the code from your authenticator app."
 msgstr "Geben Sie den Code aus Ihrer Authenticator-App ein."
 
@@ -11708,7 +11717,7 @@ msgstr "Alle Felder des Besuchs"
 msgid "Every imported contact is added to these lists."
 msgstr "Jeder importierte Kontakt wird diesen Listen hinzugefügt."
 
-#: src/components/license/LicenceGateNotice.tsx:65
+#: src/components/license/LicenceGateNotice.tsx:66
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
 msgstr "Jedes Mitglied behält seinen bisherigen Zugriff, und jedes Mitglied kann weiterhin Vollzugriff erhalten. Nur ein eingeschränkterer Zugriff erfordert eine Lizenz."
 
@@ -11732,7 +11741,7 @@ msgstr "Jedes Mal"
 #~ msgid "Every workspace plus deployment-level events — sign-ins, the licence, the system settings. Visible to root users only."
 #~ msgstr "Jeder Workspace plus Ereignisse auf Deployment-Ebene – Anmeldungen, die Lizenz, die Systemeinstellungen. Nur für Root-Benutzer sichtbar."
 
-#: src/components/license/LicenceGateNotice.tsx:67
+#: src/components/license/LicenceGateNotice.tsx:68
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
 msgstr "Bis dahin melden sich alle mit einem Anmeldecode an; niemand wird ausgesperrt."
 
@@ -11868,7 +11877,7 @@ msgstr "Abgelaufen"
 msgid "Expired, in grace period"
 msgstr "Abgelaufen, in der Kulanzzeit"
 
-#: src/components/settings/LicenseSettings.tsx:184
+#: src/components/settings/LicenseSettings.tsx:185
 msgid "Expires"
 msgstr "Läuft ab"
 
@@ -12613,7 +12622,7 @@ msgstr "Aktualisieren der Arbeitsbereich-Einstellungen fehlgeschlagen"
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Aktualisieren der Arbeitsbereich-Einstellungen fehlgeschlagen: {errorMessage}"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:65
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:62
 #: src/pages/SignInPage.tsx:96
 msgid "Failed to verify code"
 msgstr "Code konnte nicht verifiziert werden"
@@ -14817,11 +14826,11 @@ msgstr "Innerhalb der Spalte"
 msgid "Install"
 msgstr "Installieren"
 
-#: src/components/settings/LicenseSettings.tsx:227
+#: src/components/settings/LicenseSettings.tsx:228
 msgid "Install a licence key"
 msgstr "Lizenzschlüssel installieren"
 
-#: src/components/settings/LicenseSettings.tsx:243
+#: src/components/settings/LicenseSettings.tsx:244
 msgid "Install licence key"
 msgstr "Lizenzschlüssel installieren"
 
@@ -15793,7 +15802,7 @@ msgstr "Bibliothek"
 
 #: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:66
-#: src/components/settings/LicenseSettings.tsx:163
+#: src/components/settings/LicenseSettings.tsx:164
 #: src/components/settings/SettingsSidebar.tsx:67
 msgid "Licence"
 msgstr "Lizenz"
@@ -15811,7 +15820,7 @@ msgid "Licensed capability"
 msgstr "Lizenzierte Funktion"
 
 #. placeholder {0}: entitlements.org
-#: src/components/settings/LicenseSettings.tsx:158
+#: src/components/settings/LicenseSettings.tsx:159
 msgid "Licensed to {0}"
 msgstr "Lizenziert für {0}"
 
@@ -16429,7 +16438,7 @@ msgid "Logo URL"
 msgstr "Logo-URL"
 
 #: src/layouts/app-shell/AccountMenu.tsx:104
-#: src/pages/AccountSecurityPage.tsx:57
+#: src/pages/AccountSecurityPage.tsx:59
 msgid "Logout"
 msgstr "Abmelden"
 
@@ -16450,7 +16459,7 @@ msgstr "Den vollständigen Datensatz eines Kontakts anhand Ihrer eigenen externe
 msgid "Loop"
 msgstr "Schleife"
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:140
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:135
 msgid "Lost your phone and your recovery codes? Your Notifuse administrator can reset two-factor authentication for your account."
 msgstr "Telefon und Wiederherstellungscodes verloren? Ihr Notifuse-Administrator kann die Zwei-Faktor-Authentifizierung Ihres Kontos zurücksetzen."
 
@@ -18793,7 +18802,7 @@ msgstr "Nichts in den letzten 7 Tagen"
 msgid "Nothing in this period"
 msgstr "Nichts in diesem Zeitraum"
 
-#: src/components/license/LicenceGateNotice.tsx:68
+#: src/components/license/LicenceGateNotice.tsx:69
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "Es wird nichts aufgezeichnet und nichts verweigert: diese Seite, der Export und die Aufbewahrungseinstellung bleiben verfügbar, und Einträge, die aufgezeichnet wurden, während eine Lizenz Audit-Logs abdeckte, bleiben lesbar."
 
@@ -19982,7 +19991,7 @@ msgstr "Einen vorhandenen Schlüssel einfügen"
 msgid "Paste it in Supabase › Authentication › Hooks"
 msgstr "Fügen Sie sie in Supabase › Authentication › Hooks ein"
 
-#: src/components/settings/LicenseSettings.tsx:229
+#: src/components/settings/LicenseSettings.tsx:230
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
 msgstr "Fügen Sie den Schlüssel aus Ihrer Kauf-E-Mail ein. Er wird offline mit einem Signaturschlüssel geprüft, der in diese Binärdatei eingebaut ist. Dabei wird nichts gesendet."
 
@@ -20350,7 +20359,7 @@ msgstr "Seitenleiste anheften"
 msgid "Plain text (only safe behind a TLS-terminating proxy)"
 msgstr "Klartext (nur hinter einem TLS-terminierenden Proxy sicher)"
 
-#: src/components/settings/LicenseSettings.tsx:181
+#: src/components/settings/LicenseSettings.tsx:182
 msgid "Plan"
 msgstr "Tarif"
 
@@ -20470,7 +20479,7 @@ msgstr "Bitte geben Sie eine URL ein"
 
 #: src/components/two_factor/ProofModal.tsx:93
 #: src/components/two_factor/SetupWizard.tsx:216
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:112
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:109
 #: src/pages/SignInPage.tsx:355
 msgid "Please enter a valid 6-digit code!"
 msgstr "Bitte geben Sie einen gültigen 6-stelligen Code ein!"
@@ -21729,7 +21738,7 @@ msgid "Records visits from the sites below that carry the snippet; off, incoming
 msgstr "Erfasst Besuche der unten stehenden Websites mit dem Snippet; aus, werden eingehende Besuche abgelehnt"
 
 #: src/components/two_factor/ProofModal.tsx:87
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:101
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:98
 msgid "Recovery code"
 msgstr "Wiederherstellungscode"
 
@@ -21824,7 +21833,7 @@ msgstr "Verweisquellen"
 #: src/components/messages/MessageHistoryTable.tsx:434
 #: src/components/settings/DomainsSettings.tsx:408
 #: src/components/settings/DomainsSettings.tsx:412
-#: src/components/settings/LicenseSettings.tsx:177
+#: src/components/settings/LicenseSettings.tsx:178
 #: src/components/settings/WebhooksSettings.tsx:465
 #: src/components/settings/WebhooksSettings.tsx:469
 #: src/pages/ContactsPage.tsx:721
@@ -24332,7 +24341,7 @@ msgstr "Versandaufgabe"
 msgid "Sending test webhook..."
 msgstr "Test-Webhook wird gesendet..."
 
-#: src/components/license/LicenceGateNotice.tsx:66
+#: src/components/license/LicenceGateNotice.tsx:67
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr "Der Versand über diese Integration ist nicht betroffen, und ein bereits vorhandener Mandant wird weiter verwendet. Zum Einschalten der Isolierung ist eine Lizenz nötig."
 
@@ -24855,7 +24864,7 @@ msgstr "Einstellungen"
 msgid "Settings › Integrations"
 msgstr "Einstellungen › Integrationen"
 
-#: src/pages/AccountSecurityPage.tsx:64
+#: src/pages/AccountSecurityPage.tsx:67
 msgid "Settings for your Notifuse account, in every workspace you belong to."
 msgstr "Einstellungen Ihres Notifuse-Kontos, in allen Workspaces, zu denen Sie gehören."
 
@@ -25087,7 +25096,7 @@ msgstr "Melden Sie sich erneut an, um einen Workspace zu erstellen"
 msgid "Sign in again to manage the licence"
 msgstr "Melden Sie sich erneut an, um die Lizenz zu verwalten"
 
-#: src/pages/AccountSecurityPage.tsx:67
+#: src/pages/AccountSecurityPage.tsx:70
 msgid "Sign in again to open your workspaces"
 msgstr "Melden Sie sich erneut an, um Ihre Workspaces zu öffnen"
 
@@ -25817,7 +25826,7 @@ msgstr "Statistiken erscheinen, sobald der Versand der Kampagne beginnt"
 #: src/components/settings/BlogSettings.tsx:332
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:252
 #: src/components/settings/integrations/SMTPDkimPanel.tsx:61
-#: src/components/settings/LicenseSettings.tsx:170
+#: src/components/settings/LicenseSettings.tsx:171
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
 #: src/components/web_analytics/filters/FilterTable.tsx:310
@@ -27947,7 +27956,7 @@ msgstr "Dieser Kontakt ist für keine Listen angemeldet"
 msgid "This deletes more than the policy in force, so that part starts on {0}. The owners get an email and can cancel it until then. The rest applies at the next run."
 msgstr "Das löscht mehr als die geltende Richtlinie, daher beginnt dieser Teil am {0}. Die Inhaber erhalten eine E-Mail und können ihn bis dahin abbrechen. Der Rest gilt ab dem nächsten Lauf."
 
-#: src/services/api/licenseErrors.ts:112
+#: src/services/api/licenseErrors.ts:113
 msgid "This deployment has reached the number of workspaces its licence allows. Existing workspaces are unaffected; a licence with a higher limit allows more."
 msgstr "Dieses Deployment hat die Zahl der Arbeitsbereiche erreicht, die seine Lizenz erlaubt. Bestehende Arbeitsbereiche sind nicht betroffen; eine Lizenz mit höherem Limit erlaubt mehr."
 
@@ -28226,7 +28235,7 @@ msgstr "Diese Einrichtung ist nach 15 Minuten abgelaufen. Scannen Sie den neuen 
 msgid "This setup expired after 15 minutes. Start the replacement again."
 msgstr "Diese Einrichtung ist nach 15 Minuten abgelaufen. Starten Sie den Austausch erneut."
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:74
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:71
 #: src/components/two_factor/useTwoFactorErrorMessage.ts:23
 msgid "This sign-in expired after 10 minutes. Start again with your email."
 msgstr "Diese Anmeldung ist nach 10 Minuten abgelaufen. Beginnen Sie erneut mit Ihrer E-Mail."
@@ -28986,7 +28995,7 @@ msgstr "In {name} übersetzen"
 msgid "Translations"
 msgstr "Übersetzungen"
 
-#: src/components/license/LicenceGateNotice.tsx:69
+#: src/components/license/LicenceGateNotice.tsx:70
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
 msgstr "Bereits gespeicherte Übersetzungen werden weiter gesendet, und eine Übersetzung abzuschalten ist immer erlaubt. Zum Hinzufügen oder Bearbeiten ist eine Lizenz nötig."
 
@@ -29062,7 +29071,7 @@ msgstr "Umwandeln in"
 #~ msgid "Turn it on to open your workspaces again. Until then, this page is the only one you can use."
 #~ msgstr "Aktivieren Sie sie, um Ihre Workspaces wieder zu öffnen. Bis dahin ist nur diese Seite verfügbar."
 
-#: src/pages/AccountSecurityPage.tsx:74
+#: src/pages/AccountSecurityPage.tsx:77
 msgid "Turn it on to open your workspaces. Until then, this page is the only one you can use."
 msgstr "Aktivieren Sie sie, um Ihre Arbeitsbereiche zu öffnen. Bis dahin können Sie nur diese Seite verwenden."
 
@@ -29349,7 +29358,7 @@ msgstr "Unbekanntes Segment ({id})"
 #~ msgid "Unknown status"
 #~ msgstr "Unbekannter Status"
 
-#: src/components/settings/LicenseSettings.tsx:145
+#: src/components/settings/LicenseSettings.tsx:146
 msgid "Unlimited"
 msgstr "Unbegrenzt"
 
@@ -29793,7 +29802,7 @@ msgid "Use a different email"
 msgstr "Andere E-Mail verwenden"
 
 #: src/components/two_factor/ProofModal.tsx:113
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:133
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:128
 msgid "Use a recovery code instead"
 msgstr "Stattdessen einen Wiederherstellungscode verwenden"
 
@@ -29801,7 +29810,7 @@ msgstr "Stattdessen einen Wiederherstellungscode verwenden"
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Verwenden Sie einen Mandanten, den Sie selbst verwalten. Erfordert einen in AWS damit verknüpften Konfigurationssatz."
 
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:136
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:131
 msgid "Use another email"
 msgstr "Andere E-Mail verwenden"
 
@@ -29902,7 +29911,7 @@ msgid "Use workspace default · {defaultIntegrationName}"
 msgstr "Standard des Arbeitsbereichs · {defaultIntegrationName}"
 
 #: src/components/two_factor/ProofModal.tsx:113
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:133
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:128
 msgid "Use your authenticator app instead"
 msgstr "Stattdessen die Authenticator-App verwenden"
 
@@ -30232,7 +30241,7 @@ msgstr "Hat den Anmeldecode von <0>{target}</0> bestätigt"
 
 #: src/components/settings/DomainsSettings.tsx:382
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:542
-#: src/components/two_factor/TwoFactorChallengeForm.tsx:126
+#: src/components/two_factor/TwoFactorChallengeForm.tsx:124
 msgid "Verify"
 msgstr "Überprüfen"
 
@@ -31179,6 +31188,10 @@ msgstr "Innerhalb von"
 msgid "Without a licence that includes custom permissions, every key has full access: the assistant can send emails, change templates and delete contacts."
 msgstr "Ohne eine Lizenz, die benutzerdefinierte Berechtigungen enthält, hat jeder Schlüssel Vollzugriff: Der Assistent kann E-Mails senden, Vorlagen ändern und Kontakte löschen."
 
+#: src/components/license/LicenceGateNotice.tsx:72
+msgid "Without a licence, this instance shows the Notifuse identity. Your saved brand comes back when a licence covers it."
+msgstr "Ohne Lizenz zeigt diese Instanz die Notifuse-Identität. Ihre gespeicherte Marke kehrt zurück, sobald eine Lizenz sie abdeckt."
+
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
 msgstr "Ohne Liste hat die Test-E-Mail weder einen funktionierenden Abmeldelink noch einen List-Unsubscribe-Header."
@@ -31302,8 +31315,8 @@ msgstr "Schreibrecht für Arbeitsbereich ist weit enger, als sein Name vermuten 
 msgid "Workspace:"
 msgstr "Arbeitsbereich:"
 
-#: src/components/settings/LicenseSettings.tsx:187
-#: src/services/api/licenseErrors.ts:55
+#: src/components/settings/LicenseSettings.tsx:188
+#: src/services/api/licenseErrors.ts:56
 msgid "Workspaces"
 msgstr "Arbeitsbereiche"
 
@@ -31765,7 +31778,7 @@ msgstr "Ihr Identitätsanbieter hat Ihre E-Mail-Adresse nicht verifiziert."
 msgid "Your licence does not cover translations: see the notice above."
 msgstr "Ihre Lizenz umfasst keine Übersetzungen: siehe Hinweis oben."
 
-#: src/pages/AccountSecurityPage.tsx:73
+#: src/pages/AccountSecurityPage.tsx:76
 msgid "Your Notifuse administrator requires two-factor authentication."
 msgstr "Ihr Notifuse-Administrator verlangt die Zwei-Faktor-Authentifizierung."
 

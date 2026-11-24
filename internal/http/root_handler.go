@@ -15,6 +15,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/blogfeed"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/branding"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
@@ -56,6 +57,8 @@ type RootHandler struct {
 	// the first is on and the second off, and the console's MCP tab says so.
 	mcpEnabled bool
 	isDemo     bool
+	// branding answers the identity to show, on every request; see SetBranding.
+	branding func() branding.Resolved
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
@@ -150,7 +153,11 @@ func (h *RootHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 // serveConfigJS generates and serves the config.js file with environment variables
 func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/javascript")
+	if !allowGetHead(w, r) {
+		return
+	}
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -239,6 +246,10 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		mcpURL,
 		mcpOAuthUnavailableReason,
 	)
+	configJS += "\n" + instanceBrandingJS(h.effectiveBranding())
+	if r.Method == http.MethodHead {
+		return
+	}
 	_, _ = w.Write([]byte(configJS))
 }
 
@@ -262,6 +273,10 @@ func (h *RootHandler) serveConsole(w http.ResponseWriter, r *http.Request) {
 	if noReferrerConsolePaths[r.URL.Path] {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 	}
+	// The brand-dependent paths answer HEAD too, so they are taken before the GET-only guard.
+	if h.serveBrandingAsset(w, r) {
+		return
+	}
 	if r.Method != http.MethodGet {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -281,6 +296,11 @@ func (h *RootHandler) serveConsole(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		// If the requested file doesn't exist, serve index.html for SPA routing
 		r.URL.Path = "/"
+	}
+	// index.html carries the inline bootstrap that paints the brand before React, so a browser
+	// revalidates it on every load and picks up a new build at once.
+	if r.URL.Path == "/" || r.URL.Path == "/index.html" {
+		w.Header().Set("Cache-Control", "no-cache")
 	}
 
 	h.logger.WithField("original_path", originalPath).WithField("served_path", r.URL.Path).Debug("Serving console")

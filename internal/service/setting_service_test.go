@@ -80,7 +80,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 
 	t.Run("not_installed", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
@@ -101,7 +101,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 		repo.settings["telemetry_enabled"] = "true"
 		repo.settings["check_for_updates"] = "false"
 
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
 		require.NoError(t, err)
@@ -129,7 +129,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 		repo.settings["encrypted_smtp_username"] = encryptedUsername
 		repo.settings["encrypted_smtp_password"] = encryptedPassword
 
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
 		require.NoError(t, err)
@@ -143,7 +143,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 		repo.settings["is_installed"] = "true"
 		repo.settings["encrypted_smtp_username"] = "invalid-encrypted-data"
 
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
 		require.Error(t, err)
@@ -156,7 +156,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 		repo.settings["is_installed"] = "true"
 		repo.settings["encrypted_smtp_password"] = "invalid-encrypted-data"
 
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
 		require.Error(t, err)
@@ -169,7 +169,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 		repo.settings["is_installed"] = "false"
 		repo.settings["root_email"] = "admin@example.com" // Should not be loaded
 
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
 		require.NoError(t, err)
@@ -181,7 +181,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.getError = errors.New("database connection failed")
 
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
 		require.Error(t, err)
@@ -194,7 +194,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 		repo.settings["is_installed"] = "true"
 		repo.settings["smtp_port"] = "invalid"
 
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 
 		require.NoError(t, err)
@@ -204,7 +204,7 @@ func TestSettingService_GetSystemConfig(t *testing.T) {
 
 func TestSettingService_OIDC_RoundTrip(t *testing.T) {
 	repo := NewMockSettingRepository()
-	svc := NewSettingService(repo)
+	svc := NewSettingService(repo, nil)
 	ctx := context.Background()
 
 	in := &SystemConfig{
@@ -242,7 +242,7 @@ func TestSettingService_OIDC_RoundTrip(t *testing.T) {
 
 func TestSettingService_OIDC_ClearSecret(t *testing.T) {
 	repo := NewMockSettingRepository()
-	svc := NewSettingService(repo)
+	svc := NewSettingService(repo, nil)
 	ctx := context.Background()
 
 	require.NoError(t, svc.SetSystemConfig(ctx, &SystemConfig{OIDCClientSecret: "x"}, testSecretKey))
@@ -258,7 +258,7 @@ func TestSettingService_SetSystemConfig(t *testing.T) {
 
 	t.Run("successful_set_complete_config", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		config := &SystemConfig{
 			IsInstalled:      true,
@@ -306,7 +306,7 @@ func TestSettingService_SetSystemConfig(t *testing.T) {
 
 	t.Run("set_minimal_config", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		config := &SystemConfig{
 			IsInstalled: false,
@@ -326,7 +326,7 @@ func TestSettingService_SetSystemConfig(t *testing.T) {
 	t.Run("repository_error", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.setError = errors.New("database write failed")
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		config := &SystemConfig{
 			IsInstalled: true,
@@ -339,7 +339,7 @@ func TestSettingService_SetSystemConfig(t *testing.T) {
 
 	t.Run("roundtrip_test", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		originalConfig := &SystemConfig{
 			IsInstalled:      true,
@@ -385,7 +385,7 @@ func TestSettingService_IsInstalled(t *testing.T) {
 
 	t.Run("not_installed_setting_not_found", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		isInstalled, err := service.IsInstalled(ctx)
 
@@ -396,7 +396,7 @@ func TestSettingService_IsInstalled(t *testing.T) {
 	t.Run("installed_true", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.settings["is_installed"] = "true"
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		isInstalled, err := service.IsInstalled(ctx)
 
@@ -407,7 +407,7 @@ func TestSettingService_IsInstalled(t *testing.T) {
 	t.Run("installed_false", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.settings["is_installed"] = "false"
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		isInstalled, err := service.IsInstalled(ctx)
 
@@ -418,7 +418,7 @@ func TestSettingService_IsInstalled(t *testing.T) {
 	t.Run("repository_error", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.getError = errors.New("database connection failed")
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		isInstalled, err := service.IsInstalled(ctx)
 
@@ -434,7 +434,7 @@ func TestSettingService_GetSetting(t *testing.T) {
 	t.Run("successful_get", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.settings["test_key"] = "test_value"
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		value, err := service.GetSetting(ctx, "test_key")
 
@@ -444,7 +444,7 @@ func TestSettingService_GetSetting(t *testing.T) {
 
 	t.Run("setting_not_found", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		value, err := service.GetSetting(ctx, "nonexistent_key")
 
@@ -456,7 +456,7 @@ func TestSettingService_GetSetting(t *testing.T) {
 	t.Run("repository_error", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.getError = errors.New("database read failed")
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		value, err := service.GetSetting(ctx, "test_key")
 
@@ -470,7 +470,7 @@ func TestSettingService_SetSetting(t *testing.T) {
 
 	t.Run("successful_set", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		err := service.SetSetting(ctx, "test_key", "test_value")
 
@@ -481,7 +481,7 @@ func TestSettingService_SetSetting(t *testing.T) {
 	t.Run("repository_error", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.setError = errors.New("database write failed")
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		err := service.SetSetting(ctx, "test_key", "test_value")
 
@@ -492,7 +492,7 @@ func TestSettingService_SetSetting(t *testing.T) {
 	t.Run("overwrite_existing_value", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.settings["test_key"] = "old_value"
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		err := service.SetSetting(ctx, "test_key", "new_value")
 
@@ -507,7 +507,7 @@ func TestSettingService_AuditLogsRetention(t *testing.T) {
 	t.Run("absent means the default, a stored value is read back", func(t *testing.T) {
 		repo := NewMockSettingRepository()
 		repo.settings["is_installed"] = "true"
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 		config, err := service.GetSystemConfig(ctx, testSecretKey)
 		require.NoError(t, err)
 		assert.Equal(t, domain.DefaultAuditLogRetentionDays, config.AuditLogsRetentionDays)
@@ -532,7 +532,7 @@ func TestSettingService_AuditLogsRetention(t *testing.T) {
 
 	t.Run("is written with the rest and validated", func(t *testing.T) {
 		repo := NewMockSettingRepository()
-		service := NewSettingService(repo)
+		service := NewSettingService(repo, nil)
 
 		config := &SystemConfig{IsInstalled: true, RootEmail: "admin@example.com", SMTPPort: 587, AuditLogsRetentionDays: 400}
 		require.NoError(t, service.SetSystemConfig(ctx, config, testSecretKey))

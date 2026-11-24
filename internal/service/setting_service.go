@@ -8,8 +8,13 @@ import (
 	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/branding"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 )
+
+// InstanceBrandingSettingKey is the settings row holding the instance's own identity, as one
+// JSON value so the four fields are written together.
+const InstanceBrandingSettingKey = "instance_branding"
 
 // SystemConfig holds all system-level configuration
 type SystemConfig struct {
@@ -49,6 +54,30 @@ type SystemConfig struct {
 	OIDCButtonLabel     string
 	OIDCAutoCreateUsers bool
 	OIDCAllowedDomains  string
+
+	// Instance branding, stored together under InstanceBrandingSettingKey. Kept as flat
+	// fields so the settings.update audit row records one change per field. SetSystemConfig
+	// always writes them, so a caller passes the stored values for the fields it leaves alone.
+	BrandingName         string
+	BrandingLogoURL      string
+	BrandingIconURL      string
+	BrandingHideHelpMenu bool
+	// BrandingUnreadable is set by GetSystemConfig when the stored brand is not readable JSON:
+	// the four fields above are then empty, and the rest of the settings load normally.
+	BrandingUnreadable bool `json:"-"`
+	// KeepStoredBranding makes SetSystemConfig leave the stored brand row exactly as it is,
+	// for a save that does not touch the brand while that row is unreadable.
+	KeepStoredBranding bool `json:"-"`
+}
+
+// brandingFrom reads the four branding fields of a config, normalised.
+func brandingFrom(c *SystemConfig) branding.Branding {
+	return branding.Branding{
+		Name:         c.BrandingName,
+		LogoURL:      c.BrandingLogoURL,
+		IconURL:      c.BrandingIconURL,
+		HideHelpMenu: c.BrandingHideHelpMenu,
+	}.Normalize()
 }
 
 // ErrTwoFactorRequiredForRoot: the root user turns on the instance's two-factor
@@ -74,14 +103,76 @@ func CheckRequireTwoFactorChange(current bool, next *bool, session domain.Sessio
 
 // SettingService provides methods for managing system settings
 type SettingService struct {
-	repo domain.SettingRepository
+	repo         domain.SettingRepository
+	entitlements domain.EntitlementProvider
 }
 
-// NewSettingService creates a new SettingService
-func NewSettingService(repo domain.SettingRepository) *SettingService {
+// NewSettingService creates a new SettingService. The entitlement provider gates instance
+// branding writes; nil means unlicensed, so a construction that forgets it refuses a brand
+// rather than granting one.
+func NewSettingService(repo domain.SettingRepository, entitlements domain.EntitlementProvider) *SettingService {
 	return &SettingService{
-		repo: repo,
+		repo:         repo,
+		entitlements: entitlements,
 	}
+}
+
+// isLicensedFor answers the one licence question this service asks. Unlike the older services,
+// a nil provider counts as unlicensed: refusing a brand is the safe failure here.
+func (s *SettingService) isLicensedFor(feature domain.Feature) bool {
+	if s.entitlements == nil {
+		return false
+	}
+	return s.entitlements.Entitlements().Has(feature)
+}
+
+// GetInstanceBranding reads the stored instance identity on its own, without decrypting any other
+// setting. An absent row is the default identity. Only the JSON is checked, so a brand saved under
+// older rules still reads. A database error is returned as is, and a row that is not JSON returns
+// an error wrapping branding.ErrInvalidStored: neither is ever turned into an empty identity here.
+func (s *SettingService) GetInstanceBranding(ctx context.Context) (branding.Branding, error) {
+	setting, err := s.repo.Get(ctx, InstanceBrandingSettingKey)
+	if err != nil {
+		var notFound *domain.ErrSettingNotFound
+		if errors.As(err, &notFound) {
+			return branding.Branding{}, nil
+		}
+		return branding.Branding{}, fmt.Errorf("failed to get %s: %w", InstanceBrandingSettingKey, err)
+	}
+	if strings.TrimSpace(setting.Value) == "" {
+		return branding.Branding{}, nil
+	}
+	return branding.Decode([]byte(setting.Value))
+}
+
+// checkBrandingWrite validates what a save changes in the brand and refuses, without the branding
+// feature, any save that sets or changes a value. Clearing a field, unticking the Help switch and
+// sending the stored values back unchanged are always allowed. An unreadable stored row counts as
+// an empty brand here: the save replaces it.
+func (s *SettingService) checkBrandingWrite(ctx context.Context, next branding.Branding) error {
+	if next == (branding.Branding{}) {
+		return nil
+	}
+	stored, err := s.GetInstanceBranding(ctx)
+	if errors.Is(err, branding.ErrInvalidStored) {
+		stored = branding.Branding{}
+	} else if err != nil {
+		return err
+	}
+	if err := next.ValidateChanged(stored); err != nil {
+		return err
+	}
+	if s.isLicensedFor(domain.FeatureBranding) {
+		return nil
+	}
+	widens := func(nextValue, storedValue string) bool {
+		return nextValue != "" && nextValue != storedValue
+	}
+	if widens(next.Name, stored.Name) || widens(next.LogoURL, stored.LogoURL) ||
+		widens(next.IconURL, stored.IconURL) || (next.HideHelpMenu && !stored.HideHelpMenu) {
+		return domain.NewFeatureNotLicensedError(domain.FeatureBranding)
+	}
+	return nil
 }
 
 // GetSystemConfig loads all system settings from the database
@@ -108,6 +199,20 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 	if !config.IsInstalled {
 		return config, nil
 	}
+
+	instanceBranding, err := s.GetInstanceBranding(ctx)
+	switch {
+	case errors.Is(err, branding.ErrInvalidStored):
+		// The rest of the settings stay readable and editable; the console says the brand is
+		// unreadable, and a save that sets or clears it replaces the row.
+		config.BrandingUnreadable = true
+	case err != nil:
+		return nil, err
+	}
+	config.BrandingName = instanceBranding.Name
+	config.BrandingLogoURL = instanceBranding.LogoURL
+	config.BrandingIconURL = instanceBranding.IconURL
+	config.BrandingHideHelpMenu = instanceBranding.HideHelpMenu
 
 	// Load root email
 	if setting, err := s.repo.Get(ctx, "root_email"); err == nil {
@@ -258,8 +363,25 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 	return config, nil
 }
 
-// SetSystemConfig stores all system settings in the database
+// SetSystemConfig stores all system settings in the database. Everything that can refuse the save
+// is checked before the first write, so a refused save leaves every setting as it was.
 func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConfig, secretKey string) error {
+	if err := domain.ValidateAuditRetentionDays(config.AuditLogsRetentionDays); err != nil {
+		return err
+	}
+	var encodedBranding []byte
+	if !config.KeepStoredBranding {
+		nextBranding := brandingFrom(config)
+		if err := s.checkBrandingWrite(ctx, nextBranding); err != nil {
+			return err
+		}
+		encoded, err := nextBranding.Encode()
+		if err != nil {
+			return fmt.Errorf("failed to encode %s: %w", InstanceBrandingSettingKey, err)
+		}
+		encodedBranding = encoded
+	}
+
 	// Set is_installed flag
 	isInstalled := "false"
 	if config.IsInstalled {
@@ -375,10 +497,7 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		}
 	}
 
-	// Audit log retention (deployment default)
-	if err := domain.ValidateAuditRetentionDays(config.AuditLogsRetentionDays); err != nil {
-		return err
-	}
+	// Audit log retention (deployment default), validated above
 	if err := s.repo.Set(ctx, domain.AuditLogsRetentionSettingKey, strconv.Itoa(config.AuditLogsRetentionDays)); err != nil {
 		return fmt.Errorf("failed to set %s: %w", domain.AuditLogsRetentionSettingKey, err)
 	}
@@ -479,6 +598,12 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 	} else {
 		if err := s.repo.Set(ctx, "encrypted_oidc_client_secret", ""); err != nil {
 			return fmt.Errorf("failed to clear encrypted_oidc_client_secret: %w", err)
+		}
+	}
+
+	if !config.KeepStoredBranding {
+		if err := s.repo.Set(ctx, InstanceBrandingSettingKey, string(encodedBranding)); err != nil {
+			return fmt.Errorf("failed to set %s: %w", InstanceBrandingSettingKey, err)
 		}
 	}
 

@@ -403,7 +403,7 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	// Check the content type
-	assert.Equal(t, "application/javascript", rr.Header().Get("Content-Type"))
+	assert.Equal(t, "application/javascript; charset=utf-8", rr.Header().Get("Content-Type"))
 
 	// Check cache control headers
 	assert.Equal(t, "no-cache, no-store, must-revalidate, max-age=0", rr.Header().Get("Cache-Control"))
@@ -463,7 +463,7 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	// Check the content type
-	assert.Equal(t, "application/javascript", rr.Header().Get("Content-Type"))
+	assert.Equal(t, "application/javascript; charset=utf-8", rr.Header().Get("Content-Type"))
 
 	// Check the body contains the expected JavaScript
 	body := rr.Body.String()

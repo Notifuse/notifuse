@@ -1073,3 +1073,39 @@ func TestSelectSMTPAuthType(t *testing.T) {
 		})
 	}
 }
+
+func TestMailer_BrandName(t *testing.T) {
+	cases := map[string]struct {
+		source func() string
+		want   string
+	}{
+		"no source":          {nil, DefaultBrandName},
+		"an empty answer":    {func() string { return "" }, DefaultBrandName},
+		"the instance brand": {func() string { return "Acme" }, "Acme"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			if got := NewTestSMTPMailer(&Config{BrandName: tc.source}).BrandName(); got != tc.want {
+				t.Errorf("SMTP mailer: got %q, want %q", got, tc.want)
+			}
+			if got := NewConsoleMailerWithBrand(tc.source).BrandName(); got != tc.want {
+				t.Errorf("console mailer: got %q, want %q", got, tc.want)
+			}
+		})
+	}
+	if got := NewConsoleMailer().BrandName(); got != DefaultBrandName {
+		t.Errorf("plain console mailer: got %q", got)
+	}
+
+	t.Run("asked at each call, not copied at construction", func(t *testing.T) {
+		name := "Acme"
+		m := NewTestSMTPMailer(&Config{BrandName: func() string { return name }})
+		if got := m.BrandName(); got != "Acme" {
+			t.Fatalf("got %q", got)
+		}
+		name = ""
+		if got := m.BrandName(); got != DefaultBrandName {
+			t.Errorf("after the source changed: got %q", got)
+		}
+	})
+}

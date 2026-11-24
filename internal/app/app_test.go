@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
+	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/queue"
 	pkgCrypto "github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
@@ -64,12 +66,25 @@ func createTestConfig() *config.Config {
 	}
 }
 
+// expectNoInstanceBranding answers the startup read of the stored instance brand with no row,
+// which is a fresh instance. InitServices makes that read, and a database error there stops the
+// start, so every test that runs InitServices against a mock database expects it, before any
+// other expectation since sqlmock matches in order.
+func expectNoInstanceBranding(mock sqlmock.Sqlmock) {
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT key, value, created_at, updated_at FROM settings WHERE key = $1")).
+		WithArgs(service.InstanceBrandingSettingKey).
+		WillReturnRows(sqlmock.NewRows([]string{"key", "value", "created_at", "updated_at"}))
+}
+
 // setupTestDBMock creates a mock DB for testing
 func setupTestDBMock() (*sql.DB, sqlmock.Sqlmock, error) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// InitServices reads the stored instance brand first; none is stored.
+	expectNoInstanceBranding(mock)
 
 	// Setup necessary mock expectations for common queries
 	mock.ExpectBegin()
@@ -1757,8 +1772,9 @@ func TestApp_ServiceGetters(t *testing.T) {
 	cfg := createTestConfig()
 
 	// Create mock DB
-	mockDB, _, err := sqlmock.New()
+	mockDB, mock, err := sqlmock.New()
 	require.NoError(t, err)
+	expectNoInstanceBranding(mock)
 	defer func() { _ = mockDB.Close() }()
 
 	ctrl := gomock.NewController(t)
@@ -1937,6 +1953,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		// Set up mock DB with minimal expectations
 		mockDB, mock, err := sqlmock.New()
 		require.NoError(t, err)
+		expectNoInstanceBranding(mock)
 		defer func() { _ = mockDB.Close() }()
 
 		// Create app with test config and mocks
@@ -2024,6 +2041,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		// Set up mock DB with minimal expectations
 		mockDB, mock, err := sqlmock.New()
 		require.NoError(t, err)
+		expectNoInstanceBranding(mock)
 		defer func() { _ = mockDB.Close() }()
 
 		// Create app with test config and mocks

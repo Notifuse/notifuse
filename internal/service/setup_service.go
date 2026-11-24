@@ -437,6 +437,17 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		OIDCAllowedDomains:      config.OIDCAllowedDomains,
 	}
 
+	// The wizard has no branding fields. A wizard run again on a database that holds a brand
+	// must not erase it: a readable brand is carried over, an unreadable row is left untouched.
+	if stored, err := s.settingService.GetInstanceBranding(ctx); err == nil {
+		systemConfig.BrandingName = stored.Name
+		systemConfig.BrandingLogoURL = stored.LogoURL
+		systemConfig.BrandingIconURL = stored.IconURL
+		systemConfig.BrandingHideHelpMenu = stored.HideHelpMenu
+	} else {
+		systemConfig.KeepStoredBranding = true
+	}
+
 	if err := s.settingService.SetSystemConfig(ctx, systemConfig, s.secretKey); err != nil {
 		return fmt.Errorf("failed to save system configuration: %w", err)
 	}

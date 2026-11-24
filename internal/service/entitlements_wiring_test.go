@@ -36,6 +36,7 @@ func fullyLicensedProvider(ctrl *gomock.Controller) domain.EntitlementProvider {
 			domain.FeatureAuditLogs,
 			domain.FeatureTemplateI18n,
 			domain.FeatureDataRetention,
+			domain.FeatureBranding,
 		},
 		State:     domain.LicenseStateActive,
 		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),

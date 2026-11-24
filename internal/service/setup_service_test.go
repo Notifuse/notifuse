@@ -121,6 +121,9 @@ func TestSetupService_Initialize_OIDCScopes(t *testing.T) {
 
 		stored := make(map[string]string)
 		settingRepo := mocks.NewMockSettingRepository(ctrl)
+		// No brand is stored: the wizard reads it to carry it over.
+		settingRepo.EXPECT().Get(gomock.Any(), service.InstanceBrandingSettingKey).
+			Return(nil, &domain.ErrSettingNotFound{Key: service.InstanceBrandingSettingKey}).AnyTimes()
 		settingRepo.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().
 			DoAndReturn(func(_ context.Context, key, value string) error {
 				stored[key] = value
@@ -130,7 +133,7 @@ func TestSetupService_Initialize_OIDCScopes(t *testing.T) {
 		userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
 
 		svc := service.NewSetupService(
-			service.NewSettingService(settingRepo),
+			service.NewSettingService(settingRepo, nil),
 			&service.UserService{},
 			userRepo,
 			&mockLogger{},
@@ -527,6 +530,9 @@ func TestSetupService_Initialize_StoresTheDefaultAuditRetention(t *testing.T) {
 	t.Cleanup(ctrl.Finish)
 	stored := make(map[string]string)
 	settingRepo := mocks.NewMockSettingRepository(ctrl)
+	// No brand is stored: the wizard reads it to carry it over.
+	settingRepo.EXPECT().Get(gomock.Any(), service.InstanceBrandingSettingKey).
+		Return(nil, &domain.ErrSettingNotFound{Key: service.InstanceBrandingSettingKey}).AnyTimes()
 	settingRepo.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().
 		DoAndReturn(func(_ context.Context, key, value string) error {
 			stored[key] = value
@@ -535,7 +541,7 @@ func TestSetupService_Initialize_StoresTheDefaultAuditRetention(t *testing.T) {
 	userRepo := mocks.NewMockUserRepository(ctrl)
 	userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
 	svc := service.NewSetupService(
-		service.NewSettingService(settingRepo),
+		service.NewSettingService(settingRepo, nil),
 		&service.UserService{},
 		userRepo,
 		&mockLogger{},

@@ -190,7 +190,7 @@ func TestSetupHandler_Status(t *testing.T) {
 				_ = settingRepo.Set(context.Background(), "is_installed", "true")
 			}
 
-			settingService := service.NewSettingService(settingRepo)
+			settingService := service.NewSettingService(settingRepo, nil)
 			userRepo := newMockUserRepository()
 			userService := &service.UserService{}
 			setupService := service.NewSetupService(settingService, userService, userRepo, logger.NewLogger(), "secret-key", nil, nil)
@@ -231,7 +231,7 @@ func TestSetupHandler_Status_EnvOverrides(t *testing.T) {
 		if installed {
 			_ = settingRepo.Set(context.Background(), "is_installed", "true")
 		}
-		settingService := service.NewSettingService(settingRepo)
+		settingService := service.NewSettingService(settingRepo, nil)
 		setupService := service.NewSetupService(settingService, &service.UserService{}, newMockUserRepository(), logger.NewLogger(), "secret-key", nil, env)
 		handler := NewSetupHandler(setupService, settingService, logger.NewLogger(), newMockAppShutdowner())
 
@@ -266,7 +266,7 @@ func TestSetupHandler_Status_EnvOverrides(t *testing.T) {
 // not the one shutting down.
 func TestSetupHandler_Status_BootID(t *testing.T) {
 	newHandler := func() *SetupHandler {
-		settingService := service.NewSettingService(newMockSettingRepository())
+		settingService := service.NewSettingService(newMockSettingRepository(), nil)
 		setupService := service.NewSetupService(settingService, &service.UserService{}, newMockUserRepository(), logger.NewLogger(), "secret-key", nil, nil)
 		return NewSetupHandler(setupService, settingService, logger.NewLogger(), newMockAppShutdowner())
 	}
@@ -375,7 +375,7 @@ func TestSetupHandler_TestSMTP(t *testing.T) {
 				_ = settingRepo.Set(context.Background(), "is_installed", "true")
 			}
 
-			settingService := service.NewSettingService(settingRepo)
+			settingService := service.NewSettingService(settingRepo, nil)
 			userRepo := newMockUserRepository()
 			userService := &service.UserService{}
 			setupService := service.NewSetupService(settingService, userService, userRepo, logger.NewLogger(), "secret-key", nil, nil)
@@ -508,7 +508,7 @@ func TestSetupHandler_Initialize(t *testing.T) {
 				_ = settingRepo.Set(context.Background(), "is_installed", "true")
 			}
 
-			settingService := service.NewSettingService(settingRepo)
+			settingService := service.NewSettingService(settingRepo, nil)
 			userRepo := newMockUserRepository()
 			userService := &service.UserService{}
 
@@ -585,7 +585,7 @@ func TestSetupHandler_Initialize(t *testing.T) {
 func TestSetupHandler_HalfFilledSMTPCredentials(t *testing.T) {
 	newHandler := func() (*SetupHandler, *mockSettingRepository) {
 		settingRepo := newMockSettingRepository()
-		settingService := service.NewSettingService(settingRepo)
+		settingService := service.NewSettingService(settingRepo, nil)
 		setupService := service.NewSetupService(settingService, &service.UserService{}, newMockUserRepository(), logger.NewLogger(), "secret-key", nil, nil)
 		return NewSetupHandler(setupService, settingService, logger.NewLogger(), newMockAppShutdowner()), settingRepo
 	}
@@ -626,7 +626,7 @@ func TestSetupHandler_HalfFilledSMTPCredentials(t *testing.T) {
 func TestSetupHandler_RegisterRoutes(t *testing.T) {
 	// Setup
 	settingRepo := newMockSettingRepository()
-	settingService := service.NewSettingService(settingRepo)
+	settingService := service.NewSettingService(settingRepo, nil)
 	userRepo := newMockUserRepository()
 	userService := &service.UserService{}
 	setupService := service.NewSetupService(settingService, userService, userRepo, logger.NewLogger(), "secret-key", nil, nil)
@@ -677,7 +677,7 @@ func TestSetupHandler_InitializeCheckForUpdatesDefault(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			settingRepo := newMockSettingRepository()
-			settingService := service.NewSettingService(settingRepo)
+			settingService := service.NewSettingService(settingRepo, nil)
 			setupService := service.NewSetupService(
 				settingService,
 				&service.UserService{},
@@ -702,7 +702,7 @@ func TestSetupHandler_InitializeCheckForUpdatesDefault(t *testing.T) {
 }
 
 func TestSetupHandler_InitializeBoundsTheReloadShutdown(t *testing.T) {
-	settingService := service.NewSettingService(newMockSettingRepository())
+	settingService := service.NewSettingService(newMockSettingRepository(), nil)
 	setupService := service.NewSetupService(
 		settingService,
 		&service.UserService{},
