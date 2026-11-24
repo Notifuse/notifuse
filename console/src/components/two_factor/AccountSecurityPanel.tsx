@@ -22,7 +22,7 @@ export interface AccountSecurityPanelProps {
 
 function Section({ title, children, action }: { title: string; children?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-line-soft py-4 last:border-b-0">
+    <div className="flex items-start justify-between gap-4 border-b border-line-soft py-4 first:pt-0 last:border-b-0 last:pb-0">
       <div className="flex min-w-0 flex-col gap-1">
         <h3 className="m-0 text-sm font-semibold text-ink">{title}</h3>
         {children}
