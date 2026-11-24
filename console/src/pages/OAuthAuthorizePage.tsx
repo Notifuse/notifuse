@@ -51,12 +51,12 @@ function errorCode(error: unknown): string | undefined {
 }
 
 /** The page's frame: the logo above one card, a line under it. */
-function Frame({ children, footer, wide = false }: { children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+function Frame({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col items-center gap-5 bg-canvas px-5 py-10">
       <NotifuseLogo height={24} />
-      <div className={`flex w-full flex-col gap-5 ${wide ? 'max-w-[640px]' : 'max-w-[520px]'}`}>{children}</div>
-      {footer ? <p className="m-0 max-w-[520px] text-center text-xs text-ink-3">{footer}</p> : null}
+      <div className="flex w-full max-w-[640px] flex-col gap-5">{children}</div>
+      {footer ? <p className="m-0 max-w-[640px] text-balance text-center text-xs text-ink-3">{footer}</p> : null}
     </div>
   )
 }
@@ -339,7 +339,6 @@ function AuthorizeForm({ request, onEnd }: AuthorizeFormProps) {
 
   return (
     <Frame
-      wide={mode === 'create'}
       footer={t`Deleting the key in Notifuse ends this connection. An owner can also revoke it in Settings › AI › MCP.`}
     >
       <section className="rounded-lg border border-line bg-surface shadow-card">
@@ -386,8 +385,8 @@ function AuthorizeForm({ request, onEnd }: AuthorizeFormProps) {
             endOnRefusal={endOnRefusal}
             switchLink={
               isOwner ? (
-                <Button type="link" onClick={() => setMode('create')}>
-                  {t`Create a key for this agent`}
+                <Button type="link" className="app-link-flush" onClick={() => setMode('create')}>
+                  {t`Create a key for this assistant`}
                 </Button>
               ) : returnPath ? (
                 <Link to="/console/signin" search={{ return_to: returnPath }} className="text-sm">
@@ -620,7 +619,7 @@ function CreateKeySection({
   }
 
   const pasteButton = (
-    <Button type="link" onClick={onPaste}>
+    <Button type="link" className="app-link-flush" onClick={onPaste}>
       {t`Paste an existing key`}
     </Button>
   )
@@ -629,7 +628,7 @@ function CreateKeySection({
     <>
       <div className="flex flex-col gap-3.5 border-t border-line-soft px-6 py-4">
         <div>
-          <div className="text-sm font-semibold text-ink">{t`Create a key for this agent`}</div>
+          <div className="text-sm font-semibold text-ink">{t`Create a key for this assistant`}</div>
           <p className="m-0 mt-0.5 text-xs text-ink-3">
             {t`Nobody sees this key. It serves only this connection, and you can delete it later in Team & API keys.`}
           </p>

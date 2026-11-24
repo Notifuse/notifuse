@@ -139,7 +139,7 @@ describe('OAuthAuthorizePage: the request', () => {
     const field = screen.getByLabelText('API key')
     expect(field).toHaveAttribute('type', 'password')
     expect(field).toHaveAttribute('autocomplete', 'off')
-    expect(screen.queryByText('Create a key for this agent')).not.toBeInTheDocument()
+    expect(screen.queryByText('Create a key for this assistant')).not.toBeInTheDocument()
     // A known client: no caution, no "Published at".
     expect(screen.queryByText('Unknown')).not.toBeInTheDocument()
     expect(screen.queryByText('Published at')).not.toBeInTheDocument()
@@ -177,7 +177,7 @@ describe('OAuthAuthorizePage: the request', () => {
     loadWith(owner({ owned_workspaces: [{ id: 'ws2', name: 'Acme Staging', mcp_disabled: true }, { id: 'ws1', name: 'Acme', mcp_disabled: false }] }))
     renderPage()
 
-    expect(await screen.findByText('Create a key for this agent')).toBeInTheDocument()
+    expect(await screen.findByText('Create a key for this assistant')).toBeInTheDocument()
     expect(screen.getByText('owner@acme.io')).toBeInTheDocument()
     expect(screen.queryByText('Owner? Sign in to create a key here')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Key name')).toHaveValue('claude')
@@ -375,7 +375,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
     loadWith(owner())
     vi.mocked(api.post).mockResolvedValueOnce({ redirect_url: 'https://claude.ai/api/mcp/auth_callback?code=c1' })
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     expect(screen.getByText(/A workspace with MCP off can't be picked/)).toBeInTheDocument()
     openWorkspaces()
@@ -412,7 +412,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
     loadWith(owner())
     vi.mocked(api.post).mockResolvedValueOnce({ redirect_url: 'https://claude.ai/cb?code=c1' })
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     fireEvent.change(screen.getByLabelText('Key name'), { target: { value: 'Claude Marketing!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Revoke all' }))
@@ -433,7 +433,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
     licence.rbac = false
     loadWith(owner())
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     expect(screen.getByText('The assistant gets every right its key has.')).toBeInTheDocument()
     expect(
@@ -448,7 +448,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
     loadWith(owner())
     vi.mocked(api.post).mockRejectedValueOnce(refusal(409, 'oauth_key_name_taken'))
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke all' }))
     fireEvent.click(screen.getByRole('button', { name: 'Create key and connect' }))
@@ -461,7 +461,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
   it('cannot create a key when every workspace has MCP off', async () => {
     loadWith(owner({ owned_workspaces: [{ id: 'ws2', name: 'Acme Staging', mcp_disabled: true }] }))
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     expect(screen.getByRole('button', { name: 'Create key and connect' })).toBeDisabled()
   })
@@ -470,7 +470,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
     loadWith(owner())
     vi.mocked(api.post).mockRejectedValueOnce(refusal(403, 'two_factor_required'))
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke all' }))
     fireEvent.click(screen.getByRole('button', { name: 'Create key and connect' }))
@@ -487,7 +487,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
     loadWith(owner())
     vi.mocked(api.post).mockRejectedValueOnce(refusal(401))
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke all' }))
     fireEvent.click(screen.getByRole('button', { name: 'Create key and connect' }))
@@ -504,7 +504,7 @@ describe('OAuthAuthorizePage: the owner shortcut', () => {
     loadWith(owner())
     vi.mocked(api.post).mockResolvedValueOnce({ redirect_url: 'https://claude.ai/cb?code=c1' })
     renderPage()
-    await screen.findByText('Create a key for this agent')
+    await screen.findByText('Create a key for this assistant')
 
     fireEvent.click(screen.getByRole('button', { name: 'Paste an existing key' }))
     pasteKey()
