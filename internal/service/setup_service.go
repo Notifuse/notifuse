@@ -586,10 +586,10 @@ func (s *SetupService) effectiveSMTPCredentials(username, password string) (stri
 // Both empty stays valid — that is how a relay that needs no login is configured.
 func ValidateSMTPCredentialPair(username, password string) error {
 	if username != "" && password == "" {
-		return fmt.Errorf("SMTP password is required when a username is set: without it, Notifuse connects without logging in and the server can refuse to send. Leave both empty only if your server needs no login")
+		return fmt.Errorf("SMTP password is required when a username is set: without it, this instance connects without logging in and the server can refuse to send. Leave both empty only if your server needs no login")
 	}
 	if username == "" && password != "" {
-		return fmt.Errorf("SMTP username is required when a password is set: without it, Notifuse connects without logging in and the server can refuse to send")
+		return fmt.Errorf("SMTP username is required when a password is set: without it, this instance connects without logging in and the server can refuse to send")
 	}
 	return nil
 }

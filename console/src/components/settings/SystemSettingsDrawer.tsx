@@ -22,6 +22,7 @@ import {
   InfoCircleOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { settingsApi } from '../../services/api/settings'
 import { SsoLicenceNotice } from '../license/SsoLicenceNotice'
 import { RetentionDefaultsSection } from './data_retention/RetentionDefaultsSection'
@@ -45,6 +46,7 @@ const { Text, Title } = Typography
 
 export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } = {}) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message, modal } = App.useApp()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -489,7 +491,7 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                 >
                   <Input
                     disabled={isOverridden('smtp_from_name')}
-                    placeholder="Notifuse"
+                    placeholder={brand}
                     allowClear
                   />
                 </Form.Item>

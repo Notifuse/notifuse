@@ -4,6 +4,7 @@ import type { MenuProps } from 'antd'
 import { Mail, MoreHorizontal, Plus, Send } from 'lucide-react'
 import { plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../../hooks/useBrandName'
 import type { EmailProvider, Integration, Workspace } from '../../../services/api/types'
 import {
   getWebhookStatus,
@@ -43,6 +44,7 @@ export function EmailProviderCard({
   onDelete
 }: EmailProviderCardProps) {
   const { t, i18n } = useLingui()
+  const brand = useBrandName()
   const { message, modal } = App.useApp()
   const provider = integration.email_provider
   const isMarketing = workspace.settings.marketing_email_provider_id === integration.id
@@ -251,7 +253,7 @@ export function EmailProviderCard({
     return {
       label: (
         <Tooltip
-          title={t`Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider.`}
+          title={t`Forwards inbound replies to ${brand} so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider.`}
         >
           <span className="cursor-help">{t`Reply forwarding`}</span>
         </Tooltip>

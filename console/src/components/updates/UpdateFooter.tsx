@@ -1,4 +1,5 @@
 import { useLingui } from '@lingui/react/macro'
+import { versionLabel } from '../brand/instanceBranding'
 
 interface UpdateFooterProps {
   /** The version shown, as the account menu shows it. */
@@ -13,7 +14,7 @@ export function UpdateFooter({ version, dismissedLatest, onOpen }: UpdateFooterP
   const { t } = useLingui()
   return (
     <div className="flex items-center gap-2.5 border-t border-line-soft pt-2.5 text-2xs text-ink-3">
-      <span className="font-mono">Notifuse v{version}</span>
+      <span className="font-mono">{versionLabel(version)}</span>
       {dismissedLatest && (
         <button
           type="button"

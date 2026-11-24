@@ -1,6 +1,9 @@
 package mailer
 
-import "strings"
+import (
+	"reflect"
+	"strings"
+)
 
 // DefaultEmailLanguage is the locale used for system emails when no language is
 // configured or when the configured language is not supported.
@@ -25,7 +28,7 @@ type Translations struct {
 // CommonStrings holds strings shared across every system email.
 type CommonStrings struct {
 	Greeting string // greeting line, e.g. "Hello,"
-	TeamName string // signature team name, e.g. "The Notifuse Team"
+	TeamName string // signature team name, e.g. "The {brand} Team"
 }
 
 // MagicCodeStrings holds the strings for the authentication code email.
@@ -120,20 +123,20 @@ var englishTranslations = Translations{
 	Lang: "en",
 	Common: CommonStrings{
 		Greeting: "Hello,",
-		TeamName: "The Notifuse Team",
+		TeamName: "The {brand} Team",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "Your Notifuse authentication code",
+		Subject:      "Your {brand} authentication code",
 		Heading:      "Your authentication code",
-		Intro:        "Your authentication code for Notifuse is:",
+		Intro:        "Your authentication code for {brand} is:",
 		Expiry:       "The code will expire in 10 minutes.",
 		IgnoreNotice: "If you did not request this code, please ignore this email.",
 		SignOff:      "Thanks,",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "You've been invited to join %s on Notifuse",
-		Heading:     "You've been invited to join Notifuse!",
-		Body:        "%[1]s has invited you to join the %[2]s workspace on Notifuse.",
+		Subject:     "You've been invited to join %s on {brand}",
+		Heading:     "You've been invited to join {brand}!",
+		Body:        "%[1]s has invited you to join the %[2]s workspace on {brand}.",
 		ClickPrompt: "Click the link below to join:",
 		LinkText:    "Accept invitation",
 		FallbackURL: "If the link doesn't work, copy and paste this URL into your browser:",
@@ -163,20 +166,20 @@ var frenchTranslations = Translations{
 	Lang: "fr",
 	Common: CommonStrings{
 		Greeting: "Bonjour,",
-		TeamName: "L'équipe Notifuse",
+		TeamName: "L'équipe {brand}",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "Votre code d'authentification Notifuse",
+		Subject:      "Votre code d'authentification {brand}",
 		Heading:      "Votre code d'authentification",
-		Intro:        "Votre code d'authentification pour Notifuse est :",
+		Intro:        "Votre code d'authentification pour {brand} est :",
 		Expiry:       "Ce code expirera dans 10 minutes.",
 		IgnoreNotice: "Si vous n'avez pas demandé ce code, veuillez ignorer cet e-mail.",
 		SignOff:      "Merci,",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "Vous avez été invité à rejoindre %s sur Notifuse",
-		Heading:     "Vous avez été invité à rejoindre Notifuse !",
-		Body:        "%[1]s vous a invité à rejoindre l'espace de travail %[2]s sur Notifuse.",
+		Subject:     "Vous avez été invité à rejoindre %s sur {brand}",
+		Heading:     "Vous avez été invité à rejoindre {brand} !",
+		Body:        "%[1]s vous a invité à rejoindre l'espace de travail %[2]s sur {brand}.",
 		ClickPrompt: "Cliquez sur le lien ci-dessous pour rejoindre :",
 		LinkText:    "Accepter l'invitation",
 		FallbackURL: "Si le lien ne fonctionne pas, copiez et collez cette URL dans votre navigateur :",
@@ -206,20 +209,20 @@ var spanishTranslations = Translations{
 	Lang: "es",
 	Common: CommonStrings{
 		Greeting: "Hola,",
-		TeamName: "El equipo de Notifuse",
+		TeamName: "El equipo de {brand}",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "Tu código de autenticación de Notifuse",
+		Subject:      "Tu código de autenticación de {brand}",
 		Heading:      "Tu código de autenticación",
-		Intro:        "Tu código de autenticación para Notifuse es:",
+		Intro:        "Tu código de autenticación para {brand} es:",
 		Expiry:       "El código caducará en 10 minutos.",
 		IgnoreNotice: "Si no solicitaste este código, ignora este correo electrónico.",
 		SignOff:      "Gracias,",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "Te han invitado a unirte a %s en Notifuse",
-		Heading:     "¡Te han invitado a unirte a Notifuse!",
-		Body:        "%[1]s te ha invitado a unirte al espacio de trabajo %[2]s en Notifuse.",
+		Subject:     "Te han invitado a unirte a %s en {brand}",
+		Heading:     "¡Te han invitado a unirte a {brand}!",
+		Body:        "%[1]s te ha invitado a unirte al espacio de trabajo %[2]s en {brand}.",
 		ClickPrompt: "Haz clic en el siguiente enlace para unirte:",
 		LinkText:    "Aceptar invitación",
 		FallbackURL: "Si el enlace no funciona, copia y pega esta URL en tu navegador:",
@@ -249,20 +252,20 @@ var germanTranslations = Translations{
 	Lang: "de",
 	Common: CommonStrings{
 		Greeting: "Hallo,",
-		TeamName: "Das Notifuse-Team",
+		TeamName: "Das {brand}-Team",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "Ihr Notifuse-Authentifizierungscode",
+		Subject:      "Ihr {brand}-Authentifizierungscode",
 		Heading:      "Ihr Authentifizierungscode",
-		Intro:        "Ihr Authentifizierungscode für Notifuse lautet:",
+		Intro:        "Ihr Authentifizierungscode für {brand} lautet:",
 		Expiry:       "Der Code läuft in 10 Minuten ab.",
 		IgnoreNotice: "Wenn Sie diesen Code nicht angefordert haben, ignorieren Sie diese E-Mail bitte.",
 		SignOff:      "Danke,",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "Sie wurden eingeladen, %s auf Notifuse beizutreten",
-		Heading:     "Sie wurden zu Notifuse eingeladen!",
-		Body:        "%[1]s hat Sie eingeladen, dem Workspace %[2]s auf Notifuse beizutreten.",
+		Subject:     "Sie wurden eingeladen, %s auf {brand} beizutreten",
+		Heading:     "Sie wurden zu {brand} eingeladen!",
+		Body:        "%[1]s hat Sie eingeladen, dem Workspace %[2]s auf {brand} beizutreten.",
 		ClickPrompt: "Klicken Sie auf den folgenden Link, um beizutreten:",
 		LinkText:    "Einladung annehmen",
 		FallbackURL: "Wenn der Link nicht funktioniert, kopieren Sie diese URL und fügen Sie sie in Ihren Browser ein:",
@@ -292,20 +295,20 @@ var catalanTranslations = Translations{
 	Lang: "ca",
 	Common: CommonStrings{
 		Greeting: "Hola,",
-		TeamName: "L'equip de Notifuse",
+		TeamName: "L'equip de {brand}",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "El teu codi d'autenticació de Notifuse",
+		Subject:      "El teu codi d'autenticació de {brand}",
 		Heading:      "El teu codi d'autenticació",
-		Intro:        "El teu codi d'autenticació per a Notifuse és:",
+		Intro:        "El teu codi d'autenticació per a {brand} és:",
 		Expiry:       "El codi caducarà en 10 minuts.",
 		IgnoreNotice: "Si no has sol·licitat aquest codi, ignora aquest correu electrònic.",
 		SignOff:      "Gràcies,",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "T'han convidat a unir-te a %s a Notifuse",
-		Heading:     "T'han convidat a unir-te a Notifuse!",
-		Body:        "%[1]s t'ha convidat a unir-te a l'espai de treball %[2]s a Notifuse.",
+		Subject:     "T'han convidat a unir-te a %s a {brand}",
+		Heading:     "T'han convidat a unir-te a {brand}!",
+		Body:        "%[1]s t'ha convidat a unir-te a l'espai de treball %[2]s a {brand}.",
 		ClickPrompt: "Fes clic a l'enllaç següent per unir-t'hi:",
 		LinkText:    "Accepta la invitació",
 		FallbackURL: "Si l'enllaç no funciona, copia i enganxa aquest URL al teu navegador:",
@@ -335,20 +338,20 @@ var portugueseBRTranslations = Translations{
 	Lang: "pt-BR",
 	Common: CommonStrings{
 		Greeting: "Olá,",
-		TeamName: "A equipe da Notifuse",
+		TeamName: "Equipe {brand}",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "Seu código de autenticação da Notifuse",
+		Subject:      "Seu código de autenticação de {brand}",
 		Heading:      "Seu código de autenticação",
-		Intro:        "Seu código de autenticação para a Notifuse é:",
+		Intro:        "Seu código de autenticação para {brand} é:",
 		Expiry:       "O código expirará em 10 minutos.",
 		IgnoreNotice: "Se você não solicitou este código, ignore este e-mail.",
 		SignOff:      "Obrigado,",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "Você foi convidado para participar de %s na Notifuse",
-		Heading:     "Você foi convidado para participar da Notifuse!",
-		Body:        "%[1]s convidou você para participar do espaço de trabalho %[2]s na Notifuse.",
+		Subject:     "Você foi convidado para participar de %s em {brand}",
+		Heading:     "Você foi convidado para participar de {brand}!",
+		Body:        "%[1]s convidou você para participar do espaço de trabalho %[2]s em {brand}.",
 		ClickPrompt: "Clique no link abaixo para participar:",
 		LinkText:    "Aceitar convite",
 		FallbackURL: "Se o link não funcionar, copie e cole este URL no seu navegador:",
@@ -378,20 +381,20 @@ var japaneseTranslations = Translations{
 	Lang: "ja",
 	Common: CommonStrings{
 		Greeting: "こんにちは、",
-		TeamName: "Notifuse チーム",
+		TeamName: "{brand} チーム",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "Notifuse 認証コード",
+		Subject:      "{brand} 認証コード",
 		Heading:      "認証コード",
-		Intro:        "Notifuse の認証コードは次のとおりです:",
+		Intro:        "{brand} の認証コードは次のとおりです:",
 		Expiry:       "このコードは10分後に有効期限が切れます。",
 		IgnoreNotice: "このコードをリクエストしていない場合は、このメールを無視してください。",
 		SignOff:      "よろしくお願いいたします、",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "%s に参加するよう招待されました（Notifuse）",
-		Heading:     "Notifuse への参加に招待されました！",
-		Body:        "%[1]s さんが、Notifuse のワークスペース %[2]s への参加にあなたを招待しました。",
+		Subject:     "%s に参加するよう招待されました（{brand}）",
+		Heading:     "{brand} への参加に招待されました！",
+		Body:        "%[1]s さんが、{brand} のワークスペース %[2]s への参加にあなたを招待しました。",
 		ClickPrompt: "参加するには、以下のリンクをクリックしてください:",
 		LinkText:    "招待を承認する",
 		FallbackURL: "リンクが機能しない場合は、この URL をコピーしてブラウザに貼り付けてください:",
@@ -421,20 +424,20 @@ var italianTranslations = Translations{
 	Lang: "it",
 	Common: CommonStrings{
 		Greeting: "Ciao,",
-		TeamName: "Il team di Notifuse",
+		TeamName: "Il team di {brand}",
 	},
 	MagicCode: MagicCodeStrings{
-		Subject:      "Il tuo codice di autenticazione Notifuse",
+		Subject:      "Il tuo codice di autenticazione {brand}",
 		Heading:      "Il tuo codice di autenticazione",
-		Intro:        "Il tuo codice di autenticazione per Notifuse è:",
+		Intro:        "Il tuo codice di autenticazione per {brand} è:",
 		Expiry:       "Il codice scadrà tra 10 minuti.",
 		IgnoreNotice: "Se non hai richiesto questo codice, ignora questa email.",
 		SignOff:      "Grazie,",
 	},
 	Invitation: InvitationStrings{
-		Subject:     "Sei stato invitato a unirti a %s su Notifuse",
-		Heading:     "Sei stato invitato a unirti a Notifuse!",
-		Body:        "%[1]s ti ha invitato a unirti allo spazio di lavoro %[2]s su Notifuse.",
+		Subject:     "Sei stato invitato a unirti a %s su {brand}",
+		Heading:     "Sei stato invitato a unirti a {brand}!",
+		Body:        "%[1]s ti ha invitato a unirti allo spazio di lavoro %[2]s su {brand}.",
 		ClickPrompt: "Fai clic sul link sottostante per unirti:",
 		LinkText:    "Accetta l'invito",
 		FallbackURL: "Se il link non funziona, copia e incolla questo URL nel tuo browser:",
@@ -457,4 +460,38 @@ var italianTranslations = Translations{
 		LinkText:   "Rivedi il cambio",
 		SignOff:    "Grazie,",
 	},
+}
+
+// brandToken stands for the instance brand in the translated strings. It is a named token
+// rather than a positional verb so that every language places the name where its grammar wants
+// it, and adding it never shifts the arguments a string already takes.
+const brandToken = "{brand}"
+
+// withBrand returns a copy of the set with brandToken replaced by brand in every string,
+// nested sets included. Pass the brand HTML-escaped for strings that go into an HTML part.
+//
+// A string that holds a "%" is a format string the mailer passes to fmt.Sprintf (no
+// translation holds a literal "%", which TestTranslations_PercentOnlyInVerbs keeps true), so
+// a "%" in the brand is doubled there: "100% Mail" must not read as a verb.
+func (t Translations) withBrand(brand string) Translations {
+	value := reflect.ValueOf(&t).Elem()
+	replaceBrandToken(value, brand)
+	return t
+}
+
+func replaceBrandToken(v reflect.Value, brand string) {
+	switch v.Kind() {
+	case reflect.String:
+		if v.CanSet() {
+			value, name := v.String(), brand
+			if strings.Contains(value, "%") {
+				name = strings.ReplaceAll(brand, "%", "%%")
+			}
+			v.SetString(strings.ReplaceAll(value, brandToken, name))
+		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			replaceBrandToken(v.Field(i), brand)
+		}
+	}
 }

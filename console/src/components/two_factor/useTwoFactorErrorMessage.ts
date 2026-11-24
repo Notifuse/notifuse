@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { twoFactorErrorCode, twoFactorRetryAfter } from '../../services/api/twoFactor'
 
 /**
@@ -8,6 +9,7 @@ import { twoFactorErrorCode, twoFactorRetryAfter } from '../../services/api/twoF
  */
 export function useTwoFactorErrorMessage() {
   const { t } = useLingui()
+  const brand = useBrandName()
   return useCallback(
     (error: unknown, fallback: string): string => {
       switch (twoFactorErrorCode(error)) {
@@ -18,7 +20,7 @@ export function useTwoFactorErrorMessage() {
           return t`Too many wrong codes. Try again in ${minutes} minutes, or use a recovery code.`
         }
         case 'two_factor_totp_locked':
-          return t`Authenticator codes are blocked on your account after too many wrong attempts. Use a recovery code, or ask your Notifuse administrator to reset two-factor authentication.`
+          return t`Authenticator codes are blocked on your account after too many wrong attempts. Use a recovery code, or ask your ${brand} administrator to reset two-factor authentication.`
         case 'two_factor_challenge_invalid':
           return t`This sign-in expired after 10 minutes. Start again with your email.`
         case 'two_factor_setup_expired':
@@ -35,6 +37,6 @@ export function useTwoFactorErrorMessage() {
           return error instanceof Error && error.message ? error.message : fallback
       }
     },
-    [t]
+    [t, brand]
   )
 }

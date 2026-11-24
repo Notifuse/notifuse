@@ -126,7 +126,7 @@ func (s *SESDiscoveryService) EnableTenantIsolation(ctx context.Context, req dom
 		return nil, fmt.Errorf("integration %s is not an Amazon SES integration", req.IntegrationID)
 	}
 	if settings.TenantName != "" {
-		return nil, fmt.Errorf("integration %s uses a tenant you manage; clear it to let Notifuse manage one", req.IntegrationID)
+		return nil, fmt.Errorf("integration %s uses a tenant you manage; clear it to let this instance manage one", req.IntegrationID)
 	}
 
 	result, err := s.sesService.EnsureTenantIsolation(ctx, *settings, req.IntegrationID, integration.EmailProvider.Senders)

@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { Alert, App, Button, Form, Input, Select, Spin } from 'antd'
 import { CircleCheck, CircleX, TriangleAlert } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../hooks/useBrandName'
 import { useAuth } from '../contexts/AuthContext'
 import { useLicense } from '../hooks/useLicense'
 import { ApiError } from '../services/api/errors'
@@ -16,7 +17,7 @@ import {
 } from '../services/api/mcp'
 import { createFullPermissions, grantsFullPermissions } from '../services/api/permissions'
 import type { UserPermissions } from '../services/api/types'
-import { NotifuseLogo } from '../components/brand/NotifuseLogo'
+import { InstanceLogo } from '../components/brand/InstanceLogo'
 import { KeyValueList, Mono, Pill, type KeyValueItem } from '../components/layout'
 import { LicenceGateNotice } from '../components/license/LicenceGateNotice'
 import { PermissionScopePresets } from '../components/settings/PermissionScopePresets'
@@ -54,7 +55,7 @@ function errorCode(error: unknown): string | undefined {
 function Frame({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col items-center gap-5 bg-canvas px-5 py-10">
-      <NotifuseLogo height={24} />
+      <InstanceLogo variant="full" maxWidth={150} maxHeight={32} notifuseHeight={24} />
       <div className="flex w-full max-w-[640px] flex-col gap-5">{children}</div>
       {footer ? <p className="m-0 max-w-[640px] text-balance text-center text-xs text-ink-3">{footer}</p> : null}
     </div>
@@ -104,6 +105,7 @@ function EndCard({
 
 export function OAuthAuthorizePage() {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { request: requestId } = useSearch({ from: '/console/oauth/authorize' })
   const { user } = useAuth()
   const [ending, setEnding] = useState<Ending | null>(null)
@@ -157,7 +159,7 @@ export function OAuthAuthorizePage() {
   if (ending?.kind === 'not-web') {
     return (
       <Frame>
-        <EndCard tone="danger" title={t`Notifuse did not open the application's address`}>
+        <EndCard tone="danger" title={t`${brand} did not open the application's address`}>
           <p className="m-0">{t`${name} asked to return to an address that is not a web page.`}</p>
           <p className="m-0">{t`Go back to ${name} and connect again.`}</p>
         </EndCard>
@@ -233,6 +235,7 @@ interface AuthorizeFormProps {
 
 function AuthorizeForm({ request, onEnd }: AuthorizeFormProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const { user } = useAuth()
   const ownedWorkspaces = request.owned_workspaces ?? []
@@ -332,14 +335,14 @@ function AuthorizeForm({ request, onEnd }: AuthorizeFormProps) {
   ]
 
   const intro = !request.known_client
-    ? t`Notifuse does not know this application. Its name was chosen by whoever published it, at the address below.`
+    ? t`${brand} does not know this application. Its name was chosen by whoever published it, at the address below.`
     : mode === 'create'
       ? t`${name} will work with an API key of its own. Create it here, or paste one you already have.`
       : t`${name} will work with the API key you give here, in that key's workspace and with that key's access.`
 
   return (
     <Frame
-      footer={t`Deleting the key in Notifuse ends this connection. An owner can also revoke it in Settings › AI › MCP.`}
+      footer={t`Deleting the key in ${brand} ends this connection. An owner can also revoke it in Settings › AI › MCP.`}
     >
       <section className="rounded-lg border border-line bg-surface shadow-card">
         <div className="flex items-start gap-3.5 px-6 pb-4.5 pt-5.5">
@@ -357,7 +360,7 @@ function AuthorizeForm({ request, onEnd }: AuthorizeFormProps) {
           )}
           <div className="min-w-0">
             <h1 className="m-0 text-title font-semibold text-ink">
-              {request.known_client ? t`Connect ${name} to Notifuse` : t`Connect "${name}" to Notifuse`}
+              {request.known_client ? t`Connect ${name} to ${brand}` : t`Connect "${name}" to ${brand}`}
             </h1>
             <p className="m-0 mt-1 text-ink-2">{intro}</p>
           </div>
@@ -435,6 +438,7 @@ function PasteKeySection({
   switchLink
 }: SectionProps & { switchLink: ReactNode }) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const [apiKey, setApiKey] = useState('')
   const [keyError, setKeyError] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
@@ -455,7 +459,7 @@ function PasteKeySection({
         const code = errorCode(error)
         if (code === OAUTH_ERROR.notAnAPIKey) {
           setKeyError(
-            t`This is not a Notifuse API key, or the key was deleted. Sign-in links and invitations don't work here. Create a key in Settings › Team & API keys.`
+            t`This is not a ${brand} API key, or the key was deleted. Sign-in links and invitations don't work here. Create a key in Settings › Team & API keys.`
           )
         } else if (code === OAUTH_ERROR.workspaceMCPDisabled) {
           setKeyError(t`MCP is switched off in this key's workspace. An owner can switch it on in Settings › AI › MCP.`)
@@ -499,7 +503,7 @@ function PasteKeySection({
         ) : null}
         <div id="oauth-api-key-help" className="text-xs text-ink-3">
           {request.known_client
-            ? t`Create one in Settings › Team & API keys. Give ${name} a key of its own, with only the permissions it needs. Notifuse never shows this key to ${name}.`
+            ? t`Create one in Settings › Team & API keys. Give ${name} a key of its own, with only the permissions it needs. ${brand} never shows this key to ${name}.`
             : t`Create one in Settings › Team & API keys. The application gets this key's workspace and access. Give it a key of its own.`}
         </div>
       </div>

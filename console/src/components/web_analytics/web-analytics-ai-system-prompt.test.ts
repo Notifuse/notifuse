@@ -540,6 +540,26 @@ describe('serializeWebAnalyticsState', () => {
 })
 
 describe('buildWebAnalyticsSystemPrompt', () => {
+  it('introduces the assistant under the instance brand', () => {
+    window.INSTANCE_BRANDING = {
+      custom: true,
+      name: 'Acme',
+      logo_url: '',
+      icon_url: '',
+      hide_help_menu: false,
+      splash_logo_src: '',
+      favicon_src: '/console/neutral-icon.png',
+      revision: 'r1'
+    }
+    try {
+      const built = buildWebAnalyticsSystemPrompt(baseContext)
+      expect(built).toContain('You are the Acme Web Analytics assistant.')
+      expect(built).not.toMatch(/\bNotifuse\b/)
+    } finally {
+      delete window.INSTANCE_BRANDING
+    }
+  })
+
   it('appends the live dashboard state to the static template', () => {
     const built = buildWebAnalyticsSystemPrompt(baseContext)
     expect(built.startsWith(WEB_ANALYTICS_AI_SYSTEM_PROMPT)).toBe(true)

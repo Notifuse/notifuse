@@ -117,6 +117,8 @@ const (
 
 // WebhookDeliveryWorker processes pending webhook deliveries
 type WebhookDeliveryWorker struct {
+	// brandName names the instance in the test webhook's message; nil means Notifuse.
+	brandName        func() string
 	subscriptionRepo domain.WebhookSubscriptionRepository
 	deliveryRepo     domain.WebhookDeliveryRepository
 	workspaceRepo    domain.WorkspaceRepository
@@ -192,6 +194,14 @@ func reachableRetryWindow(maxAttempts int) time.Duration {
 // else a data race in production for the sake of a test. Fixing both at
 // construction leaves nothing to write later.
 type WebhookDeliveryWorkerOption func(*WebhookDeliveryWorker)
+
+// WithWebhookBrandName supplies the instance brand the test webhook's message names. It is read
+// at each test, so a brand or licence change needs no restart.
+func WithWebhookBrandName(brandName func() string) WebhookDeliveryWorkerOption {
+	return func(w *WebhookDeliveryWorker) {
+		w.brandName = brandName
+	}
+}
 
 // WithWebhookPollInterval sets how often the worker looks for work.
 //
@@ -1298,7 +1308,7 @@ func signPayload(msgID string, timestamp int64, payload []byte, secret []byte) s
 //
 // The payload is built inside PostgreSQL, so no compiler can warn when a trigger
 // changes shape. Whoever edits a trigger body edits this function too.
-func buildTestPayload(eventType string) map[string]interface{} {
+func buildTestPayload(eventType, brand string) map[string]interface{} {
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	// Parse the event category (e.g., "contact" from "contact.created")
@@ -1354,7 +1364,7 @@ func buildTestPayload(eventType string) map[string]interface{} {
 		// is no real shape to be faithful to — say so in the payload rather than
 		// dress it up as an event.
 		return map[string]interface{}{
-			"message":    "This is a test webhook from Notifuse",
+			"message":    "This is a test webhook from " + brand,
 			"event_type": eventType,
 			"created_at": now,
 		}
@@ -1480,7 +1490,7 @@ func (w *WebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID
 		"type":         eventType,
 		"workspace_id": workspaceID,
 		"timestamp":    time.Now().UTC().Format(time.RFC3339),
-		"data":         buildTestPayload(eventType),
+		"data":         buildTestPayload(eventType, w.brand()),
 	}
 
 	payloadBytes, err := json.Marshal(envelope)
@@ -1523,4 +1533,14 @@ func (w *WebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID
 // SetRetentionPeriod makes the cleanup read each workspace's data retention period.
 func (w *WebhookDeliveryWorker) SetRetentionPeriod(period func(ctx context.Context, workspace *domain.Workspace) int) {
 	w.retentionPeriod = period
+}
+
+// brand is the name the test webhook's message gives the instance.
+func (w *WebhookDeliveryWorker) brand() string {
+	if w.brandName != nil {
+		if name := w.brandName(); name != "" {
+			return name
+		}
+	}
+	return "Notifuse"
 }

@@ -3,6 +3,7 @@ import { Alert, App, Button, Checkbox, Form, Input, Spin, Steps } from 'antd'
 import { Copy } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import {
   twoFactorErrorCode,
   twoFactorService,
@@ -48,6 +49,7 @@ export function SetupWizard({
   onEnabled
 }: SetupWizardProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const errorMessage = useTwoFactorErrorMessage()
   const [step, setStep] = useState(0)
@@ -184,7 +186,7 @@ export function SetupWizard({
                   {t`Copy`}
                 </Button>
               </div>
-              <span className="text-xs text-ink-3">{t`Account name in the app: Notifuse (${account})`}</span>
+              <span className="text-xs text-ink-3">{t`Account name in the app: ${brand} (${account})`}</span>
             </div>
             <div className="flex justify-end gap-2">
               <Button onClick={onCancel}>{t`Cancel`}</Button>
@@ -237,7 +239,7 @@ export function SetupWizard({
           <div className="flex flex-col gap-1">
             <h3 className="m-0 text-sm font-semibold text-ink">{t`Save your recovery codes`}</h3>
             <p className="m-0 text-sm text-ink-2">
-              {t`If you lose your phone, each code lets you sign in once. This is the only time Notifuse shows them.`}
+              {t`If you lose your phone, each code lets you sign in once. This is the only time ${brand} shows them.`}
             </p>
           </div>
           <RecoveryCodesList codes={codes} email={email} saved={saved} onSavedChange={setSaved} />

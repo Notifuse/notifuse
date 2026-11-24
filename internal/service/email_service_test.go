@@ -3094,3 +3094,47 @@ func TestEmailService_VisitLink_RecordsEngagement(t *testing.T) {
 		})
 	}
 }
+
+func TestEmailService_TestEmailProvider_NamesTheBrand(t *testing.T) {
+	cases := []struct {
+		name        string
+		brandName   func() string
+		subject     string
+		htmlContent string
+	}{
+		{"without a brand", nil, "Notifuse: Test Email Provider", "<h1>Notifuse: Test Email Provider</h1>"},
+		{"with a brand, escaped in the HTML", func() string { return "A & B" }, "A & B: Test Email Provider", "<h1>A &amp; B: Test Email Provider</h1>"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockAuthService := mocks.NewMockAuthService(ctrl)
+			mockSESService := mocks.NewMockEmailProviderService(ctrl)
+			emailService := EmailService{
+				logger:      pkgmocks.NewMockLogger(ctrl),
+				authService: mockAuthService,
+				sesService:  mockSESService,
+				brandName:   tc.brandName,
+			}
+			ctx := context.Background()
+			mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws1").
+				Return(ctx, &domain.User{ID: "user-123"}, emailOwner(), nil)
+			var sent domain.SendEmailProviderRequest
+			mockSESService.EXPECT().SendEmail(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, request domain.SendEmailProviderRequest) error {
+					sent = request
+					return nil
+				})
+
+			provider := domain.EmailProvider{
+				Kind:    domain.EmailProviderKindSES,
+				Senders: []domain.EmailSender{{Email: "sender@example.com", Name: "Sender"}},
+				SES:     &domain.AmazonSESSettings{Region: "us-east-1", AccessKey: "k", SecretKey: "s"},
+			}
+			require.NoError(t, emailService.TestEmailProvider(ctx, "ws1", "", provider, "to@example.com"))
+			assert.Equal(t, tc.subject, sent.Subject)
+			assert.Contains(t, sent.Content, tc.htmlContent)
+		})
+	}
+}

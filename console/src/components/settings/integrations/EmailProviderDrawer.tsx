@@ -17,6 +17,7 @@ import {
 } from 'antd'
 import { Pencil, Plus, Send, Trash2 } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../../hooks/useBrandName'
 import { v4 as uuidv4 } from 'uuid'
 import type {
   EmailProvider,
@@ -123,6 +124,7 @@ export function EmailProviderDrawer({
   onTest
 }: EmailProviderDrawerProps) {
   const { t, i18n } = useLingui()
+  const brand = useBrandName()
   const { message, modal } = App.useApp()
   const { int } = useNumberFormat()
   const [form] = Form.useForm<EmailProviderFormValues>()
@@ -259,7 +261,7 @@ export function EmailProviderDrawer({
       const confirmed = await new Promise<boolean>((resolve) => {
         modal.confirm({
           title: t`Create an SES tenant for this integration?`,
-          content: t`Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume.`,
+          content: t`${brand} will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume.`,
           okText: t`Create tenant`,
           cancelText: t`Not now`,
           onOk: () => resolve(true),
@@ -481,7 +483,7 @@ export function EmailProviderDrawer({
         <SettingsRows>
           <SettingsRow
             label={labelWithOptional(t`Configuration set`)}
-            help={t`Leave empty to use the one Notifuse manages for this integration.`}
+            help={t`Leave empty to use the one ${brand} manages for this integration.`}
             htmlFor="ses_configuration_set_name"
           >
             <Form.Item
@@ -594,7 +596,7 @@ export function EmailProviderDrawer({
             </div>
           </SettingsRow>
           {textField(['smtp', 'ehlo_hostname'], t`EHLO hostname`, {
-            help: t`The name Notifuse gives when it connects. Defaults to the host above`,
+            help: t`The name ${brand} gives when it connects. Defaults to the host above`,
             placeholder: t`Defaults to SMTP host`,
             optionalLabel: true
           })}

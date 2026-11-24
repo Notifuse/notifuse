@@ -15,10 +15,12 @@ import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
 import { InstanceLogo } from '../components/brand/InstanceLogo'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../hooks/useBrandName'
 import { takeSignInEmail } from '../components/setup/signInHandoff'
 
 export function SignInPage() {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { signin } = useAuth()
   const navigate = useNavigate()
   const search = useSearch({ from: '/console/signin' })
@@ -147,7 +149,7 @@ export function SignInPage() {
         // An invitee whose identity provider vouches for their address gets an account;
         // one whose provider does not is refused here and has to use the emailed link.
         case 'not_provisioned':
-          return t`No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you.`
+          return t`No ${brand} account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you.`
         case 'domain_not_allowed':
           return t`Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you.`
         case 'email_unverified':
@@ -162,7 +164,7 @@ export function SignInPage() {
           return t`Single sign-on failed. Please try again or use a magic code.`
       }
     },
-    [t]
+    [t, brand]
   )
 
   const handleOidcExchange = useCallback(
@@ -287,7 +289,7 @@ export function SignInPage() {
               description={
                 <>
                   <p style={{ marginBottom: 8, overflowWrap: 'anywhere' }}>
-                    {t`This page is served from ${pageOrigin}, but this instance sends its requests to ${unreachableEndpoint}, which did not answer. If Notifuse has moved to ${pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server.`}
+                    {t`This page is served from ${pageOrigin}, but this instance sends its requests to ${unreachableEndpoint}, which did not answer. If ${brand} has moved to ${pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server.`}
                   </p>
                   <a
                     href="https://docs.notifuse.com/self-hosting/changing-domain"

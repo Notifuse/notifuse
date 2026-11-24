@@ -95,7 +95,7 @@ func securityNoticeDetails(t TwoFactorStrings, n SecurityNotice) [][2]string {
 // securityNoticeMessage builds a security notice. Every value is escaped in the HTML part,
 // the browser string first among them.
 func (m *SMTPMailer) securityNoticeMessage(email string, n SecurityNotice, language string) (*mail.Msg, string, error) {
-	tr := GetTranslations(language)
+	tr := m.texts(language)
 	t := tr.TwoFactor
 	subject, body, err := securityNoticeText(t, n)
 	if err != nil {
@@ -163,7 +163,7 @@ func (m *SMTPMailer) SendSecurityNotice(email string, notice SecurityNotice, lan
 
 // SendSecurityNotice logs the security notice to the console.
 func (m *ConsoleMailer) SendSecurityNotice(email string, notice SecurityNotice, language string) error {
-	tr := GetTranslations(language)
+	tr := m.texts(language)
 	subject, body, err := securityNoticeText(tr.TwoFactor, notice)
 	if err != nil {
 		return err

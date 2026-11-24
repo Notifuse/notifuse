@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Alert, Button, Form, Input } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import {
   twoFactorErrorCode,
   twoFactorService,
@@ -30,6 +31,7 @@ export function TwoFactorChallengeForm({
   invitation = false
 }: TwoFactorChallengeFormProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const errorMessage = useTwoFactorErrorMessage()
   const [form] = Form.useForm<{ code: string }>()
   const [useRecovery, setUseRecovery] = useState(false)
@@ -132,7 +134,7 @@ export function TwoFactorChallengeForm({
           </Button>
         </div>
         <p className="m-0 text-xs text-ink-3">
-          {t`Lost your phone and your recovery codes? Your Notifuse administrator can reset two-factor authentication for your account.`}
+          {t`Lost your phone and your recovery codes? Your ${brand} administrator can reset two-factor authentication for your account.`}
         </p>
       </div>
     </Form>

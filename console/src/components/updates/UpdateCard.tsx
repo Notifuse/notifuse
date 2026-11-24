@@ -1,6 +1,7 @@
 import { Button, Popconfirm } from 'antd'
 import { CloseOutlined, SafetyCertificateOutlined, WarningOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { plural } from '@lingui/core/macro'
 import type { UpdateCheckResponse } from '../../services/updates'
 
@@ -23,6 +24,7 @@ const CARD_TONES = {
  */
 export function UpdateCard({ data, onOpen, onIgnore }: UpdateCardProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const latest = data.latest
   const highlights = (data.releases[0]?.highlights ?? []).slice(0, 2)
   const warnings = data.releases.reduce((count, release) => count + release.before_upgrade.length, 0)
@@ -52,7 +54,7 @@ export function UpdateCard({ data, onOpen, onIgnore }: UpdateCardProps) {
           </Popconfirm>
         </div>
       )}
-      <div className="pr-6 text-base font-semibold text-ink">{t`Notifuse ${latest} is available`}</div>
+      <div className="pr-6 text-base font-semibold text-ink">{t`${brand} ${latest} is available`}</div>
       <div className="text-xs text-ink-2">{behind}</div>
       {securityRelease && (
         <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-danger-fg">

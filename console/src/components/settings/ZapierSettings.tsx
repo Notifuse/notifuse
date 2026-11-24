@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Alert, App, Button, Form, Input } from 'antd'
 import { Copy, ExternalLink } from 'lucide-react'
 import { Trans, useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { workspaceService, type Integration } from '../../services/api/workspace'
 import { Panel } from '../layout'
 import { SettingsRow, SettingsRows } from './SettingsRow'
@@ -73,6 +74,7 @@ export function ZapierSettings({
   formRef
 }: ZapierSettingsProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const [form] = Form.useForm<ZapierFormValues>()
   const [connecting, setConnecting] = useState(false)
@@ -153,7 +155,7 @@ export function ZapierSettings({
       help={
         isEditing
           ? t`Renaming this connection does not change the address of the API key it already minted.`
-          : t`Names this connection in Notifuse, and the API key it creates in Settings → Team & API keys.`
+          : t`Names this connection in ${brand}, and the API key it creates in Settings → Team & API keys.`
       }
       htmlFor="label"
     >
@@ -209,7 +211,7 @@ export function ZapierSettings({
       <div className="rounded-lg border border-line-soft bg-subtle px-3.5 py-3 text-sm text-ink-2">
         <Trans>
           Connecting Zapier lets a Zap send your transactional notifications — an order confirmation, a password
-          reset — using your templates and your email provider. A Zap can also react to Notifuse events, such as a
+          reset — using your templates and your email provider. A Zap can also react to {brand} events, such as a
           new contact, a list subscription or a segment a contact joined, and create or update contacts and
           subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can
           see in Settings → Webhooks.

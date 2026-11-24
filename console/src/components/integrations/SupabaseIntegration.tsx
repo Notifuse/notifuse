@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { App, Form, Input, Select, Switch } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { Integration, SupabaseIntegrationSettings, Workspace } from '../../services/api/types'
 import { listsApi, List } from '../../services/api/list'
 import { Mono, Panel } from '../layout'
@@ -26,6 +27,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
   formRef
 }) => {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const [form] = Form.useForm()
   const secretPlaceholder = useSecretPlaceholder(integration)
@@ -185,7 +187,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
 
       <Panel
         title={t`Send Email hook`}
-        extra={<span className="text-xs text-ink-3">{t`Supabase sends its auth emails through Notifuse`}</span>}
+        extra={<span className="text-xs text-ink-3">{t`Supabase sends its auth emails through ${brand}`}</span>}
       >
         <SettingsRows>
           <SettingsRow label={t`Hook URL`} help={t`Paste it in Supabase › Authentication › Hooks`}>

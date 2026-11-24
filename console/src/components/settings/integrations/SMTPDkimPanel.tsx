@@ -3,6 +3,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../../hooks/useBrandName'
 import { HelpTip, Panel, Pill } from '../../layout'
 import {
   dkimApi,
@@ -30,6 +31,7 @@ interface SenderDomainRow {
  */
 export function SMTPDkimPanel({ workspaceId, senders }: SMTPDkimPanelProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const listQuery = useQuery({
     queryKey: dkimQueryKeys.list(workspaceId),
     queryFn: () => dkimApi.list(workspaceId)
@@ -85,7 +87,7 @@ export function SMTPDkimPanel({ workspaceId, senders }: SMTPDkimPanelProps) {
         <span className="inline-flex items-center gap-1.5">
           {t`DKIM`}
           <HelpTip label={t`About DKIM signing`} icon="info">
-            {t`Notifuse signs each email before handing it to your server, and the signature covers the one-click unsubscribe headers. If your server signs too, both signatures are valid. A key signs only its exact domain.`}
+            {t`${brand} signs each email before handing it to your server, and the signature covers the one-click unsubscribe headers. If your server signs too, both signatures are valid. A key signs only its exact domain.`}
           </HelpTip>
         </span>
       }

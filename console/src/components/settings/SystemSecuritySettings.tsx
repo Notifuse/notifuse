@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Alert, Form, Input, Switch, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { useOptionalAuth } from '../../contexts/AuthContext'
 import type { SystemTwoFactorSettings } from '../../types/settings'
 import { ResetTwoFactorButton } from '../two_factor/ResetTwoFactorButton'
@@ -17,6 +18,7 @@ export interface SystemSecuritySettingsProps {
  */
 export function SystemSecuritySettings({ twoFactor }: SystemSecuritySettingsProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const auth = useOptionalAuth()
   const [resetEmail, setResetEmail] = useState('')
   const fromEnv = twoFactor?.from_env === true
@@ -48,7 +50,7 @@ export function SystemSecuritySettings({ twoFactor }: SystemSecuritySettingsProp
       </div>
 
       {fromEnv ? (
-        <Alert type="info" showIcon message={t`Set by the REQUIRE_TWO_FACTOR environment variable. Change it there and restart Notifuse.`} />
+        <Alert type="info" showIcon message={t`Set by the REQUIRE_TWO_FACTOR environment variable. Change it there and restart ${brand}.`} />
       ) : rootWithout && !required ? (
         <Alert
           type="warning"
@@ -62,7 +64,7 @@ export function SystemSecuritySettings({ twoFactor }: SystemSecuritySettingsProp
         <div className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-ink">{t`People without two-factor authentication`}</span>
           <span className="text-sm text-ink-2">
-            {t`They'll be asked to turn it on the next time they open Notifuse. Let them know before you switch this on.`}
+            {t`They'll be asked to turn it on the next time they open ${brand}. Let them know before you switch this on.`}
           </span>
           <ul data-users-without-two-factor className="m-0 max-h-40 list-none overflow-y-auto rounded-md border border-line-soft p-0">
             {usersWithout.map((email) => (

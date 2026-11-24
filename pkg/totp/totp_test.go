@@ -119,4 +119,11 @@ func TestKeyURI(t *testing.T) {
 
 	assert.True(t, strings.HasSuffix(uri, "&secret="+EncodeSecret(rfcSecret)), "the secret comes last")
 	assert.Contains(t, uri, "otpauth://totp/Acme%20Notifuse:a+b%2Fc@x.io?", "the account's slash is escaped inside the label")
+	assert.Contains(t, uri, "?issuer=Acme%20Notifuse&", "a space in the issuer is %20, never +")
+
+	plus := KeyURI("A+B Mail", "u@x.io", rfcSecret)
+	assert.Contains(t, plus, "?issuer=A%2BB%20Mail&", "a real plus stays a plus")
+	parsedPlus, err := url.Parse(plus)
+	require.NoError(t, err)
+	assert.Equal(t, "A+B Mail", parsedPlus.Query().Get("issuer"))
 }

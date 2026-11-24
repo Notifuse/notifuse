@@ -19,7 +19,7 @@ import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { Panel, Pill } from '../layout'
 import { RecentThemesTable } from '../blog/RecentThemesTable'
 import { blogThemesApi } from '../../services/api/blog'
-import { THEME_PRESETS } from '../blog/themePresets'
+import { getThemePresets } from '../blog/themePresets'
 import { ImageURLInput } from '../common/ImageURLInput'
 
 interface BlogSettingsProps {
@@ -142,8 +142,8 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
           console.log('Creating default theme...')
           // Create default theme
           const createdTheme = await blogThemesApi.create(workspace.id, {
-            files: THEME_PRESETS[0].files,
-            notes: THEME_PRESETS[0].description
+            files: getThemePresets()[0].files,
+            notes: getThemePresets()[0].description
           })
 
           console.log('Theme created:', createdTheme.theme.version)

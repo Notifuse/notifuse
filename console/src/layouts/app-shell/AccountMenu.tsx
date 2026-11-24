@@ -7,6 +7,7 @@ import { LANGUAGES, changeLanguage } from '../../i18n/languages'
 import type { Locale } from '../../i18n'
 import { getGravatarUrl, initialsFor } from './gravatar'
 import { useFocusBack } from './useFocusBack'
+import { versionLabel } from '../../components/brand/instanceBranding'
 
 export type AccountRole = 'root' | 'owner' | 'member'
 
@@ -106,7 +107,7 @@ export function AccountMenu({
     {
       key: 'version',
       disabled: true,
-      label: <span className="font-mono text-overline text-ink-3">Notifuse v{window.VERSION || '1.0'}</span>
+      label: <span className="font-mono text-overline text-ink-3">{versionLabel(window.VERSION || '1.0')}</span>
     }
   ]
 

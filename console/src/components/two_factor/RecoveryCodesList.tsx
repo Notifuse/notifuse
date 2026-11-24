@@ -1,6 +1,8 @@
 import { Button, Checkbox, App } from 'antd'
 import { Copy, Download, Printer } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
+import { getInstanceBranding } from '../brand/instanceBranding'
 
 export interface RecoveryCodesListProps {
   codes: string[]
@@ -20,9 +22,10 @@ function codesText(codes: string[], heading: string): string {
  */
 export function RecoveryCodesList({ codes, email, saved, onSavedChange }: RecoveryCodesListProps) {
   const { t } = useLingui()
+  const brand = useBrandName()
   const { message } = App.useApp()
   const account = email ?? ''
-  const heading = account ? t`Notifuse recovery codes for ${account}` : t`Notifuse recovery codes`
+  const heading = account ? t`${brand} recovery codes for ${account}` : t`${brand} recovery codes`
 
   const copy = async () => {
     try {
@@ -37,7 +40,8 @@ export function RecoveryCodesList({ codes, email, saved, onSavedChange }: Recove
     const url = URL.createObjectURL(new Blob([codesText(codes, heading)], { type: 'text/plain' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = 'notifuse-recovery-codes.txt'
+    // No product name in the file name under the instance's own brand.
+    link.download = getInstanceBranding().custom ? 'recovery-codes.txt' : 'notifuse-recovery-codes.txt'
     // Attached and revoked later: some browsers ignore a click on a detached link, or start
     // the download after a revoke made at once.
     document.body.appendChild(link)

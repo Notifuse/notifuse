@@ -75,7 +75,7 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'segments.update': msg({ message: 'Updated the segment <0>{target}</0>' }),
   'ses.enableTenantIsolation': msg({ message: 'Turned on Amazon SES tenant isolation for <0>{target}</0>' }),
   'settings.update': msg({ message: 'Updated the system settings' }),
-  'setup.initialize': msg({ message: 'Set up this Notifuse installation' }),
+  'setup.initialize': msg({ message: 'Set up this installation' }),
   'templateBlocks.create': msg({ message: 'Saved the block <0>{target}</0>' }),
   'templateBlocks.delete': msg({ message: 'Deleted the saved block <0>{target}</0>' }),
   'templateBlocks.update': msg({ message: 'Updated the saved block <0>{target}</0>' }),

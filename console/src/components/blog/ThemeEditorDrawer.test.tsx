@@ -5,7 +5,7 @@ import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { THEME_PRESETS } from './themePresets'
+import { getThemePresets } from './themePresets'
 import type { BlogTheme } from '../../services/api/blog'
 
 // Monaco does not run in jsdom: a textarea stands in, so a file can be edited.
@@ -29,7 +29,7 @@ const theme = (published: boolean): BlogTheme =>
   ({
     version: 3,
     published_at: published ? '2026-11-10T00:00:00Z' : null,
-    files: THEME_PRESETS[0].files,
+    files: getThemePresets()[0].files,
     notes: '',
     created_at: '2026-11-01T00:00:00Z',
     updated_at: '2026-11-01T00:00:00Z'

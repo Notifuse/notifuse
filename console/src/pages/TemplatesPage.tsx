@@ -4,6 +4,7 @@ import { App, Button, Dropdown, Empty, Result, Skeleton, Table, Tooltip } from '
 import type { MenuProps, TableColumnType } from 'antd'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../hooks/useBrandName'
 import { Eye, MoreHorizontal, Plus, SquareTerminal, Upload } from 'lucide-react'
 import { templatesApi } from '../services/api/template'
 import { emailTemplatesQuery } from '../services/api/sharedQueries'
@@ -64,6 +65,7 @@ const integrationIcon = (type: string) =>
 
 export function TemplatesPage() {
   const { t, i18n } = useLingui()
+  const brand = useBrandName()
   const { message, modal } = App.useApp()
   const relative = useRelativeDate()
   const { workspaceId } = useParams({ from: ROUTE })
@@ -581,7 +583,7 @@ export function TemplatesPage() {
   }
 
   const importMenu: MenuProps['items'] = [
-    { key: 'json', label: t`Notifuse export (.json)`, onClick: () => jsonInput.current?.click() },
+    { key: 'json', label: t`${brand} export (.json)`, onClick: () => jsonInput.current?.click() },
     { key: 'mjml', label: t`MJML file (.mjml)`, onClick: () => mjmlInput.current?.click() }
   ]
 

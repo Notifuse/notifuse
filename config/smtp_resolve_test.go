@@ -39,7 +39,7 @@ func TestResolveSMTPConfig(t *testing.T) {
 	t.Run("installed with nothing stored falls back to the built-in values", func(t *testing.T) {
 		got := resolveSMTPConfig(EnvValues{}, &SystemSettings{IsInstalled: true, SMTPUseTLS: true}, true)
 		assert.Equal(t, defaultSMTPPort, got.Port)
-		assert.Equal(t, "Notifuse", got.FromName)
+		assert.Empty(t, got.FromName, "the mailer names the brand")
 		assert.True(t, got.UseTLS)
 	})
 
@@ -47,7 +47,7 @@ func TestResolveSMTPConfig(t *testing.T) {
 		got := resolveSMTPConfig(EnvValues{SMTPHost: "smtp.env.com"}, stored, false)
 		assert.Equal(t, "smtp.env.com", got.Host)
 		assert.Equal(t, defaultSMTPPort, got.Port)
-		assert.Equal(t, "Notifuse", got.FromName)
+		assert.Empty(t, got.FromName, "the mailer names the brand")
 		assert.True(t, got.UseTLS, "TLS is on unless SMTP_USE_TLS=false")
 		assert.Empty(t, got.FromEmail)
 	})

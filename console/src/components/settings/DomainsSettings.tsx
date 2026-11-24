@@ -4,6 +4,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { ChevronRight, Plus, RefreshCw } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { CodeBlock } from '../logs/CodeBlock'
 import { HelpTip, KeyValueList, Mono, Panel, Pill, SidePanel, useRelativeDate } from '../layout'
@@ -26,6 +27,7 @@ interface CheckOutcome {
 
 export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) {
   const { t, i18n } = useLingui()
+  const brand = useBrandName()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
   const relativeDate = useRelativeDate()
@@ -135,7 +137,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
     const domain = record.domain
     modal.confirm({
       title: t`Delete the key of ${domain}?`,
-      content: t`Notifuse stops signing emails from ${domain}. You can then remove its DNS record.`,
+      content: t`${brand} stops signing emails from ${domain}. You can then remove its DNS record.`,
       okText: t`Delete`,
       cancelText: t`Cancel`,
       okButtonProps: { danger: true },
@@ -324,7 +326,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
           {t`DNS record`}
         </h3>
         <p className="m-0 text-sm text-ink-2">
-          {t`At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email.`}
+          {t`At your DNS host, add a TXT record with this name and value. ${brand} starts signing as soon as it finds it. Keep the record for as long as the domain sends email.`}
         </p>
         <div data-testid="dkim-dns-record" className="flex flex-col gap-3">
           <KeyValueList labelWidth={80} items={[{ label: t`Type`, value: <Mono>{record.dns_record.type}</Mono> }]} />
@@ -390,7 +392,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
     <>
       <SettingsSectionHeader
         title={t`Domains`}
-        description={t`Notifuse adds a DKIM signature to the emails your SMTP integrations send from these domains.`}
+        description={t`${brand} adds a DKIM signature to the emails your SMTP integrations send from these domains.`}
       />
 
       <Panel
@@ -399,7 +401,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
           <span className="inline-flex items-center gap-1.5">
             {t`DKIM keys`}
             <HelpTip label={t`About DKIM keys`} icon="info">
-              {t`Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. Notifuse checks a record every hour until it finds it, then once a day, and every hour again after a failed check. A published key stops signing after ${DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart.`}
+              {t`Amazon SES, Mailgun, SendGrid and the other API providers sign on their side, so these keys only apply to SMTP integrations. A key signs once its DNS record is found, and only for its exact domain: a key on acme.io does not sign news.acme.io. ${brand} checks a record every hour until it finds it, then once a day, and every hour again after a failed check. A published key stops signing after ${DKIM_DOWNGRADE_THRESHOLD} failed checks an hour apart.`}
             </HelpTip>
           </span>
         }
@@ -448,7 +450,7 @@ export function DomainsSettings({ workspaceId, isOwner }: DomainsSettingsProps) 
           <Form.Item
             name="domain"
             label={t`Domain`}
-            extra={t`Notifuse creates the key. You publish one DNS record.`}
+            extra={t`${brand} creates the key. You publish one DNS record.`}
             rules={[{ required: true, whitespace: true, message: t`Please enter a domain` }]}
           >
             <Input placeholder="acme.io" autoFocus onPressEnter={handleCreate} />

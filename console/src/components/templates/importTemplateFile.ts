@@ -1,6 +1,7 @@
 import { msg, plural } from '@lingui/core/macro'
 import type { I18n } from '@lingui/core'
 import type { EmailBlock } from '../email_builder/types'
+import { getBrandName } from '../brand/instanceBranding'
 import { EmailBlockClass } from '../email_builder/EmailBlockClass'
 import { conditionErrorsInTree } from '../email_builder/displayCondition'
 import {
@@ -150,12 +151,12 @@ function importErrorMessage(error: MjmlImportError, i18n: I18n): string {
       i18n._(msg`Liquid between the blocks of <${tag}> cannot be imported into the visual editor.`),
     outside_root: () => i18n._(msg`Liquid or markup outside <mjml> cannot be imported.`),
     mark_not_closed: () =>
-      i18n._(msg`This notifuse:${tag} mark of a Notifuse export is not closed.`),
+      i18n._(msg`This notifuse:${tag} mark of a ${{ brand: getBrandName() }} export is not closed.`),
     mark_not_opened: () =>
-      i18n._(msg`This notifuse:${tag} mark of a Notifuse export closes no mark.`),
+      i18n._(msg`This notifuse:${tag} mark of a ${{ brand: getBrandName() }} export closes no mark.`),
     condition_mark_invalid: () =>
       i18n._(
-        msg`This notifuse:condition mark of a Notifuse export holds no block or no valid condition.`
+        msg`This notifuse:condition mark of a ${{ brand: getBrandName() }} export holds no block or no valid condition.`
       )
   }
   return messages[error.reason]()

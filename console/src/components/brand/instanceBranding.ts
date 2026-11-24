@@ -35,6 +35,23 @@ export function getBrandName(): string {
   return getInstanceBranding().name || DEFAULT_BRAND_NAME
 }
 
+/** The version as the console prints it: "Notifuse v45.0", or "v45.0" under the instance's own brand. */
+export function versionLabel(version: string): string {
+  return getInstanceBranding().custom ? `v${version}` : `${DEFAULT_BRAND_NAME} v${version}`
+}
+
+/**
+ * A text written for the AI assistants with the instance's name in place of Notifuse's, so an
+ * assistant never introduces itself under a name the operator does not show. Unchanged in default
+ * mode.
+ */
+export function withBrandName(text: string): string {
+  const brand = getBrandName()
+  if (brand === DEFAULT_BRAND_NAME) return text
+  // A function, so a "$" in the name is not read as a replacement pattern.
+  return text.replace(/\bNotifuse\b/g, () => brand)
+}
+
 type GraphemeSegmenterCtor = new (
   locales?: string | string[],
   options?: { granularity: 'grapheme' }

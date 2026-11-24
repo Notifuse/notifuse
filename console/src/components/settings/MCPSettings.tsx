@@ -5,6 +5,7 @@ import type { TableColumnsType } from 'antd'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trans, useLingui } from '@lingui/react/macro'
+import { useBrandName } from '../../hooks/useBrandName'
 import { Copy } from 'lucide-react'
 
 import type { Workspace, WorkspaceMember } from '../../services/api/types'
@@ -79,6 +80,7 @@ function CodeBlock({ code, copyLabel, onCopy }: { code: string; copyLabel: strin
  */
 export function MCPSettings({ workspace, members, isOwner, onWorkspaceUpdate }: MCPSettingsProps) {
   const { t, i18n } = useLingui()
+  const brand = useBrandName()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
   const relativeDate = useRelativeDate()
@@ -175,14 +177,14 @@ export function MCPSettings({ workspace, members, isOwner, onWorkspaceUpdate }: 
       <Trans key="2">
         Paste <Mono>{url}</Mono> as its URL and select <strong>Connect</strong>.
       </Trans>,
-      <Trans key="3">Notifuse opens and asks for an API key. Paste the key you created for Claude.</Trans>
+      <Trans key="3">{brand} opens and asks for an API key. Paste the key you created for Claude.</Trans>
     ],
     chatgpt: [
       <Trans key="1">In ChatGPT, open the connector settings and create a connector.</Trans>,
       <Trans key="2">
         Paste <Mono>{url}</Mono> as its URL and choose OAuth as its authentication.
       </Trans>,
-      <Trans key="3">Notifuse opens and asks for an API key. Paste the key you created for ChatGPT.</Trans>
+      <Trans key="3">{brand} opens and asks for an API key. Paste the key you created for ChatGPT.</Trans>
     ],
     'claude-code': [
       <Trans key="1">

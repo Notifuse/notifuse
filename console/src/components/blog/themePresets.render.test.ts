@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { THEME_PRESETS } from './themePresets'
+import { getThemePresets } from './themePresets'
 import { getMockDataForView } from '../../utils/mockBlogData'
 import { renderBlogPage } from '../../utils/liquidRenderer'
 
@@ -19,7 +19,7 @@ describe('the default theme, rendered by the preview', () => {
     ) {
       return { ...resolved.call(this), locale: 'fr-FR' }
     })
-    const preset = THEME_PRESETS[0]
+    const preset = getThemePresets()[0]
     for (const view of ['home', 'post'] as const) {
       const result = await renderBlogPage(preset.files, view, getMockDataForView(view))
       expect(result.success).toBe(true)
@@ -30,7 +30,7 @@ describe('the default theme, rendered by the preview', () => {
   })
 
   it('stretches the post text to the screen on a phone, rather than to its widest code line', () => {
-    const css = THEME_PRESETS[0].files['styles.css']
+    const css = getThemePresets()[0].files['styles.css']
     const mobile = css.slice(css.indexOf('/* Post page mobile styles */'))
     expect(mobile).toMatch(/\.post-content-wrapper \{[^}]*flex-direction: column;[^}]*align-items: stretch;/)
   })
