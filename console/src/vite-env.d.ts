@@ -23,6 +23,21 @@ declare global {
     MCP_URL?: string
     // Why the OAuth connection page cannot run, empty when it can.
     MCP_OAUTH_UNAVAILABLE_REASON?: string
+    // The identity to show, resolved by the server. Absent from a config.js that predates it.
+    INSTANCE_BRANDING?: InstanceBrandingGlobal
+    // Set by the inline bootstrap of index.html, which paints the splash before React.
+    hydrateInstanceSplash?: () => void
+  }
+
+  interface InstanceBrandingGlobal {
+    custom: boolean
+    name: string
+    logo_url: string
+    icon_url: string
+    hide_help_menu: boolean
+    splash_logo_src: string
+    favicon_src: string
+    revision: string
   }
 }
 

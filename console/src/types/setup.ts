@@ -38,6 +38,8 @@ export interface SetupStatus {
   env_overrides?: string[]
   /** Random, drawn at each start of the server process: a new value means it restarted. */
   boot_id?: string
+  /** The revision of the brand this process serves. Absent from servers that predate it. */
+  branding_revision?: string
 }
 
 export interface InitializeResponse {
