@@ -30,7 +30,9 @@ import (
 //
 // The rule under test: a deleted contact's unsubscribe, bounce or complaint, removed from the
 // list or not, comes back with the address and holds exactly as it would have held had the
-// contact never been deleted; with forget_opt_outs, nothing comes back.
+// contact never been deleted; with forget_opt_outs, nothing comes back. A subscribe that the
+// remembered opt-out refuses writes nothing: the address does not come back yet, and the
+// opt-out stays remembered for its next return.
 //
 // Paths back: an import with subscribe_to_lists, contacts.upsert, lists.subscribe with an API
 // key, the public form (no signature), the contact's signed link, and a custom event.
@@ -139,6 +141,9 @@ func TestOptOutHashMatrix(t *testing.T) {
 	type outcome struct {
 		code  int // 0 where the path answers no single request worth checking
 		after string
+		// refused: a subscribe the remembered opt-out refuses writes nothing, so the address
+		// does not come back and its hash stays for a later return.
+		refused bool
 	}
 	// expect gives the state after the deletion and the return. The deletion leaves the
 	// opt-out it remembered (removed or not) or nothing; the path then acts on that state as
@@ -151,14 +156,19 @@ func TestOptOutHashMatrix(t *testing.T) {
 		switch path {
 		case "upsert", "custom event":
 			return outcome{after: state}
-		case "import", "api":
+		case "import":
 			if isOptOut(state) {
 				return outcome{code: http.StatusOK, after: state}
 			}
 			return outcome{code: http.StatusOK, after: "active"}
+		case "api":
+			if isOptOut(state) {
+				return outcome{code: http.StatusOK, after: state, refused: true}
+			}
+			return outcome{code: http.StatusOK, after: "active"}
 		case "form":
 			if !kind.public {
-				return outcome{code: http.StatusBadRequest, after: state}
+				return outcome{code: http.StatusBadRequest, after: state, refused: isOptOut(state)}
 			}
 			if state == "none" {
 				if kind.doubleOptin {
@@ -166,14 +176,17 @@ func TestOptOutHashMatrix(t *testing.T) {
 				}
 				return outcome{code: http.StatusOK, after: "active"}
 			}
-			return outcome{code: http.StatusOK, after: state}
+			// On a double opt-in list, the form sends an unsubscribed contact the list's
+			// confirmation email, so the address comes back to receive it.
+			confirms := kind.doubleOptin && strings.TrimPrefix(state, "removed ") == "unsubscribed"
+			return outcome{code: http.StatusOK, after: state, refused: !confirms}
 		case "signed":
 			status := strings.TrimPrefix(state, "removed ")
 			if status == "bounced" || status == "complained" {
-				return outcome{code: http.StatusOK, after: state}
+				return outcome{code: http.StatusOK, after: state, refused: true}
 			}
 			if !kind.public {
-				return outcome{code: http.StatusBadRequest, after: state}
+				return outcome{code: http.StatusBadRequest, after: state, refused: isOptOut(state)}
 			}
 			return outcome{code: http.StatusOK, after: "active"}
 		}
@@ -247,8 +260,13 @@ func TestOptOutHashMatrix(t *testing.T) {
 						if want.code != 0 {
 							assert.Equal(t, want.code, code, "HTTP status")
 						}
-						assert.Equal(t, want.after, stateOf(t, email, kind.list.ID), "state afterwards")
-						assert.Zero(t, countHashesFor(t, db, email), "no hash is left once the address is back")
+						if want.refused {
+							assert.Equal(t, "none", stateOf(t, email, kind.list.ID), "a refused subscribe brings nothing back")
+							assert.Equal(t, 1, countHashesFor(t, db, email), "the opt-out stays remembered for a later return")
+						} else {
+							assert.Equal(t, want.after, stateOf(t, email, kind.list.ID), "state afterwards")
+							assert.Zero(t, countHashesFor(t, db, email), "no hash is left once the address is back")
+						}
 					})
 				}
 			}
