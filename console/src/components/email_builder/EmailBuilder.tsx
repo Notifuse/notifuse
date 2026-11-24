@@ -1275,6 +1275,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
             <div
               ref={settingsPanelRef}
+              data-testid="settings-panel"
               className="w-104 bg-fill border-l border-gray-200 flex flex-col"
             >
               <OverlayScrollbarsComponent

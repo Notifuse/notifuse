@@ -389,10 +389,13 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       return route.fulfill(jsonResponse(withData ? mockTransactionalResponse : mockEmptyTransactional))
     }
     if (url.includes('/api/transactional.get')) {
-      // The notification of the requested id, so a sheet opened by URL shows that one.
+      // The notification of the requested id, so a sheet opened by URL shows that one. An unknown
+      // id answers 404 as the API does: the editor reads it as a free API identifier.
       const id = new URL(url).searchParams.get('id')
-      const notification =
-        mockTransactionalResponse.notifications.find((item) => item.id === id) ?? mockTransactionalResponse.notifications[0]
+      const notification = mockTransactionalResponse.notifications.find((item) => item.id === id)
+      if (!notification) {
+        return route.fulfill({ ...jsonResponse({ error: 'transactional notification not found' }), status: 404 })
+      }
       return route.fulfill(jsonResponse({ notification }))
     }
     if (url.includes('/api/transactional.create')) {

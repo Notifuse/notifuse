@@ -242,8 +242,12 @@ export const openLibraryEditor = async (
   }
   // Saving closes the editor: one save per test
   const saved = async () => {
+    const save = drawer.locator('[data-drawer-bar]').getByRole('button', { name: /^Save v\d+$/ })
+    // With no change the editor disables the button (« No changes to save »): what it would save
+    // is then the tree it opened, and that refusal is what a test of "changes nothing" checks.
+    if (await save.isDisabled()) return find(root, 'B')!
     const count = saves.length
-    await drawer.locator('[data-drawer-bar]').getByRole('button', { name: /^Save v\d+$/ }).click()
+    await save.click()
     await expect.poll(() => saves.length).toBe(count + 1)
     return find(saves[saves.length - 1], 'B')!
   }

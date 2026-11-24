@@ -102,17 +102,66 @@ jobs:
       - name: Unit tests
         run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
+  # The Playwright suite against the Vite dev server, every API call answered by the tests' own
+  # mocks (no backend). It ran only by hand until it had drifted 46 tests behind the screens.
+  # Two shards split the spec files; the dev server is served as https://notifusedev.com:5173
+  # with the certificate committed in console/certificates, so the name must resolve here.
+  e2e:
+    name: E2E tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+    # Pinned: ubuntu-latest moved to 26.04, where this Playwright release cannot install its
+    # Chromium. Move it on with a Playwright upgrade that supports the newer image.
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ./console
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: console/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Resolve the dev server's name
+        run: echo "127.0.0.1 notifusedev.com" | sudo tee -a /etc/hosts
+
+      - name: E2E tests
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+      - name: Upload the report of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: console/playwright-report
+          retention-days: 7
+
   # One check to read and to require, whatever the number of shards. Named after
   # the workflow: the single job's old name is also a job in notification-center.yml,
   # and two checks with one name cannot be told apart by a required-check rule.
   result:
     name: Console checks
     runs-on: ubuntu-latest
-    needs: [checks, unit-tests]
+    needs: [checks, unit-tests, e2e]
     if: always()
     steps:
       - name: Every job passed
         run: |
-          echo "checks: ${{ needs.checks.result }}, unit tests: ${{ needs.unit-tests.result }}"
+          echo "checks: ${{ needs.checks.result }}, unit tests: ${{ needs.unit-tests.result }}, e2e: ${{ needs.e2e.result }}"
           test "${{ needs.checks.result }}" = "success"
           test "${{ needs.unit-tests.result }}" = "success"
+          test "${{ needs.e2e.result }}" = "success"

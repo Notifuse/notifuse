@@ -29,38 +29,35 @@ const OBJECTS = [
   { key: 'logo.png', size: 300 }
 ]
 
-const cors = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-headers': '*',
-  'access-control-allow-methods': 'GET,PUT,POST,DELETE,HEAD',
-  'access-control-expose-headers': '*'
-}
-
-// Answers ListObjectsV2 from OBJECTS and records the deletes; serves every file as a small image.
+// The server lists, deletes and signs uploads for the bucket (the console never talks to it
+// directly), so these answer the console's /api/files.* calls from OBJECTS and record the deletes.
 async function mockStorage(page: Page) {
   const deleted: string[] = []
-  await page.route('https://s3.example.com/**', async (route) => {
-    const request = route.request()
-    if (request.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors })
-    const url = new URL(request.url())
-    if (request.method() === 'DELETE') {
-      deleted.push(decodeURIComponent(url.pathname.replace('/media/', '')))
-      return route.fulfill({ status: 204, headers: cors })
-    }
-    const prefix = url.searchParams.get('prefix') ?? ''
-    const contents = OBJECTS.filter(
-      (object) => object.key.startsWith(prefix) && !deleted.includes(object.key)
+  const live = () => OBJECTS.filter((object) => !deleted.includes(object.key))
+  const json = (body: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+
+  await page.route('**/api/files.list*', (route) => {
+    const prefix = new URL(route.request().url()).searchParams.get('prefix') ?? ''
+    const objects = live()
+      .filter((object) => object.key.startsWith(prefix))
+      .map((object) => ({ ...object, last_modified: '2026-11-01T10:00:00Z' }))
+    return route.fulfill(json({ objects, capped: false, cut_short: false }))
+  })
+  await page.route('**/api/files.delete', (route) => {
+    const { keys } = route.request().postDataJSON() as { keys: string[] }
+    deleted.push(...keys)
+    return route.fulfill(json({ deleted: keys.length, failed: 0 }))
+  })
+  await page.route('**/api/files.deleteFolder', (route) => {
+    const { prefix } = route.request().postDataJSON() as { prefix: string }
+    const keys = live()
+      .map((object) => object.key)
+      .filter((key) => key.startsWith(prefix))
+    deleted.push(...keys)
+    const files = keys.filter((key) => !key.endsWith('/'))
+    return route.fulfill(
+      json({ deleted: keys.length, failed: 0, deleted_files: files.length, failed_files: 0 })
     )
-      .map(
-        (object) =>
-          `<Contents><Key>${object.key}</Key><LastModified>2026-11-01T10:00:00.000Z</LastModified><Size>${object.size}</Size></Contents>`
-      )
-      .join('')
-    return route.fulfill({
-      status: 200,
-      headers: { ...cors, 'content-type': 'application/xml' },
-      body: `<?xml version="1.0" encoding="UTF-8"?><ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>media</Name><Prefix>${prefix}</Prefix><IsTruncated>false</IsTruncated>${contents}</ListBucketResult>`
-    })
   })
   await page.route('https://cdn.example.com/**', (route) =>
     route.fulfill({

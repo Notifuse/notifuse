@@ -167,6 +167,11 @@ const openTemplateEditor = async (page: Page, shown = template) => {
 }
 
 test.describe('Template content in the email editor', () => {
+  // Wide enough for the 600px email between the editor's panels, as in the library tests:
+  // narrower, the canvas scrolls sideways and what a block draws past its left edge sits under
+  // the left panel.
+  test.use({ viewport: { width: 1600, height: 1000 } })
+
   test('canvas and block editors show it without running it', async ({
     authenticatedPageWithData: page
   }) => {
@@ -190,8 +195,10 @@ test.describe('Template content in the email editor', () => {
     await expect(buttonBlock.locator('.ProseMirror')).toContainText('Buy now')
     await buttonBlock.locator('.ProseMirror').hover()
 
-    // Side panel of the selected button shows its link target as text
-    await expect.soft(drawer.getByText(`javascript:${probe('button-href')}`)).toBeVisible()
+    // Side panel of the selected button shows its link target as a field's value, never a link
+    await expect
+      .soft(drawer.getByRole('textbox', { name: 'Link URL', exact: true }))
+      .toHaveValue(`javascript:${probe('button-href')}`)
     await expect.soft(drawer.locator('a[href^="javascript:"]')).toHaveCount(0)
 
     // Give image loads time to fail and fire whatever they would fire
@@ -241,10 +248,10 @@ test.describe('Template content in the email editor', () => {
         return element?.tagName ?? null
       }, [x, y] as const)
 
-    // The band reaches past the text, right beside the formatting toolbar...
+    // The band reaches past the text: right of it, between the toolbar and the text...
     const formattingBottom = formattingBox.y + formattingBox.height - 2
     expect(formattingBottom).toBeLessThan(area.y)
-    expect(await hit(formattingBox.x + formattingBox.width + 8, formattingBottom)).toBe('content')
+    expect(await hit(area.x + area.width + 10, area.y - 4)).toBe('content')
     // ...and not over either toolbar
     expect(await hit(formattingBox.x + formattingBox.width / 2, formattingBottom)).toBe(
       'formatting toolbar'
@@ -438,16 +445,13 @@ test.describe('Contact timeline page views', () => {
     await expect(contact).toBeVisible()
     await expect(contact.getByText('/pricing', { exact: true })).toBeVisible()
 
-    // The script path is listed as text, with nothing to open
+    // The script path is listed as text, with nothing to open; each other path is a button
     await expect.soft(contact.getByText(`javascript:${probe('timeline-path')}`)).toBeVisible()
-    await expect.soft(contact.getByRole('button', { name: 'View website' })).toHaveCount(2)
+    await expect.soft(contact.getByRole('button', { name: /^javascript:/ })).toHaveCount(0)
+    await expect.soft(contact.getByRole('button', { name: '/pricing', exact: true })).toHaveCount(1)
 
     // Two slashes stay on the visited site
-    await contact
-      .getByText('//other.example/landing', { exact: true })
-      .locator('..')
-      .getByRole('button', { name: 'View website' })
-      .click()
+    await contact.getByRole('button', { name: '//other.example/landing', exact: true }).click()
     const viewer = page.getByRole('dialog', { name: 'View website', exact: true })
     await expect(viewer.getByText('https://www.example.com//other.example/landing')).toBeVisible()
     await expect(viewer.locator('iframe')).toHaveAttribute(

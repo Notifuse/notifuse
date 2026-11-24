@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useId, useRef, useState, type ReactNode } from 'react'
 import { Drawer, Tabs, type TabsProps } from 'antd'
 import { layout } from '../../theme/tokens'
 import { CloseButton, CopyLinkButton, DrawerNavButtons, type DrawerNav } from './DrawerControls'
@@ -58,6 +58,8 @@ export function SidePanel({
 
   const firstTab = tabs?.defaultActiveKey ?? tabs?.items[0]?.key
   const [ownTab, setOwnTab] = useState(firstTab)
+  // The drawer's dialog is named after the title, which this header draws instead of antd's.
+  const titleId = useId()
   const activeKey = tabs?.activeKey ?? ownTab
 
   // A panel opened again starts on its first tab, as one opened for the first time does
@@ -87,6 +89,7 @@ export function SidePanel({
       closable={false}
       destroyOnHidden
       mask={{ blur: false }}
+      aria-labelledby={titleId}
       styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
     >
       <div
@@ -97,6 +100,7 @@ export function SidePanel({
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex min-w-0 items-center gap-2">
             <h2
+              id={titleId}
               data-unreset
               className="m-0 truncate text-subtitle font-semibold tracking-[-0.015em] text-ink"
             >

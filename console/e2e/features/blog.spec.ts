@@ -16,7 +16,7 @@ async function openCreatePostDrawer(page: Page): Promise<Locator> {
   // The button carries a plus icon whose aria-label joins the accessible name,
   // so the match is on the substring rather than the exact string.
   await page.getByRole('button', { name: 'New post' }).click()
-  const postDrawer = drawer(page, 'Create New Post')
+  const postDrawer = drawer(page, 'New post')
   await expect(postDrawer).toBeVisible()
   return postDrawer
 }
@@ -57,8 +57,8 @@ async function fillRequiredPostFields(
   await selectOption(page, postDrawer, 'category_id', 'Engineering')
   await postDrawer.locator('#reading_time_minutes').fill('7')
 
-  await postDrawer.getByRole('button', { name: 'Add Author' }).click()
-  const authorModal = drawer(page, 'Add Author')
+  await postDrawer.getByRole('button', { name: 'Add author' }).click()
+  const authorModal = drawer(page, 'Add author')
   await expect(authorModal).toBeVisible()
   await authorModal.locator('#name').fill(authorName)
   await authorModal.getByRole('button', { name: 'Add', exact: true }).click()
@@ -87,17 +87,12 @@ async function fillSEOFields(
   }
   // Close the keyword dropdown so it stops covering the fields below it
   await postDrawer.locator('#seo_keywords').press('Escape')
-  await selectOption(page, postDrawer, 'seo_meta_robots', 'Index and follow links')
   await postDrawer.locator('#seo_canonical_url').fill(seo.canonical_url)
   await postDrawer.locator('#seo_og_title').fill(seo.og_title)
   await postDrawer.locator('#seo_og_description').fill(seo.og_description)
   // ImageURLInput does not forward the Form.Item id to its Input, so this one is
-  // reached through its form item instead.
-  await postDrawer
-    .locator('.ant-form-item')
-    .filter({ hasText: 'Social Share Image URL' })
-    .locator('input')
-    .fill(seo.og_image)
+  // reached through its label instead.
+  await postDrawer.getByRole('textbox', { name: 'Share image', exact: true }).fill(seo.og_image)
 }
 
 test.describe('Blog Feature', () => {
@@ -143,7 +138,7 @@ test.describe('Blog Feature', () => {
       const postDrawer = await openCreatePostDrawer(page)
 
       await expect(postDrawer.locator('input[placeholder="Post title"]')).toBeVisible()
-      await expect(postDrawer.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
+      await expect(postDrawer.getByRole('button', { name: 'Create post', exact: true })).toBeVisible()
     })
 
     test('fills blog post form', async ({ authenticatedPage }) => {
@@ -169,7 +164,7 @@ test.describe('Blog Feature', () => {
       await excerptInput.fill('This is a test blog post excerpt')
       await expect(excerptInput).toHaveValue('This is a test blog post excerpt')
 
-      await expect(postDrawer.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
+      await expect(postDrawer.getByRole('button', { name: 'Create post', exact: true })).toBeVisible()
     })
 
     test('views post details', async ({ authenticatedPageWithData }) => {
@@ -181,7 +176,7 @@ test.describe('Blog Feature', () => {
       // A click on the row opens the post
       await page.locator('.ant-table-row').filter({ hasText: 'Draft Post' }).click()
 
-      const editDrawer = drawer(page, 'Edit Post')
+      const editDrawer = drawer(page, 'Edit post')
       await expect(editDrawer).toBeVisible()
       await expect(editDrawer.locator('input[placeholder="Post title"]')).toHaveValue('Draft Post')
       await expect(editDrawer.locator('input[placeholder="post-slug"]')).toHaveValue('draft-post')
@@ -280,6 +275,8 @@ test.describe('Blog Feature', () => {
 
       const postDrawer = await openCreatePostDrawer(page)
 
+      // The editor is the second step of the drawer
+      await postDrawer.getByRole('radiogroup', { name: 'Steps' }).getByText('Write', { exact: true }).click()
       const editor = postDrawer.locator('.ProseMirror')
       await expect(editor).toBeVisible()
       await expect(editor).toHaveAttribute('contenteditable', 'true')
@@ -296,7 +293,7 @@ test.describe('Blog Feature', () => {
       const postDrawer = await openCreatePostDrawer(page)
 
       // Submit an untouched form
-      await postDrawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await postDrawer.getByRole('button', { name: 'Create post', exact: true }).click()
 
       await expect(postDrawer.getByText('Please enter a post title')).toBeVisible()
     })
@@ -318,7 +315,7 @@ test.describe('Blog Feature', () => {
         ).toBeVisible()
       }
 
-      await expect(postDrawer.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
+      await expect(postDrawer.getByRole('button', { name: 'Create post', exact: true })).toBeVisible()
     })
   })
 
@@ -346,10 +343,12 @@ test.describe('Blog Feature', () => {
 
       const postDrawer = await openCreatePostDrawer(page)
 
+      // An untouched post closes at once; one with something typed asks first
+      await postDrawer.locator('input[placeholder="Post title"]').fill('Draft to drop')
       await postDrawer.getByRole('button', { name: 'Close' }).click()
 
-      // A new post starts with editor content, so the drawer asks before dropping it
-      const confirm = page.getByRole('dialog').filter({ hasText: 'Unsaved changes' })
+      // By name: the drawer itself shows an « Unsaved changes » status too
+      const confirm = page.getByRole('dialog', { name: 'Unsaved changes', exact: true })
       await expect(confirm).toBeVisible()
       await confirm.getByRole('button', { name: 'Yes', exact: true }).click()
 
@@ -376,9 +375,7 @@ test.describe('Blog Feature', () => {
       )
       await postDrawer.locator('#excerpt').fill(testBlogPostData.excerpt!)
       await postDrawer
-        .locator('.ant-form-item')
-        .filter({ hasText: 'Featured Image URL' })
-        .locator('input')
+        .getByRole('textbox', { name: 'Featured image', exact: true })
         .fill(testBlogPostData.featured_image_url!)
       await fillSEOFields(page, postDrawer, {
         meta_title: testSEOData.meta_title!,
@@ -395,7 +392,7 @@ test.describe('Blog Feature', () => {
       const createRequest = page.waitForRequest((request) =>
         request.url().includes('/api/blogPosts.create')
       )
-      await postDrawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await postDrawer.getByRole('button', { name: 'Create post', exact: true }).click()
       const body = (await createRequest).postDataJSON()
 
       expect(body.title).toBe(testBlogPostData.title)
@@ -432,7 +429,6 @@ test.describe('Blog Feature', () => {
         meta_title: 'SEO Meta Title Test',
         meta_description: 'This is a test meta description for SEO verification',
         keywords: ['test', 'seo', 'e2e'],
-        meta_robots: 'index,follow',
         canonical_url: 'https://example.com/test-canonical',
         og_title: 'Open Graph Title',
         og_description: 'Open Graph Description for social sharing',
@@ -443,10 +439,11 @@ test.describe('Blog Feature', () => {
       const createRequest = page.waitForRequest((request) =>
         request.url().includes('/api/blogPosts.create')
       )
-      await postDrawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await postDrawer.getByRole('button', { name: 'Create post', exact: true }).click()
       const body = (await createRequest).postDataJSON()
 
       // Every SEO field that was typed has to come back out of the form, under `seo`
+      // (meta_robots is not edited here: the drawer only carries over an existing post's)
       expect(body.seo).toEqual(seoTestData)
     })
   })

@@ -5,7 +5,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Two per CI shard: the 4-vCPU runner also serves the Vite dev server every test loads.
+  workers: process.env.CI ? 2 : undefined,
   reporter: [['html'], ['list']],
   timeout: 30000,
   use: {

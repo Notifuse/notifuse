@@ -96,7 +96,7 @@ test.describe('Workspace Settings Feature', () => {
 
       // A drawer panel is a dialog too, labelled by its title, so this pins both the
       // host being open and the title it carries.
-      const drawer = page.getByRole('dialog', { name: 'Invite Member', exact: true })
+      const drawer = page.getByRole('dialog', { name: 'Invite member', exact: true })
       await expect(drawer).toBeVisible()
       // The permissions matrix outgrew a centred dialog, so the host is a drawer.
       await expect(drawer).toHaveClass(/ant-drawer-section/)
@@ -229,7 +229,7 @@ test.describe('Workspace Settings Feature', () => {
 
       await page.getByRole('button', { name: NAME_A_SLOT }).click()
 
-      const modal = page.getByRole('dialog', { name: 'Add Custom Field Label', exact: true })
+      const modal = page.getByRole('dialog', { name: 'Name a slot', exact: true })
       await expect(modal).toBeVisible()
 
       // Should have field selection radio group
@@ -247,7 +247,7 @@ test.describe('Workspace Settings Feature', () => {
 
       await page.getByRole('button', { name: NAME_A_SLOT }).click()
 
-      const modal = page.getByRole('dialog', { name: 'Add Custom Field Label', exact: true })
+      const modal = page.getByRole('dialog', { name: 'Name a slot', exact: true })
       await expect(modal).toBeVisible()
 
       // Select a custom field (first available radio)
@@ -300,7 +300,7 @@ test.describe('Workspace Settings Feature', () => {
 
       // The fixture signs in as a workspace owner, so the danger zone is always rendered.
       await expect(page.locator('[data-rail-content]').getByText('Danger zone').first()).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Delete Workspace', exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Delete workspace', exact: true })).toBeVisible()
     })
   })
 
