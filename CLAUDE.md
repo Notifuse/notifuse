@@ -87,6 +87,8 @@ GET  /api/contact.list
 
 Plans and specs are not kept in this repository: never commit them here. They live in the private repository `Notifuse/architecture` (checked out at `../architecture`), under `plans/notifuse/`, as kebab-case markdown: `feature-name-plan.md`, `fix-description-plan.md`, `refactor-component-plan.md`, `migration-v7-plan.md`. `plans/` is ignored here so that a draft never gets staged by accident. Every plan must specify, for each implementation file, the corresponding test file and test cases, and must end with a step that runs the relevant test commands for the layers touched.
 
+A spec that touches sending (email queue, Fallback chain, direct send, provider webhooks, NotifuseMTA) is adopted only after a Lean 4 model of it builds and proves or refutes each property it states: the rule, its limits and the CI that builds the models are in the architecture repository's `CLAUDE.md`.
+
 ## 🤖 Claude Agent Rules
 
 - **Never self-advertise**: Do not add "Generated with Claude", "Co-Authored-By: Claude", or any AI attribution
