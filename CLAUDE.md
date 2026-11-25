@@ -97,14 +97,16 @@ GET  /api/contact.list
   - covers every function that writes the same table and column, not only the one where the bug was seen;
   - starts from states set in SQL, not only states the API can produce: the combinations of statuses that can
     actually be reached, including partial ones, and work left in flight by the previous release. A switch over
-    statuses also gets a table-driven unit test over every combination of the values the code compares against:
-    it is cheap, and an integration test per combination is not;
+    statuses also gets a table-driven unit test over every combination of the values each field can hold: every
+    declared constant of its type (for an untyped string, every value the code writes or compares against), plus
+    an empty and an unknown value. It is cheap, and an integration test per combination is not;
   - asserts the whole state that must survive (columns another actor wrote, rows left in an intermediate status,
     the task's next run, what the next run does), a "never" property and a "finishes" property, not only the
     final status;
   - runs tasks the way production does, through the scheduler and not by task ID. A fix that touches how a task
     is woken is tested in both modes: the in-process scheduler (`NewIntegrationTestSuiteWithDirectScheduler`) and
-    the external cron of the default suite, where `RunTaskNow` does nothing and `/api/cron` runs the tasks.
+    external cron (`NewIntegrationTestSuite`), where `RunTaskNow` does nothing and `/api/cron` runs the tasks. That
+    suite runs them in the server's process, not through the HTTP dispatch that a real cron triggers.
     Durations are shortened through a constructor option or a config struct field, never a test-only
     environment variable or `t.Setenv`.
 
