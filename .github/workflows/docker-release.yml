@@ -82,6 +82,7 @@ jobs:
             BUILD_DATE=${{ github.run_id }}
             BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          sbom: true
 
       - name: Attest per-arch image
         uses: actions/attest-build-provenance@v1

@@ -70,6 +70,7 @@ jobs:
           no-cache: true
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          sbom: true
 
       - name: Build locally (no push)
         if: ${{ !inputs.push }}
