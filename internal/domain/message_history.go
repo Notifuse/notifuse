@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -296,6 +297,12 @@ type MessageListParams struct {
 	Cursor string `json:"cursor,omitempty"`
 	Limit  int    `json:"limit,omitempty"`
 
+	// The order of the pages: OrderBy is one of MessageOrderColumns (created_at when
+	// empty), Order is desc (the default) or asc. Validate leaves both as given;
+	// EffectiveOrder resolves them.
+	OrderBy string `json:"order_by,omitempty"`
+	Order   string `json:"order,omitempty"`
+
 	// Filters
 	ID             string `json:"id,omitempty"`              // filter by message ID
 	ExternalID     string `json:"external_id,omitempty"`     // filter by external ID
@@ -330,6 +337,8 @@ type MessageListParams struct {
 // FromQuery creates MessageListParams from HTTP query parameters
 func (p *MessageListParams) FromQuery(query url.Values) error {
 	p.Cursor = query.Get("cursor")
+	p.OrderBy = query.Get("order_by")
+	p.Order = query.Get("order")
 
 	if limitStr := query.Get("limit"); limitStr != "" {
 		var limit int
@@ -373,7 +382,59 @@ func (p *MessageListParams) Validate() error {
 		p.Limit = 20 // Default limit
 	}
 
+	if _, _, err := p.EffectiveOrder(); err != nil {
+		return err
+	}
+	// Sorted by a message date other than created_at descending, a page is a sort of
+	// every matching row: no index serves these orders, so an indexed filter must narrow
+	// the rows first.
+	if !p.DefaultOrder() && p.Filter().RequireBound() != nil {
+		return fmt.Errorf("order_by and order need created_after or an indexed filter: id, contact_email, broadcast_id, automation_id, transactional_notification_id or template_id")
+	}
+
 	return p.Filter().Validate()
+}
+
+// ErrInvalidCursor wraps the error of a messages.list cursor the list cannot read, or one
+// written for another order: a mistake of the caller, answered with a 400.
+var ErrInvalidCursor = errors.New("invalid cursor")
+
+// MessageOrderColumns are the values of order_by: the dates of a message.
+var MessageOrderColumns = []string{
+	"created_at", "sent_at", "delivered_at", "opened_at", "clicked_at",
+	"bounced_at", "complained_at", "unsubscribed_at", "failed_at",
+}
+
+// EffectiveOrder resolves OrderBy and Order: the column to sort on, taken from
+// MessageOrderColumns and never from the caller's text, and whether the sort is
+// descending.
+func (p MessageListParams) EffectiveOrder() (column string, desc bool, err error) {
+	name := p.OrderBy
+	if name == "" {
+		name = "created_at"
+	}
+	for _, candidate := range MessageOrderColumns {
+		if candidate == name {
+			column = candidate
+		}
+	}
+	if column == "" {
+		return "", false, fmt.Errorf("invalid order_by: must be one of %s", strings.Join(MessageOrderColumns, ", "))
+	}
+	switch p.Order {
+	case "", "desc":
+		return column, true, nil
+	case "asc":
+		return column, false, nil
+	}
+	return "", false, fmt.Errorf("invalid order: must be asc or desc")
+}
+
+// DefaultOrder tells whether the pages come newest first by created_at, the order whose
+// cursor is <created_at>~<id>.
+func (p MessageListParams) DefaultOrder() bool {
+	column, desc, err := p.EffectiveOrder()
+	return err == nil && column == "created_at" && desc
 }
 
 // MessageListResult contains the result of a ListMessages operation

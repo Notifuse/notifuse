@@ -102,9 +102,25 @@ export interface MessageFilterParams {
   updated_before?: string
 }
 
+/** A date of a message that messages.list can sort on. */
+export type MessageOrderBy =
+  | 'created_at'
+  | 'sent_at'
+  | 'delivered_at'
+  | 'opened_at'
+  | 'clicked_at'
+  | 'bounced_at'
+  | 'complained_at'
+  | 'unsubscribed_at'
+  | 'failed_at'
+
 export interface MessageListParams extends MessageFilterParams {
   cursor?: string
   limit?: number
+  /** created_at when absent. Any other order needs an indexed filter, such as broadcast_id. */
+  order_by?: MessageOrderBy
+  /** desc when absent. */
+  order?: 'asc' | 'desc'
 }
 
 export interface MessageListResult {
@@ -164,6 +180,8 @@ export function listMessages(
   const queryParams = filterQuery(workspaceId, params)
   if (params.cursor) queryParams.append('cursor', params.cursor)
   if (params.limit) queryParams.append('limit', String(params.limit))
+  if (params.order_by) queryParams.append('order_by', params.order_by)
+  if (params.order) queryParams.append('order', params.order)
   return api.get<MessageListResult>(`/api/messages.list?${queryParams.toString()}`)
 }
 

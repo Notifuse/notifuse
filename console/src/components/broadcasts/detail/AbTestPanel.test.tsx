@@ -9,11 +9,16 @@ import type { Broadcast } from '../../../services/api/broadcast'
 import type { Workspace } from '../../../services/api/types'
 import type { UserPermissions } from '../../../services/api/workspace'
 
+const analytics = vi.hoisted(() => ({ reports: null as unknown }))
 vi.mock('../BroadcastAnalyticsLinks', () => ({
-  BroadcastAnalyticsLinks: ({ variationTemplateId }: { variationTemplateId?: string }) => (
-    <span data-testid="analytics-links">{variationTemplateId}</span>
+  BroadcastAnalyticsLinks: ({ variationTemplateId, only }: { variationTemplateId?: string; only?: string }) => (
+    <span data-testid="analytics-links" data-only={only}>
+      {variationTemplateId}
+    </span>
   )
 }))
+vi.mock('../useBroadcastAnalyticsLinks', () => ({ useBroadcastAnalyticsLinks: () => analytics.reports }))
+vi.mock('@tanstack/react-router', () => ({ useRouter: () => ({ buildLocation: () => ({ href: '/conversions' }) }) }))
 vi.mock('../../templates/TemplatePreviewDrawer', () => ({
   default: ({ children }: { children: ReactNode }) => <div data-testid="preview-drawer">{children}</div>
 }))
@@ -112,7 +117,10 @@ const renderPanel = (props: Partial<AbTestPanelProps> = {}) => {
 const rowOf = (text: string) => screen.getByText(text).closest('tr') as HTMLElement
 
 describe('AbTestPanel', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    analytics.reports = null
+  })
 
   it('renders nothing without an A/B test', () => {
     const { container } = render(
@@ -157,9 +165,9 @@ describe('AbTestPanel', () => {
   })
 
   it('scrolls only below the width of its columns, wider with the pick button', () => {
-    expect(abTableWidth({ sent: true, winnerSelectable: false })).toBe(886)
-    expect(abTableWidth({ sent: true, winnerSelectable: true })).toBe(1060)
-    expect(abTableWidth({ sent: false, winnerSelectable: false })).toBe(576)
+    expect(abTableWidth({ sent: true, winnerSelectable: false })).toBe(852)
+    expect(abTableWidth({ sent: true, winnerSelectable: true })).toBe(1026)
+    expect(abTableWidth({ sent: false, winnerSelectable: false })).toBe(542)
   })
 
   it('shows each variant’s sender: default, chosen on the broadcast with its Reply-To, or deleted', () => {
@@ -283,16 +291,51 @@ describe('AbTestPanel', () => {
     expect(screen.queryByRole('button', { name: 'Pick as winner' })).not.toBeInTheDocument()
   })
 
-  it('sends a test of the variant’s template', async () => {
+  it('sends a test of the variant’s template from its menu', async () => {
     const { onSendTest } = renderPanel()
-    const button = rowOf('Long subject').querySelector('.fa-paper-plane')?.closest('button') as HTMLElement
-    await userEvent.click(button)
+    await userEvent.click(within(rowOf('Long subject')).getByRole('button', { name: 'More actions' }))
+    await userEvent.click(await screen.findByText('Send test email'))
     expect(onSendTest).toHaveBeenCalledWith(expect.objectContaining({ id: 'tpl-b' }))
   })
 
-  it('scopes the web analytics links to each variant', () => {
+  it('disables the test send without the permissions to send one', async () => {
+    const { onSendTest } = renderPanel({
+      permissions: { ...permissions, transactional: { read: true, write: false } } as unknown as UserPermissions
+    })
+    await userEvent.click(within(rowOf('Long subject')).getByRole('button', { name: 'More actions' }))
+    const item = (await screen.findByText('Send test email')).closest('[role="menuitem"]') as HTMLElement
+    expect(item).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(item)
+    expect(onSendTest).not.toHaveBeenCalled()
+  })
+
+  it('keeps the traffic link in the row and puts the conversions in the menu', async () => {
+    analytics.reports = {
+      traffic: { label: 'Website traffic from this variation', target: { to: '/t' }, disabledReason: '' },
+      conversions: { label: 'Website conversions from this variation', target: { to: '/c' }, disabledReason: '' }
+    }
     renderPanel()
-    expect(screen.getAllByTestId('analytics-links').map((n) => n.textContent)).toEqual(['tpl-a', 'tpl-b'])
+    expect(screen.getAllByTestId('analytics-links').map((n) => [n.textContent, n.dataset.only])).toEqual([
+      ['tpl-a', 'traffic'],
+      ['tpl-b', 'traffic']
+    ])
+    await userEvent.click(within(rowOf('Long subject')).getByRole('button', { name: 'More actions' }))
+    const link = await screen.findByRole('link', { name: 'Website conversions from this variation' })
+    expect(link).toHaveAttribute('href', '/conversions')
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
+  it('shows the conversions disabled with the reason when they cannot be told apart', async () => {
+    analytics.reports = {
+      traffic: { label: 'Website traffic from this variation', disabledReason: 'No campaign' },
+      conversions: { label: 'Website conversions from this variation', disabledReason: 'No campaign' }
+    }
+    renderPanel()
+    await userEvent.click(within(rowOf('Long subject')).getByRole('button', { name: 'More actions' }))
+    const label = await screen.findByText('Website conversions from this variation')
+    expect(label.closest('[role="menuitem"]')).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.hover(label)
+    expect(await screen.findByText('No campaign')).toBeInTheDocument()
   })
 
   it('summarises the settings: automatic winner metric and duration', () => {

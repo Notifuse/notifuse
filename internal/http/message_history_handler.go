@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -119,6 +120,10 @@ func (h *MessageHistoryHandler) handleList(w http.ResponseWriter, r *http.Reques
 	result, err := h.service.ListMessages(ctx, workspaceID, params)
 	if err != nil {
 		if writePermissionError(w, err) {
+			return
+		}
+		if errors.Is(err, domain.ErrInvalidCursor) {
+			WriteJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		// codecov:ignore:start

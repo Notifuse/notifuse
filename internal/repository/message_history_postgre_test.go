@@ -2686,3 +2686,141 @@ func TestStoredExternalID(t *testing.T) {
 	require.NotNil(t, storedExternalID(&key))
 	assert.Equal(t, "order-1", *storedExternalID(&key))
 }
+
+func TestMessageHistoryRepository_ListMessages_OrderBy(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	columns := []string{
+		"id", "external_id", "contact_email", "broadcast_id", "automation_id", "transactional_notification_id", "list_id", "template_id", "template_version",
+		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
+		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+		"unsubscribed_at", "created_at", "updated_at", "opens_tracked", "clicks_tracked",
+	}
+	messageDataJSON, _ := json.Marshal(domain.MessageData{Data: map[string]interface{}{"subject": "Bulk"}})
+	sent := time.Date(2026, 11, 24, 14, 27, 0, 0, time.UTC)
+	// Two opens in the same second, apart by microseconds.
+	openedA := time.Date(2026, 11, 24, 15, 2, 7, 903753000, time.UTC)
+	openedB := time.Date(2026, 11, 24, 15, 2, 7, 760394000, time.UTC)
+	openedRow := func(rows *sqlmock.Rows, id string, opened time.Time) *sqlmock.Rows {
+		return rows.AddRow(id, nil, id+"@example.com", stringPtr("bc-1"), nil, nil, "{}", "template-1", 1,
+			"email", nil, messageDataJSON, nil, []byte("[]"), sent, sent,
+			nil, opened, nil, nil, nil, nil, sent, opened, nil, nil)
+	}
+	opened := true
+	decode := func(t *testing.T, cursor string) []string {
+		raw, err := base64.StdEncoding.DecodeString(cursor)
+		require.NoError(t, err)
+		return strings.Split(string(raw), "~")
+	}
+
+	t.Run("every column and direction: rows with the date only, sorted by it then id", func(t *testing.T) {
+		for _, column := range domain.MessageOrderColumns {
+			for _, order := range []string{"asc", "desc"} {
+				if column == "created_at" && order == "desc" {
+					continue // the default order, unchanged
+				}
+				direction := strings.ToUpper(order)
+				mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+				mock.ExpectQuery(regexp.QuoteMeta(
+					"FROM message_history WHERE broadcast_id = $1 AND " + column + " IS NOT NULL ORDER BY " + column + " " + direction + ", id " + direction + " LIMIT 6",
+				)).WithArgs("bc-1").WillReturnRows(sqlmock.NewRows(columns))
+
+				_, _, err := repo.ListMessages(ctx, workspaceID, testSecretKey, domain.MessageListParams{
+					Limit: 5, BroadcastID: "bc-1", OrderBy: column, Order: order,
+				})
+				require.NoError(t, err, column+" "+order)
+			}
+		}
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("the next cursor carries the order and the date to the microsecond", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		rows := openedRow(sqlmock.NewRows(columns), "msg-a", openedA)
+		rows = openedRow(rows, "msg-b", openedB)
+		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY opened_at DESC, id DESC LIMIT 2")).WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, domain.MessageListParams{
+			Limit: 1, BroadcastID: "bc-1", IsOpened: &opened, OrderBy: "opened_at",
+		})
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		parts := decode(t, nextCursor)
+		require.Len(t, parts, 4)
+		assert.Equal(t, "opened_at", parts[0])
+		assert.Equal(t, "desc", parts[1])
+		assert.Equal(t, "msg-a", parts[3])
+		at, err := time.Parse(time.RFC3339Nano, parts[2])
+		require.NoError(t, err)
+		assert.True(t, at.Equal(openedA), "cursor date %q must keep the microseconds of %s", parts[2], openedA.Format(time.RFC3339Nano))
+
+		// The next page starts past the cursor's row by a (date, id) comparison.
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(regexp.QuoteMeta(
+			"WHERE broadcast_id = $1 AND opened_at IS NOT NULL AND opened_at IS NOT NULL AND (opened_at, id) < ($2, $3) ORDER BY opened_at DESC, id DESC LIMIT 2",
+		)).WithArgs("bc-1", openedA, "msg-a").WillReturnRows(openedRow(sqlmock.NewRows(columns), "msg-b", openedB))
+
+		next, _, err := repo.ListMessages(ctx, workspaceID, testSecretKey, domain.MessageListParams{
+			Limit: 1, BroadcastID: "bc-1", IsOpened: &opened, OrderBy: "opened_at", Cursor: nextCursor,
+		})
+		require.NoError(t, err)
+		require.Len(t, next, 1)
+		assert.Equal(t, "msg-b", next[0].ID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("created_at ascending takes the ordered path", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		rows := openedRow(sqlmock.NewRows(columns), "msg-a", openedA)
+		rows = openedRow(rows, "msg-b", openedB)
+		mock.ExpectQuery(regexp.QuoteMeta("AND created_at IS NOT NULL ORDER BY created_at ASC, id ASC LIMIT 2")).WillReturnRows(rows)
+
+		_, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, domain.MessageListParams{
+			Limit: 1, BroadcastID: "bc-1", Order: "asc",
+		})
+		require.NoError(t, err)
+		parts := decode(t, nextCursor)
+		require.Len(t, parts, 4)
+		assert.Equal(t, []string{"created_at", "asc"}, parts[:2])
+
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(regexp.QuoteMeta("(created_at, id) > ($2, $3) ORDER BY created_at ASC, id ASC")).
+			WillReturnRows(sqlmock.NewRows(columns))
+		_, _, err = repo.ListMessages(ctx, workspaceID, testSecretKey, domain.MessageListParams{
+			Limit: 1, BroadcastID: "bc-1", Order: "asc", Cursor: nextCursor,
+		})
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a cursor of another order is refused before any query", func(t *testing.T) {
+		defaultCursor := base64.StdEncoding.EncodeToString([]byte(openedA.Format(time.RFC3339Nano) + "~msg-a"))
+		clickedCursor := encodeOrderedCursor("clicked_at", true, openedA, "msg-a")
+		openedDesc := encodeOrderedCursor("opened_at", true, openedA, "msg-a")
+		cases := map[string]domain.MessageListParams{
+			"default cursor with order_by=opened_at":    {Limit: 1, BroadcastID: "bc-1", OrderBy: "opened_at", Cursor: defaultCursor},
+			"opened_at cursor without order_by":         {Limit: 1, BroadcastID: "bc-1", Cursor: openedDesc},
+			"clicked_at cursor with order_by=opened_at": {Limit: 1, BroadcastID: "bc-1", OrderBy: "opened_at", Cursor: clickedCursor},
+			"desc cursor with order=asc":                {Limit: 1, BroadcastID: "bc-1", OrderBy: "opened_at", Order: "asc", Cursor: openedDesc},
+		}
+		for name, params := range cases {
+			mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+			_, _, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
+			assert.ErrorContains(t, err, "invalid cursor format", name)
+			assert.ErrorIs(t, err, domain.ErrInvalidCursor, name)
+		}
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an unknown order_by is refused even without Validate", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		_, _, err := repo.ListMessages(ctx, workspaceID, testSecretKey, domain.MessageListParams{
+			Limit: 1, BroadcastID: "bc-1", OrderBy: "id; drop table message_history",
+		})
+		assert.ErrorContains(t, err, "invalid order_by")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}

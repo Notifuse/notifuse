@@ -21,34 +21,51 @@ const cell = (label: string) => screen.getByText(label).closest('[data-kpi-cell]
 
 describe('BroadcastFunnel', () => {
   it('shows values and rates', () => {
-    render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onOpenLogs={vi.fn()} />)
+    render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onSelect={vi.fn()} />)
     expect(cell('Sent')).toHaveTextContent('45')
     expect(cell('Sent')).toHaveTextContent('100.0%')
     expect(cell('Delivered')).toHaveTextContent('88.9%')
     expect(cell('Opened')).toHaveTextContent('22.2%')
   })
 
-  it('opens the logs with the filter of each cell', () => {
-    const onOpenLogs = vi.fn()
-    render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onOpenLogs={onOpenLogs} />)
+  it('selects the step of each cell and incident', () => {
+    const onSelect = vi.fn()
+    render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onSelect={onSelect} />)
     fireEvent.click(cell('Sent'))
     fireEvent.click(cell('Delivered'))
     fireEvent.click(cell('Opened'))
     fireEvent.click(cell('Clicked'))
     fireEvent.click(screen.getByText('Bounces'))
+    fireEvent.click(screen.getByText('Complaints'))
+    fireEvent.click(screen.getByText('Unsubscribed'))
     fireEvent.click(screen.getByText('Failed'))
-    expect(onOpenLogs.mock.calls.map(([f]) => f)).toEqual([
+    expect(onSelect.mock.calls.map(([step]) => step)).toEqual([
       'sent',
-      'is_delivered',
-      'is_opened',
-      'is_clicked',
-      'is_bounced',
-      'is_failed'
+      'delivered',
+      'opened',
+      'clicked',
+      'bounced',
+      'complained',
+      'unsubscribed',
+      'failed'
     ])
   })
 
+  it('marks the selected cell and the selected incident', () => {
+    const { rerender } = render(
+      <BroadcastFunnel stats={stats()} smtp={false} untracked={false} selected="opened" onSelect={vi.fn()} />
+    )
+    expect(cell('Opened')).toHaveAttribute('aria-pressed', 'true')
+    expect(cell('Clicked')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('Bounces').closest('button')).toHaveAttribute('aria-pressed', 'false')
+
+    rerender(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} selected="bounced" onSelect={vi.fn()} />)
+    expect(cell('Opened')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('Bounces').closest('button')).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('counts the failed share over sent plus failed', () => {
-    render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onOpenLogs={vi.fn()} />)
+    render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onSelect={vi.fn()} />)
     // 23 / (45 + 23)
     expect(screen.getByText('Failed').closest('button')).toHaveTextContent('23 · 33.8%')
     expect(screen.getByText('Failed').closest('button')!.querySelector('.text-danger-fg')).not.toBeNull()
@@ -56,7 +73,7 @@ describe('BroadcastFunnel', () => {
 
   it('computes rates over the tracked emails, with the hint', async () => {
     render(
-      <BroadcastFunnel stats={stats({ total_opens_tracked: 40 })} smtp={false} untracked={false} onOpenLogs={vi.fn()} />
+      <BroadcastFunnel stats={stats({ total_opens_tracked: 40 })} smtp={false} untracked={false} onSelect={vi.fn()} />
     )
     expect(cell('Opened')).toHaveTextContent('25.0%')
     fireEvent.mouseEnter(cell('Opened').querySelector('.text-kpi')!)
@@ -65,7 +82,7 @@ describe('BroadcastFunnel', () => {
 
   it('has no hint when every email was tracked', async () => {
     render(
-      <BroadcastFunnel stats={stats({ total_opens_tracked: 45 })} smtp={false} untracked={false} onOpenLogs={vi.fn()} />
+      <BroadcastFunnel stats={stats({ total_opens_tracked: 45 })} smtp={false} untracked={false} onSelect={vi.fn()} />
     )
     fireEvent.mouseEnter(cell('Opened').querySelector('.text-kpi')!)
     await new Promise((resolve) => setTimeout(resolve, 150))
@@ -74,14 +91,13 @@ describe('BroadcastFunnel', () => {
 
   it('shows "—" when nothing was tracked', () => {
     render(
-      <BroadcastFunnel stats={stats({ total_opens_tracked: 0 })} smtp={false} untracked={false} onOpenLogs={vi.fn()} />
+      <BroadcastFunnel stats={stats({ total_opens_tracked: 0 })} smtp={false} untracked={false} onSelect={vi.fn()} />
     )
     expect(cell('Opened')).toHaveTextContent('—')
   })
 
   it('shows Delivered, Bounces and Complaints as "—", not clickable, with an SMTP provider', async () => {
-    const onOpenLogs = vi.fn()
-    render(<BroadcastFunnel stats={stats()} smtp untracked={false} onOpenLogs={onOpenLogs} />)
+    render(<BroadcastFunnel stats={stats()} smtp untracked={false} onSelect={vi.fn()} />)
     expect(cell('Delivered').tagName).toBe('DIV')
     expect(cell('Delivered')).toHaveTextContent('—')
     expect(screen.getByText('Bounces').closest('button')).toBeNull()
@@ -91,13 +107,16 @@ describe('BroadcastFunnel', () => {
   })
 
   it('reads opens and clicks as not tracked for a broadcast sent without tracking', () => {
-    render(<BroadcastFunnel stats={stats()} smtp={false} untracked onOpenLogs={vi.fn()} />)
+    render(<BroadcastFunnel stats={stats()} smtp={false} untracked onSelect={vi.fn()} />)
     expect(cell('Opened')).toHaveTextContent('Not tracked')
     expect(cell('Clicked')).toHaveTextContent('Not tracked')
+    // Nothing to list: the cells are not buttons.
+    expect(cell('Opened').tagName).toBe('DIV')
+    expect(cell('Clicked').tagName).toBe('DIV')
   })
 
   it('shows visits and conversions only with web analytics', () => {
-    const { rerender } = render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onOpenLogs={vi.fn()} />)
+    const { rerender } = render(<BroadcastFunnel stats={stats()} smtp={false} untracked={false} onSelect={vi.fn()} />)
     expect(screen.queryByText('Website visits')).not.toBeInTheDocument()
     rerender(
       <BroadcastFunnel
@@ -105,7 +124,7 @@ describe('BroadcastFunnel', () => {
         smtp={false}
         untracked={false}
         web={{ visits: { sessions: 12, medianDuration: 65, conversions: 2, value: 30 }, loading: false, error: false }}
-        onOpenLogs={vi.fn()}
+        onSelect={vi.fn()}
       />
     )
     expect(cell('Website visits')).toHaveTextContent('12')

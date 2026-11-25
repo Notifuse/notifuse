@@ -47,6 +47,11 @@ vi.mock('../ChangeVariationSenderModal', () => ({
   )
 }))
 vi.mock('./EngagementChart', () => ({ EngagementChart: () => <div data-testid="engagement-chart" /> }))
+vi.mock('./BroadcastRecipients', () => ({
+  BroadcastRecipients: ({ step, variants }: { step: string; variants: { letter: string }[] }) => (
+    <div data-testid="recipients" data-step={step} data-variants={variants.map((v) => v.letter).join(',')} />
+  )
+}))
 vi.mock('./TemplatePreviewFrame', () => ({ TemplatePreviewFrame: () => <div data-testid="frame" /> }))
 vi.mock('../../templates/SendTemplateModal', () => ({
   default: ({ isOpen, template }: { isOpen: boolean; template: { id: string } | null }) =>
@@ -203,12 +208,39 @@ describe('BroadcastDetail', () => {
     expect(screen.getByText('A/B test')).toBeInTheDocument()
   })
 
-  it('shows the funnel from the broadcast stats, and opens the logs of a cell', async () => {
+  it('shows the funnel from the broadcast stats, and lists the recipients of the cell clicked', async () => {
     renderDetail()
     const sent = await screen.findByText('1,000')
+    // A tracked broadcast lists its opens first.
+    expect(screen.getByTestId('recipients')).toHaveAttribute('data-step', 'opened')
     await userEvent.click(sent)
-    expect(navigate).toHaveBeenCalledWith({ to: '/console/workspace/ws1/logs?broadcast_id=bc1' })
+    expect(screen.getByTestId('recipients')).toHaveAttribute('data-step', 'sent')
+    await userEvent.click(screen.getByText('Bounces'))
+    expect(screen.getByTestId('recipients')).toHaveAttribute('data-step', 'bounced')
+    // A cell no longer opens the logs.
+    expect(navigate).not.toHaveBeenCalled()
     expect(screen.getByTestId('engagement-chart')).toBeInTheDocument()
+  })
+
+  it('lists the sent recipients first for a broadcast sent without tracking', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({ broadcast: broadcastOf({ tracking_mode: 'no_tracking' }) })
+    renderDetail()
+    await screen.findByText('1,000')
+    expect(screen.getByTestId('recipients')).toHaveAttribute('data-step', 'sent')
+  })
+
+  it('opens the sending logs from the menu, without a status filter', async () => {
+    renderDetail()
+    await screen.findByText('1,000')
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    await userEvent.click(await screen.findByText('View sending logs'))
+    expect(navigate).toHaveBeenCalledWith({ to: '/console/workspace/ws1/logs?broadcast_id=bc1' })
+  })
+
+  it('lists no recipients without the message history permission', async () => {
+    renderDetail({ permissions: { ...allPermissions, message_history: { read: false, write: false } } as UserPermissions })
+    await screen.findByText('November news')
+    expect(screen.queryByTestId('recipients')).not.toBeInTheDocument()
   })
 
   it('waits for the start of a draft or scheduled broadcast before any stats', async () => {

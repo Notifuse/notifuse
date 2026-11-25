@@ -980,15 +980,32 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 
 	queryBuilder = applyMessageFilters(queryBuilder, params.Filter())
 
+	column, desc, err := params.EffectiveOrder()
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, "", err
+	}
+	defaultOrder := column == "created_at" && desc
+
 	// Handle cursor-based pagination
-	if params.Cursor != "" {
+	if !defaultOrder {
+		queryBuilder, err = applyOrderedPage(queryBuilder, params.Cursor, column, desc)
+		if err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return nil, "", err
+		}
+	} else if params.Cursor != "" {
 		// Decode the base64 cursor
 		decodedCursor, err := base64.StdEncoding.DecodeString(params.Cursor)
 		if err != nil {
 			// codecov:ignore:start
 			tracing.MarkSpanError(ctx, err)
 			// codecov:ignore:end
-			return nil, "", fmt.Errorf("invalid cursor encoding: %w", err)
+			return nil, "", fmt.Errorf("%w encoding: %v", domain.ErrInvalidCursor, err)
 		}
 
 		// Parse the compound cursor (timestamp~id)
@@ -998,7 +1015,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 			// codecov:ignore:start
 			tracing.MarkSpanError(ctx, fmt.Errorf("invalid cursor format"))
 			// codecov:ignore:end
-			return nil, "", fmt.Errorf("invalid cursor format: expected timestamp~id")
+			return nil, "", fmt.Errorf("%w format: expected timestamp~id", domain.ErrInvalidCursor)
 		}
 
 		cursorTime, err := time.Parse(time.RFC3339Nano, cursorParts[0])
@@ -1006,7 +1023,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 			// codecov:ignore:start
 			tracing.MarkSpanError(ctx, err)
 			// codecov:ignore:end
-			return nil, "", fmt.Errorf("invalid cursor timestamp format: %w", err)
+			return nil, "", fmt.Errorf("%w timestamp format: %v", domain.ErrInvalidCursor, err)
 		}
 
 		cursorID := cursorParts[1]
@@ -1171,11 +1188,98 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		lastMessage := messages[len(messages)-1]
 		// Use RFC3339Nano to preserve sub-second precision and avoid skipping messages
 		// created within the same second (bulk broadcast sends share a created_at second)
-		cursorStr := fmt.Sprintf("%s~%s", lastMessage.CreatedAt.Format(time.RFC3339Nano), lastMessage.ID)
-		nextCursor = base64.StdEncoding.EncodeToString([]byte(cursorStr))
+		if defaultOrder {
+			cursorStr := fmt.Sprintf("%s~%s", lastMessage.CreatedAt.Format(time.RFC3339Nano), lastMessage.ID)
+			nextCursor = base64.StdEncoding.EncodeToString([]byte(cursorStr))
+		} else {
+			nextCursor = encodeOrderedCursor(column, desc, messageDate(lastMessage, column), lastMessage.ID)
+		}
 	}
 
 	return messages, nextCursor, nil
+}
+
+// applyOrderedPage sorts the messages by one of their dates in an order other than the
+// default (created_at descending). Messages without that date are left out, and the page
+// after the cursor starts past the cursor's row by a (date, id) row comparison. column
+// comes from domain.MessageOrderColumns, never from the caller's text.
+func applyOrderedPage(queryBuilder sq.SelectBuilder, cursor, column string, desc bool) (sq.SelectBuilder, error) {
+	direction, comparison := "ASC", ">"
+	if desc {
+		direction, comparison = "DESC", "<"
+	}
+	queryBuilder = queryBuilder.Where(sq.NotEq{column: nil})
+	if cursor != "" {
+		at, id, err := decodeOrderedCursor(cursor, column, desc)
+		if err != nil {
+			return queryBuilder, err
+		}
+		queryBuilder = queryBuilder.Where(sq.Expr("("+column+", id) "+comparison+" (?, ?)", at, id))
+	}
+	return queryBuilder.OrderBy(column+" "+direction, "id "+direction), nil
+}
+
+func orderName(desc bool) string {
+	if desc {
+		return "desc"
+	}
+	return "asc"
+}
+
+// encodeOrderedCursor writes the cursor of an order other than the default:
+// <column>~<asc|desc>~<date>~<id>. The date keeps its sub-second digits, as the default
+// cursor does, so that messages of the same second are neither skipped nor repeated.
+func encodeOrderedCursor(column string, desc bool, at time.Time, id string) string {
+	raw := strings.Join([]string{column, orderName(desc), at.UTC().Format(time.RFC3339Nano), id}, "~")
+	return base64.StdEncoding.EncodeToString([]byte(raw))
+}
+
+// decodeOrderedCursor reads a cursor of encodeOrderedCursor, and refuses one written for
+// another order.
+func decodeOrderedCursor(cursor, column string, desc bool) (time.Time, string, error) {
+	decoded, err := base64.StdEncoding.DecodeString(cursor)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("%w encoding: %v", domain.ErrInvalidCursor, err)
+	}
+	parts := strings.SplitN(string(decoded), "~", 4)
+	if len(parts) != 4 || parts[0] != column || parts[1] != orderName(desc) {
+		return time.Time{}, "", fmt.Errorf("%w format: the cursor belongs to another order", domain.ErrInvalidCursor)
+	}
+	at, err := time.Parse(time.RFC3339Nano, parts[2])
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("%w timestamp format: %v", domain.ErrInvalidCursor, err)
+	}
+	return at, parts[3], nil
+}
+
+// messageDate returns the date of a message that column names. A message read by
+// applyOrderedPage has that date.
+func messageDate(message *domain.MessageHistory, column string) time.Time {
+	var at *time.Time
+	switch column {
+	case "sent_at":
+		return message.SentAt
+	case "delivered_at":
+		at = message.DeliveredAt
+	case "opened_at":
+		at = message.OpenedAt
+	case "clicked_at":
+		at = message.ClickedAt
+	case "bounced_at":
+		at = message.BouncedAt
+	case "complained_at":
+		at = message.ComplainedAt
+	case "unsubscribed_at":
+		at = message.UnsubscribedAt
+	case "failed_at":
+		at = message.FailedAt
+	default:
+		return message.CreatedAt
+	}
+	if at == nil {
+		return time.Time{}
+	}
+	return *at
 }
 
 func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, workspaceID string, id string) (*domain.MessageHistoryStatusSum, error) {

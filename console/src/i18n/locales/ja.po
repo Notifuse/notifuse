@@ -429,8 +429,8 @@ msgid "{0, plural, one {Unsubscribe # contact} other {Unsubscribe {count} contac
 msgstr "{0, plural, other {{count} 件のコンタクトを購読解除}}"
 
 #. placeholder {0}: template.name
-#: src/components/logs/MessageDetail.tsx:249
-#: src/components/logs/MessageDetail.tsx:620
+#: src/components/logs/MessageDetail.tsx:255
+#: src/components/logs/MessageDetail.tsx:627
 msgid "{0} · deleted"
 msgstr "{0} · 削除済み"
 
@@ -914,11 +914,11 @@ msgstr "{count, plural, one {ほか #件：{joined}} other {ほか #件：{joine
 msgid "{count, plural, one {The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.} other {The list \"{listName}\" can't be deleted while # live automations use it. Ask someone with access to automations to pause them.}}"
 msgstr "{count, plural, one {ライブ状態のオートメーションが使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。} other {ライブ状態のオートメーション#件が使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。}}"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:99
+#: src/components/broadcasts/detail/AbTestPanel.tsx:101
 msgid "{count} clicks out of {recipients} recipients"
 msgstr "{recipients} 件の宛先のうち {count} 件がクリック"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:100
+#: src/components/broadcasts/detail/AbTestPanel.tsx:102
 msgid "{count} clicks out of {tracked} tracked recipients ({recipients} sent)"
 msgstr "トラッキング対象 {tracked} 件のうち {count} 件がクリック（送信 {recipients} 件）"
 
@@ -930,11 +930,11 @@ msgstr "{count} 件の条件"
 #~ msgid "{count} filters applied"
 #~ msgstr ""
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:96
+#: src/components/broadcasts/detail/AbTestPanel.tsx:98
 msgid "{count} opens out of {recipients} recipients"
 msgstr "{recipients} 件の宛先のうち {count} 件が開封"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:97
+#: src/components/broadcasts/detail/AbTestPanel.tsx:99
 msgid "{count} opens out of {tracked} tracked recipients ({recipients} sent)"
 msgstr "トラッキング対象 {tracked} 件のうち {count} 件が開封（送信 {recipients} 件）"
 
@@ -1255,7 +1255,7 @@ msgstr "{columnCount} 列中 {mappedCount} 列をインポート"
 #~ msgid "{median} median time on site"
 #~ msgstr "サイト滞在時間の中央値 {median}"
 
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:96
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:101
 msgid "{median} median visit"
 msgstr "訪問時間の中央値 {median}"
 
@@ -1519,7 +1519,7 @@ msgstr "{setCount}件設定済み"
 msgid "{share} of {parent}"
 msgstr "{parent} の {share}"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:242
+#: src/components/broadcasts/detail/AbTestPanel.tsx:310
 msgid "{share}% tracked"
 msgstr "{share}% をトラッキング"
 
@@ -1544,6 +1544,10 @@ msgstr "{shown, plural, one {#件以上のコンタクト} other {#件以上の�
 #: src/components/templates/TemplateSelectorModal.tsx:256
 msgid "{shown} of {total} templates"
 msgstr "{total} 件中 {shown} 件のテンプレート"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:238
+msgid "{shownTotal, plural, one {Showing # recipient} other {Showing # recipients}}"
+msgstr "{shownTotal, plural, one {#件の宛先を表示} other {#件の宛先を表示}}"
 
 #: src/components/segment/segmentSummary.ts:184
 msgid "{subject}: {aggregate} = {value}"
@@ -1603,6 +1607,10 @@ msgstr "{total, plural, other {#件中 {shown} 件のメッセージ}}"
 #: src/components/blog/PostsTable.tsx:490
 msgid "{total, plural, one {{shown} of # post} other {{shown} of # posts}}"
 msgstr "{total, plural, one {#件中 {shown} 件} other {#件中 {shown} 件}}"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:229
+msgid "{total, plural, one {# recipient} other {# recipients}}"
+msgstr "{total, plural, one {#件の宛先} other {#件の宛先}}"
 
 #: src/components/templates/TemplateSelectorModal.tsx:256
 msgid "{total, plural, one {# template} other {# templates}}"
@@ -1794,9 +1802,21 @@ msgstr "+他{0}件"
 msgid "+{count}"
 msgstr "+{count}"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:197
+msgid "+{days} d"
+msgstr "+{days}日"
+
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:157
 #~ msgid "+{hiddenCount} more"
 #~ msgstr "+他{hiddenCount}件"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:194
+msgid "+{hours} h"
+msgstr "+{hours}時間"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:191
+msgid "+{minutes} min"
+msgstr "+{minutes}分"
 
 #: src/components/templates/importTemplateFile.ts:146
 msgid "<{tag}> is not closed."
@@ -2292,7 +2312,7 @@ msgstr "MCP がオフのワークスペースは選べません。先に 設定 
 #: src/components/analytics/UpcomingSends.tsx:157
 #: src/components/broadcasts/BroadcastsTable.tsx:309
 #: src/components/broadcasts/BroadcastsTable.tsx:314
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:367
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:372
 msgid "A/B"
 msgstr "A/B"
 
@@ -2303,7 +2323,7 @@ msgstr "A/B · {winnerName}"
 #: src/components/automations/nodeTypes.ts:36
 #: src/components/broadcasts/compose/ContentCard.tsx:110
 #: src/components/broadcasts/compose/ContentCard.tsx:113
-#: src/components/broadcasts/detail/AbTestPanel.tsx:219
+#: src/components/broadcasts/detail/AbTestPanel.tsx:226
 msgid "A/B test"
 msgstr "A/Bテスト"
 
@@ -3168,6 +3188,7 @@ msgid "all"
 msgstr "すべて"
 
 #: src/components/blog/PostsTable.tsx:432
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:261
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
 #: src/components/contacts/BulkUpdateDrawer.tsx:599
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
@@ -4126,7 +4147,7 @@ msgstr "DNS ホストで、この名前と値の TXT レコードを追加して
 #~ msgid "At your DNS host, add a TXT record with this name and value. Notifuse starts signing as soon as it finds it. Keep the record for as long as the domain sends email."
 #~ msgstr "DNS ホストで、この名前と値の TXT レコードを追加してください。Notifuse はレコードを見つけるとすぐに署名を始めます。このドメインからメールを送る間は、レコードを残しておいてください。"
 
-#: src/components/logs/MessageDetail.tsx:699
+#: src/components/logs/MessageDetail.tsx:706
 #: src/components/templates/SendTemplateModal.tsx:465
 msgid "Attachments"
 msgstr "添付ファイル"
@@ -4451,11 +4472,11 @@ msgstr "アバターURL"
 msgid "average"
 msgstr "平均"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1128
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1127
 msgid "Average Goal Value"
 msgstr "ゴールの平均値"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1119
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1118
 msgid "Average Scroll Depth"
 msgstr "スクロール深度の平均"
 
@@ -4512,7 +4533,7 @@ msgid "Back to automations"
 msgstr "オートメーション一覧に戻る"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:93
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:164
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:168
 msgid "Back to broadcasts"
 msgstr "ブロードキャスト一覧に戻る"
 
@@ -4676,7 +4697,7 @@ msgstr "基本情報"
 msgid "Batch {batch} of {batches} · {row} of {total} rows"
 msgstr "バッチ {batch}/{batches} · {total} 行中 {row} 行"
 
-#: src/components/logs/MessageDetail.tsx:691
+#: src/components/logs/MessageDetail.tsx:698
 #: src/components/templates/TemplatePreviewDrawer.tsx:375
 msgid "BCC"
 msgstr "BCC"
@@ -5101,7 +5122,7 @@ msgstr "バウンスの診断"
 #: src/components/web_analytics/explore/ExploreTable.tsx:142
 #: src/components/web_analytics/FilterBuilder.tsx:101
 #: src/components/web_analytics/tabs/DashboardTab.tsx:33
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1117
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1116
 msgid "Bounce Rate"
 msgstr "バウンス率"
 
@@ -5139,11 +5160,12 @@ msgstr "バウンスの種類"
 #: src/components/automations/describeTrigger.ts:38
 #: src/components/automations/describeTrigger.ts:59
 #: src/components/automations/stats/NodeStatsFooter.tsx:85
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:175
 #: src/components/contacts/contactDisplay.ts:38
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:54
 #: src/components/lists/ListHeader.tsx:41
 #: src/components/logs/labels.ts:107
-#: src/components/logs/MessageDetail.tsx:425
+#: src/components/logs/MessageDetail.tsx:432
 #: src/components/logs/MessagesTab.tsx:277
 #: src/components/logs/MessagesTab.tsx:286
 #: src/components/logs/MessagesTab.tsx:933
@@ -5176,7 +5198,7 @@ msgstr "バウンスまたは失敗"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:150
 #: src/components/broadcasts/BroadcastsTable.tsx:392
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:110
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:115
 #: src/components/transactional/TransactionalTable.tsx:228
 msgid "Bounces"
 msgstr "バウンス"
@@ -5363,7 +5385,7 @@ msgid "Broadcast name"
 msgstr "ブロードキャスト名"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:93
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:163
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:167
 msgid "Broadcast not found"
 msgstr "ブロードキャストが見つかりません"
 
@@ -5667,7 +5689,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:363
 #: src/components/broadcasts/compose/ContentCard.tsx:91
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:48
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:340
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:345
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/useBroadcastActions.tsx:162
 #: src/components/broadcasts/useBroadcastActions.tsx:168
@@ -5918,7 +5940,7 @@ msgstr "カテゴリを更新しました"
 #~ msgid "Category:"
 #~ msgstr "カテゴリ:"
 
-#: src/components/logs/MessageDetail.tsx:690
+#: src/components/logs/MessageDetail.tsx:697
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
 msgid "CC"
 msgstr "CC"
@@ -6385,7 +6407,7 @@ msgstr "クリックでオプションを表示"
 #~ msgid "Click or drag a CSV file to this area to upload"
 #~ msgstr "CSVファイルをクリックまたはドラッグしてアップロード"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:259
+#: src/components/broadcasts/detail/AbTestPanel.tsx:327
 msgid "click rate"
 msgstr "クリック率"
 
@@ -6393,7 +6415,7 @@ msgstr "クリック率"
 #: src/components/broadcasts/BroadcastKpis.tsx:141
 #: src/components/broadcasts/BroadcastsTable.tsx:290
 #: src/components/broadcasts/compose/ContentCard.tsx:328
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:74
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:78
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:150
 #: src/components/contacts/sheet/ContactKpis.tsx:49
 #: src/pages/TransactionalNotificationsPage.tsx:295
@@ -6434,12 +6456,13 @@ msgstr "「再開」をクリックすると処理を続行します。"
 
 #: src/components/automations/describeTrigger.ts:57
 #: src/components/automations/stats/EmailStepStats.tsx:84
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:67
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:70
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:71
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:74
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:174
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:109
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:111
 #: src/components/logs/labels.ts:109
-#: src/components/logs/MessageDetail.tsx:448
+#: src/components/logs/MessageDetail.tsx:455
 #: src/components/logs/MessagesTab.tsx:276
 #: src/components/logs/MessagesTab.tsx:285
 #: src/components/logs/MessagesTab.tsx:949
@@ -6506,7 +6529,7 @@ msgstr "クリックされたリンク"
 
 #: src/components/analytics/OriginVolumeChart.tsx:191
 #: src/components/broadcasts/BroadcastsTable.tsx:363
-#: src/components/broadcasts/detail/AbTestPanel.tsx:169
+#: src/components/broadcasts/detail/AbTestPanel.tsx:171
 #: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:32
 #: src/components/contacts/TrackingConsent.tsx:174
@@ -6626,7 +6649,7 @@ msgstr "テンプレートを複製"
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:173
 #: src/components/layout/DrawerControls.tsx:109
-#: src/components/logs/MessageDetail.tsx:97
+#: src/components/logs/MessageDetail.tsx:100
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:838
 #: src/components/settings/WebhookDetail.tsx:594
 #: src/components/settings/WorkspaceMembers.tsx:678
@@ -6869,7 +6892,7 @@ msgstr "{list} で苦情"
 msgid "Complaint"
 msgstr "苦情"
 
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:118
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:123
 #: src/components/logs/MessagesTab.tsx:288
 msgid "Complaints"
 msgstr "苦情"
@@ -7241,6 +7264,7 @@ msgid "Console"
 msgstr "コンソール"
 
 #: src/components/automations/describeTrigger.ts:23
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:346
 #: src/components/contacts/ContactsTable.tsx:191
 msgid "Contact"
 msgstr "コンタクト"
@@ -7298,9 +7322,10 @@ msgstr "コンタクトのメールアドレス (空欄の場合はランダム)
 msgid "Contact Email:"
 msgstr "コンタクトメール:"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:349
 #: src/components/logs/InboundWebhooksTab.tsx:236
 #: src/components/logs/InboundWebhooksTab.tsx:369
-#: src/components/logs/MessageDetail.tsx:351
+#: src/components/logs/MessageDetail.tsx:357
 #: src/components/logs/MessagesTab.tsx:658
 msgid "Contact erased"
 msgstr "削除されたコンタクト"
@@ -7519,12 +7544,12 @@ msgstr "続ける"
 msgid "Conv. Rate"
 msgstr "コンバージョン率"
 
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:100
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:105
 #: src/components/web_analytics/CountryMapView.tsx:71
 msgid "Conversions"
 msgstr "コンバージョン"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1129
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1128
 msgid "Converting Sessions"
 msgstr "コンバージョンしたセッション"
 
@@ -7809,7 +7834,7 @@ msgstr "ファイルを読み込めませんでした"
 msgid "Couldn't load the members"
 msgstr "メンバーを読み込めませんでした"
 
-#: src/components/logs/MessageDetail.tsx:90
+#: src/components/logs/MessageDetail.tsx:93
 msgid "Couldn't load the message"
 msgstr "メッセージを読み込めませんでした"
 
@@ -7825,7 +7850,12 @@ msgstr "通知を読み込めませんでした"
 msgid "Couldn't load the posts"
 msgstr "記事を読み込めませんでした"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:411
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:234
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:326
+msgid "Couldn't load the recipients"
+msgstr "宛先を読み込めませんでした"
+
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:432
 msgid "Couldn't load the statistics of this broadcast"
 msgstr "このブロードキャストの統計を読み込めませんでした"
 
@@ -7834,7 +7864,7 @@ msgid "Couldn't load the success rate"
 msgstr "成功率を読み込めませんでした"
 
 #: src/components/automations/stats/EmailStepPreview.tsx:40
-#: src/components/logs/MessageDetail.tsx:780
+#: src/components/logs/MessageDetail.tsx:787
 #: src/components/transactional/notificationRules.ts:67
 msgid "Couldn't load the template"
 msgstr "テンプレートを読み込めませんでした"
@@ -7853,7 +7883,7 @@ msgid "Couldn't load the webhooks"
 msgstr "Webhookを読み込めませんでした"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:95
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:169
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:173
 msgid "Couldn't load this broadcast"
 msgstr "このブロードキャストを読み込めませんでした"
 
@@ -7873,7 +7903,7 @@ msgstr "このWebhookを読み込めませんでした"
 msgid "Couldn't render the preview"
 msgstr "プレビューを表示できませんでした"
 
-#: src/components/logs/MessageDetail.tsx:792
+#: src/components/logs/MessageDetail.tsx:799
 msgid "Couldn't render this message"
 msgstr "このメッセージを表示できませんでした"
 
@@ -8293,7 +8323,7 @@ msgstr "最初のテンプレートを作成して始めましょう"
 
 #: src/components/automations/describeTrigger.ts:25
 #: src/components/broadcasts/detail/BroadcastAside.tsx:273
-#: src/components/logs/MessageDetail.tsx:277
+#: src/components/logs/MessageDetail.tsx:283
 #: src/components/logs/MessagesTab.tsx:476
 #: src/components/logs/OutgoingWebhooksTab.tsx:408
 #: src/components/settings/DomainsSettings.tsx:348
@@ -8867,7 +8897,7 @@ msgstr "ダッシュボード"
 msgid "Dashed"
 msgstr "破線"
 
-#: src/components/logs/MessageDetail.tsx:321
+#: src/components/logs/MessageDetail.tsx:327
 #: src/components/settings/data_retention/DataRetentionSettings.tsx:187
 #: src/components/settings/data_retention/RetentionPreviewModal.tsx:88
 msgid "Data"
@@ -9137,8 +9167,8 @@ msgstr "遅延ノードの時間は0より大きくしてください"
 #: src/components/blog/PostsTable.tsx:259
 #: src/components/broadcasts/BroadcastsTable.tsx:212
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:58
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:275
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:275
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:280
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:280
 #: src/components/contacts/BulkActionsBar.tsx:167
 #: src/components/contacts/BulkActionsBar.tsx:223
 #: src/components/contacts/BulkUpdateDrawer.tsx:158
@@ -9644,8 +9674,9 @@ msgstr "このWebhookを削除すると、これを作成したZapが動作し�
 #: src/components/analytics/DashboardKpis.tsx:299
 #: src/components/automations/stats/EmailStepStats.tsx:76
 #: src/components/automations/stats/EmailStepStats.tsx:82
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:46
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:49
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:48
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:51
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:172
 #: src/components/contacts/sheet/activityLabel.ts:17
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:89
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:91
@@ -9653,7 +9684,7 @@ msgstr "このWebhookを削除すると、これを作成したZapが動作し�
 #: src/components/logs/labels.ts:40
 #: src/components/logs/labels.ts:72
 #: src/components/logs/labels.ts:111
-#: src/components/logs/MessageDetail.tsx:418
+#: src/components/logs/MessageDetail.tsx:425
 #: src/components/logs/MessagesTab.tsx:273
 #: src/components/logs/MessagesTab.tsx:283
 #: src/components/logs/MessagesTab.tsx:933
@@ -10210,7 +10241,7 @@ msgstr "失敗した行をダウンロード"
 #: src/components/blog/PostDrawer.tsx:759
 #: src/components/blog/PostsTable.tsx:348
 #: src/components/blog/ThemeEditorDrawer.tsx:483
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:199
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:203
 #: src/components/templates/templateUsage.ts:83
 msgid "Draft"
 msgstr "下書き"
@@ -10459,7 +10490,7 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/blog/PostsTable.tsx:234
 #: src/components/blog/PostsTable.tsx:238
 #: src/components/broadcasts/BroadcastsTable.tsx:198
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:303
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:308
 #: src/components/contacts/ContactsTable.tsx:93
 #: src/components/email_builder/EmailBuilder.tsx:1138
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
@@ -11347,6 +11378,7 @@ msgstr "国・地域別のエンゲージメント"
 msgid "Enter {0}"
 msgstr "{0}を入力"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:320
 #: src/components/logs/LogsSearchBox.tsx:130
 msgid "Enter a full email address"
 msgstr "完全なメールアドレスを入力してください"
@@ -11823,8 +11855,8 @@ msgstr "イベントタイプ"
 #~ msgstr "イベントタイプ"
 
 #: src/components/contacts/sheet/ContactActivityTab.tsx:39
-#: src/components/logs/MessageDetail.tsx:264
-#: src/components/logs/MessageDetail.tsx:470
+#: src/components/logs/MessageDetail.tsx:270
+#: src/components/logs/MessageDetail.tsx:477
 #: src/components/messages/MessageHistoryTable.tsx:159
 #: src/components/messages/MessageHistoryTable.tsx:319
 #: src/components/settings/WebhookDetail.tsx:481
@@ -11916,6 +11948,11 @@ msgstr "このワークスペースで送信、受信、変更されたすべて
 msgid "Everything the key grants keeps working during the grace period. Renew it to avoid losing licensed capabilities."
 msgstr "猶予期間中は、キーで使える機能はすべて引き続き動作します。ライセンス対象の機能を失わないよう、ライセンスを更新してください。"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:270
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:274
+msgid "Exact email"
+msgstr "完全一致のメールアドレス"
+
 #: src/components/logs/MessagesTab.tsx:414
 #: src/components/logs/MessagesTab.tsx:454
 msgid "Exact ID"
@@ -11985,7 +12022,7 @@ msgstr "出口ページ"
 msgid "Exit page"
 msgstr "出口ページ"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1126
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1125
 msgid "Exit Page Views"
 msgstr "出口ページのビュー"
 
@@ -12121,7 +12158,7 @@ msgstr "すべてのコンタクトをエクスポート中"
 #: src/components/contacts/csv-import/contactFields.ts:26
 #: src/components/contacts/ExportContactsModal.tsx:66
 #: src/components/contacts/sheet/contactFieldLabels.ts:36
-#: src/components/logs/MessageDetail.tsx:679
+#: src/components/logs/MessageDetail.tsx:686
 #: src/components/logs/MessagesTab.tsx:472
 #: src/components/logs/MessagesTab.tsx:487
 #: src/components/messages/MessageHistoryTable.tsx:153
@@ -12148,7 +12185,8 @@ msgstr "非常に高い"
 #: src/components/automations/list/AutomationsTable.tsx:240
 #: src/components/broadcasts/detail/BroadcastAside.tsx:221
 #: src/components/broadcasts/detail/BroadcastAside.tsx:256
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:126
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:131
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:178
 #: src/components/contacts/BulkActionProgressModal.tsx:106
 #: src/components/contacts/BulkActionProgressModal.tsx:146
 #: src/components/contacts/BulkUpdateDrawer.tsx:174
@@ -12159,7 +12197,7 @@ msgstr "非常に高い"
 #: src/components/logs/labels.ts:29
 #: src/components/logs/labels.ts:42
 #: src/components/logs/labels.ts:105
-#: src/components/logs/MessageDetail.tsx:410
+#: src/components/logs/MessageDetail.tsx:417
 #: src/components/logs/MessagesTab.tsx:274
 #: src/components/logs/MessagesTab.tsx:287
 #: src/components/logs/MessagesTab.tsx:925
@@ -13074,9 +13112,13 @@ msgstr "Firecrawl連携を保存しました"
 msgid "First {shownCount} of {count}"
 msgstr "{count} 件中最初の {shownCount} 件"
 
-#: src/components/logs/MessageDetail.tsx:449
+#: src/components/logs/MessageDetail.tsx:456
 msgid "First click"
 msgstr "初回クリック"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:184
+msgid "First clicked"
+msgstr "最初のクリック"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:76
 #~ msgid "First clicks"
@@ -13105,9 +13147,13 @@ msgstr "コンタクトの住所1行目"
 msgid "First Name"
 msgstr "名"
 
-#: src/components/logs/MessageDetail.tsx:441
+#: src/components/logs/MessageDetail.tsx:448
 msgid "First open"
 msgstr "初回開封"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:183
+msgid "First opened"
+msgstr "最初の開封"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:76
 #~ msgid "First opens"
@@ -13384,7 +13430,7 @@ msgstr "頻度"
 #: src/components/automations/stats/EmailStepPreview.tsx:60
 #: src/components/broadcasts/compose/PreviewPanel.tsx:92
 #: src/components/broadcasts/detail/BroadcastAside.tsx:100
-#: src/components/logs/MessageDetail.tsx:683
+#: src/components/logs/MessageDetail.tsx:690
 #: src/components/templates/TemplatePreviewDrawer.tsx:322
 msgid "From"
 msgstr "差出人"
@@ -14217,7 +14263,7 @@ msgstr "アップグレード方法"
 
 #: src/components/email_builder/blocks/MjRawBlock.tsx:306
 #: src/components/email_builder/panels/Preview.tsx:400
-#: src/components/logs/MessageDetail.tsx:808
+#: src/components/logs/MessageDetail.tsx:815
 #: src/components/templates/ImportExportButton.tsx:241
 msgid "HTML"
 msgstr "HTML"
@@ -15467,6 +15513,7 @@ msgstr "セグメント {segment} に参加"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> で参加しました"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:356
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:277
 #: src/components/logs/MessagesTab.tsx:687
 msgid "Journey"
@@ -15626,7 +15673,7 @@ msgstr "ランディングドメイン"
 msgid "Landing Page"
 msgstr "ランディングページ"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1125
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1124
 msgid "Landing Page Views"
 msgstr "ランディングページのビュー"
 
@@ -15664,7 +15711,7 @@ msgstr "ランディングURL"
 #: src/components/contacts/csv-import/contactFields.ts:32
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
-#: src/components/logs/MessageDetail.tsx:687
+#: src/components/logs/MessageDetail.tsx:694
 #: src/components/segment/segmentLabels.ts:24
 #: src/components/templates/SendTemplateModal.tsx:404
 #: src/components/templates/TemplatePreviewDrawer.tsx:499
@@ -16241,7 +16288,7 @@ msgstr "Liquidテンプレートブロック"
 #: src/components/contacts/sheet/describeActivity.tsx:163
 #: src/components/file_manager/FileExplorer.tsx:732
 #: src/components/file_manager/FileExplorer.tsx:733
-#: src/components/logs/MessageDetail.tsx:694
+#: src/components/logs/MessageDetail.tsx:701
 #: src/components/logs/MessagesTab.tsx:292
 #: src/components/logs/MessagesTab.tsx:475
 #: src/components/messages/MessageHistoryTable.tsx:158
@@ -16258,11 +16305,11 @@ msgstr "リスト"
 msgid "List \"{0}\" deleted successfully"
 msgstr "リスト\"{0}\"を削除しました"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:236
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:240
 msgid "List {listName}, unsubscribed excluded"
 msgstr "リスト {listName}、購読解除者を除外"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:237
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:241
 msgid "List {listName}, unsubscribed included"
 msgstr "リスト {listName}、購読解除者を含む"
 
@@ -16849,9 +16896,10 @@ msgid "Marked an email as spam"
 msgstr "メールをスパムとして報告した"
 
 #: src/components/analytics/RecentFailures.tsx:64
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:176
 #: src/components/contacts/sheet/describeActivity.tsx:323
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:46
-#: src/components/logs/MessageDetail.tsx:433
+#: src/components/logs/MessageDetail.tsx:440
 #: src/components/logs/MessagesTab.tsx:705
 #: src/components/logs/MessagesTab.tsx:941
 msgid "Marked as spam"
@@ -17029,7 +17077,7 @@ msgstr "中央値 {0}"
 #: src/components/web_analytics/explore/ExploreTable.tsx:158
 #: src/components/web_analytics/FilterBuilder.tsx:102
 #: src/components/web_analytics/tabs/DashboardTab.tsx:34
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1118
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1117
 msgid "Median Scroll Depth"
 msgstr "スクロール深度の中央値"
 
@@ -17050,14 +17098,14 @@ msgstr "スクロール深度の中央値 (前期間)"
 msgid "Median session duration. Green meets the reference, cyan exceeds it."
 msgstr "セッション時間の中央値。緑は基準を満たし、シアンは基準を上回っています。"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1121
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1120
 msgid "Median Time on Page"
 msgstr "ページ滞在時間の中央値"
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:64
 #: src/components/web_analytics/explore/ExploreSummary.tsx:52
 #: src/components/web_analytics/tabs/DashboardTab.tsx:32
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1116
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1115
 msgid "Median TimeScore"
 msgstr "TimeScoreの中央値"
 
@@ -17099,8 +17147,8 @@ msgstr "メンバーが不完全な可能性があります。セグメントを
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:255
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:254
-#: src/components/logs/MessageDetail.tsx:84
-#: src/components/logs/MessageDetail.tsx:673
+#: src/components/logs/MessageDetail.tsx:87
+#: src/components/logs/MessageDetail.tsx:680
 #: src/components/logs/MessagesTab.tsx:664
 msgid "Message"
 msgstr "メッセージ"
@@ -17120,7 +17168,7 @@ msgstr "メッセージ履歴"
 
 #: src/components/logs/InboundWebhooksTab.tsx:168
 #: src/components/logs/InboundWebhooksTab.tsx:388
-#: src/components/logs/MessageDetail.tsx:677
+#: src/components/logs/MessageDetail.tsx:684
 #: src/components/logs/MessagesTab.tsx:471
 #: src/components/logs/MessagesTab.tsx:486
 #: src/components/messages/MessageHistoryTable.tsx:152
@@ -17128,7 +17176,7 @@ msgstr "メッセージ履歴"
 msgid "Message ID"
 msgstr "メッセージID"
 
-#: src/components/logs/MessageDetail.tsx:96
+#: src/components/logs/MessageDetail.tsx:99
 msgid "Message not found"
 msgstr "メッセージが見つかりません"
 
@@ -17166,12 +17214,12 @@ msgid "Meta Title"
 msgstr "メタタイトル"
 
 #: src/components/logs/AuditEntryDetail.tsx:230
-#: src/components/logs/MessageDetail.tsx:861
+#: src/components/logs/MessageDetail.tsx:868
 msgid "metadata"
 msgstr "メタデータ"
 
 #: src/components/logs/AuditEntryDetail.tsx:229
-#: src/components/logs/MessageDetail.tsx:859
+#: src/components/logs/MessageDetail.tsx:866
 #: src/components/logs/MessagesTab.tsx:473
 #: src/components/messages/MessageHistoryTable.tsx:154
 #: src/components/messages/MessageHistoryTable.tsx:198
@@ -17241,7 +17289,7 @@ msgid "Missing workspace ID or template data."
 msgstr "ワークスペースIDまたはテンプレートデータがありません。"
 
 #: src/components/email_builder/panels/Preview.tsx:382
-#: src/components/logs/MessageDetail.tsx:827
+#: src/components/logs/MessageDetail.tsx:834
 #: src/components/templates/ImportExportButton.tsx:222
 #: src/components/templates/ImportExportButton.tsx:251
 msgid "MJML"
@@ -17300,7 +17348,7 @@ msgstr "MJMLインポートエラー"
 msgid "MJML Import Validation Failed"
 msgstr "MJMLインポート検証に失敗しました"
 
-#: src/components/logs/MessageDetail.tsx:810
+#: src/components/logs/MessageDetail.tsx:817
 #: src/components/templates/TemplatePreviewDrawer.tsx:222
 msgid "MJML Source"
 msgstr "MJMLソース"
@@ -17409,7 +17457,8 @@ msgstr "か月"
 #: src/components/blog/CategoryDrawer.tsx:199
 #: src/components/blog/PostsTable.tsx:420
 #: src/components/broadcasts/BroadcastsTable.tsx:473
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:346
+#: src/components/broadcasts/detail/AbTestPanel.tsx:300
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:351
 #: src/components/contacts/ContactsViewHeader.tsx:134
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
 #: src/components/file_manager/FileExplorer.tsx:1129
@@ -17490,7 +17539,7 @@ msgstr "マイWebhook"
 msgid "my-tenant"
 msgstr "my-tenant"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:140
+#: src/components/broadcasts/detail/AbTestPanel.tsx:142
 msgid "N/A"
 msgstr "N/A"
 
@@ -18055,7 +18104,7 @@ msgstr "国のデータがありません"
 msgid "No custom field is named yet"
 msgstr "名前の付いたカスタムフィールドはまだありません"
 
-#: src/components/logs/MessageDetail.tsx:842
+#: src/components/logs/MessageDetail.tsx:849
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:330
 msgid "No data"
 msgstr "データなし"
@@ -18409,6 +18458,10 @@ msgstr "公開済みの投稿がありません"
 msgid "No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies."
 msgstr "どの受信者にも開封ピクセルやトラッキングリンクは含まれず、UTMパラメータは保持されます。それ以外の場合は各コンタクトのトラッキング同意が適用されます。"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:342
+msgid "No recipients at this step yet"
+msgstr "この段階の宛先はまだいません"
+
 #: src/pages/WebAnalyticsLivePage.tsx:176
 msgid "No referrers"
 msgstr "リファラーがありません"
@@ -18429,6 +18482,7 @@ msgstr "レスポンスなし"
 msgid "No results found"
 msgstr "結果が見つかりません"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:342
 #: src/components/logs/AuditLogTab.tsx:579
 #: src/components/logs/InboundWebhooksTab.tsx:290
 #: src/components/logs/MessagesTab.tsx:806
@@ -18933,7 +18987,7 @@ msgid "Not tested"
 msgstr "未テスト"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:196
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:41
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:43
 #: src/components/settings/GeneralSettings.tsx:293
 #: src/components/transactional/TransactionalDetail.tsx:203
 #: src/components/transactional/TransactionalTable.tsx:61
@@ -19268,7 +19322,7 @@ msgstr "を満たすコンタクト"
 msgid "of the following conditions match:"
 msgstr "の以下の条件に一致:"
 
-#: src/components/logs/MessageDetail.tsx:611
+#: src/components/logs/MessageDetail.tsx:618
 msgid "off"
 msgstr "オフ"
 
@@ -19306,7 +19360,7 @@ msgstr "既定ではオフ"
 #~ msgid "OK"
 #~ msgstr "OK"
 
-#: src/components/logs/MessageDetail.tsx:611
+#: src/components/logs/MessageDetail.tsx:618
 msgid "on"
 msgstr "オン"
 
@@ -19319,7 +19373,7 @@ msgstr "オン"
 msgid "On"
 msgstr "オン"
 
-#: src/components/logs/MessageDetail.tsx:614
+#: src/components/logs/MessageDetail.tsx:621
 msgid "On (default)"
 msgstr "オン（デフォルト）"
 
@@ -19502,7 +19556,7 @@ msgstr "アカウントメニューから「アカウントのセキュリティ
 #~ msgid "Open and click tracking"
 #~ msgstr "開封とクリックのトラッキング"
 
-#: src/components/logs/MessageDetail.tsx:340
+#: src/components/logs/MessageDetail.tsx:346
 msgid "Open contact"
 msgstr "コンタクトを開く"
 
@@ -19546,6 +19600,7 @@ msgstr "新しいタブで開く"
 #~ msgid "Open in a window"
 #~ msgstr "新しいウィンドウで開く"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:310
 #: src/components/transactional/RecentSends.tsx:133
 msgid "Open in logs"
 msgstr "ログで開く"
@@ -19579,7 +19634,7 @@ msgstr "Webで開く"
 msgid "Open one audit entry with its before/after changes"
 msgstr "変更前後を含む監査エントリを1件開く"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:259
+#: src/components/broadcasts/detail/AbTestPanel.tsx:327
 msgid "open rate"
 msgstr "開封率"
 
@@ -19588,7 +19643,7 @@ msgstr "開封率"
 #: src/components/broadcasts/BroadcastKpis.tsx:140
 #: src/components/broadcasts/BroadcastsTable.tsx:290
 #: src/components/broadcasts/compose/ContentCard.tsx:327
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:62
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:65
 #: src/components/contacts/sheet/ContactKpis.tsx:43
 #: src/pages/TransactionalNotificationsPage.tsx:294
 msgid "Open rate"
@@ -19644,13 +19699,14 @@ msgstr "Webhook設定を開く"
 
 #: src/components/automations/describeTrigger.ts:56
 #: src/components/automations/stats/EmailStepStats.tsx:83
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:55
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:58
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:61
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:173
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:96
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:98
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:104
 #: src/components/logs/labels.ts:110
-#: src/components/logs/MessageDetail.tsx:440
+#: src/components/logs/MessageDetail.tsx:447
 #: src/components/logs/MessagesTab.tsx:275
 #: src/components/logs/MessagesTab.tsx:284
 #: src/components/logs/MessagesTab.tsx:941
@@ -19678,7 +19734,7 @@ msgstr "メールを開封した"
 
 #: src/components/analytics/OriginVolumeChart.tsx:190
 #: src/components/broadcasts/BroadcastsTable.tsx:350
-#: src/components/broadcasts/detail/AbTestPanel.tsx:168
+#: src/components/broadcasts/detail/AbTestPanel.tsx:170
 #: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:29
 #: src/components/contacts/TrackingConsent.tsx:165
@@ -19693,7 +19749,7 @@ msgstr "開封"
 
 #. placeholder {0}: tracked(message.opens_tracked)
 #. placeholder {1}: tracked(message.clicks_tracked)
-#: src/components/logs/MessageDetail.tsx:615
+#: src/components/logs/MessageDetail.tsx:622
 msgid "Opens {0} · clicks {1}"
 msgstr "開封 {0} · クリック {1}"
 
@@ -20058,7 +20114,7 @@ msgstr "ページのパス"
 msgid "Page view"
 msgstr "ページビュー"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1122
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1121
 msgid "Page Views"
 msgstr "ページビュー"
 
@@ -20083,7 +20139,7 @@ msgstr "ページ"
 msgid "Pages and feeds"
 msgstr "ページとフィード"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1120
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1119
 msgid "Pages per Session"
 msgstr "セッションあたりのページ数"
 
@@ -20244,7 +20300,7 @@ msgstr "パス形式アクセス"
 #: src/components/broadcasts/BroadcastsTable.tsx:199
 #: src/components/broadcasts/BroadcastsTable.tsx:461
 #: src/components/broadcasts/BroadcastsTable.tsx:464
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:307
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:312
 #: src/components/contacts/BulkActionProgressModal.tsx:50
 #: src/components/contacts/BulkUpdateDrawer.tsx:215
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:221
@@ -20289,7 +20345,7 @@ msgstr "先にオートメーションを一時停止してください"
 #: src/components/automations/AutomationStatusPill.tsx:14
 #: src/components/broadcasts/detail/BroadcastAside.tsx:223
 #: src/components/broadcasts/detail/BroadcastAside.tsx:278
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:211
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:215
 #: src/components/contacts/BulkUpdateDrawer.tsx:184
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:187
 #: src/components/templates/templateUsage.ts:86
@@ -20310,7 +20366,7 @@ msgstr "オートメーション <0>{target}</0> を一時停止しました"
 msgid "Paused the newsletter <0>{target}</0>"
 msgstr "ニュースレター <0>{target}</0> を一時停止しました"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:211
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:215
 msgid "Paused: {reason}"
 msgstr "一時停止中: {reason}"
 
@@ -20520,7 +20576,7 @@ msgstr "操作とファイルを選ぶと、変更内容が表示されます。
 #~ msgid "Pick as winner"
 #~ msgstr "勝者に選ぶ"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:207
+#: src/components/broadcasts/detail/AbTestPanel.tsx:214
 #: src/components/broadcasts/useBroadcastActions.tsx:194
 msgctxt "newsletter A/B"
 msgid "Pick as winner"
@@ -21100,8 +21156,8 @@ msgstr "{templateName} のプレビュー"
 msgid "Preview Results"
 msgstr "結果をプレビュー"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:184
-#: src/components/broadcasts/detail/AbTestPanel.tsx:185
+#: src/components/broadcasts/detail/AbTestPanel.tsx:186
+#: src/components/broadcasts/detail/AbTestPanel.tsx:187
 #: src/components/transactional/TransactionalTable.tsx:294
 msgid "Preview template"
 msgstr "テンプレートをプレビュー"
@@ -21866,7 +21922,7 @@ msgstr "宛先"
 msgid "Recommended"
 msgstr "おすすめ"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:146
+#: src/components/broadcasts/detail/AbTestPanel.tsx:148
 msgctxt "newsletter A/B"
 msgid "Recommended"
 msgstr "おすすめ"
@@ -22446,7 +22502,7 @@ msgstr "<0>{target}</0> のカスタムフィールド名を変更しました"
 msgid "Renaming this connection does not change the address of the API key it already minted."
 msgstr "この接続の名前を変更しても、すでに作成されたAPIキーのアドレスは変わりません。"
 
-#: src/components/logs/MessageDetail.tsx:801
+#: src/components/logs/MessageDetail.tsx:808
 msgid "Rendered again from the template and the message data; {brand} doesn't store the sent HTML"
 msgstr "テンプレートとメッセージデータから再生成しています。{brand}は送信したHTMLを保存しません"
 
@@ -22458,7 +22514,7 @@ msgstr "テンプレートとメッセージデータから再生成していま
 msgid "Rendering preview..."
 msgstr "プレビューをレンダリング中..."
 
-#: src/components/logs/MessageDetail.tsx:600
+#: src/components/logs/MessageDetail.tsx:607
 msgid "Rendering…"
 msgstr "レンダリング中…"
 
@@ -22558,7 +22614,7 @@ msgstr "返信先"
 #~ msgstr "返信先:"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:108
-#: src/components/logs/MessageDetail.tsx:689
+#: src/components/logs/MessageDetail.tsx:696
 #: src/components/templates/SendTemplateModal.tsx:456
 #: src/components/transactional/TransactionalDetail.tsx:420
 msgid "Reply-To"
@@ -22820,7 +22876,7 @@ msgid "Results:"
 msgstr "結果:"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:200
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:314
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:319
 #: src/components/contacts/BulkActionProgressModal.tsx:55
 #: src/components/contacts/BulkUpdateDrawer.tsx:232
 #: src/components/contacts/BulkUpdateDrawer.tsx:240
@@ -22885,12 +22941,13 @@ msgstr "ニュースレター <0>{target}</0> の失敗した送信を再試行�
 #: src/components/blog/PostsTable.tsx:461
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:95
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:568
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:170
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:174
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:328
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:825
 #: src/components/logs/AuditLogTab.tsx:567
 #: src/components/logs/InboundWebhooksTab.tsx:282
-#: src/components/logs/MessageDetail.tsx:92
+#: src/components/logs/MessageDetail.tsx:95
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 #: src/components/segment/SegmentCountCard.tsx:124
@@ -22909,7 +22966,7 @@ msgid "Retry"
 msgstr "再試行"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:209
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:327
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:332
 #: src/components/contacts/BulkUpdateDrawer.tsx:242
 msgid "Retry failed"
 msgstr "失敗分を再試行"
@@ -23223,7 +23280,7 @@ msgstr "サンプル"
 #~ msgid "Sample {sample} % · winner on {metric} after {hours} h"
 #~ msgstr "サンプル {sample} % · {hours} 時間後に{metric}で勝者を決定"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:262
+#: src/components/broadcasts/detail/AbTestPanel.tsx:330
 msgctxt "newsletter A/B"
 msgid "Sample {sample} % · winner on {metric} after {hours} h"
 msgstr "サンプル {sample} % · {hours} 時間後に{metric}で勝者を決定"
@@ -23232,7 +23289,7 @@ msgstr "サンプル {sample} % · {hours} 時間後に{metric}で勝者を決�
 #~ msgid "Sample {sample} % · winner picked manually"
 #~ msgstr "サンプル {sample} % · 勝者は手動で選択"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:263
+#: src/components/broadcasts/detail/AbTestPanel.tsx:331
 msgctxt "newsletter A/B"
 msgid "Sample {sample} % · winner picked manually"
 msgstr "サンプル {sample} % · 勝者は手動で選択"
@@ -23512,7 +23569,7 @@ msgstr "予約のタイムゾーン"
 #: src/components/blog/PostsTable.tsx:346
 #: src/components/blog/PostsTable.tsx:434
 #: src/components/broadcasts/compose/SendingCard.tsx:39
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:202
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:206
 msgid "Scheduled"
 msgstr "予約済み"
 
@@ -23536,7 +23593,7 @@ msgid "Scheduled for {date}"
 msgstr "{date} に予約済み"
 
 #: src/components/broadcasts/compose/SendingCard.tsx:44
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:207
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:211
 msgid "Scheduled for {date} at {time} {zone}"
 msgstr "{date} {time} {zone} に予約済み"
 
@@ -23583,7 +23640,7 @@ msgstr "モバイルレイアウトが有効になる画面幅。一般的な値
 msgid "Scroll"
 msgstr "スクロール"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1124
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1123
 msgid "Scroll Depth"
 msgstr "スクロール深度"
 
@@ -24407,7 +24464,7 @@ msgstr "今すぐ送信"
 #~ msgstr "ブロードキャストを送信または予約"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:416
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:299
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:304
 #: src/components/settings/integrations/EmailProviderCard.tsx:352
 #: src/components/settings/WebhookDetail.tsx:326
 #: src/components/templates/TemplateDrawerBar.tsx:115
@@ -24422,6 +24479,8 @@ msgstr "テスト送信"
 msgid "Send Test"
 msgstr "テストを送信"
 
+#: src/components/broadcasts/detail/AbTestPanel.tsx:272
+#: src/components/broadcasts/detail/AbTestPanel.tsx:275
 #: src/components/settings/integrations/TestEmailModal.tsx:71
 #: src/components/templates/SendTemplateModal.tsx:315
 #: src/components/templates/SendTemplateModal.tsx:327
@@ -24573,7 +24632,7 @@ msgstr "送信にはメールプロバイダーが必要です"
 msgid "Sending rate"
 msgstr "送信レート"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:230
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:234
 msgid "Sending since {since}"
 msgstr "{since} から送信中"
 
@@ -24609,8 +24668,9 @@ msgstr "プロバイダーに拒否された送信。送信前に拒否された
 
 #: src/components/analytics/OriginVolumeChart.tsx:189
 #: src/components/automations/stats/EmailStepStats.tsx:72
-#: src/components/broadcasts/detail/AbTestPanel.tsx:160
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
+#: src/components/broadcasts/detail/AbTestPanel.tsx:162
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:46
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:171
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:285
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:82
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:84
@@ -24638,13 +24698,13 @@ msgstr "送信済み"
 msgid "Sent a test email of the template <0>{target}</0>"
 msgstr "テンプレート <0>{target}</0> のテストメールを送信しました"
 
-#: src/components/logs/MessageDetail.tsx:713
+#: src/components/logs/MessageDetail.tsx:720
 #: src/components/templates/TemplateStartModal.tsx:301
 msgid "Sent by"
 msgstr "送信元"
 
 #. placeholder {0}: automationName ?? message.automation_id ?? ''
-#: src/components/logs/MessageDetail.tsx:274
+#: src/components/logs/MessageDetail.tsx:280
 msgid "Sent by the automation {0}"
 msgstr "オートメーション {0} が送信"
 
@@ -24653,12 +24713,12 @@ msgid "sent by the marketing provider"
 msgstr "マーケティング用プロバイダーから送信"
 
 #. placeholder {0}: broadcastName ?? message.broadcast_id ?? ''
-#: src/components/logs/MessageDetail.tsx:272
+#: src/components/logs/MessageDetail.tsx:278
 msgid "Sent by the newsletter {0}"
 msgstr "ニュースレター {0} が送信"
 
 #. placeholder {0}: message.transactional_notification_id ?? ''
-#: src/components/logs/MessageDetail.tsx:276
+#: src/components/logs/MessageDetail.tsx:282
 msgid "Sent by the transactional notification {0}"
 msgstr "トランザクション通知 {0} が送信"
 
@@ -24666,8 +24726,8 @@ msgstr "トランザクション通知 {0} が送信"
 msgid "sent by the transactional provider"
 msgstr "トランザクション用プロバイダーから送信"
 
-#: src/components/logs/MessageDetail.tsx:301
-#: src/components/logs/MessageDetail.tsx:815
+#: src/components/logs/MessageDetail.tsx:307
+#: src/components/logs/MessageDetail.tsx:822
 msgid "Sent content"
 msgstr "送信内容"
 
@@ -24675,7 +24735,7 @@ msgstr "送信内容"
 msgid "Sent emails older than this are anonymized. The address and the content go; the counts in broadcast reports stay."
 msgstr "これより古い送信済みメールは匿名化されます。アドレスと内容は削除され、ブロードキャストレポートの件数は残ります。"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:218
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:222
 msgid "Sent on {date} at {time}"
 msgstr "{date} {time} に送信"
 
@@ -24695,7 +24755,7 @@ msgstr "トランザクション通知 <0>{target}</0> を送信しました"
 msgid "Sent to {audienceName}"
 msgstr "{audienceName} に送信"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:271
+#: src/components/broadcasts/detail/AbTestPanel.tsx:339
 msgid "sent to the remaining {remaining} at {time}"
 msgstr "残り {remaining} 件に {time} に送信"
 
@@ -24828,7 +24888,7 @@ msgstr "セッション"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:31
 #: src/components/web_analytics/tabs/DashboardTab.tsx:115
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:56
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1115
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1114
 #: src/pages/WebAnalyticsLivePage.tsx:116
 msgid "Sessions"
 msgstr "セッション"
@@ -24895,7 +24955,7 @@ msgstr "マーケティングメールプロバイダーに設定しますか？
 msgid "Set as transactional email provider?"
 msgstr "トランザクションメールプロバイダーに設定しますか？"
 
-#: src/components/logs/MessageDetail.tsx:593
+#: src/components/logs/MessageDetail.tsx:600
 msgid "Set at send time"
 msgstr "送信時に指定"
 
@@ -25140,7 +25200,7 @@ msgstr "セットアップの概要"
 msgid "Setup was not saved"
 msgstr "セットアップは保存されませんでした"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:241
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:245
 msgid "Several senders"
 msgstr "複数の送信者"
 
@@ -25233,9 +25293,14 @@ msgstr "表示するルールを減らす"
 msgid "Show in the preview"
 msgstr "プレビューに表示"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:296
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:112
 msgid "Show less"
 msgstr "表示を減らす"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:306
+msgid "Show more"
+msgstr "さらに表示"
 
 #. placeholder {0}: totalCount - limit
 #: src/components/blog/RecentThemesTable.tsx:218
@@ -25253,6 +25318,10 @@ msgstr "統計を表示"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:110
 #~ msgid "Show this block if"
 #~ msgstr "このブロックを表示する条件"
+
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:241
+msgid "Showing {shownCount} of {totalCount}"
+msgstr "{totalCount}件中{shownCount}件を表示"
 
 #. placeholder {0}: int(MAX_CONTACT_ROWS)
 #: src/pages/ContactsPage.tsx:741
@@ -25679,18 +25748,18 @@ msgstr "SMTPポート"
 msgid "SMTP port is required"
 msgstr "SMTPポートは必須です"
 
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:114
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:119
 #: src/components/transactional/notificationParts.tsx:98
 #: src/components/transactional/TransactionalDetail.tsx:201
 #: src/pages/TransactionalNotificationsPage.tsx:308
 msgid "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
 msgstr "SMTPプロバイダーはバウンスWebhookをサポートしていないため、バウンスステータスを追跡できません"
 
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:122
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:127
 msgid "SMTP provider doesn't support complaint webhooks, so spam complaints cannot be tracked"
 msgstr "SMTPプロバイダーは苦情Webhookをサポートしていないため、スパム苦情を追跡できません"
 
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:40
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:42
 #: src/components/transactional/notificationParts.tsx:97
 #: src/components/transactional/TransactionalDetail.tsx:200
 #: src/pages/TransactionalNotificationsPage.tsx:280
@@ -26069,7 +26138,7 @@ msgstr "都道府県"
 msgid "Stats"
 msgstr "統計"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:389
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:394
 msgid "Stats appear once the broadcast starts sending"
 msgstr "ブロードキャストの送信が始まると統計が表示されます"
 
@@ -26245,9 +26314,9 @@ msgstr "スタイルシートのURL"
 #: src/components/automations/stats/EmailStepPreview.tsx:61
 #: src/components/broadcasts/compose/ContentCard.tsx:132
 #: src/components/broadcasts/compose/PreviewPanel.tsx:93
-#: src/components/broadcasts/detail/AbTestPanel.tsx:133
+#: src/components/broadcasts/detail/AbTestPanel.tsx:135
 #: src/components/broadcasts/detail/BroadcastAside.tsx:109
-#: src/components/logs/MessageDetail.tsx:684
+#: src/components/logs/MessageDetail.tsx:691
 #: src/components/templates/TemplatePreviewDrawer.tsx:390
 #: src/components/templates/TemplateSelectorModal.tsx:632
 #: src/components/templates/TemplateSettingsStep.tsx:217
@@ -26265,7 +26334,7 @@ msgstr "件名 · {defaultName}"
 msgid "Subject ({lang})"
 msgstr "件名 ({lang})"
 
-#: src/components/logs/MessageDetail.tsx:685
+#: src/components/logs/MessageDetail.tsx:692
 #: src/components/templates/TemplatePreviewDrawer.tsx:397
 #: src/components/templates/TemplateTranslationsTab.tsx:396
 msgid "Subject preview"
@@ -26639,7 +26708,7 @@ msgstr "テンプレート"
 #: src/components/automations/config/TriggerConfigForm.tsx:376
 #: src/components/broadcasts/compose/ContentCard.tsx:131
 #: src/components/lists/ListHeader.tsx:71
-#: src/components/logs/MessageDetail.tsx:682
+#: src/components/logs/MessageDetail.tsx:689
 #: src/components/logs/MessagesTab.tsx:474
 #: src/components/messages/MessageHistoryTable.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:242
@@ -26656,7 +26725,7 @@ msgstr "テンプレート"
 #~ msgstr "テンプレート {0}"
 
 #. placeholder {0}: message.template_version
-#: src/components/logs/MessageDetail.tsx:279
+#: src/components/logs/MessageDetail.tsx:285
 msgid "Template {templateLabel} · v{0}"
 msgstr "テンプレート {templateLabel} · v{0}"
 
@@ -26690,11 +26759,11 @@ msgstr "テンプレートを作成して選択しました"
 msgid "Template created successfully"
 msgstr "テンプレートが正常に作成されました"
 
-#: src/components/logs/MessageDetail.tsx:853
+#: src/components/logs/MessageDetail.tsx:860
 msgid "template data"
 msgstr "テンプレートデータ"
 
-#: src/components/logs/MessageDetail.tsx:851
+#: src/components/logs/MessageDetail.tsx:858
 msgid "Template data"
 msgstr "テンプレートデータ"
 
@@ -26944,7 +27013,7 @@ msgstr "テストメールが正常に送信されました"
 msgid "Test ends in {duration}"
 msgstr "テスト終了まで {duration}"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:277
+#: src/components/broadcasts/detail/AbTestPanel.tsx:345
 msgid "Test ends in {left}"
 msgstr "テスト終了まで {left}"
 
@@ -27026,7 +27095,7 @@ msgstr "フィードをテスト中..."
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:62
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:135
-#: src/components/logs/MessageDetail.tsx:822
+#: src/components/logs/MessageDetail.tsx:829
 msgid "text"
 msgstr "テキスト"
 
@@ -27149,7 +27218,7 @@ msgstr "テキストスタイル"
 #: src/components/email_builder/EmailBuilder.tsx:1145
 #: src/components/email_builder/MjmlCodeEditor.tsx:695
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
-#: src/components/logs/MessageDetail.tsx:809
+#: src/components/logs/MessageDetail.tsx:816
 #: src/components/templates/TemplatePreviewDrawer.tsx:230
 msgid "Text version"
 msgstr "テキスト版"
@@ -27331,7 +27400,7 @@ msgstr "新しい購読者それぞれが受け取る確認メール"
 msgid "The contact"
 msgstr "コンタクト"
 
-#: src/components/logs/MessageDetail.tsx:773
+#: src/components/logs/MessageDetail.tsx:780
 msgid "The contact was erased; the message data is gone"
 msgstr "コンタクトが削除されたため、メッセージデータはありません"
 
@@ -27832,7 +27901,7 @@ msgid "The server restarts with the new settings. This usually takes a few secon
 msgstr "新しい設定でサーバーが再起動します。通常は数秒で完了します。"
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:48
-#: src/components/logs/MessageDetail.tsx:159
+#: src/components/logs/MessageDetail.tsx:165
 #: src/components/messages/MessageHistoryTable.tsx:78
 msgid "The server returned no template"
 msgstr "サーバーからテンプレートが返されませんでした"
@@ -27869,7 +27938,7 @@ msgstr "ストレージが {key} の削除を拒否しました"
 msgid "The summary sent right after a purchase: items, totals, address."
 msgstr "購入直後に送る明細: 商品、合計金額、住所。"
 
-#: src/components/logs/MessageDetail.tsx:774
+#: src/components/logs/MessageDetail.tsx:781
 msgid "The template behind this message isn't available"
 msgstr "このメッセージのテンプレートは利用できません"
 
@@ -28177,9 +28246,9 @@ msgstr "このブロックにはLiquidブロックが含まれており、条件
 msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "このブロードキャストはエラーにより失敗しました。詳細はログを確認してください。"
 
-#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:79
 #: src/components/broadcasts/BroadcastsTable.tsx:422
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:193
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:197
+#: src/components/broadcasts/useBroadcastAnalyticsLinks.ts:75
 msgid "This broadcast has no UTM campaign, so its website traffic can't be identified"
 msgstr "このブロードキャストにはUTMキャンペーンが設定されていないため、Webサイトのトラフィックを識別できません"
 
@@ -28199,7 +28268,7 @@ msgstr "このブロードキャストは下書きではなくなったため、
 msgid "This broadcast is scheduled and will start sending at the specified time."
 msgstr "このブロードキャストは予約済みで、指定した時刻に送信を開始します。"
 
-#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:80
+#: src/components/broadcasts/useBroadcastAnalyticsLinks.ts:76
 msgid "This broadcast sets a fixed UTM content, so its variations can't be told apart in web analytics"
 msgstr "このブロードキャストは固定のUTMコンテンツを設定しているため、Webアナリティクスでバリエーションを区別できません"
 
@@ -28257,7 +28326,7 @@ msgstr "このデプロイメントは、ライセンスで許可されたワー
 #~ msgid "This deployment keeps working without them."
 #~ msgstr ""
 
-#: src/components/logs/MessageDetail.tsx:824
+#: src/components/logs/MessageDetail.tsx:831
 msgid "This email is sent as HTML only"
 msgstr "このメールはHTMLのみで送信されます"
 
@@ -28724,7 +28793,7 @@ msgstr "時間"
 msgid "Time is required"
 msgstr "時刻は必須です"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1123
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1122
 msgid "Time on Page"
 msgstr "ページ滞在時間"
 
@@ -28916,7 +28985,7 @@ msgstr "TLS秘密鍵 (Base64)"
 msgid "TLS private key is required"
 msgstr "TLS秘密鍵は必須です"
 
-#: src/components/logs/MessageDetail.tsx:351
+#: src/components/logs/MessageDetail.tsx:357
 msgid "To {recipient}"
 msgstr "宛先 {recipient}"
 
@@ -28972,7 +29041,7 @@ msgstr "{0}を使うには、設定 › AI › アシスタントでAnthropic、
 msgid "Today"
 msgstr "今日"
 
-#: src/components/logs/MessageDetail.tsx:242
+#: src/components/logs/MessageDetail.tsx:248
 msgid "today, {time}"
 msgstr "今日 {time}"
 
@@ -29138,7 +29207,7 @@ msgstr "添付ファイルの合計サイズが10MBの制限を超えていま�
 #~ msgid "Total Contacts"
 #~ msgstr "コンタクト総数"
 
-#: src/components/web_analytics/web-analytics-ai-tools.ts:1127
+#: src/components/web_analytics/web-analytics-ai-tools.ts:1126
 msgid "Total Goal Value"
 msgstr "ゴールの合計値"
 
@@ -29175,7 +29244,7 @@ msgid "Tracked on {tracked} of {total} emails"
 msgstr "{total} 件中 {tracked} 件のメールでトラッキング"
 
 #: src/components/contacts/ContactsFilters.tsx:29
-#: src/components/logs/MessageDetail.tsx:692
+#: src/components/logs/MessageDetail.tsx:699
 #: src/components/settings/WebAnalyticsSettings.tsx:278
 #: src/components/transactional/NotificationChecks.tsx:217
 #: src/components/transactional/TransactionalDetail.tsx:409
@@ -29783,14 +29852,15 @@ msgstr "リストから購読解除"
 #: src/components/automations/describeTrigger.ts:61
 #: src/components/automations/stats/NodeStatsFooter.tsx:85
 #: src/components/broadcasts/detail/BroadcastAside.tsx:161
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:124
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:129
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:177
 #: src/components/contacts/BulkUpdateDrawer.tsx:171
 #: src/components/contacts/BulkUpdateDrawer.tsx:544
 #: src/components/contacts/contactDisplay.ts:37
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:47
 #: src/components/lists/ListHeader.tsx:40
 #: src/components/logs/labels.ts:108
-#: src/components/logs/MessageDetail.tsx:456
+#: src/components/logs/MessageDetail.tsx:463
 #: src/components/logs/MessagesTab.tsx:279
 #: src/components/messages/MessageHistoryTable.tsx:384
 #: src/components/transactional/RecentSends.tsx:41
@@ -29829,7 +29899,7 @@ msgstr "購読解除"
 msgid "Until the value is fixed, this contact keeps its current place in the segment."
 msgstr "値が修正されるまで、このコンタクトはセグメント内の現在の状態のままです。"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:75
+#: src/components/broadcasts/detail/AbTestPanel.tsx:77
 msgid "Untitled"
 msgstr "無題"
 
@@ -30538,7 +30608,7 @@ msgstr "変数"
 msgid "Variables it uses"
 msgstr "使用する変数"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:115
+#: src/components/broadcasts/detail/AbTestPanel.tsx:117
 msgid "Variant"
 msgstr "パターン"
 
@@ -30693,6 +30763,11 @@ msgstr "ログで表示"
 #~ msgid "View Logs"
 #~ msgstr "ログを表示"
 
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:384
+#: src/components/broadcasts/detail/BroadcastRecipients.tsx:387
+msgid "View message"
+msgstr "メッセージを表示"
+
 #: src/components/automations/AutomationEditor.tsx:434
 #: src/components/automations/list/AutomationsTable.tsx:100
 #: src/components/automations/stats/EmailStepStats.tsx:100
@@ -30716,7 +30791,7 @@ msgstr "記事を表示"
 #~ msgid "View Raw JSON"
 #~ msgstr "生のJSONを表示"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:258
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:263
 msgid "View sending logs"
 msgstr "送信ログを表示"
 
@@ -31075,15 +31150,15 @@ msgstr "Webhooksが正常に登録されました"
 msgid "Website"
 msgstr "ウェブサイト"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:264
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:269
 msgid "Website conversions"
 msgstr "Webサイトのコンバージョン"
 
-#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:87
+#: src/components/broadcasts/useBroadcastAnalyticsLinks.ts:85
 msgid "Website conversions from this broadcast"
 msgstr "このブロードキャストによるWebサイトのコンバージョン"
 
-#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:86
+#: src/components/broadcasts/useBroadcastAnalyticsLinks.ts:85
 msgid "Website conversions from this variation"
 msgstr "このバリエーションによるWebサイトのコンバージョン"
 
@@ -31097,15 +31172,15 @@ msgstr "Webサイトをトラッキング中"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:168
 #: src/components/broadcasts/BroadcastsTable.tsx:219
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:289
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:294
 msgid "Website traffic"
 msgstr "Webサイトのトラフィック"
 
-#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:84
+#: src/components/broadcasts/useBroadcastAnalyticsLinks.ts:80
 msgid "Website traffic from this broadcast"
 msgstr "このブロードキャストによるWebサイトのトラフィック"
 
-#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:83
+#: src/components/broadcasts/useBroadcastAnalyticsLinks.ts:80
 msgid "Website traffic from this variation"
 msgstr "このバリエーションによるWebサイトのトラフィック"
 
@@ -31136,7 +31211,7 @@ msgstr "Webサイト訪問者のアナリティクス — セッション、ペ�
 #: src/components/analytics/DashboardKpis.tsx:323
 #: src/components/analytics/DashboardKpis.tsx:331
 #: src/components/analytics/DashboardKpis.tsx:356
-#: src/components/broadcasts/detail/BroadcastFunnel.tsx:93
+#: src/components/broadcasts/detail/BroadcastFunnel.tsx:98
 msgid "Website visits"
 msgstr "Webサイト訪問数"
 
@@ -31423,7 +31498,7 @@ msgstr "が選んだリストから購読解除されます"
 #~ msgstr "優勝"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:274
-#: src/components/broadcasts/detail/AbTestPanel.tsx:143
+#: src/components/broadcasts/detail/AbTestPanel.tsx:145
 msgctxt "newsletter A/B"
 msgid "Winner"
 msgstr "優勝"
@@ -31470,7 +31545,7 @@ msgstr "勝者を送信済み"
 #~ msgid "winner sent at {time}"
 #~ msgstr "{time} に勝者を送信"
 
-#: src/components/broadcasts/detail/AbTestPanel.tsx:273
+#: src/components/broadcasts/detail/AbTestPanel.tsx:341
 msgctxt "newsletter A/B"
 msgid "winner sent at {time}"
 msgstr "{time} に勝者を送信"
@@ -31906,8 +31981,8 @@ msgstr "オートメーションの書き込み権限がありません"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:91
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:369
-#: src/components/broadcasts/detail/AbTestPanel.tsx:200
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:176
+#: src/components/broadcasts/detail/AbTestPanel.tsx:207
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:180
 #: src/pages/BroadcastsPage.tsx:47
 msgid "You don't have write permission for broadcasts"
 msgstr "ブロードキャストの書き込み権限がありません"
@@ -31974,7 +32049,7 @@ msgstr "{workspaceName} に参加しました"
 #~ msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 #~ msgstr "ブログを有効にする前に、上の一般設定でカスタムエンドポイントURLを設定する必要があります。"
 
-#: src/components/logs/MessageDetail.tsx:359
+#: src/components/logs/MessageDetail.tsx:366
 msgid "You need access to contacts"
 msgstr "コンタクトへのアクセス権が必要です"
 
@@ -31987,7 +32062,7 @@ msgstr "メッセージ履歴へのアクセス権が必要です"
 msgid "You need access to message history to see sends"
 msgstr "送信を表示するにはメッセージ履歴へのアクセス権が必要です"
 
-#: src/components/logs/MessageDetail.tsx:772
+#: src/components/logs/MessageDetail.tsx:779
 #: src/components/transactional/notificationRules.ts:61
 #: src/components/transactional/PreviewPanel.tsx:75
 msgid "You need access to templates"
@@ -32007,7 +32082,8 @@ msgstr "このステップのメールを見るにはメッセージ履歴への
 #~ msgstr "テストメールを送信するには、テンプレートの読み取りとコンタクトの書き込み権限が必要です"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:408
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:296
+#: src/components/broadcasts/detail/AbTestPanel.tsx:274
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:301
 #: src/components/templates/CreateTemplateDrawer.tsx:908
 #: src/components/templates/SendTestEmailButton.tsx:25
 #: src/components/transactional/notificationRules.ts:49
