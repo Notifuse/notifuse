@@ -89,15 +89,22 @@ GET  /api/contact.list
   - asserts that the interleaving really happened (the hook was reached, the lock was waited on): a race test
     that can pass without the race proves nothing;
   - stops an actor inside a query with `LOCK TABLE`, an advisory lock or a trigger, and between two queries with
-    a test-only hook that production builds leave out (build tag);
+    a hook: the production code calls it, and it does nothing outside integration tests (a real version under the
+    `integration` build tag, an empty one under `!integration`);
   - makes the write after a successful step slow or failing, in the system database as well as the workspace one;
   - covers every function that writes the same table and column, not only the one where the bug was seen;
-  - starts from states set in SQL, including partial combinations of statuses and work left in flight by the
-    previous release, not only states the API can produce;
+  - starts from states set in SQL, not only states the API can produce: the combinations of statuses that can
+    actually be reached, including partial ones, and work left in flight by the previous release. A switch over
+    statuses also gets a table-driven unit test over every combination the schema allows: it is cheap, and an
+    integration test per combination is not;
   - asserts the whole state that must survive (edited columns, paused queue rows, the task's next run, what the
     next run does), a "never" property and a "finishes" property, not only the final status;
-  - runs tasks through the scheduler, as production does, and shortens durations through a constructor option,
-    never an environment variable.
+  - runs tasks the way production does, through the scheduler and not by task ID. A fix that touches how a task
+    is woken is tested in both modes: the in-process scheduler and the external cron, where `RunTaskNow` does
+    nothing. Durations are shortened through a constructor option, never an environment variable.
+
+  The test's name and comments describe the behaviour in plain words (`TestPauseDuringResumeLeavesNoPausedRow`),
+  with no ticket or issue number.
 
   A unit test with mocks is not enough on its own: a mock that returns the same row on every read cannot
   represent a concurrent write. A fake implements the real interface, checked at compile time
