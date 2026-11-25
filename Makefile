@@ -158,10 +158,10 @@ docker-publish:
 	@echo "Building and publishing multi-platform Docker image to Docker Hub..."
 	@if [ -z "$(word 2,$(MAKECMDGOALS))" ]; then \
 		echo "Building with tag: latest for amd64 and arm64"; \
-		docker buildx build --platform linux/amd64,linux/arm64 -t notifuse/notifuse:latest --push .; \
+		docker buildx build --platform linux/amd64,linux/arm64 --sbom=true -t notifuse/notifuse:latest --push .; \
 	else \
 		echo "Building with tag: $(word 2,$(MAKECMDGOALS)) for amd64 and arm64"; \
-		docker buildx build --platform linux/amd64,linux/arm64 -t notifuse/notifuse:$(word 2,$(MAKECMDGOALS)) --push .; \
+		docker buildx build --platform linux/amd64,linux/arm64 --sbom=true -t notifuse/notifuse:$(word 2,$(MAKECMDGOALS)) --push .; \
 	fi
 
 # This prevents make from trying to run the tag as a target

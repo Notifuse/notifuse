@@ -68,6 +68,7 @@ jobs:
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
           no-cache: true
+          sbom: true
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
