@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
+- **Feature**: A broadcast's results now list its recipients under the funnel. Clicking a step (**Opened**, **Clicked**, **Bounces**…) shows who reached it, latest first, and `messages.list` gains `order_by` and `order` to sort by one of a message's dates.
+
 - **Feature**: Custom branding, with an Agency or Enterprise licence. In **System Settings** → **Branding**, the root user sets the instance's name, logo and icon, and can hide the Help menu. The console and the system emails then show this identity in place of Notifuse's.
 
 - **Fix**: The analytics measures for sending and completed broadcasts (`count_sending`, `completed_broadcasts_count`) looked for statuses broadcasts never have, so they returned 0. The recipient measures failed with an error and now count the emails queued by processed broadcasts, leaving out those sent before 21.0, which recorded no count. `count_with_ab_test` counts every broadcast with A/B testing on.
