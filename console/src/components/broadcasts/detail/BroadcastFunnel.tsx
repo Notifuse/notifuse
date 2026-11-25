@@ -9,8 +9,8 @@ import { formatDuration, formatValue } from '../../web_analytics/lib/format'
 import type { BroadcastVisits } from '../broadcastAnalytics'
 import { CouldntLoad } from '../CouldntLoad'
 
-/** The log filter of a funnel cell: none for Sent. */
-export type LogFilter = 'sent' | 'is_delivered' | 'is_opened' | 'is_clicked' | 'is_bounced' | 'is_complained' | 'is_unsubscribed' | 'is_failed'
+/** A step of the funnel, or one of its incidents: what the recipients list below it shows. */
+export type RecipientStep = 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'unsubscribed' | 'failed'
 
 export interface BroadcastFunnelProps {
   stats: MessageHistoryStatusSum
@@ -25,11 +25,13 @@ export interface BroadcastFunnelProps {
     /** The reason of BroadcastAnalyticsLinks when the broadcast has no campaign. */
     noCampaign?: string
   }
-  onOpenLogs: (filter: LogFilter) => void
+  /** The step the recipients list shows. */
+  selected?: RecipientStep
+  onSelect: (step: RecipientStep) => void
 }
 
 /** F2 as a funnel, Sent to Conversions, with the incidents aside. */
-export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: BroadcastFunnelProps) {
+export function BroadcastFunnel({ stats, smtp, untracked, web, selected, onSelect }: BroadcastFunnelProps) {
   const { t } = useLingui()
   const { int, percent } = useNumberFormat()
   const sent = stats.total_sent
@@ -41,7 +43,7 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
   const notTracked = t`Not tracked`
 
   const items: KpiItem[] = [
-    { key: 'sent', label: t`Sent`, value: int(sent), sub: share(sent, sent), onClick: () => onOpenLogs('sent') },
+    { key: 'sent', label: t`Sent`, value: int(sent), sub: share(sent, sent), onClick: () => onSelect('sent'), active: selected === 'sent' },
     smtp
       ? { key: 'delivered', label: t`Delivered`, value: <Tooltip title={smtpNote}><span>—</span></Tooltip> }
       : {
@@ -49,7 +51,8 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
           label: t`Delivered`,
           value: int(stats.total_delivered),
           sub: share(stats.total_delivered, sent),
-          onClick: () => onOpenLogs('is_delivered')
+          onClick: () => onSelect('delivered'),
+          active: selected === 'delivered'
         },
     untracked
       ? { key: 'opened', label: t`Opened`, value: '—', sub: notTracked }
@@ -61,7 +64,8 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
           hint: isPartiallyTracked(sent, stats.total_opens_tracked) ? (
             <TrackedTooltipTitle title={t`Open rate`} tracked={stats.total_opens_tracked} />
           ) : undefined,
-          onClick: () => onOpenLogs('is_opened')
+          onClick: () => onSelect('opened'),
+          active: selected === 'opened'
         },
     untracked
       ? { key: 'clicked', label: t`Clicked`, value: '—', sub: notTracked }
@@ -73,7 +77,8 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
           hint: isPartiallyTracked(sent, stats.total_clicks_tracked) ? (
             <TrackedTooltipTitle title={t`Click rate`} tracked={stats.total_clicks_tracked} />
           ) : undefined,
-          onClick: () => onOpenLogs('is_clicked')
+          onClick: () => onSelect('clicked'),
+          active: selected === 'clicked'
         }
   ]
 
@@ -104,9 +109,9 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
     )
   }
 
-  const incidents: { key: LogFilter; label: string; count: number; of: number; tone: 'warning' | 'danger'; smtpNote?: string }[] = [
+  const incidents: { key: RecipientStep; label: string; count: number; of: number; tone: 'warning' | 'danger'; smtpNote?: string }[] = [
     {
-      key: 'is_bounced',
+      key: 'bounced',
       label: t`Bounces`,
       count: stats.total_bounced,
       of: sent,
@@ -114,16 +119,16 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
       smtpNote: smtp ? t`SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked` : undefined
     },
     {
-      key: 'is_complained',
+      key: 'complained',
       label: t`Complaints`,
       count: stats.total_complained,
       of: sent,
       tone: 'danger',
       smtpNote: smtp ? t`SMTP provider doesn't support complaint webhooks, so spam complaints cannot be tracked` : undefined
     },
-    { key: 'is_unsubscribed', label: t`Unsubscribed`, count: stats.total_unsubscribed, of: sent, tone: 'warning' },
+    { key: 'unsubscribed', label: t`Unsubscribed`, count: stats.total_unsubscribed, of: sent, tone: 'warning' },
     // A failed email was never sent: its share is over everything attempted.
-    { key: 'is_failed', label: t`Failed`, count: stats.total_failed, of: sent + stats.total_failed, tone: 'danger' }
+    { key: 'failed', label: t`Failed`, count: stats.total_failed, of: sent + stats.total_failed, tone: 'danger' }
   ]
 
   const aside = (
@@ -144,8 +149,11 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
           <li key={incident.key}>
             <button
               type="button"
-              onClick={() => onOpenLogs(incident.key)}
-              className="flex w-full cursor-pointer items-center justify-between gap-6 rounded-sm border-0 bg-transparent p-0 text-left hover:bg-fill"
+              aria-pressed={selected === incident.key}
+              onClick={() => onSelect(incident.key)}
+              className={`flex w-full cursor-pointer items-center justify-between gap-6 rounded-sm border-0 p-0 text-left ${
+                selected === incident.key ? 'bg-primary-50' : 'bg-transparent hover:bg-fill'
+              }`}
             >
               <span className="text-ink-3">{incident.label}</span>
               <span className={`tabular-nums ${tone}`}>

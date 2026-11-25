@@ -155,6 +155,7 @@ interface DetailProps {
   onClose: () => void
   onNext: () => void
   onPrev: () => void
+  copyLink?: boolean
 }
 
 const renderDetail = (props: Partial<DetailProps> = {}) => {
@@ -172,6 +173,7 @@ const renderDetail = (props: Partial<DetailProps> = {}) => {
               names={names}
               nav={{ position: 1, total: 2, onNext: current.onNext, onPrev: current.onPrev }}
               onClose={current.onClose ?? vi.fn()}
+              copyLink={current.copyLink}
             />
           </App>
         </ConfigProvider>
@@ -213,6 +215,17 @@ describe('MessageDetail', () => {
       id: 'tpl_welcome',
       version: 3
     })
+  })
+
+  it('has a copy-link button by default, and none with copyLink off', async () => {
+    const { unmount } = renderDetail()
+    await screen.findByText('To ann@example.com')
+    expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument()
+    unmount()
+
+    renderDetail({ copyLink: false })
+    await screen.findByText('To ann@example.com')
+    expect(screen.queryByRole('button', { name: 'Copy link' })).not.toBeInTheDocument()
   })
 
   it('says a message is not found, with a way out', async () => {

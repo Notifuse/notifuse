@@ -35,6 +35,7 @@ function renderLinks(overrides: {
   permissions?: UserPermissions
   broadcast?: Broadcast
   variationTemplateId?: string
+  only?: 'traffic'
 } = {}) {
   return render(
     <BroadcastAnalyticsLinks
@@ -43,6 +44,7 @@ function renderLinks(overrides: {
       broadcast={overrides.broadcast ?? broadcast}
       permissions={overrides.permissions ?? permissions}
       variationTemplateId={overrides.variationTemplateId}
+      only={overrides.only}
     />,
     { wrapper: TestI18nWrapper }
   )
@@ -119,6 +121,12 @@ describe('enabled links', () => {
 })
 
 describe('variation scope', () => {
+  it('renders the traffic report alone when asked', () => {
+    renderLinks({ only: 'traffic' })
+    expect(screen.getByLabelText(TRAFFIC)).toBeInTheDocument()
+    expect(screen.queryByLabelText(CONVERSIONS)).not.toBeInTheDocument()
+  })
+
   it('names the variation rather than the broadcast', () => {
     renderLinks({ variationTemplateId: 'newsletter-weekly-v2' })
     expect(screen.getByLabelText(VARIATION_TRAFFIC)).toBeInTheDocument()

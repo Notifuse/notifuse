@@ -49,6 +49,8 @@ export interface MessageDetailProps {
   names: MessageNames
   nav?: DrawerNav
   onClose: () => void
+  /** The copy-link button of the panel, on by default: off where the page URL does not name the message. */
+  copyLink?: boolean
 }
 
 const isErased = (message: MessageHistory) =>
@@ -63,7 +65,8 @@ export function MessageDetail({
   row,
   names,
   nav,
-  onClose
+  onClose,
+  copyLink = true
 }: MessageDetailProps) {
   const { t } = useLingui()
 
@@ -110,6 +113,7 @@ export function MessageDetail({
       names={names}
       nav={nav}
       onClose={onClose}
+      copyLink={copyLink}
     />
   )
 }
@@ -121,6 +125,7 @@ interface LoadedMessageProps {
   names: MessageNames
   nav?: DrawerNav
   onClose: () => void
+  copyLink: boolean
 }
 
 function LoadedMessage({
@@ -129,7 +134,8 @@ function LoadedMessage({
   message,
   names,
   nav,
-  onClose
+  onClose,
+  copyLink
 }: LoadedMessageProps) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
@@ -352,6 +358,7 @@ function LoadedMessage({
         at(message.created_at)
       ]}
       nav={nav}
+      copyLink={copyLink}
       tabs={tabs}
       bodyKey={message.id}
       footer={

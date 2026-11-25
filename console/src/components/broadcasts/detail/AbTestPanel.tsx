@@ -1,7 +1,8 @@
-import { Button, Table, Tooltip } from 'antd'
+import { Button, Dropdown, Table, Tooltip, type MenuProps } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useLingui } from '@lingui/react/macro'
-import { Eye, FlaskConical, Trophy } from 'lucide-react'
+import { useRouter } from '@tanstack/react-router'
+import { Ellipsis, Eye, FlaskConical, Trophy } from 'lucide-react'
 import { Panel, Pill, RateBar, useNumberFormat } from '../../layout'
 import type { Broadcast, BroadcastVariation, TestResultsResponse } from '../../../services/api/broadcast'
 import type { MessageHistoryStatusSum } from '../../../services/api/messages_history'
@@ -9,9 +10,10 @@ import type { Template } from '../../../services/api/template'
 import type { Workspace } from '../../../services/api/types'
 import type { UserPermissions } from '../../../services/api/workspace'
 import { canSelectWinner } from '../../../lib/abTestWinner'
-import SendTestEmailButton from '../../templates/SendTestEmailButton'
 import TemplatePreviewDrawer from '../../templates/TemplatePreviewDrawer'
+import { canSendTestEmail } from '../../../services/api/permissions'
 import { BroadcastAnalyticsLinks } from '../BroadcastAnalyticsLinks'
+import { useBroadcastAnalyticsLinks } from '../useBroadcastAnalyticsLinks'
 import { getRemainingTestTime } from '../broadcastStatus'
 import { describeVariationRate, toVariationMetrics, type VariationRate, type VariationRowMetrics } from '../variationMetrics'
 import { workspaceTimezone } from '../access'
@@ -186,15 +188,20 @@ export function AbTestPanel({
                 </Tooltip>
               </TemplatePreviewDrawer>
             ) : null}
-            {template ? (
-              <SendTestEmailButton size="small" permissions={permissions} onClick={() => onSendTest(template)} />
-            ) : null}
             <BroadcastAnalyticsLinks
               workspaceId={workspace.id}
               workspace={workspace}
               broadcast={broadcast}
               permissions={permissions}
               variationTemplateId={row.variation.template_id ?? ''}
+              only="traffic"
+            />
+            <VariantMenu
+              workspace={workspace}
+              broadcast={broadcast}
+              permissions={permissions}
+              templateId={row.variation.template_id ?? ''}
+              onSendTest={template ? () => onSendTest(template) : undefined}
             />
             {winnerSelectable && row.variation.template_id ? (
               <Tooltip title={canWrite ? undefined : t`You don't have write permission for broadcasts`}>
@@ -231,6 +238,67 @@ export function AbTestPanel({
         scroll={{ x: abTableWidth({ sent, winnerSelectable }) }}
       />
     </Panel>
+  )
+}
+
+interface VariantMenuProps {
+  workspace: Workspace
+  broadcast: Broadcast
+  permissions?: UserPermissions | null
+  templateId: string
+  /** Absent for a variant without a template. */
+  onSendTest?: () => void
+}
+
+/** The less used actions of a variant: a test send, and its website conversions. */
+function VariantMenu({ workspace, broadcast, permissions, templateId, onSendTest }: VariantMenuProps) {
+  const { t } = useLingui()
+  const router = useRouter()
+  const reports = useBroadcastAnalyticsLinks({
+    workspaceId: workspace.id,
+    workspace,
+    broadcast,
+    permissions,
+    variationTemplateId: templateId
+  })
+
+  const items: NonNullable<MenuProps['items']> = []
+  if (onSendTest) {
+    const allowed = canSendTestEmail(permissions)
+    items.push({
+      key: 'test',
+      disabled: !allowed,
+      label: allowed ? (
+        t`Send test email`
+      ) : (
+        <Tooltip title={t`You need Templates read and Transactional write permissions to send test emails`}>
+          {t`Send test email`}
+        </Tooltip>
+      ),
+      onClick: onSendTest
+    })
+  }
+  if (reports) {
+    const { target, label, disabledReason } = reports.conversions
+    items.push({
+      key: 'conversions',
+      disabled: !target,
+      label: target ? (
+        // Let the router build the href: it double-encodes the JSON filters param.
+        <a href={router.buildLocation(target).href} target="_blank" rel="noopener noreferrer">
+          {label}
+        </a>
+      ) : (
+        <Tooltip title={disabledReason}>{label}</Tooltip>
+      )
+    })
+  }
+  if (items.length === 0) return null
+
+  return (
+    <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
+      <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} />} />
+    </Dropdown>
   )
 }
 

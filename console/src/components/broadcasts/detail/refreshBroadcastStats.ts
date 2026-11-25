@@ -1,13 +1,14 @@
 import type { QueryClient } from '@tanstack/react-query'
 
-/** The queries of a broadcast's detail: the broadcast, its stats, task, test results, variations and links. */
+/** The queries of a broadcast's detail: the broadcast, its stats, task, test results, variations, links and recipients. */
 export const BROADCAST_DETAIL_QUERY_KEYS = [
   'broadcast',
   'broadcast-stats',
   'task',
   'testResults',
   'broadcast-variation-stats',
-  'broadcast-link-stats'
+  'broadcast-link-stats',
+  'broadcast-recipients'
 ] as const
 
 /** Reads every figure of a broadcast's detail again, for its drawer's refresh button. */

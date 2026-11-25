@@ -5,13 +5,13 @@ const SUBJECT_MIN_WIDTH = 240
 export const SENT_WIDTH = 90
 export const RATE_WIDTH = 110
 /**
- * Preview and test send (icon buttons of 22 px), two web analytics links (31 px: their icon is a
- * child, so they keep a text button's padding), three gaps of 4 px and the cell's padding: measured
- * at 134 px in the console.
+ * Preview and the menu of the other actions (icon buttons of 22 px), the web analytics traffic link
+ * (31 px: its icon is a child, so it keeps a text button's padding), two gaps of 4 px and the
+ * cell's padding.
  */
-const ACTIONS_WIDTH = 136
+const ACTIONS_WIDTH = 102
 /** The same, with the "Pick as winner" button, in its longest translation. */
-const ACTIONS_WIDTH_WITH_PICK = 310
+const ACTIONS_WIDTH_WITH_PICK = 276
 
 /** The width of the actions column: wider while a winner can be picked. */
 export function actionsWidth(winnerSelectable: boolean): number {

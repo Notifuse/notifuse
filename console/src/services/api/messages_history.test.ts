@@ -65,6 +65,19 @@ describe('listMessages with the Logs filters', () => {
     expect(query.has('created_before')).toBe(false)
   })
 
+  it('sends the order of the pages when it is set', async () => {
+    await listMessages('ws1', { broadcast_id: 'bc1', order_by: 'opened_at', order: 'asc' })
+    const query = sentQuery()
+    expect(query.get('order_by')).toBe('opened_at')
+    expect(query.get('order')).toBe('asc')
+  })
+
+  it('leaves the order out otherwise', async () => {
+    await listMessages('ws1', { broadcast_id: 'bc1' })
+    expect(sentQuery().has('order_by')).toBe(false)
+    expect(sentQuery().has('order')).toBe(false)
+  })
+
   it('sends a false status filter', async () => {
     await listMessages('ws1', { is_opened: false })
     expect(sentQuery().get('is_opened')).toBe('false')

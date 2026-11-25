@@ -32,7 +32,8 @@ import { AbTestPanel } from './AbTestPanel'
 import { asTemplate } from './asTemplate'
 import { BroadcastAside } from './BroadcastAside'
 import { previewVariationOf } from './previewVariation'
-import { BroadcastFunnel, type LogFilter } from './BroadcastFunnel'
+import { BroadcastFunnel, type RecipientStep } from './BroadcastFunnel'
+import { BroadcastRecipients } from './BroadcastRecipients'
 import { EngagementChart } from './EngagementChart'
 import { LinkStatsPanel } from './LinkStatsPanel'
 import { senderKey, useSenderText } from './senderText'
@@ -73,6 +74,9 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
   const [deleting, setDeleting] = useState<Broadcast | null>(null)
   // The refetch rhythm follows the last verdict read, which needs F2 itself.
   const [verdictSending, setVerdictSending] = useState(false)
+  // The funnel step whose recipients are listed, once the user picks one. Before that the step
+  // follows the broadcast, which loads after the first render.
+  const [chosenStep, setChosenStep] = useState<RecipientStep | null>(null)
 
   // F1
   const broadcastQuery = useQuery({
@@ -242,10 +246,11 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
       : senderText(workspace, variations[0])
     : null
 
-  const openLogs = (filter: LogFilter) => {
+  const step: RecipientStep = chosenStep ?? (untracked ? 'sent' : 'opened')
+
+  const openLogs = () => {
     const params = new URLSearchParams()
     params.set('broadcast_id', broadcast.id)
-    if (filter !== 'sent') params.set(filter, 'true')
     navigate({ to: `/console/workspace/${ws}/logs?${params.toString()}` as string & {} })
   }
 
@@ -255,7 +260,7 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
 
   // Refresh stats lives in the drawer's bar (BroadcastsPage), beside the close button.
   const menu: NonNullable<MenuProps['items']> = []
-  if (canReadHistory && started) menu.push({ key: 'logs', label: t`View sending logs`, onClick: () => openLogs('sent') })
+  if (canReadHistory && started) menu.push({ key: 'logs', label: t`View sending logs`, onClick: openLogs })
   if (links) {
     menu.push({
       key: 'conversions',
@@ -391,22 +396,38 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
             </Panel>
           ) : canReadHistory ? (
             stats ? (
-              <BroadcastFunnel
-                stats={stats}
-                smtp={smtp}
-                untracked={untracked}
-                web={
-                  canReadWeb
-                    ? {
-                        visits: visitsQuery.data,
-                        loading: visitsQuery.isLoading,
-                        error: visitsQuery.isError,
-                        noCampaign: campaign ? undefined : noCampaign
-                      }
-                    : undefined
-                }
-                onOpenLogs={openLogs}
-              />
+              <>
+                <BroadcastFunnel
+                  stats={stats}
+                  smtp={smtp}
+                  untracked={untracked}
+                  web={
+                    canReadWeb
+                      ? {
+                          visits: visitsQuery.data,
+                          loading: visitsQuery.isLoading,
+                          error: visitsQuery.isError,
+                          noCampaign: campaign ? undefined : noCampaign
+                        }
+                      : undefined
+                  }
+                  selected={step}
+                  onSelect={setChosenStep}
+                />
+                <BroadcastRecipients
+                  workspaceId={ws}
+                  permissions={permissions}
+                  broadcast={broadcast}
+                  timezone={timezone}
+                  step={step}
+                  stats={stats}
+                  variationStats={variationStats}
+                  variants={abEnabled ? variants.map((v) => ({ letter: v.letter, templateId: v.templateId })) : []}
+                  smtp={smtp}
+                  lists={lists}
+                  refetchInterval={refetchInterval}
+                />
+              </>
             ) : statsQuery.isError ? (
               <Alert type="warning" showIcon title={t`Couldn't load the statistics of this broadcast`} />
             ) : (
