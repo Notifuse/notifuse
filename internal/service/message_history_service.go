@@ -100,8 +100,11 @@ func (s *MessageHistoryService) ListMessages(ctx context.Context, workspaceID st
 
 	// codecov:ignore:start
 	if err != nil {
-		s.logger.Error(fmt.Sprintf("Failed to list messages: %v", err))
-		tracing.MarkSpanError(ctx, err)
+		// A cursor the list cannot read is the caller's mistake, not a failure of the server.
+		if !errors.Is(err, domain.ErrInvalidCursor) {
+			s.logger.Error(fmt.Sprintf("Failed to list messages: %v", err))
+			tracing.MarkSpanError(ctx, err)
+		}
 		return nil, err
 	}
 	// codecov:ignore:end

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -1002,5 +1003,43 @@ func TestMessageHistoryService_GetBroadcastStats_QueueCounts(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 45, result.Stats.TotalSent)
 		assert.Nil(t, result.Queue)
+	})
+}
+
+func TestMessageHistoryService_ListMessages_Order(t *testing.T) {
+	setup := func(t *testing.T) (*MessageHistoryService, *mocks.MockMessageHistoryRepository) {
+		ctrl := gomock.NewController(t)
+		mockRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		// No call expected: an unreadable cursor is not logged as a server error.
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "workspace-123").
+			Return(context.Background(), &domain.User{}, &domain.UserWorkspace{
+				UserID:      "user123",
+				WorkspaceID: "workspace-123",
+				Role:        "member",
+				Permissions: domain.UserPermissions{domain.PermissionResourceMessageHistory: {Read: true}},
+			}, nil)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").
+			Return(&domain.Workspace{ID: "workspace-123", Settings: domain.WorkspaceSettings{SecretKey: "test-secret"}}, nil)
+		return NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService, nil), mockRepo
+	}
+
+	t.Run("order_by and order reach the repository unchanged", func(t *testing.T) {
+		service, mockRepo := setup(t)
+		params := domain.MessageListParams{Limit: 5, BroadcastID: "bc-1", OrderBy: "opened_at", Order: "asc"}
+		mockRepo.EXPECT().ListMessages(gomock.Any(), "workspace-123", "test-secret", params).Return(nil, "", nil)
+		_, err := service.ListMessages(context.Background(), "workspace-123", params)
+		require.NoError(t, err)
+	})
+
+	t.Run("an unreadable cursor is returned as such, without a server error log", func(t *testing.T) {
+		service, mockRepo := setup(t)
+		params := domain.MessageListParams{Limit: 5, BroadcastID: "bc-1", OrderBy: "opened_at", Cursor: "x"}
+		mockRepo.EXPECT().ListMessages(gomock.Any(), "workspace-123", "test-secret", params).
+			Return(nil, "", fmt.Errorf("%w format: the cursor belongs to another order", domain.ErrInvalidCursor))
+		_, err := service.ListMessages(context.Background(), "workspace-123", params)
+		assert.ErrorIs(t, err, domain.ErrInvalidCursor)
 	})
 }

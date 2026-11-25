@@ -13,8 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// pagingFields are the fields of MessageListParams that are not filters.
+var pagingFields = map[string]bool{"Cursor": true, "Limit": true, "OrderBy": true, "Order": true}
+
 // MessageFilter mirrors the filter fields of MessageListParams: same names, types and JSON
-// tags, and MessageListParams has nothing else but Cursor and Limit.
+// tags, and MessageListParams has nothing else but its paging fields.
 func TestMessageFilter_MirrorsMessageListParams(t *testing.T) {
 	filterType := reflect.TypeOf(MessageFilter{})
 	paramsType := reflect.TypeOf(MessageListParams{})
@@ -30,7 +33,7 @@ func TestMessageFilter_MirrorsMessageListParams(t *testing.T) {
 	}
 	for i := 0; i < paramsType.NumField(); i++ {
 		name := paramsType.Field(i).Name
-		if name == "Cursor" || name == "Limit" {
+		if pagingFields[name] {
 			continue
 		}
 		assert.True(t, filterFields[name], "MessageFilter has no field %s", name)
@@ -43,7 +46,7 @@ func TestMessageFilter_RoundTrip(t *testing.T) {
 	v := reflect.ValueOf(&params).Elem()
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Type().Field(i)
-		if field.Name == "Cursor" || field.Name == "Limit" {
+		if pagingFields[field.Name] {
 			continue
 		}
 		target := v.Field(i)

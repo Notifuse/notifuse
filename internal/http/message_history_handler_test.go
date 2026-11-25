@@ -1151,3 +1151,68 @@ func TestMessageHistoryHandler_handleList_TransactionalNotificationFilter(t *tes
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+func TestMessageHistoryHandler_handleList_Order(t *testing.T) {
+	expectRequest := func(mockTracer *pkgmocks.MockTracer, mockAuthService *mocks.MockAuthService) {
+		mockSpan := &trace.Span{}
+		mockTracer.EXPECT().StartSpan(gomock.Any(), "MessageHistoryHandler.handleList").Return(context.Background(), mockSpan)
+		mockTracer.EXPECT().EndSpan(mockSpan, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws123").
+			Return(context.Background(), &domain.User{ID: "user123"}, nil, nil)
+	}
+
+	t.Run("order_by and order reach the service", func(t *testing.T) {
+		handler, mockService, mockAuthService, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+		expectRequest(mockTracer, mockAuthService)
+		mockService.EXPECT().
+			ListMessages(gomock.Any(), "ws123", gomock.Eq(domain.MessageListParams{
+				Limit:       20,
+				BroadcastID: "bc-1",
+				OrderBy:     "opened_at",
+				Order:       "asc",
+			})).
+			Return(&domain.MessageListResult{Messages: []*domain.MessageHistory{}}, nil)
+
+		query := url.Values{"workspace_id": {"ws123"}, "broadcast_id": {"bc-1"}, "order_by": {"opened_at"}, "order": {"asc"}}
+		w := httptest.NewRecorder()
+		handler.handleList(w, httptest.NewRequest(http.MethodGet, "/api/messages.list?"+query.Encode(), nil))
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	refused := map[string]struct {
+		query url.Values
+		error string
+	}{
+		"unknown order_by": {url.Values{"broadcast_id": {"bc-1"}, "order_by": {"bogus"}}, "invalid order_by"},
+		"unknown order":    {url.Values{"broadcast_id": {"bc-1"}, "order": {"sideways"}}, "invalid order"},
+		"no bound":         {url.Values{"order_by": {"opened_at"}}, "order_by and order need created_after or an indexed filter"},
+	}
+	for name, tc := range refused {
+		t.Run(name+" answers 400", func(t *testing.T) {
+			handler, _, mockAuthService, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+			expectRequest(mockTracer, mockAuthService)
+			tc.query.Set("workspace_id", "ws123")
+			w := httptest.NewRecorder()
+			handler.handleList(w, httptest.NewRequest(http.MethodGet, "/api/messages.list?"+tc.query.Encode(), nil))
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			assert.Contains(t, w.Body.String(), tc.error)
+		})
+	}
+}
+
+func TestMessageHistoryHandler_handleList_InvalidCursor(t *testing.T) {
+	handler, mockService, mockAuthService, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().StartSpan(gomock.Any(), "MessageHistoryHandler.handleList").Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().EndSpan(mockSpan, nil)
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws123").
+		Return(context.Background(), &domain.User{ID: "user123"}, nil, nil)
+	mockService.EXPECT().ListMessages(gomock.Any(), "ws123", gomock.Any()).
+		Return(nil, fmt.Errorf("%w format: the cursor belongs to another order", domain.ErrInvalidCursor))
+
+	query := url.Values{"workspace_id": {"ws123"}, "broadcast_id": {"bc-1"}, "order_by": {"opened_at"}, "cursor": {"abc"}}
+	w := httptest.NewRecorder()
+	handler.handleList(w, httptest.NewRequest(http.MethodGet, "/api/messages.list?"+query.Encode(), nil))
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid cursor format: the cursor belongs to another order")
+}

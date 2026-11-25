@@ -183,8 +183,8 @@ func (s *Server) searchMessages(ctx context.Context, call *Call) (any, error) {
 		if toolErr := DecodeCursor(args.Cursor, searchMessagesName, call.WorkspaceID, filters, &apiCursor); toolErr != nil {
 			return nil, toolErr
 		}
-		// messages.list answers 500 on a cursor it cannot read, so it is read
-		// here first.
+		// A cursor messages.list cannot read is refused, so it is read here
+		// first, to answer with a way out.
 		if !validMessagesCursor(apiCursor) {
 			return nil, validationError("cursor is not valid for this call: drop it to start from the first page")
 		}

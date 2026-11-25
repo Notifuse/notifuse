@@ -1518,3 +1518,76 @@ func TestErrExternalIDTaken(t *testing.T) {
 	// The transactional.send handler answers 400 to any error saying "not found".
 	assert.NotContains(t, err.Error(), "not found")
 }
+
+func TestMessageListParams_Order(t *testing.T) {
+	t.Run("FromQuery reads order_by and order", func(t *testing.T) {
+		var p MessageListParams
+		require.NoError(t, p.FromQuery(url.Values{"broadcast_id": {"b1"}, "order_by": {"opened_at"}, "order": {"asc"}}))
+		assert.Equal(t, "opened_at", p.OrderBy)
+		assert.Equal(t, "asc", p.Order)
+	})
+
+	t.Run("Validate leaves empty values empty, EffectiveOrder resolves them", func(t *testing.T) {
+		p := MessageListParams{}
+		require.NoError(t, p.Validate())
+		assert.Equal(t, "", p.OrderBy)
+		assert.Equal(t, "", p.Order)
+		column, desc, err := p.EffectiveOrder()
+		require.NoError(t, err)
+		assert.Equal(t, "created_at", column)
+		assert.True(t, desc)
+		assert.True(t, p.DefaultOrder())
+	})
+
+	t.Run("one of the two given, the other takes its default", func(t *testing.T) {
+		column, desc, err := MessageListParams{OrderBy: "clicked_at"}.EffectiveOrder()
+		require.NoError(t, err)
+		assert.Equal(t, "clicked_at", column)
+		assert.True(t, desc)
+
+		column, desc, err = MessageListParams{Order: "asc"}.EffectiveOrder()
+		require.NoError(t, err)
+		assert.Equal(t, "created_at", column)
+		assert.False(t, desc)
+		assert.False(t, MessageListParams{Order: "asc"}.DefaultOrder())
+	})
+
+	t.Run("every column is accepted with an indexed filter", func(t *testing.T) {
+		for _, column := range MessageOrderColumns {
+			for _, order := range []string{"asc", "desc"} {
+				p := MessageListParams{BroadcastID: "b1", OrderBy: column, Order: order}
+				assert.NoError(t, p.Validate(), column+" "+order)
+			}
+		}
+	})
+
+	t.Run("unknown values are refused", func(t *testing.T) {
+		p := MessageListParams{BroadcastID: "b1", OrderBy: "opened_at;drop table message_history"}
+		assert.ErrorContains(t, p.Validate(), "invalid order_by")
+		_, _, err := p.EffectiveOrder()
+		assert.ErrorContains(t, err, "invalid order_by")
+
+		p = MessageListParams{BroadcastID: "b1", Order: "sideways"}
+		assert.ErrorContains(t, p.Validate(), "invalid order")
+	})
+
+	t.Run("an order other than the default needs a bound", func(t *testing.T) {
+		p := MessageListParams{OrderBy: "opened_at"}
+		assert.ErrorContains(t, p.Validate(), "order_by and order need created_after or an indexed filter")
+
+		p = MessageListParams{Order: "asc"}
+		assert.ErrorContains(t, p.Validate(), "order_by and order need created_after or an indexed filter")
+
+		after := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+		p = MessageListParams{OrderBy: "opened_at", CreatedAfter: &after}
+		assert.NoError(t, p.Validate())
+
+		p = MessageListParams{OrderBy: "opened_at", ContactEmail: "ana@example.com"}
+		assert.NoError(t, p.Validate())
+	})
+
+	t.Run("the default order needs no bound", func(t *testing.T) {
+		assert.NoError(t, (&MessageListParams{OrderBy: "created_at", Order: "desc"}).Validate())
+		assert.NoError(t, (&MessageListParams{}).Validate())
+	})
+}
