@@ -82,6 +82,26 @@ GET  /api/contact.list
   beside a `len(...)`-derived assertion rots without ever failing CI. Either `require.Len(t, x, 39)` or
   count-agnostic wording — and a test that asserts against the very constant it protects
   (`assert.Len(t, got, someConst)`) pins nothing at all.
+- **A concurrency fix ships with a test that forces the interleaving it fixes.** This covers two actors on the
+  same row, an action (pause, stop, edit) that lands while a run is in progress, and a write that follows a
+  successful step: a provider call, a commit, a write to the other database. The test is an integration test that:
+  - forces the bad order, one step per database round trip, and fails on the code before the fix;
+  - asserts that the interleaving really happened (the hook was reached, the lock was waited on): a race test
+    that can pass without the race proves nothing;
+  - stops an actor inside a query with `LOCK TABLE`, an advisory lock or a trigger, and between two queries with
+    a test-only hook that production builds leave out (build tag);
+  - makes the write after a successful step slow or failing, in the system database as well as the workspace one;
+  - covers every function that writes the same table and column, not only the one where the bug was seen;
+  - starts from states set in SQL, including partial combinations of statuses and work left in flight by the
+    previous release, not only states the API can produce;
+  - asserts the whole state that must survive (edited columns, paused queue rows, the task's next run, what the
+    next run does), a "never" property and a "finishes" property, not only the final status;
+  - runs tasks through the scheduler, as production does, and shortens durations through a constructor option,
+    never an environment variable.
+
+  A unit test with mocks is not enough on its own: a mock that returns the same row on every read cannot
+  represent a concurrent write. A fake implements the real interface, checked at compile time
+  (`var _ domain.SomeRepository = (*fakeRepo)(nil)`).
 
 ## Plans directory
 
