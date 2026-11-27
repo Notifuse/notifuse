@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [45.0] - unreleased
+## [45.0] - 2026-11-27
 
 ### Before you upgrade
 
