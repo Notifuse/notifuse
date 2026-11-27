@@ -101,8 +101,8 @@ func TestTransactionalSendExternalID(t *testing.T) {
 		externalID := "order-concurrent-" + run
 		tag := "concurrent"
 		const calls = 8
-		// The contact exists already: concurrent upserts of a contact that does not exist yet
-		// race on its insert, a separate fault this test does not cover.
+		// The contact exists already, so the calls race on the message only. Calls that also
+		// create their contact are covered by TestContactUpsertDuringConcurrentCreateUpdatesTheNewContact.
 		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(recipient))
 		require.NoError(t, err)
 

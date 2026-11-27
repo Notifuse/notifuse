@@ -628,7 +628,22 @@ func (r *contactRepository) DeleteContact(ctx context.Context, workspaceID strin
 	return nil
 }
 
+// UpsertContact creates the contact, or updates it when its email is taken.
+//
+// The lookup locks the existing row FOR UPDATE, but a new address has no row to lock: two
+// calls that create the same contact at the same time both find nothing and both insert, and
+// the second insert fails on contacts_pkey once the first commits. That call then runs again
+// and finds the row, so it updates the contact the first one created instead of failing.
 func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID string, contact *domain.Contact) (isNew bool, err error) {
+	isNew, err = r.upsertContactOnce(ctx, workspaceID, contact)
+	var pqErr *pq.Error
+	if err != nil && errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == "contacts_pkey" {
+		return r.upsertContactOnce(ctx, workspaceID, contact)
+	}
+	return isNew, err
+}
+
+func (r *contactRepository) upsertContactOnce(ctx context.Context, workspaceID string, contact *domain.Contact) (isNew bool, err error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -666,6 +681,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 
 		// --- INSERT path ---
 		isNew = true
+		contactUpsertAfterLookup(ctx, contact.Email)
 
 		// Set DB timestamps
 		now := time.Now().UTC()
@@ -987,7 +1003,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		// Execute the insert query within the transaction
 		_, err = tx.ExecContext(ctx, insertQuery, insertArgs...)
 		if err != nil {
-			// Check if the error is a constraint violation or similar if needed
+			// UpsertContact runs again on a contacts_pkey violation: see there.
 			return false, fmt.Errorf("failed to insert contact: %w", err)
 		}
 
