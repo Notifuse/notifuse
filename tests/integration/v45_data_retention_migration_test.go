@@ -85,7 +85,7 @@ func TestV45DataRetentionMigration(t *testing.T) {
 
 	// --- pre-45 state ----------------------------------------------------------------
 	for _, statement := range append([]string{
-		`DROP TRIGGER IF EXISTS contact_opt_out_restore_trigger ON contacts`,
+		`DROP TRIGGER IF EXISTS ` + schema.ContactOptOutRestoreTrigger + ` ON contacts`,
 		`DROP FUNCTION IF EXISTS restore_contact_opt_outs()`,
 		`DROP FUNCTION IF EXISTS contact_opt_out_hash(TEXT)`,
 		`DROP TABLE IF EXISTS contact_opt_out_hashes`,
@@ -122,10 +122,16 @@ func TestV45DataRetentionMigration(t *testing.T) {
 	assert.Equal(t, "ready", retentionMarker(t, freshDB))
 
 	// --- v45's system part, twice: one backfill task per workspace, never two ---------
+	// The first run happens on a session 14 hours ahead of UTC: the task's dates must still
+	// be UTC, which the scheduler compares them with, or the task would wait 14 hours.
 	systemDB := suite.DBManager.GetDB()
 	for run := 1; run <= 2; run++ {
 		tx, err := systemDB.BeginTx(bg, nil)
 		require.NoError(t, err)
+		if run == 1 {
+			_, err = tx.ExecContext(bg, `SET LOCAL TimeZone = 'Pacific/Kiritimati'`)
+			require.NoError(t, err)
+		}
 		require.NoError(t, migration.UpdateSystem(bg, &config.Config{}, tx), "run %d", run)
 		require.NoError(t, tx.Commit())
 	}
@@ -134,6 +140,13 @@ func TestV45DataRetentionMigration(t *testing.T) {
 		require.NoError(t, systemDB.QueryRowContext(bg, `SELECT COUNT(*) FROM tasks WHERE workspace_id = $1 AND type = $2`,
 			ws, domain.DataRetentionBackfillTaskType).Scan(&tasks))
 		assert.Equal(t, 1, tasks, ws)
+		var due, createdUTC bool
+		require.NoError(t, systemDB.QueryRowContext(bg, `SELECT
+				next_run_after <= (NOW() AT TIME ZONE 'UTC') + INTERVAL '1 minute',
+				created_at BETWEEN (NOW() AT TIME ZONE 'UTC') - INTERVAL '10 minutes' AND (NOW() AT TIME ZONE 'UTC') + INTERVAL '1 minute'
+			FROM tasks WHERE workspace_id = $1 AND type = $2`, ws, domain.DataRetentionBackfillTaskType).Scan(&due, &createdUTC))
+		assert.True(t, due, "%s: the backfill task is due now in UTC", ws)
+		assert.True(t, createdUTC, "%s: the backfill task's dates are UTC", ws)
 	}
 	var keys int
 	require.NoError(t, db.QueryRowContext(bg, `SELECT COUNT(*) FROM contact_opt_out_hash_key WHERE octet_length(key) = 32`).Scan(&keys))
@@ -146,7 +159,7 @@ func TestV45DataRetentionMigration(t *testing.T) {
 	}
 	var triggers int
 	require.NoError(t, db.QueryRowContext(bg,
-		`SELECT COUNT(*) FROM pg_trigger WHERE tgname = 'contact_opt_out_restore_trigger' AND NOT tgisinternal`).Scan(&triggers))
+		`SELECT COUNT(*) FROM pg_trigger WHERE tgname = $1 AND NOT tgisinternal`, schema.ContactOptOutRestoreTrigger).Scan(&triggers))
 	assert.Equal(t, 1, triggers)
 
 	// The two workspaces hash with different keys.

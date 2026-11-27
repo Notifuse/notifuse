@@ -30,8 +30,12 @@ func TestContactOptOutStatements(t *testing.T) {
 	}
 	// The trigger is created after the functions it calls, and replaced rather than added twice.
 	last := statements[len(statements)-1]
-	require.Contains(t, last, "CREATE TRIGGER contact_opt_out_restore_trigger AFTER INSERT ON contacts")
-	assert.Contains(t, statements[len(statements)-2], "DROP TRIGGER IF EXISTS contact_opt_out_restore_trigger ON contacts")
+	require.Contains(t, last, "CREATE TRIGGER "+ContactOptOutRestoreTrigger+" AFTER INSERT ON contacts")
+	assert.Contains(t, statements[len(statements)-2], "DROP TRIGGER IF EXISTS "+ContactOptOutRestoreTrigger+" ON contacts")
+	// The dev builds' name is dropped, so a database that ran one keeps a single restore trigger.
+	assert.Contains(t, statements[len(statements)-3], "DROP TRIGGER IF EXISTS contact_opt_out_restore_trigger ON contacts")
+	// It fires before the trigger that writes contact.created (alphabetical order).
+	assert.Less(t, ContactOptOutRestoreTrigger, ContactChangesTrigger)
 }
 
 func TestContactOptOutHashFunction(t *testing.T) {

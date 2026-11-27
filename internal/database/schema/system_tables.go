@@ -171,4 +171,9 @@ var TableNames = []string{
 	"audit_logs",
 	"user_totp",
 	"user_recovery_codes",
+	"oauth_clients",
+	"oauth_authorization_requests",
+	"oauth_grants",
+	"oauth_authorization_codes",
+	"oauth_tokens",
 }

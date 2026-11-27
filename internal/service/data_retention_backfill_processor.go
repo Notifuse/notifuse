@@ -17,6 +17,13 @@ const dataRetentionBackfillBatch = 1000
 // its state is saved, inside the budget: a run cut off is marked failed and spends a retry.
 const dataRetentionBackfillTimeoutMargin = 30 * time.Second
 
+// dataRetentionBackfillSlice: stop taking a new batch after this much work in one run, and let
+// the task be picked up again at the next tick. The in-process scheduler waits for every task
+// of a tick before the next one, so a run that used the whole budget would hold back every
+// other task (the segment queues, scheduled broadcasts) for minutes at each tick while a large
+// workspace is read back.
+const dataRetentionBackfillSlice = 20 * time.Second
+
 // DataRetentionBackfillProcessor reads the engagement of a workspace's existing contacts back
 // from their history, once, after the upgrade to 45 (one task per workspace, queued by the v45
 // system migration), then marks the workspace ready. It walks the contacts in email order,
@@ -25,11 +32,12 @@ type DataRetentionBackfillProcessor struct {
 	engagement domain.ContactEngagementRepository
 	taskRepo   domain.TaskRepository
 	logger     logger.Logger
+	now        func() time.Time
 }
 
 // NewDataRetentionBackfillProcessor creates the processor.
 func NewDataRetentionBackfillProcessor(engagement domain.ContactEngagementRepository, taskRepo domain.TaskRepository, log logger.Logger) *DataRetentionBackfillProcessor {
-	return &DataRetentionBackfillProcessor{engagement: engagement, taskRepo: taskRepo, logger: log}
+	return &DataRetentionBackfillProcessor{engagement: engagement, taskRepo: taskRepo, logger: log, now: time.Now}
 }
 
 // CanProcess implements domain.TaskProcessor.
@@ -38,8 +46,8 @@ func (p *DataRetentionBackfillProcessor) CanProcess(taskType string) bool {
 }
 
 // Process implements domain.TaskProcessor. Internal work is bounded by timeoutAt through the
-// loop margin, never by a context of its own, so a context.Canceled always means "cut short
-// from outside".
+// loop margin and by dataRetentionBackfillSlice, never by a context of its own, so a
+// context.Canceled always means "cut short from outside".
 func (p *DataRetentionBackfillProcessor) Process(ctx context.Context, task *domain.Task, timeoutAt time.Time) (bool, error) {
 	if task.State == nil {
 		task.State = &domain.TaskState{}
@@ -49,8 +57,10 @@ func (p *DataRetentionBackfillProcessor) Process(ctx context.Context, task *doma
 	}
 	state := task.State.DataRetentionBackfill
 
+	started := p.now()
 	for {
-		if time.Until(timeoutAt) < dataRetentionBackfillTimeoutMargin {
+		now := p.now()
+		if timeoutAt.Sub(now) < dataRetentionBackfillTimeoutMargin || now.Sub(started) >= dataRetentionBackfillSlice {
 			p.saveProgress(ctx, task, state)
 			return false, nil // re-queued; resumes after the saved email
 		}
