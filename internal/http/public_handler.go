@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"io"
@@ -22,6 +23,14 @@ import (
 	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/PuerkitoBio/goquery"
 )
+
+// publicListUndoService is the optional extension of domain.ListService used by the
+// notification center's unsubscribe and undo-resubscribe routes. Declared here so other
+// callers and mocks of domain.ListService do not need to grow these methods.
+type publicListUndoService interface {
+	UnsubscribeFromListsWithResults(ctx context.Context, payload *domain.UnsubscribeFromListsRequest, hasBearerToken bool) ([]domain.UnsubscribedListResult, error)
+	ResubscribeWithToken(ctx context.Context, payload *domain.ResubscribeRequest) (*domain.ContactList, error)
+}
 
 type NotificationCenterHandler struct {
 	service     domain.NotificationCenterService
@@ -60,6 +69,8 @@ func (h *NotificationCenterHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Register public routes
 	mux.HandleFunc("/preferences", h.handlePreferences)
 	mux.HandleFunc("/subscribe", h.handleSubscribe)
+	// first-party notification center undo-resubscribe (short-lived token minted on unsubscribe)
+	mux.HandleFunc("/resubscribe", h.handleResubscribe)
 	// first-party notification center unsubscribe (widget + console), JSON body
 	mux.HandleFunc("/unsubscribe", h.handleUnsubscribe)
 	// RFC 8058 one-click unsubscribe target baked into the List-Unsubscribe email header
@@ -243,14 +254,101 @@ func (h *NotificationCenterHandler) handleUnsubscribe(w http.ResponseWriter, r *
 		return
 	}
 
-	if err := h.listService.UnsubscribeFromLists(r.Context(), &req, false); err != nil {
+	var unsubscribedLists []domain.UnsubscribedListResult
+	if undoSvc, ok := h.listService.(publicListUndoService); ok {
+		var err error
+		unsubscribedLists, err = undoSvc.UnsubscribeFromListsWithResults(r.Context(), &req, false)
+		if err != nil {
+			h.logger.WithField("error", err.Error()).Error("Failed to unsubscribe from lists")
+			WriteJSONError(w, "Failed to unsubscribe from lists", http.StatusInternalServerError)
+			return
+		}
+	} else if err := h.listService.UnsubscribeFromLists(r.Context(), &req, false); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to unsubscribe from lists")
 		WriteJSONError(w, "Failed to unsubscribe from lists", http.StatusInternalServerError)
 		return
 	}
 
+	response := map[string]interface{}{
+		"success": true,
+	}
+	if len(unsubscribedLists) > 0 {
+		response["unsubscribed_lists"] = unsubscribedLists
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
+// handleResubscribe restores a contact's membership on a single list (public or private)
+// using the short-lived undo token minted by handleUnsubscribe. Both the contact's
+// email_hmac and the list-scoped undo token are verified by the service.
+func (h *NotificationCenterHandler) handleResubscribe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.ResubscribeRequest
+	if err := req.FromJSONBody(io.LimitReader(r.Body, maxUnsubscribeBodyBytes)); err != nil {
+		h.logger.WithField("error", err.Error()).Error("Invalid notification center resubscribe request")
+		WriteJSONError(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if h.rateLimiter != nil && !h.rateLimiter.Allow("subscribe:email", req.Email) {
+		retryAfter := h.rateLimiter.GetRemainingWindow("subscribe:email", req.Email)
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		WriteJSONError(w, "Too many subscription attempts. Please try again in a few minutes.", http.StatusTooManyRequests)
+		return
+	}
+
+	clientIP := getClientIP(r)
+	if h.rateLimiter != nil && !h.rateLimiter.Allow("subscribe:ip", clientIP) {
+		retryAfter := h.rateLimiter.GetRemainingWindow("subscribe:ip", clientIP)
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		WriteJSONError(w, "Too many subscription attempts. Please try again in a few minutes.", http.StatusTooManyRequests)
+		return
+	}
+
+	undoSvc, ok := h.listService.(publicListUndoService)
+	if !ok {
+		WriteJSONError(w, "Failed to resubscribe to list", http.StatusInternalServerError)
+		return
+	}
+
+	contactList, err := undoSvc.ResubscribeWithToken(r.Context(), &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid email verification") {
+			WriteJSONError(w, "Unauthorized: invalid verification", http.StatusUnauthorized)
+			return
+		}
+		if errors.Is(err, domain.ErrResubscribeTokenExpired) {
+			WriteJSONError(w, "resubscribe token expired", http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, domain.ErrResubscribeTokenInvalid) {
+			WriteJSONError(w, "invalid resubscribe token", http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, domain.ErrResubscribeNotAllowed) {
+			WriteJSONError(w, "resubscribe not allowed", http.StatusConflict)
+			return
+		}
+		var notFound *domain.ErrListNotFound
+		if errors.As(err, &notFound) {
+			WriteJSONError(w, "list not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to resubscribe to list")
+		WriteJSONError(w, "Failed to resubscribe to list", http.StatusInternalServerError)
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
+		"list": map[string]interface{}{
+			"id":   contactList.ListID,
+			"name": contactList.ListName,
+		},
 	})
 }
 

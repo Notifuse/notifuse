@@ -369,7 +369,7 @@ const (
 // health routes.
 var blogCategorySlugExactRoutes = []string{
 	"visit", "opens", "track",
-	"preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick",
+	"preferences", "subscribe", "resubscribe", "unsubscribe", "unsubscribe-oneclick",
 	"health", "healthz",
 }
 

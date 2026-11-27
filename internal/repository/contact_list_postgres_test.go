@@ -945,3 +945,83 @@ func TestContactListRepository_BulkAddContactsToLists(t *testing.T) {
 		require.Contains(t, err.Error(), "failed to bulk add contacts to lists")
 	})
 }
+
+func TestContactListRepository_RestoreUnsubscribedContactList(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "alice@example.com"
+	listID := "vip"
+
+	t.Run("atomically restores only a non-removed unsubscribed row", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`(?s)UPDATE contact_lists\s+SET status = 'active', updated_at = \$1\s+WHERE email = \$2 AND list_id = \$3\s+AND status = 'unsubscribed'\s+AND deleted_at IS NULL`).
+			WithArgs(sqlmock.AnyArg(), email, listID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		restored, err := repo.RestoreUnsubscribedContactList(ctx, workspaceID, email, listID)
+		require.NoError(t, err)
+		assert.True(t, restored)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns false when row was removed, bounced, complained, or missing", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`(?s)UPDATE contact_lists.*AND status = 'unsubscribed'.*AND deleted_at IS NULL`).
+			WithArgs(sqlmock.AnyArg(), email, listID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		restored, err := repo.RestoreUnsubscribedContactList(ctx, workspaceID, email, listID)
+		require.NoError(t, err)
+		assert.False(t, restored)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestContactListRepository_UnsubscribeActiveOrPendingContactList(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "alice@example.com"
+	listID := "vip"
+
+	t.Run("atomically transitions only a non-removed active or pending row to unsubscribed", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`(?s)UPDATE contact_lists\s+SET status = 'unsubscribed', updated_at = \$1\s+WHERE email = \$2 AND list_id = \$3\s+AND status IN \('active', 'pending'\)\s+AND deleted_at IS NULL`).
+			WithArgs(sqlmock.AnyArg(), email, listID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		transitioned, err := repo.UnsubscribeActiveOrPendingContactList(ctx, workspaceID, email, listID)
+		require.NoError(t, err)
+		assert.True(t, transitioned)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns false when row was already unsubscribed, removed, bounced, complained, or missing", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`(?s)UPDATE contact_lists.*AND status IN \('active', 'pending'\).*AND deleted_at IS NULL`).
+			WithArgs(sqlmock.AnyArg(), email, listID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		transitioned, err := repo.UnsubscribeActiveOrPendingContactList(ctx, workspaceID, email, listID)
+		require.NoError(t, err)
+		assert.False(t, transitioned)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}

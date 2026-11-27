@@ -463,6 +463,47 @@ func (r *UnsubscribeFromListsRequest) FromJSONBody(body io.Reader) error {
 	return nil
 }
 
+// UnsubscribedListResult reports a list a contact just unsubscribed from along with the
+// short-lived undo token that lets them restore their membership on that list.
+type UnsubscribedListResult struct {
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	ResubscribeToken string `json:"resubscribe_token,omitempty"`
+}
+
+// ResubscribeRequest carries the credentials for the notification center's undo
+// resubscribe endpoint (POST /resubscribe): the contact's email_hmac and the short-lived
+// token minted when they unsubscribed from the list.
+type ResubscribeRequest struct {
+	WorkspaceID string `json:"wid"`
+	Email       string `json:"email"`
+	EmailHMAC   string `json:"email_hmac"`
+	ListID      string `json:"lid"`
+	Token       string `json:"token"`
+}
+
+func (r *ResubscribeRequest) FromJSONBody(body io.Reader) error {
+	if err := json.NewDecoder(body).Decode(r); err != nil {
+		return fmt.Errorf("invalid request body: %w", err)
+	}
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("wid is required")
+	}
+	if r.Email == "" {
+		return fmt.Errorf("email is required")
+	}
+	if r.EmailHMAC == "" {
+		return fmt.Errorf("email_hmac is required")
+	}
+	if r.ListID == "" {
+		return fmt.Errorf("lid is required")
+	}
+	if r.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}
+
 // ListService provides operations for managing lists
 type ListService interface {
 	// SubscribeToLists subscribes a contact to a list

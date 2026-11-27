@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   getContactPreferences,
   parseNotificationCenterParams,
+  resubscribeToList,
   subscribeToLists,
   unsubscribeOneClick,
   updateContactPreferences
@@ -123,7 +124,14 @@ function App() {
     success: boolean
     messageKey: string
     listId?: string
+    listName?: string
+    canResubscribe?: boolean
   } | null>(null)
+  // Short-lived undo tokens returned by POST /unsubscribe during this tab session, keyed by
+  // list ID, so a contact can undo an accidental unsubscribe even on a private list.
+  const [resubscribeTokens, setResubscribeTokens] = useState<
+    Record<string, { token: string; name: string }>
+  >({})
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   // List the visitor is asked to confirm unsubscribing from: the email's unsubscribe
   // link (action=unsubscribe) or the List-Unsubscribe header link (action=confirm_unsubscribe)
@@ -145,7 +153,7 @@ function App() {
   const focusConfirmationResultRef = useRef(false)
 
   // Translation helper function
-  const t = (key: string) => getTranslation(key, language)
+  const t = (key: string, vars?: Record<string, string>) => getTranslation(key, language, vars)
 
   // Browser preferences detected on load, waiting for the visitor's first interaction
   const pendingPreferenceSyncRef = useRef<PreferenceUpdate | null>(null)
@@ -458,8 +466,10 @@ function App() {
     const previousStatus = allLists.find((list) => list.id === listId)?.status
     const wasSubscribed = subscriptions[listId] ?? false
     try {
-      // Clear any previous confirmation result (e.g., from unsubscribe action)
-      setConfirmationResult(null)
+      // Clear any previous confirmation result unless it is an active undo banner for another list
+      setConfirmationResult((prev) =>
+        prev && prev.canResubscribe && prev.listId !== listId ? prev : null
+      )
 
       // Set processing state
       setProcessingLists((prev) => ({ ...prev, [listId]: true }))
@@ -482,11 +492,11 @@ function App() {
           throw new Error('Missing required parameters')
         }
 
-        // Call API to subscribe to list
-        // Include email_hmac from URL params for private list authentication
+        // Send only the contact identifier + email_hmac so stale profile/tracking fields
+        // loaded at page init can never overwrite preferences saved during this session.
         const response = await subscribeToLists({
           workspace_id: params.wid,
-          contact: { ...notificationData.contact, email_hmac: params.email_hmac },
+          contact: { id: '', email: params.email, email_hmac: params.email_hmac },
           list_ids: [listId]
         })
         if (!response.success) {
@@ -497,6 +507,14 @@ function App() {
         // server accepted the request: on a failure the question stays
         setPendingConfirmListId((pending) => (pending === listId ? null : pending))
         setPendingUnsubscribeListId((pending) => (pending === listId ? null : pending))
+        setResubscribeTokens((prev) => {
+          if (!(listId in prev)) {
+            return prev
+          }
+          const next = { ...prev }
+          delete next[listId]
+          return next
+        })
 
         if (await reloadAfterSubscribe(params, listId)) {
           toast.success(t('successSubscribed'), {
@@ -529,8 +547,10 @@ function App() {
 
   const unsubscribe = async (listId: string) => {
     try {
-      // Clear any previous confirmation result, as subscribe does
-      setConfirmationResult(null)
+      // Clear any previous confirmation result unless it is an active undo banner for another list
+      setConfirmationResult((prev) =>
+        prev && prev.canResubscribe && prev.listId !== listId ? prev : null
+      )
 
       // Set processing state
       setProcessingLists((prev) => ({ ...prev, [listId]: true }))
@@ -568,6 +588,15 @@ function App() {
         // The list's own toggle answers a pending unsubscribe question for it, once the
         // server accepted the request: on a failure the question stays
         setPendingUnsubscribeListId((pending) => (pending === listId ? null : pending))
+
+        const match = response.unsubscribed_lists?.find((l) => l.id === listId)
+        if (match?.resubscribe_token) {
+          const existingName = allLists.find((l) => l.id === listId)?.name || ''
+          setResubscribeTokens((prev) => ({
+            ...prev,
+            [listId]: { token: match.resubscribe_token!, name: match.name || existingName }
+          }))
+        }
 
         toast.success(t('successUnsubscribed'), {
           style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
@@ -615,16 +644,206 @@ function App() {
         throw new Error('Unsubscribe was not successful')
       }
 
+      const match = response.unsubscribed_lists?.find((l) => l.id === listId)
+      if (match?.resubscribe_token) {
+        setResubscribeTokens((prev) => ({
+          ...prev,
+          [listId]: { token: match.resubscribe_token!, name: match.name }
+        }))
+      }
+
+      const existing = allLists.find((list) => list.id === listId)
+      const isPublic = notificationData?.public_lists?.some((l) => l.id === listId) ?? false
+      const listName = match?.name || existing?.name
+      const canResubscribe =
+        Boolean(match?.resubscribe_token) ||
+        (isPublic && existing?.status !== 'bounced' && existing?.status !== 'complained')
+
       setSubscriptions((prev) => ({ ...prev, [listId]: false }))
       setAllLists((prev) =>
         prev.map((list) => (list.id === listId ? { ...list, status: 'unsubscribed' } : list))
       )
       setPendingUnsubscribeListId(null)
       focusConfirmationResultRef.current = true
-      setConfirmationResult({ success: true, messageKey: 'unsubscribeSuccess', listId })
+      setConfirmationResult({
+        success: true,
+        messageKey: listName ? 'unsubscribeSuccessFromList' : 'unsubscribeSuccess',
+        listId,
+        listName: listName || undefined,
+        canResubscribe
+      })
     } catch (err) {
       console.error('Failed to unsubscribe:', err)
       setConfirmationResult({ success: false, messageKey: 'unsubscribeFailed' })
+    } finally {
+      setProcessingLists((prev) => ({ ...prev, [listId]: false }))
+    }
+  }
+
+  // Restores a subscription after an unsubscribe, using the short-lived undo token when
+  // available (required for private lists) and falling back to /subscribe on public lists.
+  const resubscribe = async (
+    listId: string,
+    options?: { fromBanner?: boolean; listName?: string }
+  ) => {
+    const params = parseNotificationCenterParams()
+    if (!params) {
+      return
+    }
+
+    const undoEntry = resubscribeTokens[listId]
+    const isPublic = notificationData?.public_lists?.some((l) => l.id === listId) ?? false
+    if (!undoEntry && !isPublic) {
+      return
+    }
+
+    const errorStatusOf = (err: unknown): number | undefined =>
+      err && typeof err === 'object' && 'status' in err && typeof (err as { status?: unknown }).status === 'number'
+        ? (err as { status: number }).status
+        : undefined
+    const isDefinitiveTokenRejection = (status: number | undefined): boolean =>
+      status === 400 || status === 401 || status === 404 || status === 409
+    const isExpiredTokenError = (err: unknown, status: number | undefined): boolean =>
+      status === 400 && err instanceof Error && /expired/i.test(err.message)
+
+    setProcessingLists((prev) => ({ ...prev, [listId]: true }))
+    try {
+      let resolvedName = options?.listName || undoEntry?.name || allLists.find((l) => l.id === listId)?.name
+
+      let usedFallbackSubscribe = false
+      let verifiedBySubscribe = false
+      if (undoEntry) {
+        try {
+          const response = await resubscribeToList({
+            wid: params.wid,
+            email: params.email,
+            email_hmac: params.email_hmac,
+            lid: listId,
+            token: undoEntry.token
+          })
+          if (!response.success) {
+            throw new Error('Resubscribe was not successful')
+          }
+          if (response.list?.name) {
+            resolvedName = response.list.name
+          }
+        } catch (undoErr) {
+          const status = errorStatusOf(undoErr)
+          // Only fall back to signed /subscribe on a public list when the undo token expired.
+          // Never fall back on 409 (removed/bounced/complained), 401, or 404, and send only
+          // email + email_hmac so stale tracking consent fields are never rewritten.
+          if (isPublic && isExpiredTokenError(undoErr, status) && notificationData?.contact) {
+            const fallback = await subscribeToLists({
+              workspace_id: params.wid,
+              contact: { id: '', email: params.email, email_hmac: params.email_hmac },
+              list_ids: [listId]
+            })
+            if (!fallback.success) {
+              throw new Error('Subscribe was not successful')
+            }
+            usedFallbackSubscribe = true
+            verifiedBySubscribe = true
+          } else {
+            throw undoErr
+          }
+        }
+      }
+      if (!undoEntry && !usedFallbackSubscribe && notificationData?.contact) {
+        const response = await subscribeToLists({
+          workspace_id: params.wid,
+          contact: { id: '', email: params.email, email_hmac: params.email_hmac },
+          list_ids: [listId]
+        })
+        if (!response.success) {
+          throw new Error('Subscribe was not successful')
+        }
+        verifiedBySubscribe = true
+      }
+
+      // Public /subscribe returns {success:true} even when the server kept a bounce or
+      // complaint: re-read /preferences to verify the membership actually became active.
+      if (verifiedBySubscribe) {
+        const active = await reloadAfterSubscribe(params, listId)
+        if (!active) {
+          setResubscribeTokens((prev) => {
+            if (!(listId in prev)) {
+              return prev
+            }
+            const next = { ...prev }
+            delete next[listId]
+            return next
+          })
+          setConfirmationResult((prev) =>
+            prev && prev.listId === listId ? { ...prev, canResubscribe: false } : prev
+          )
+          toast.error(t('resubscribeFailed'))
+          return
+        }
+      } else {
+        setSubscriptions((prev) => ({ ...prev, [listId]: true }))
+        setAllLists((prev) => {
+          const exists = prev.some((list) => list.id === listId)
+          if (exists) {
+            return prev.map((list) => (list.id === listId ? { ...list, status: 'active' } : list))
+          }
+          // A private list absent from /preferences is shown once the contact is back on it.
+          return [
+            ...prev,
+            {
+              id: listId,
+              name: resolvedName || listId,
+              status: 'active'
+            }
+          ]
+        })
+      }
+
+      setResubscribeTokens((prev) => {
+        if (!(listId in prev)) {
+          return prev
+        }
+        const next = { ...prev }
+        delete next[listId]
+        return next
+      })
+      setPendingConfirmListId((pending) => (pending === listId ? null : pending))
+      setPendingUnsubscribeListId((pending) => (pending === listId ? null : pending))
+
+      if (options?.fromBanner) {
+        focusConfirmationResultRef.current = true
+        setConfirmationResult({
+          success: true,
+          messageKey: resolvedName ? 'resubscribeSuccessToList' : 'resubscribeSuccess',
+          listId,
+          listName: resolvedName || undefined,
+          canResubscribe: false
+        })
+      } else {
+        setConfirmationResult((prev) =>
+          prev && prev.canResubscribe && prev.listId !== listId ? prev : null
+        )
+        toast.success(t('successSubscribed'), {
+          style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
+          duration: 3000
+        })
+      }
+    } catch (err) {
+      console.error('Failed to resubscribe:', err)
+      const status = errorStatusOf(err)
+      // Only discard the undo token on a definitive server rejection (expired, invalid,
+      // removed/bounced/complained, list deleted). Keep it on transient network/429/5xx
+      // errors so "Please try again" actually works. Sync every control for this list.
+      if (undoEntry && isDefinitiveTokenRejection(status)) {
+        setResubscribeTokens((prev) => {
+          const next = { ...prev }
+          delete next[listId]
+          return next
+        })
+        setConfirmationResult((prev) =>
+          prev && prev.listId === listId ? { ...prev, canResubscribe: false } : prev
+        )
+      }
+      toast.error(t('resubscribeFailed'))
     } finally {
       setProcessingLists((prev) => ({ ...prev, [listId]: false }))
     }
@@ -706,7 +925,7 @@ function App() {
   }
 
   const toggleTracking = async (kind: 'opens' | 'clicks', allowed: boolean) => {
-    setConfirmationResult(null)
+    setConfirmationResult((prev) => (prev && prev.canResubscribe ? prev : null))
     const saved = await saveTrackingConsent({ [kind]: allowed })
     if (saved) {
       toast.success(t('trackingSaved'), {
@@ -913,7 +1132,40 @@ function App() {
                   <div className="font-medium">
                     {confirmationResult.success ? t('successHeader') : t('errorHeader')}
                   </div>
-                  <div className="mt-1 text-sm">{t(confirmationResult.messageKey)}</div>
+                  <div className="mt-1 text-sm">
+                    {t(
+                      confirmationResult.messageKey,
+                      confirmationResult.listName
+                        ? { listName: confirmationResult.listName }
+                        : undefined
+                    )}
+                  </div>
+                  {confirmationResult.success &&
+                    confirmationResult.canResubscribe &&
+                    confirmationResult.listId && (
+                      <div
+                        className="mt-3 flex flex-wrap items-center gap-2 text-sm"
+                        data-testid="undo-unsubscribe"
+                      >
+                        <span>{t('clickedByMistake')}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            resubscribe(confirmationResult.listId!, {
+                              fromBanner: true,
+                              listName: confirmationResult.listName
+                            })
+                          }
+                          disabled={processingLists[confirmationResult.listId]}
+                          className="cursor-pointer bg-white border-green-600 text-green-800 hover:bg-green-100"
+                        >
+                          {processingLists[confirmationResult.listId]
+                            ? t('processing')
+                            : t('resubscribe')}
+                        </Button>
+                      </div>
+                    )}
                 </div>
               )}
 
@@ -955,16 +1207,18 @@ function App() {
                       const isActive = list.status === 'active'
                       const isPublic =
                         notificationData?.public_lists?.some((l) => l.id === list.id) ?? false
+                      const hasUndoToken = Boolean(resubscribeTokens[list.id])
                       // The workspace decides who joins a private list: a contact can only
-                      // leave one, and the server refuses a subscribe
+                      // leave one, except to undo an unsubscribe made during this session.
                       const canToggle =
                         list.status !== 'bounced' &&
                         list.status !== 'complained' &&
-                        (isPublic || isSubscribed)
+                        (isPublic || isSubscribed || hasUndoToken)
 
                       return (
                         <div
                           key={list.id}
+                          data-list-id={list.id}
                           className={`p-4 border border-gray-300 rounded-sm ${
                             isActive ? 'bg-white' : 'bg-gray-50'
                           }`}
@@ -989,7 +1243,14 @@ function App() {
                               <Button
                                 variant="outline"
                                 onClick={() =>
-                                  isSubscribed ? unsubscribe(list.id) : subscribe(list.id)
+                                  isSubscribed
+                                    ? unsubscribe(list.id)
+                                    : hasUndoToken
+                                    ? resubscribe(list.id, {
+                                        fromBanner: false,
+                                        listName: list.name
+                                      })
+                                    : subscribe(list.id)
                                 }
                                 size="sm"
                                 disabled={processingLists[list.id] || !canToggle}
@@ -1009,6 +1270,8 @@ function App() {
                                     : list.status
                                   : isSubscribed
                                   ? t('unsubscribe')
+                                  : !isPublic && hasUndoToken
+                                  ? t('resubscribe')
                                   : t('subscribe')}
                               </Button>
                             </div>

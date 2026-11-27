@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
+- **Feature**: After unsubscribing from a list in the notification center, the confirmation banner names the list and offers **Resubscribe** to undo a mistaken click. On a private list, the undo uses a short-lived signed token (30 minutes) and also stays available on the list's row during the same session after a manual unsubscribe, while private lists left earlier remain hidden on the preferences page. Re-subscribing records a `list.resubscribed` event in the contact timeline and webhooks.
+
 - **Fix**: The unsubscribe link of an email (`{{ unsubscribe_url }}`) and the double opt-in confirmation link (`{{ confirm_subscription_url }}`) open a page that asks the contact to click. Email security scanners open every link of an email in a browser, so they unsubscribed and confirmed contacts on their own (#704).
 
 - **Improvement**: Links in emails to the notification center and the web version no longer go through click tracking. Opening them no longer counts as a click or an open and no longer starts automations triggered by a click; unsubscribes are still counted.

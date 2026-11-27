@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { parseNotificationCenterParams } from './notification_center'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { parseNotificationCenterParams, resubscribeToList } from './notification_center'
+import { api } from './client'
 import { mockURLSearchParams } from '../test/utils'
 
 describe('parseNotificationCenterParams', () => {
@@ -30,5 +31,29 @@ describe('parseNotificationCenterParams', () => {
     mockURLSearchParams({ action: 'confirm_unsubscribe', email: 'test@example.com', wid: 'ws123', lid: 'list1' })
 
     expect(parseNotificationCenterParams()).toBeNull()
+  })
+})
+
+describe('resubscribeToList', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('POSTs the undo payload to /resubscribe', async () => {
+    const postSpy = vi
+      .spyOn(api, 'post')
+      .mockResolvedValue({ success: true, list: { id: 'vip', name: 'VIP' } })
+
+    const payload = {
+      wid: 'ws123',
+      email: 'test@example.com',
+      email_hmac: 'deadbeef',
+      lid: 'vip',
+      token: '1795800000.sig',
+    }
+    const result = await resubscribeToList(payload)
+
+    expect(postSpy).toHaveBeenCalledWith('/resubscribe', payload)
+    expect(result).toEqual({ success: true, list: { id: 'vip', name: 'VIP' } })
   })
 })
