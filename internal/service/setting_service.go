@@ -13,7 +13,7 @@ import (
 )
 
 // InstanceBrandingSettingKey is the settings row holding the instance's own identity, as one
-// JSON value so the four fields are written together.
+// JSON value so its fields are written together.
 const InstanceBrandingSettingKey = "instance_branding"
 
 // SystemConfig holds all system-level configuration

@@ -11,6 +11,8 @@
     "https://images.example.co.uk/a/b/c",
     "https://my-bucket.s3.eu-west-1.amazonaws.com/brand/icon",
     "https://8.8.8.8/logo.png",
+    "https://cdn.example.com/bg(1).jpg?sig=a'b(c)",
+    "https://cdn.example.com/bg.jpg?q=\"x\"",
     "https://[2001:4860:4860::8888]/logo.png"
   ],
   "invalid": [

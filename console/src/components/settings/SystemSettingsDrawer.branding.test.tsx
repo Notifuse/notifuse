@@ -133,7 +133,7 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
     Modal.destroyAll()
   })
 
-  it('shows the stored values and saves the five keys with the rest of the settings', async () => {
+  it('shows the stored values and saves every branding key with the rest of the settings', async () => {
     mockGet({
       branding_name: 'Acme',
       branding_logo_url: 'https://cdn.example.com/l.png',
@@ -224,9 +224,10 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
     expect(await screen.findByText('Use an absolute https:// URL.')).toBeInTheDocument()
   })
 
-  it('resets the five fields with one button', async () => {
+  it('resets every branding field with one button', async () => {
     mockGet({
       branding_name: 'Acme',
+      branding_logo_url: 'https://cdn.example.com/l.png',
       branding_icon_url: 'https://cdn.example.com/i.png',
       branding_hide_help_menu: true,
       branding_background_url: 'https://cdn.example.com/bg.jpg'
@@ -235,6 +236,7 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Reset branding' }))
     expect(screen.getByLabelText('Brand name')).toHaveValue('')
+    expect(screen.getByLabelText('Main logo URL')).toHaveValue('')
     expect(screen.getByLabelText('Brand icon URL')).toHaveValue('')
     expect(screen.getByLabelText('Background image URL')).toHaveValue('')
     expect(screen.getByRole('switch', { name: 'Hide help menu' })).not.toBeChecked()
@@ -248,6 +250,20 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
     const preview = screen.getByTestId('branding-preview')
     expect(await within(preview).findByText('Console | Acme')).toBeInTheDocument()
     expect(window.INSTANCE_BRANDING).toBeUndefined()
+  })
+
+  it('does not check again a stored URL sent back unchanged, as the server does', async () => {
+    // Saved under looser rules (a hand edit, or a range later added to the private list).
+    mockGet({ branding_background_url: 'https://10.0.0.1/bg.jpg' })
+    await openDrawer(renderDrawer({ entitlements: grant(['branding']) }))
+
+    await saveAndConfirm()
+    await waitFor(() => expect(settingsApi.update).toHaveBeenCalled())
+    expect(vi.mocked(settingsApi.update).mock.calls[0][0]).toMatchObject({ branding_background_url: 'https://10.0.0.1/bg.jpg' })
+
+    // A new value is checked.
+    fireEvent.change(screen.getByLabelText('Background image URL'), { target: { value: 'https://10.0.0.2/bg.jpg' } })
+    expect(await screen.findByText('This address is private or reserved. Use a public one.')).toBeInTheDocument()
   })
 
   describe('without the licence', () => {

@@ -125,3 +125,78 @@ test.describe('index.html bootstrap', () => {
     await expect(page).toHaveTitle('Console | Acme')
   })
 })
+
+// The sign-in background, drawn by React (MainLayout) from config.js. React runs normally here.
+test.describe('sign-in background', () => {
+  const BACKGROUND = 'https://cdn.example.com/acme-bg.png?sig=a(b)c'
+
+  test('shows the instance background under the form, without a referrer or the photo credit', async ({ page }) => {
+    const photoRequests: string[] = []
+    page.on('request', (request) => {
+      // Images only: in dev, Vite also serves the photo's import as a module (?import).
+      if (request.resourceType() === 'image' && request.url().includes('signin-background')) photoRequests.push(request.url())
+    })
+    let referer: string | undefined = 'not requested'
+    await page.route('https://cdn.example.com/**', (route) => {
+      referer = route.request().headers()['referer']
+      return route.fulfill({ status: 200, contentType: 'image/png', body: PNG })
+    })
+    await serveConfig(page, { ...acme, background_url: BACKGROUND })
+    await page.goto('/console/signin')
+
+    const background = page.getByTestId('custom-background')
+    await expect(background).toBeVisible()
+    await expect(background).toHaveAttribute('src', BACKGROUND)
+    await expect.poll(() => background.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
+    expect(referer).toBeUndefined()
+    expect(await background.evaluate((img) => getComputedStyle(img).objectFit)).toBe('cover')
+    await expect(page.getByRole('link', { name: 'Photo by Sean Oulashin' })).toHaveCount(0)
+    expect(photoRequests).toEqual([])
+
+    // The form paints above the fixed image: the element under the middle of the card is the card's.
+    const email = page.getByLabel('Email')
+    await expect(email).toBeVisible()
+    const box = await email.boundingBox()
+    expect(box).not.toBeNull()
+    const topmost = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x, y)?.closest('.ant-card') !== null,
+      [box!.x + box!.width / 2, box!.y + box!.height / 2]
+    )
+    expect(topmost).toBe(true)
+    await email.fill('root@example.com')
+    await expect(email).toHaveValue('root@example.com')
+  })
+
+  test('leaves a plain page when the background fails, never the Notifuse photo', async ({ page }) => {
+    await page.route('https://cdn.example.com/**', (route) => route.fulfill({ status: 404, body: '' }))
+    await serveConfig(page, { ...acme, background_url: BACKGROUND })
+    await page.goto('/console/signin')
+
+    await expect(page.getByLabel('Email')).toBeVisible()
+    await expect(page.getByTestId('custom-background')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Photo by Sean Oulashin' })).toHaveCount(0)
+    expect(await page.locator('.ant-layout').first().evaluate((el) => getComputedStyle(el).backgroundImage)).toBe('none')
+  })
+
+  test('keeps the Notifuse photo and its credit without a background', async ({ page }) => {
+    await serveConfig(page, acme)
+    await page.goto('/console/signin')
+
+    await expect(page.getByLabel('Email')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Photo by Sean Oulashin' })).toBeVisible()
+    expect(await page.locator('.ant-layout').first().evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('signin-background')
+  })
+
+  test('fits a 375 px screen', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 })
+    await page.route('https://cdn.example.com/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'image/png', body: PNG })
+    )
+    await serveConfig(page, { ...acme, background_url: BACKGROUND })
+    await page.goto('/console/signin')
+
+    await expect(page.getByLabel('Email')).toBeVisible()
+    const imageBox = await page.getByTestId('custom-background').boundingBox()
+    expect(imageBox).toEqual({ x: 0, y: 0, width: 375, height: 667 })
+  })
+})

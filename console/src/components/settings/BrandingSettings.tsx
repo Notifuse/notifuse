@@ -83,12 +83,16 @@ export function BrandingSettings({
     invalid: t`This URL is not valid.`
   }
 
-  const urlRule = {
+  // A stored URL sent back unchanged is not checked again, as on the server (ValidateChanged): it
+  // may predate a stricter rule, and it must not block a save of unrelated settings.
+  const urlRule = (storedValue: string) => ({
     validator: (_rule: unknown, value: unknown) => {
-      const error = validateBrandingUrl(trimmed(value))
+      const url = trimmed(value)
+      if (url !== '' && url === storedValue.trim()) return Promise.resolve()
+      const error = validateBrandingUrl(url)
       return error ? Promise.reject(new Error(urlMessages[error])) : Promise.resolve()
     }
-  }
+  })
 
   // Without the licence, an empty field cannot be filled, and a filled one can only be cleared:
   // the server refuses anything else with 402. A value typed before the licence turned out to be
@@ -157,7 +161,7 @@ export function BrandingSettings({
     <Form.Item
       label={label}
       name={field}
-      rules={[urlRule]}
+      rules={[urlRule(storedValue)]}
       extra={
         <>
           <div>{help}</div>
@@ -328,6 +332,7 @@ export function BrandingSettings({
         </div>
         <div
           className="relative flex h-[72px] w-[120px] items-center justify-center overflow-hidden rounded-md bg-canvas"
+          role="img"
           aria-label={t`Sign-in page`}
         >
           {backgroundPreview ? (
