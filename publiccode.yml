@@ -2,8 +2,8 @@ publiccodeYmlVersion: "0.5"
 name: Notifuse
 url: "https://github.com/Notifuse/notifuse.git"
 landingURL: "https://www.notifuse.com"
-softwareVersion: "44.0"
-releaseDate: "2026-11-19"
+softwareVersion: "45.0"
+releaseDate: "2026-11-27"
 logo: console/public/logo.png
 platforms:
   - web
