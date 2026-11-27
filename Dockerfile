@@ -82,10 +82,12 @@ COPY config/ config/
 COPY internal/ internal/
 COPY pkg/ pkg/
 
-# Build the application with CGO disabled (pure Go)
+# Build the application with CGO disabled (pure Go). GIT_COMMIT, passed by the Docker workflows, goes into
+# the binary so the startup log names the commit (config.GitCommit); empty when the argument is not given.
+ARG GIT_COMMIT=""
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -ldflags="-s -w" -o /tmp/server ./cmd/api
+RUN go build -ldflags="-s -w -X github.com/Notifuse/notifuse/config.GitCommit=${GIT_COMMIT}" -o /tmp/server ./cmd/api
 
 # Stage 4: Create the runtime container (Alpine for smaller image)
 FROM alpine:3.24
