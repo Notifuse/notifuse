@@ -46,11 +46,15 @@ func dataRetentionWorkspaceV45Statements() []string {
 // one engagement backfill task per existing workspace, unless one is already there (tasks
 // has no unique key on workspace and type, and a crash between the migration's commit and
 // the version stamp runs v45 again). A workspace created at 45 needs none: it starts ready.
+//
+// The task columns are timestamps without a time zone that hold UTC, and the scheduler
+// compares next_run_after with the UTC time: CURRENT_TIMESTAMP alone would store the server's
+// local time, and on a server ahead of UTC the tasks would wait for the difference.
 func dataRetentionSystemV45Statements() []string {
 	return []string{
 		`INSERT INTO tasks (id, workspace_id, type, status, next_run_after, max_runtime, max_retries, retry_interval, progress, state, created_at, updated_at)
-		SELECT gen_random_uuid(), w.id, '` + domain.DataRetentionBackfillTaskType + `', 'pending', CURRENT_TIMESTAMP, 300, 10, 300, 0,
-			'{"message": "Read the engagement of existing contacts from their history"}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+		SELECT gen_random_uuid(), w.id, '` + domain.DataRetentionBackfillTaskType + `', 'pending', CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 300, 10, 300, 0,
+			'{"message": "Read the engagement of existing contacts from their history"}'::jsonb, CURRENT_TIMESTAMP AT TIME ZONE 'UTC', CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
 		FROM workspaces w
 		WHERE NOT EXISTS (
 			SELECT 1 FROM tasks t WHERE t.workspace_id = w.id AND t.type = '` + domain.DataRetentionBackfillTaskType + `'

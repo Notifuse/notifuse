@@ -20,6 +20,18 @@ const OptOutRestoreGUC = "notifuse.opt_out_restore"
 // OptOutRestoredKind is the timeline kind of an opt-out put back on a returning contact.
 const OptOutRestoredKind = "list.opt_out_restored"
 
+// ContactOptOutRestoreTrigger puts a returning contact's opt-outs back. PostgreSQL fires the
+// AFTER INSERT triggers of a table in the alphabetical order of their names, and this one must
+// run before contact_changes_trigger: that one writes contact.created to the timeline, which
+// enrolls the contact in the automations it starts, and their conditions on list statuses
+// must see the restored opt-outs.
+const ContactOptOutRestoreTrigger = "contact_before_changes_opt_out_restore_trigger"
+
+// ContactChangesTrigger writes a contact's inserts and updates to the timeline
+// (track_contact_changes). internal/database/init.go and the shipped migrations write the name
+// as a literal, which the architecture repository's references look for: keep them equal.
+const ContactChangesTrigger = "contact_changes_trigger"
+
 // ContactOptOutStatements returns the tables, the key, the hash function and the restore
 // trigger, in the order they must run. Every statement is idempotent.
 //
@@ -54,8 +66,10 @@ func ContactOptOutStatements() []string {
 		`CREATE INDEX IF NOT EXISTS idx_contact_opt_out_hashes_list_id ON contact_opt_out_hashes(list_id)`,
 		ContactOptOutHashFunction(),
 		RestoreContactOptOutsFunction(),
+		// The name dev builds of 45 gave it, before it had to run first.
 		`DROP TRIGGER IF EXISTS contact_opt_out_restore_trigger ON contacts`,
-		`CREATE TRIGGER contact_opt_out_restore_trigger AFTER INSERT ON contacts FOR EACH ROW EXECUTE FUNCTION restore_contact_opt_outs()`,
+		`DROP TRIGGER IF EXISTS ` + ContactOptOutRestoreTrigger + ` ON contacts`,
+		`CREATE TRIGGER ` + ContactOptOutRestoreTrigger + ` AFTER INSERT ON contacts FOR EACH ROW EXECUTE FUNCTION restore_contact_opt_outs()`,
 	}
 }
 

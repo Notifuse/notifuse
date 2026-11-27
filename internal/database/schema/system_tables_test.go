@@ -125,6 +125,11 @@ func TestTableNames(t *testing.T) {
 			"settings",
 			"user_totp",
 			"user_recovery_codes",
+			"oauth_clients",
+			"oauth_authorization_requests",
+			"oauth_grants",
+			"oauth_authorization_codes",
+			"oauth_tokens",
 		}
 
 		for _, expectedTable := range expectedTables {

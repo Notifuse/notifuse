@@ -76,6 +76,35 @@ func TestDataRetentionBackfillProcessor(t *testing.T) {
 		assert.False(t, done)
 	})
 
+	t.Run("yields after a slice of work although the budget is far from spent", func(t *testing.T) {
+		p, engagement, taskRepo := newDataRetentionBackfillTest(t)
+		clock := time.Now()
+		p.now = func() time.Time { return clock }
+		task := &domain.Task{ID: "t1", WorkspaceID: "ws"}
+		// Each batch takes 15 s on the fake clock: the first leaves the run under the slice,
+		// the second takes it past, so the third is not started.
+		gomock.InOrder(
+			engagement.EXPECT().BackfillBatch(ctx, "ws", "", dataRetentionBackfillBatch).DoAndReturn(
+				func(context.Context, string, string, int) (string, int64, int64, error) {
+					clock = clock.Add(15 * time.Second)
+					return "m@x", int64(1000), int64(10), nil
+				}),
+			taskRepo.EXPECT().SaveState(ctx, "ws", "t1", gomock.Any(), gomock.Any()).Return(nil),
+			engagement.EXPECT().BackfillBatch(ctx, "ws", "m@x", dataRetentionBackfillBatch).DoAndReturn(
+				func(context.Context, string, string, int) (string, int64, int64, error) {
+					clock = clock.Add(15 * time.Second)
+					return "t@x", int64(1000), int64(10), nil
+				}),
+			taskRepo.EXPECT().SaveState(ctx, "ws", "t1", gomock.Any(), gomock.Any()).Return(nil),
+			taskRepo.EXPECT().SaveState(ctx, "ws", "t1", gomock.Any(), gomock.Any()).Return(nil),
+		)
+		done, err := p.Process(ctx, task, clock.Add(time.Hour))
+		require.NoError(t, err)
+		assert.False(t, done, "re-queued, not finished")
+		assert.Equal(t, "t@x", task.State.DataRetentionBackfill.AfterEmail)
+		assert.Equal(t, int64(2000), task.State.DataRetentionBackfill.Contacts)
+	})
+
 	t.Run("a failed batch is an error and does not mark ready", func(t *testing.T) {
 		p, engagement, taskRepo := newDataRetentionBackfillTest(t)
 		task := &domain.Task{ID: "t1", WorkspaceID: "ws"}
