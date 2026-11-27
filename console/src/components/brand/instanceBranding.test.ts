@@ -13,6 +13,7 @@ const acme: InstanceBrandingGlobal = {
   logo_url: 'https://cdn.example.com/l.png',
   icon_url: '',
   hide_help_menu: true,
+  background_url: 'https://cdn.example.com/bg.jpg',
   splash_logo_src: 'https://cdn.example.com/l.png',
   favicon_src: '/console/neutral-icon.png',
   revision: 'abc'
@@ -39,6 +40,7 @@ describe('getInstanceBranding', () => {
   it('fills fields an older server did not send', () => {
     window.INSTANCE_BRANDING = { name: 'Acme', custom: true } as InstanceBrandingGlobal
     expect(getInstanceBranding().hide_help_menu).toBe(false)
+    expect(getInstanceBranding().background_url).toBe('')
     expect(getInstanceBranding().favicon_src).toBe(DEFAULT_INSTANCE_BRANDING.favicon_src)
   })
 

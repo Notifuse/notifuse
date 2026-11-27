@@ -64,7 +64,8 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
     name: '',
     logoUrl: '',
     iconUrl: '',
-    hideHelpMenu: false
+    hideHelpMenu: false,
+    backgroundUrl: ''
   })
   const [brandingError, setBrandingError] = useState<string | undefined>()
   // Set when Clear or Reset branding is used: setting a field from code does not mark it touched.
@@ -78,19 +79,21 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
       const settings = {
         ...response.settings,
         smtp_bridge_port: response.settings.smtp_bridge_port || undefined,
-        // Always registered, so a save always carries the four keys, even to a server that
+        // Always registered, so a save always carries the five keys, even to a server that
         // has never stored a brand.
         branding_name: response.settings.branding_name ?? '',
         branding_logo_url: response.settings.branding_logo_url ?? '',
         branding_icon_url: response.settings.branding_icon_url ?? '',
-        branding_hide_help_menu: response.settings.branding_hide_help_menu ?? false
+        branding_hide_help_menu: response.settings.branding_hide_help_menu ?? false,
+        branding_background_url: response.settings.branding_background_url ?? ''
       }
       form.setFieldsValue(settings)
       setStoredBranding({
         name: settings.branding_name,
         logoUrl: settings.branding_logo_url,
         iconUrl: settings.branding_icon_url,
-        hideHelpMenu: settings.branding_hide_help_menu
+        hideHelpMenu: settings.branding_hide_help_menu,
+        backgroundUrl: settings.branding_background_url
       })
       setBrandingError(response.branding_error || undefined)
       setBrandingEdited(false)
@@ -180,7 +183,8 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
           'branding_name',
           'branding_logo_url',
           'branding_icon_url',
-          'branding_hide_help_menu'
+          'branding_hide_help_menu',
+          'branding_background_url'
         ] as const
         if (brandingError && !brandingEdited && !form.isFieldsTouched([...brandingKeys])) {
           for (const key of brandingKeys) delete values[key]

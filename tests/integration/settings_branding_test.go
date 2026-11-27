@@ -110,6 +110,7 @@ func TestSettingsHandler_InstanceBranding(t *testing.T) {
 		"branding_name":           "Acme",
 		"branding_logo_url":       "https://cdn.example.com/logo.png",
 		"branding_hide_help_menu": true,
+		"branding_background_url": "https://cdn.example.com/bg.jpg",
 	}
 
 	t.Run("only root changes it", func(t *testing.T) {
@@ -175,7 +176,7 @@ func TestSettingsHandler_InstanceBranding(t *testing.T) {
 		}
 		require.NoError(t, suite.APIClient.PostJSON("/api/settings.update", brand, &saved))
 		assert.Equal(t, firstBoot, saved.BootID, "the response names the process that saved")
-		want := branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/logo.png", HideHelpMenu: true}
+		want := branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/logo.png", HideHelpMenu: true, BackgroundURL: "https://cdn.example.com/bg.jpg"}
 		assert.Equal(t, want.Revision(), saved.BrandingRevision)
 
 		client := restartAfterSave(t, suite, appFactory, rootToken)
@@ -188,13 +189,15 @@ func TestSettingsHandler_InstanceBranding(t *testing.T) {
 		assert.Equal(t, "Acme", served.Name)
 		assert.Equal(t, "https://cdn.example.com/logo.png", served.LogoURL)
 		assert.True(t, served.HideHelpMenu)
+		assert.Equal(t, "https://cdn.example.com/bg.jpg", served.BackgroundURL)
 
 		var after SettingsResponseEnvelope
 		require.NoError(t, client.GetJSON("/api/settings.get", &after))
 		assert.Equal(t, "Acme", after.Settings.BrandingName)
+		assert.Equal(t, "https://cdn.example.com/bg.jpg", after.Settings.BrandingBackgroundURL)
 		assert.Equal(t, retention, after.Settings.AuditLogsRetentionDays, "a branding save leaves the retention alone")
 
-		reset := map[string]interface{}{"branding_name": "", "branding_logo_url": "", "branding_icon_url": "", "branding_hide_help_menu": false}
+		reset := map[string]interface{}{"branding_name": "", "branding_logo_url": "", "branding_icon_url": "", "branding_hide_help_menu": false, "branding_background_url": ""}
 		require.NoError(t, client.PostJSON("/api/settings.update", reset, nil))
 		suite.APIClient = client
 		client = restartAfterSave(t, suite, appFactory, rootToken)
@@ -202,6 +205,43 @@ func TestSettingsHandler_InstanceBranding(t *testing.T) {
 		assert.False(t, served.Custom)
 		assert.Equal(t, branding.DefaultName, served.Name)
 		assert.False(t, served.HideHelpMenu)
+		assert.Empty(t, served.BackgroundURL, "the Notifuse photo is back")
+	})
+
+	t.Run("a background alone needs no name, and only the licence shows it", func(t *testing.T) {
+		suite := testutil.NewIntegrationTestSuite(t, appFactory)
+		defer func() { suite.Cleanup() }()
+		rootToken := testutil.NewTokenCache(suite.APIClient).GetOrCreate(t, suite.Config.RootEmail)
+		suite.APIClient.SetToken(rootToken)
+
+		require.NoError(t, suite.APIClient.PostJSON("/api/settings.update", map[string]interface{}{"branding_background_url": "https://cdn.example.com/bg.jpg"}, nil))
+		client := restartAfterSave(t, suite, appFactory, rootToken)
+		served := servedBranding(t, client)
+		assert.False(t, served.Custom, "a background alone keeps the Notifuse identity")
+		assert.Equal(t, branding.DefaultName, served.Name)
+		assert.Equal(t, "https://cdn.example.com/bg.jpg", served.BackgroundURL)
+
+		// The same stored row on a process whose key lacks branding: the Notifuse photo shows. The
+		// unchanged save only restarts the process, which then starts with that key.
+		require.NoError(t, client.PostJSON("/api/settings.update", map[string]interface{}{"branding_background_url": "https://cdn.example.com/bg.jpg"}, nil))
+		suite.APIClient = client
+		unlicensed := restartAfterSave(t, suite, licensedWithout(t, domain.FeatureBranding), rootToken)
+		assert.Empty(t, servedBranding(t, unlicensed).BackgroundURL)
+		var stored SettingsResponseEnvelope
+		require.NoError(t, unlicensed.GetJSON("/api/settings.get", &stored))
+		assert.Equal(t, "https://cdn.example.com/bg.jpg", stored.Settings.BrandingBackgroundURL, "the saved value is kept")
+	})
+
+	t.Run("a key without branding refuses a background with 402", func(t *testing.T) {
+		suite := testutil.NewIntegrationTestSuite(t, licensedWithout(t, domain.FeatureBranding))
+		defer func() { suite.Cleanup() }()
+		suite.APIClient.SetToken(testutil.NewTokenCache(suite.APIClient).GetOrCreate(t, suite.Config.RootEmail))
+
+		resp, err := suite.APIClient.Post("/api/settings.update", map[string]interface{}{"branding_background_url": "https://cdn.example.com/bg.jpg"})
+		require.NoError(t, err)
+		body := readBody(t, resp)
+		require.Equal(t, http.StatusPaymentRequired, resp.StatusCode, body)
+		assert.Empty(t, servedBranding(t, suite.APIClient).BackgroundURL)
 	})
 }
 
@@ -210,6 +250,7 @@ func TestSettingsHandler_InstanceBranding(t *testing.T) {
 type SettingsResponseEnvelope struct {
 	Settings struct {
 		BrandingName           string `json:"branding_name"`
+		BrandingBackgroundURL  string `json:"branding_background_url"`
 		AuditLogsRetentionDays int    `json:"audit_logs_retention_days"`
 	} `json:"settings"`
 }

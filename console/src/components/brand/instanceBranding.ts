@@ -13,6 +13,7 @@ export const DEFAULT_INSTANCE_BRANDING: InstanceBranding = {
   logo_url: '',
   icon_url: '',
   hide_help_menu: false,
+  background_url: '',
   splash_logo_src: '/console/logo.png',
   favicon_src: '/console/favicon-32x32.png',
   revision: ''

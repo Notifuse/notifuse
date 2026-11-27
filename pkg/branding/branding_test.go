@@ -75,8 +75,8 @@ func TestValidateName(t *testing.T) {
 }
 
 func TestNormalize(t *testing.T) {
-	b := Branding{Name: "  Acme  ", LogoURL: " https://cdn.example.com/l.png\n", IconURL: "   ", HideHelpMenu: true}.Normalize()
-	assert.Equal(t, Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", IconURL: "", HideHelpMenu: true}, b)
+	b := Branding{Name: "  Acme  ", LogoURL: " https://cdn.example.com/l.png\n", IconURL: "   ", HideHelpMenu: true, BackgroundURL: " https://cdn.example.com/bg.jpg "}.Normalize()
+	assert.Equal(t, Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", IconURL: "", HideHelpMenu: true, BackgroundURL: "https://cdn.example.com/bg.jpg"}, b)
 }
 
 func TestValidate_NameRequiredWithAnImage(t *testing.T) {
@@ -92,6 +92,7 @@ func TestValidate_NameRequiredWithAnImage(t *testing.T) {
 
 	assert.NoError(t, Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png"}.Validate())
 	assert.NoError(t, Branding{HideHelpMenu: true}.Validate(), "the help switch alone needs no name")
+	assert.NoError(t, Branding{BackgroundURL: "https://cdn.example.com/bg.jpg"}.Validate(), "a background alone needs no name")
 }
 
 func TestValidate_ReportsTheFailingField(t *testing.T) {
@@ -103,6 +104,9 @@ func TestValidate_ReportsTheFailingField(t *testing.T) {
 	require.ErrorAs(t, Branding{Name: "Acme", IconURL: "https://localhost/i.png"}.Validate(), &fe)
 	assert.Equal(t, FieldIconURL, fe.Field)
 
+	require.ErrorAs(t, Branding{BackgroundURL: "https://cdn.example.com:8443/bg.jpg"}.Validate(), &fe)
+	assert.Equal(t, FieldBackgroundURL, fe.Field)
+
 	require.ErrorAs(t, Branding{Name: strings.Repeat("a", MaxNameCodePoints+1)}.Validate(), &fe)
 	assert.Equal(t, FieldName, fe.Field)
 }
@@ -110,6 +114,7 @@ func TestValidate_ReportsTheFailingField(t *testing.T) {
 func TestIsCustom(t *testing.T) {
 	assert.False(t, Branding{}.IsCustom())
 	assert.False(t, Branding{HideHelpMenu: true}.IsCustom(), "hiding the Help menu is not a custom identity")
+	assert.False(t, Branding{BackgroundURL: "https://cdn.example.com/bg.jpg"}.IsCustom(), "a background is not a custom identity")
 	assert.False(t, Branding{Name: "   "}.IsCustom())
 	assert.True(t, Branding{Name: "Acme"}.IsCustom())
 	assert.True(t, Branding{LogoURL: "https://cdn.example.com/l.png"}.IsCustom())
@@ -168,6 +173,22 @@ func TestResolve_HideHelpMenuIsIndependent(t *testing.T) {
 	assert.Equal(t, DefaultName, r.Name)
 }
 
+func TestResolve_BackgroundURLIsIndependent(t *testing.T) {
+	bg := "https://cdn.example.com/bg.jpg?sig=a(b)c"
+
+	r := Resolve(Branding{BackgroundURL: bg})
+	assert.False(t, r.Custom, "a background alone keeps the Notifuse identity")
+	assert.Equal(t, DefaultName, r.Name)
+	assert.Equal(t, DefaultLogoPath, r.SplashLogoSrc)
+	assert.Equal(t, bg, r.BackgroundURL, "the query string is kept as entered")
+
+	r = Resolve(Branding{Name: "Acme", BackgroundURL: bg})
+	assert.True(t, r.Custom)
+	assert.Equal(t, bg, r.BackgroundURL)
+
+	assert.Empty(t, Resolve(Branding{Name: "Acme"}).BackgroundURL, "no background: the Notifuse photo")
+}
+
 func TestRevision(t *testing.T) {
 	base := Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png"}
 	assert.Equal(t, base.Revision(), base.Revision(), "stable")
@@ -179,14 +200,28 @@ func TestRevision(t *testing.T) {
 		{Name: base.Name, LogoURL: "https://cdn.example.com/m.png"},
 		{Name: base.Name, LogoURL: base.LogoURL, IconURL: "https://cdn.example.com/i.png"},
 		{Name: base.Name, LogoURL: base.LogoURL, HideHelpMenu: true},
+		{Name: base.Name, LogoURL: base.LogoURL, BackgroundURL: "https://cdn.example.com/bg.jpg"},
 	}
 	for _, v := range variants {
 		assert.NotEqual(t, base.Revision(), v.Revision(), "%+v", v)
 	}
 }
 
+// A brand saved before the background existed must keep its stored JSON, and so its revision:
+// the save-and-restart handshake and a process still running the previous build compare them.
+func TestEncode_WithoutBackgroundKeepsTheEarlierFormat(t *testing.T) {
+	data, err := Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png"}.Encode()
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":false}`, string(data))
+	assert.NotContains(t, string(data), "background_url")
+
+	data, err = Branding{BackgroundURL: "https://cdn.example.com/bg.jpg"}.Encode()
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `"background_url":"https://cdn.example.com/bg.jpg"`)
+}
+
 func TestEncodeDecode_RoundTrip(t *testing.T) {
-	in := Branding{Name: " Acme ", LogoURL: "https://cdn.example.com/l.png", IconURL: "", HideHelpMenu: true}
+	in := Branding{Name: " Acme ", LogoURL: "https://cdn.example.com/l.png", IconURL: "", HideHelpMenu: true, BackgroundURL: "https://cdn.example.com/bg.jpg"}
 	data, err := in.Encode()
 	require.NoError(t, err)
 
@@ -228,6 +263,12 @@ func TestValidateChanged(t *testing.T) {
 	require.ErrorAs(t, Branding{Name: "", LogoURL: "https://10.0.0.1/l.png"}.ValidateChanged(stored), &fe)
 	assert.Equal(t, FieldName, fe.Field, "removing the name while a logo stays is refused")
 	assert.NoError(t, Branding{}.ValidateChanged(stored), "clearing everything is always valid")
+
+	storedBg := Branding{BackgroundURL: "https://10.0.0.1/bg.jpg"} // valid once, refused today
+	assert.NoError(t, Branding{BackgroundURL: "https://10.0.0.1/bg.jpg", HideHelpMenu: true}.ValidateChanged(storedBg),
+		"an untouched background is not re-checked")
+	require.ErrorAs(t, Branding{BackgroundURL: "https://192.168.0.1/bg.jpg"}.ValidateChanged(storedBg), &fe)
+	assert.Equal(t, FieldBackgroundURL, fe.Field, "a changed background is checked")
 }
 
 func TestResolve_StoredValuesThatBypassedTheAPI(t *testing.T) {
@@ -235,6 +276,7 @@ func TestResolve_StoredValuesThatBypassedTheAPI(t *testing.T) {
 	assert.Empty(t, r.LogoURL, "an http URL is not shown")
 	assert.Empty(t, r.IconURL)
 	assert.Empty(t, r.SplashLogoSrc)
+	assert.Empty(t, Resolve(Branding{BackgroundURL: "http://cdn.example.com/bg.jpg"}).BackgroundURL, "an http background is not shown")
 
 	r = Resolve(Branding{LogoURL: "https://cdn.example.com/l.png"})
 	assert.True(t, r.Custom)

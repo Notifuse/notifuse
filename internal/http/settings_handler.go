@@ -63,6 +63,8 @@ type SystemSettingsData struct {
 	BrandingLogoURL      string `json:"branding_logo_url"`
 	BrandingIconURL      string `json:"branding_icon_url"`
 	BrandingHideHelpMenu bool   `json:"branding_hide_help_menu"`
+	// BrandingBackgroundURL replaces the photo behind the sign-in, invitation and workspace pages.
+	BrandingBackgroundURL string `json:"branding_background_url"`
 }
 
 // brandingRequestKeys are the branding keys of a settings.update body. A null value for any of
@@ -70,6 +72,7 @@ type SystemSettingsData struct {
 // "keep" through json.Decode.
 var brandingRequestKeys = []string{
 	branding.FieldName, branding.FieldLogoURL, branding.FieldIconURL, branding.FieldHideHelpMenu,
+	branding.FieldBackgroundURL,
 }
 
 // maxSettingsBodyBytes bounds a settings.update body, which carries certificates at most.
@@ -423,6 +426,7 @@ func (h *SettingsHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		BrandingLogoURL:        sysConfig.BrandingLogoURL,
 		BrandingIconURL:        sysConfig.BrandingIconURL,
 		BrandingHideHelpMenu:   sysConfig.BrandingHideHelpMenu,
+		BrandingBackgroundURL:  sysConfig.BrandingBackgroundURL,
 	}
 
 	envOverrides := h.setupService.GetEnvOverrides()
@@ -596,6 +600,7 @@ func systemSettingsFromConfig(c *service.SystemConfig) SystemSettingsData {
 		BrandingLogoURL:         c.BrandingLogoURL,
 		BrandingIconURL:         c.BrandingIconURL,
 		BrandingHideHelpMenu:    c.BrandingHideHelpMenu,
+		BrandingBackgroundURL:   c.BrandingBackgroundURL,
 	}
 }
 
@@ -739,6 +744,7 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		BrandingLogoURL:         reqData.BrandingLogoURL,
 		BrandingIconURL:         reqData.BrandingIconURL,
 		BrandingHideHelpMenu:    reqData.BrandingHideHelpMenu,
+		BrandingBackgroundURL:   reqData.BrandingBackgroundURL,
 		// An unreadable stored brand is replaced only by a save that carries branding keys;
 		// any other save leaves the row as it is, for the operator to see and repair.
 		KeepStoredBranding: currentConfig.BrandingUnreadable && !brandingKeysPresent,
@@ -809,10 +815,11 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	savedBranding := branding.Branding{
-		Name:         newConfig.BrandingName,
-		LogoURL:      newConfig.BrandingLogoURL,
-		IconURL:      newConfig.BrandingIconURL,
-		HideHelpMenu: newConfig.BrandingHideHelpMenu,
+		Name:          newConfig.BrandingName,
+		LogoURL:       newConfig.BrandingLogoURL,
+		IconURL:       newConfig.BrandingIconURL,
+		HideHelpMenu:  newConfig.BrandingHideHelpMenu,
+		BackgroundURL: newConfig.BrandingBackgroundURL,
 	}
 	response := SettingsUpdateResponse{
 		Success:          true,
