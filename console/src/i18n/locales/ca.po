@@ -3479,6 +3479,10 @@ msgstr "Una automatització"
 msgid "an email"
 msgstr "un correu"
 
+#: src/services/api/errors.ts:54
+msgid "An error occurred"
+msgstr "S'ha produït un error"
+
 #: src/components/contacts/ExportContactsModal.tsx:327
 msgid "An error occurred during export"
 msgstr "S'ha produït un error durant l'exportació"
@@ -4203,7 +4207,7 @@ msgid "Audit logs"
 msgstr "Registres d'auditoria"
 
 #: src/components/settings/permissionLabels.ts:21
-#: src/services/api/errors.ts:96
+#: src/services/api/errors.ts:113
 msgid "Audit Logs"
 msgstr "Registres d'auditoria"
 
@@ -4424,7 +4428,7 @@ msgstr "Automatització actualitzada correctament"
 #: src/components/templates/DeleteTemplateModal.tsx:43
 #: src/layouts/app-shell/menuItems.ts:241
 #: src/pages/AutomationsPage.tsx:202
-#: src/services/api/errors.ts:90
+#: src/services/api/errors.ts:107
 msgid "Automations"
 msgstr "Automatitzacions"
 
@@ -4921,7 +4925,7 @@ msgstr "Blocs"
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:245
 #: src/pages/BlogPage.tsx:89
-#: src/services/api/errors.ts:89
+#: src/services/api/errors.ts:106
 msgid "Blog"
 msgstr "Blog"
 
@@ -5407,7 +5411,7 @@ msgstr "Difusió: {0}"
 #: src/layouts/app-shell/menuItems.ts:240
 #: src/pages/BroadcastsPage.tsx:257
 #: src/pages/BroadcastsPage.tsx:358
-#: src/services/api/errors.ts:85
+#: src/services/api/errors.ts:102
 msgid "Broadcasts"
 msgstr "Difusions"
 
@@ -7400,7 +7404,7 @@ msgstr "Contacte actualitzat correctament"
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:239
 #: src/pages/ContactsPage.tsx:601
-#: src/services/api/errors.ts:82
+#: src/services/api/errors.ts:99
 msgid "Contacts"
 msgstr "Contactes"
 
@@ -16503,7 +16507,7 @@ msgstr "Llista actualitzada"
 #: src/components/logs/labels.ts:17
 #: src/components/settings/permissionLabels.ts:8
 #: src/components/templates/DeleteTemplateModal.tsx:44
-#: src/services/api/errors.ts:83
+#: src/services/api/errors.ts:100
 msgid "Lists"
 msgstr "Llistes"
 
@@ -16530,7 +16534,7 @@ msgid "Live"
 msgstr "En directe"
 
 #: src/components/settings/permissionLabels.ts:16
-#: src/services/api/errors.ts:91
+#: src/services/api/errors.ts:108
 msgid "LLM"
 msgstr "LLM"
 
@@ -17158,7 +17162,7 @@ msgid "Message history"
 msgstr "Historial de missatges"
 
 #: src/components/settings/permissionLabels.ts:13
-#: src/services/api/errors.ts:88
+#: src/services/api/errors.ts:105
 msgid "Message History"
 msgstr "Historial de missatges"
 
@@ -23968,7 +23972,7 @@ msgstr "Arbre del segment restablert"
 #: src/components/contacts/sheet/ContactListsCard.tsx:309
 #: src/components/logs/labels.ts:18
 #: src/components/settings/permissionLabels.ts:18
-#: src/services/api/errors.ts:93
+#: src/services/api/errors.ts:110
 msgid "Segments"
 msgstr "Segments"
 
@@ -26886,7 +26890,7 @@ msgstr "Remitent de la plantilla ({0})"
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:244
 #: src/pages/TemplatesPage.tsx:593
-#: src/services/api/errors.ts:84
+#: src/services/api/errors.ts:101
 msgid "Templates"
 msgstr "Plantilles"
 
@@ -27891,6 +27895,10 @@ msgstr "El domini d'enviament configurat a Mailgun"
 #: src/components/setup/SetupRestartView.tsx:87
 msgid "The server has not come back after 60 seconds."
 msgstr "El servidor no ha tornat després de 60 segons."
+
+#: src/services/api/errors.ts:53
+msgid "The server isn't responding. Try again in a few seconds."
+msgstr "El servidor no respon. Torna-ho a provar d’aquí a uns segons."
 
 #: src/components/setup/SetupRail.tsx:34
 msgid "The server restarts to apply the configuration."
@@ -29320,7 +29328,7 @@ msgstr "Tipus de trànsit"
 #: src/layouts/app-shell/menuItems.ts:242
 #: src/pages/TransactionalNotificationsPage.tsx:184
 #: src/pages/TransactionalNotificationsPage.tsx:220
-#: src/services/api/errors.ts:86
+#: src/services/api/errors.ts:103
 msgid "Transactional"
 msgstr "Transaccional"
 
@@ -31002,7 +31010,7 @@ msgstr "Analítica web"
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
 #: src/layouts/app-shell/menuItems.ts:233
 #: src/pages/WebAnalyticsPage.tsx:95
-#: src/services/api/errors.ts:92
+#: src/services/api/errors.ts:109
 msgid "Web Analytics"
 msgstr "Analítica web"
 
@@ -31091,7 +31099,7 @@ msgid "Webhook event {kind}"
 msgstr "Esdeveniment de webhook {kind}"
 
 #: src/components/settings/permissionLabels.ts:20
-#: src/services/api/errors.ts:95
+#: src/services/api/errors.ts:112
 msgid "Webhook Events"
 msgstr "Esdeveniments de webhooks"
 
@@ -31116,7 +31124,7 @@ msgid "Webhook subscription updated"
 msgstr "Subscripció de webhook actualitzada"
 
 #: src/components/settings/permissionLabels.ts:19
-#: src/services/api/errors.ts:94
+#: src/services/api/errors.ts:111
 msgid "Webhook Subscriptions"
 msgstr "Subscripcions de webhooks"
 
@@ -31649,7 +31657,7 @@ msgstr "Funciona amb Anthropic, OpenAI o un endpoint compatible amb OpenAI, i Ge
 #: src/components/settings/SettingsSidebar.tsx:14
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
 #: src/pages/OAuthAuthorizePage.tsx:677
-#: src/services/api/errors.ts:87
+#: src/services/api/errors.ts:104
 msgid "Workspace"
 msgstr "Espai de treball"
 
@@ -31931,11 +31939,11 @@ msgstr "Ja podeu iniciar sessió."
 #~ msgid "You can only upload CSV files!"
 #~ msgstr "Només podeu pujar fitxers CSV!"
 
-#: src/services/api/errors.ts:154
+#: src/services/api/errors.ts:171
 msgid "You do not have read access to {resource}."
 msgstr "No teniu accés de lectura a {resource}."
 
-#: src/services/api/errors.ts:155
+#: src/services/api/errors.ts:172
 msgid "You do not have write access to {resource}."
 msgstr "No teniu accés d'escriptura a {resource}."
 

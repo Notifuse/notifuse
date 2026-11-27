@@ -3479,6 +3479,10 @@ msgstr "Eine Automatisierung"
 msgid "an email"
 msgstr "eine E-Mail"
 
+#: src/services/api/errors.ts:54
+msgid "An error occurred"
+msgstr "Ein Fehler ist aufgetreten"
+
 #: src/components/contacts/ExportContactsModal.tsx:327
 msgid "An error occurred during export"
 msgstr "Beim Export ist ein Fehler aufgetreten"
@@ -4203,7 +4207,7 @@ msgid "Audit logs"
 msgstr "Audit-Logs"
 
 #: src/components/settings/permissionLabels.ts:21
-#: src/services/api/errors.ts:96
+#: src/services/api/errors.ts:113
 msgid "Audit Logs"
 msgstr "Audit-Logs"
 
@@ -4424,7 +4428,7 @@ msgstr "Automatisierung erfolgreich aktualisiert"
 #: src/components/templates/DeleteTemplateModal.tsx:43
 #: src/layouts/app-shell/menuItems.ts:241
 #: src/pages/AutomationsPage.tsx:202
-#: src/services/api/errors.ts:90
+#: src/services/api/errors.ts:107
 msgid "Automations"
 msgstr "Automatisierungen"
 
@@ -4921,7 +4925,7 @@ msgstr "Blöcke"
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:245
 #: src/pages/BlogPage.tsx:89
-#: src/services/api/errors.ts:89
+#: src/services/api/errors.ts:106
 msgid "Blog"
 msgstr "Blog"
 
@@ -5407,7 +5411,7 @@ msgstr "Kampagne: {0}"
 #: src/layouts/app-shell/menuItems.ts:240
 #: src/pages/BroadcastsPage.tsx:257
 #: src/pages/BroadcastsPage.tsx:358
-#: src/services/api/errors.ts:85
+#: src/services/api/errors.ts:102
 msgid "Broadcasts"
 msgstr "Kampagnen"
 
@@ -7400,7 +7404,7 @@ msgstr "Kontakt erfolgreich aktualisiert"
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:239
 #: src/pages/ContactsPage.tsx:601
-#: src/services/api/errors.ts:82
+#: src/services/api/errors.ts:99
 msgid "Contacts"
 msgstr "Kontakte"
 
@@ -16503,7 +16507,7 @@ msgstr "Liste aktualisiert"
 #: src/components/logs/labels.ts:17
 #: src/components/settings/permissionLabels.ts:8
 #: src/components/templates/DeleteTemplateModal.tsx:44
-#: src/services/api/errors.ts:83
+#: src/services/api/errors.ts:100
 msgid "Lists"
 msgstr "Listen"
 
@@ -16530,7 +16534,7 @@ msgid "Live"
 msgstr "Live"
 
 #: src/components/settings/permissionLabels.ts:16
-#: src/services/api/errors.ts:91
+#: src/services/api/errors.ts:108
 msgid "LLM"
 msgstr "LLM"
 
@@ -17158,7 +17162,7 @@ msgid "Message history"
 msgstr "Nachrichtenverlauf"
 
 #: src/components/settings/permissionLabels.ts:13
-#: src/services/api/errors.ts:88
+#: src/services/api/errors.ts:105
 msgid "Message History"
 msgstr "Nachrichtenverlauf"
 
@@ -23968,7 +23972,7 @@ msgstr "Segmentbaum zurückgesetzt"
 #: src/components/contacts/sheet/ContactListsCard.tsx:309
 #: src/components/logs/labels.ts:18
 #: src/components/settings/permissionLabels.ts:18
-#: src/services/api/errors.ts:93
+#: src/services/api/errors.ts:110
 msgid "Segments"
 msgstr "Segmente"
 
@@ -26886,7 +26890,7 @@ msgstr "Absender der Vorlage ({0})"
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:244
 #: src/pages/TemplatesPage.tsx:593
-#: src/services/api/errors.ts:84
+#: src/services/api/errors.ts:101
 msgid "Templates"
 msgstr "Vorlagen"
 
@@ -27891,6 +27895,10 @@ msgstr "Die in Mailgun eingerichtete Versanddomain"
 #: src/components/setup/SetupRestartView.tsx:87
 msgid "The server has not come back after 60 seconds."
 msgstr "Der Server ist nach 60 Sekunden nicht zurück."
+
+#: src/services/api/errors.ts:53
+msgid "The server isn't responding. Try again in a few seconds."
+msgstr "Der Server antwortet nicht. Versuchen Sie es in ein paar Sekunden noch einmal."
 
 #: src/components/setup/SetupRail.tsx:34
 msgid "The server restarts to apply the configuration."
@@ -29320,7 +29328,7 @@ msgstr "Traffic-Typ"
 #: src/layouts/app-shell/menuItems.ts:242
 #: src/pages/TransactionalNotificationsPage.tsx:184
 #: src/pages/TransactionalNotificationsPage.tsx:220
-#: src/services/api/errors.ts:86
+#: src/services/api/errors.ts:103
 msgid "Transactional"
 msgstr "Transaktional"
 
@@ -31002,7 +31010,7 @@ msgstr "Web-Analyse"
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
 #: src/layouts/app-shell/menuItems.ts:233
 #: src/pages/WebAnalyticsPage.tsx:95
-#: src/services/api/errors.ts:92
+#: src/services/api/errors.ts:109
 msgid "Web Analytics"
 msgstr "Web-Analyse"
 
@@ -31091,7 +31099,7 @@ msgid "Webhook event {kind}"
 msgstr "Webhook-Ereignis {kind}"
 
 #: src/components/settings/permissionLabels.ts:20
-#: src/services/api/errors.ts:95
+#: src/services/api/errors.ts:112
 msgid "Webhook Events"
 msgstr "Webhook-Ereignisse"
 
@@ -31116,7 +31124,7 @@ msgid "Webhook subscription updated"
 msgstr "Webhook-Abonnement aktualisiert"
 
 #: src/components/settings/permissionLabels.ts:19
-#: src/services/api/errors.ts:94
+#: src/services/api/errors.ts:111
 msgid "Webhook Subscriptions"
 msgstr "Webhook-Abonnements"
 
@@ -31649,7 +31657,7 @@ msgstr "Funktioniert mit Anthropic, OpenAI oder einem OpenAI-kompatiblen Endpunk
 #: src/components/settings/SettingsSidebar.tsx:14
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:77
 #: src/pages/OAuthAuthorizePage.tsx:677
-#: src/services/api/errors.ts:87
+#: src/services/api/errors.ts:104
 msgid "Workspace"
 msgstr "Arbeitsbereich"
 
@@ -31931,11 +31939,11 @@ msgstr "Sie können sich jetzt anmelden."
 #~ msgid "You can only upload CSV files!"
 #~ msgstr "Sie können nur CSV-Dateien hochladen!"
 
-#: src/services/api/errors.ts:154
+#: src/services/api/errors.ts:171
 msgid "You do not have read access to {resource}."
 msgstr "Sie haben keinen Lesezugriff auf {resource}."
 
-#: src/services/api/errors.ts:155
+#: src/services/api/errors.ts:172
 msgid "You do not have write access to {resource}."
 msgstr "Sie haben keinen Schreibzugriff auf {resource}."
 

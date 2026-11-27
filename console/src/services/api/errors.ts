@@ -45,6 +45,23 @@ export class ApiUnreachableError extends Error {
   }
 }
 
+// The answers of whatever stands in front of the API (Traefik, nginx, a load balancer) when the
+// API itself does not answer: a restart or an upgrade, before the new process takes requests. The
+// API's own "Server is shutting down" during a graceful stop is a 503 in plain text as well.
+const GATEWAY_STATUSES = new Set([502, 503, 504]);
+
+const SERVER_UNAVAILABLE = msg`The server isn't responding. Try again in a few seconds.`;
+const UNKNOWN_ERROR = msg`An error occurred`;
+
+/**
+ * The sentence for an error answer that carries no message of its own: an HTML or plain-text
+ * page, or a JSON body without an `error` key. Built when the error is thrown, in the language
+ * active then, like the permission and licence sentences.
+ */
+export function unexplainedErrorMessage(status: number): string {
+  return i18n._(GATEWAY_STATUSES.has(status) ? SERVER_UNAVAILABLE : UNKNOWN_ERROR);
+}
+
 /**
  * The query client's retry policy.
  *

@@ -8,6 +8,7 @@ import {
   ApiUnreachableError,
   permissionDeniedMessage,
   permissionDenialFromBody,
+  unexplainedErrorMessage,
 } from "./errors";
 import { licenseRefusalFromBody, licenseRefusedMessage } from "./licenseErrors";
 
@@ -90,7 +91,7 @@ async function handleResponse<T>(response: Response, endpoint = ""): Promise<T> 
         : errorData?.error;
 
     throw new ApiError(
-      message || "An error occurred",
+      message || unexplainedErrorMessage(response.status),
       response.status,
       errorData,
     );
