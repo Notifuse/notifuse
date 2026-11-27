@@ -14,6 +14,7 @@ import type {
 } from './api/notification_center'
 import { Button } from '@/components/ui/button'
 import { TrackingDialog, type TrackingDialogMode } from './components/TrackingDialog'
+import { ConfirmCard } from './components/ConfirmCard'
 import { trackingStatusKey } from './lib/trackingStatus'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
@@ -42,13 +43,80 @@ interface PreferenceUpdate {
   timezone?: string
 }
 
+// A list as the page shows it, with the contact's status on it
+type ListWithStatus = List & { status?: string }
+
+// The lists the page shows, and whether the contact is subscribed to each, from their
+// preferences: the lists they have a row on, private ones included, then the public
+// lists they are not on
+function listsFromPreferences(data: ContactPreferencesResponse): {
+  lists: ListWithStatus[]
+  subscriptions: Record<string, boolean>
+} {
+  const subscriptions: Record<string, boolean> = {}
+  const lists: ListWithStatus[] = []
+
+  data.contact_lists?.forEach((contactList) => {
+    subscriptions[contactList.list_id] = contactList.status === 'active'
+
+    // The public list carries the name and description
+    const publicList = data.public_lists?.find((list) => list.id === contactList.list_id)
+    if (publicList) {
+      lists.push({ ...publicList, status: contactList.status })
+    } else {
+      // A private list
+      lists.push({
+        id: contactList.list_id,
+        name: contactList.list_name || `List ${contactList.list_id}`,
+        status: contactList.status
+      })
+    }
+  })
+
+  data.public_lists?.forEach((list) => {
+    if (!lists.some((l) => l.id === list.id)) {
+      lists.push({ ...list, status: 'unsubscribed' })
+      subscriptions[list.id] = false
+    }
+  })
+
+  return { lists, subscriptions }
+}
+
+// What the double opt-in confirmation link can do for a list, read from the contact's
+// preferences: ask them to confirm, their click subscribing them; tell them they are
+// already subscribed; or nothing, for a bounce or a complaint, a private list they are
+// not on, or a list that no longer exists, which the server would refuse or ignore
+type SubscriptionConfirmation = 'ask' | 'subscribed' | 'unavailable'
+
+function subscriptionConfirmationFor(
+  listId: string,
+  data: ContactPreferencesResponse
+): SubscriptionConfirmation {
+  const row = data.contact_lists?.find((cl) => cl.list_id === listId)
+  if (row?.status === 'active') {
+    return 'subscribed'
+  }
+  // A pending row, private lists included: the confirmation the workspace asked for
+  if (row?.status === 'pending') {
+    return 'ask'
+  }
+  // A public list the contact is not on, or left: the signed link brings them back.
+  // The workspace decides who joins a private list.
+  const isPublic = data.public_lists?.some((list) => list.id === listId) ?? false
+  if (isPublic && (!row || row.status === 'unsubscribed')) {
+    return 'ask'
+  }
+  return 'unavailable'
+}
+
 function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notificationData, setNotificationData] = useState<ContactPreferencesResponse | null>(null)
   const [subscriptions, setSubscriptions] = useState<Record<string, boolean>>({})
   const [processingLists, setProcessingLists] = useState<Record<string, boolean>>({})
-  const [allLists, setAllLists] = useState<Array<List & { status?: string }>>([])
+  const [allLists, setAllLists] = useState<ListWithStatus[]>([])
   const [language, setLanguage] = useState<Language>(getLanguage())
   const [showLanguageMenu, setShowLanguageMenu] = useState(false)
   const [confirmationResult, setConfirmationResult] = useState<{
@@ -57,8 +125,11 @@ function App() {
     listId?: string
   } | null>(null)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
-  // List the visitor is asked to confirm unsubscribing from (action=confirm_unsubscribe)
+  // List the visitor is asked to confirm unsubscribing from: the email's unsubscribe
+  // link (action=unsubscribe) or the List-Unsubscribe header link (action=confirm_unsubscribe)
   const [pendingUnsubscribeListId, setPendingUnsubscribeListId] = useState<string | null>(null)
+  // List the visitor is asked to confirm subscribing to: the double opt-in link (action=confirm)
+  const [pendingConfirmListId, setPendingConfirmListId] = useState<string | null>(null)
   // What the workspace tracks and what is tracked for this contact
   const [tracking, setTracking] = useState<ContactTrackingState | null>(null)
   const [savingTracking, setSavingTracking] = useState(false)
@@ -168,74 +239,6 @@ function App() {
           return
         }
 
-        // Handle confirmation action
-        if (params.action === 'confirm' && params.lid) {
-          try {
-            // Use the existing API client to subscribe to lists
-            const response = await subscribeToLists({
-              workspace_id: params.wid,
-              contact: {
-                id: '', // Will be populated by the backend
-                email: params.email,
-                email_hmac: params.email_hmac
-              },
-              list_ids: [params.lid]
-            })
-
-            if (response.success) {
-              setConfirmationResult({
-                success: true,
-                messageKey: 'confirmSubscriptionSuccess',
-                listId: params.lid
-              })
-            } else {
-              setConfirmationResult({
-                success: false,
-                messageKey: 'confirmSubscriptionFailed'
-              })
-            }
-          } catch (err) {
-            console.error('Failed to confirm subscription:', err)
-            setConfirmationResult({
-              success: false,
-              messageKey: 'confirmSubscriptionFailed'
-            })
-          }
-        }
-
-        // Handle unsubscribe action
-        if (params.action === 'unsubscribe' && params.lid) {
-          try {
-            // Automatically unsubscribe from the list
-            const response = await unsubscribeOneClick({
-              wid: params.wid,
-              email: params.email,
-              email_hmac: params.email_hmac,
-              lids: [params.lid],
-              mid: params.mid
-            })
-
-            if (response.success) {
-              setConfirmationResult({
-                success: true,
-                messageKey: 'unsubscribeSuccess',
-                listId: params.lid
-              })
-            } else {
-              setConfirmationResult({
-                success: false,
-                messageKey: 'unsubscribeFailed'
-              })
-            }
-          } catch (err) {
-            console.error('Failed to unsubscribe:', err)
-            setConfirmationResult({
-              success: false,
-              messageKey: 'unsubscribeFailed'
-            })
-          }
-        }
-
         // Load notification center data
         const data = await getContactPreferences({
           workspace_id: params.wid,
@@ -265,52 +268,8 @@ function App() {
           }
         }
 
-        // Initialize subscriptions state
-        const initialSubscriptions: Record<string, boolean> = {}
-
-        // Combine public lists and contact-specific lists
-        const combinedLists: Array<List & { status?: string }> = []
-
-        // Process all contact lists to get status
-        if (data.contact_lists) {
-          data.contact_lists.forEach((contactList) => {
-            // Set subscription status based on contact list status
-            initialSubscriptions[contactList.list_id] = contactList.status === 'active'
-
-            // Try to find this list in public lists to get name and description
-            const publicList = data.public_lists?.find((list) => list.id === contactList.list_id)
-
-            if (publicList) {
-              // For lists in both contact_lists and public_lists
-              combinedLists.push({
-                ...publicList,
-                status: contactList.status
-              })
-            } else {
-              // For lists only in contact_lists (private lists)
-              combinedLists.push({
-                id: contactList.list_id,
-                name: contactList.list_name || `List ${contactList.list_id}`,
-                status: contactList.status
-              })
-            }
-          })
-        }
-
-        // Add public lists that aren't in contact_lists
-        if (data.public_lists) {
-          data.public_lists.forEach((list) => {
-            const existingList = combinedLists.find((l) => l.id === list.id)
-            if (!existingList) {
-              combinedLists.push({
-                ...list,
-                status: 'unsubscribed' // Default status for public lists not in contact_lists
-              })
-              initialSubscriptions[list.id] = false
-            }
-          })
-        }
-
+        const { lists: combinedLists, subscriptions: initialSubscriptions } =
+          listsFromPreferences(data)
         setAllLists(combinedLists)
         setSubscriptions(initialSubscriptions)
         setTracking(data.tracking ?? null)
@@ -327,10 +286,11 @@ function App() {
           setTrackingDialog('manage')
         }
 
-        // The List-Unsubscribe header link lands here when it is opened rather than
-        // one-click POSTed (the server redirects the GET). Anti-spam scanners fetch header
-        // links on their own, so nothing is unsubscribed until the visitor confirms.
-        if (params.action === 'confirm_unsubscribe' && params.lid) {
+        // The email's unsubscribe link lands here, and so does the List-Unsubscribe header
+        // link when it is opened rather than one-click POSTed (the server redirects the
+        // GET). Email security scanners open every link of an email, in a real browser
+        // too, so nothing is unsubscribed until the visitor confirms.
+        if ((params.action === 'unsubscribe' || params.action === 'confirm_unsubscribe') && params.lid) {
           // Automations also email contacts who aren't on their list, with that list's
           // header link, so a contact with no row on the list is asked too, and so is one
           // whose double opt-in is still pending, whom marketing emails reach as well
@@ -348,6 +308,19 @@ function App() {
           }
         }
 
+        // The double opt-in confirmation link: for the same reason, the subscription is
+        // confirmed only when the visitor clicks
+        if (params.action === 'confirm' && params.lid) {
+          const confirmation = subscriptionConfirmationFor(params.lid, data)
+          if (confirmation === 'ask') {
+            setPendingConfirmListId(params.lid)
+          } else if (confirmation === 'subscribed') {
+            setConfirmationResult({ success: true, messageKey: 'alreadySubscribed', listId: params.lid })
+          } else {
+            setConfirmationResult({ success: false, messageKey: 'confirmSubscriptionFailed' })
+          }
+        }
+
         setLoading(false)
       } catch (err) {
         console.error('Failed to load notification center data:', err)
@@ -357,8 +330,8 @@ function App() {
     }
 
     loadNotificationData()
-    // Runs exactly once, on purpose: the load performs the URL's one-shot actions
-    // (action=unsubscribe, action=confirm), which must never repeat
+    // Runs once: it reads the URL and the contact's preferences, and writes nothing.
+    // The links of an email only ask; the visitor's click does the rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -446,7 +419,44 @@ function App() {
     }
   }
 
+  // Reads the contact's preferences again after a subscribe the server accepted, and
+  // returns whether they are now subscribed to listId. The server also answers success
+  // when it leaves the contact as they were (a bounce or a complaint kept on the list, a
+  // disposable address), and only the preferences tell. The lists keep their order on
+  // screen. When the preferences cannot be read, the server's answer stands.
+  const reloadAfterSubscribe = async (
+    params: { wid: string; email: string; email_hmac: string },
+    listId: string
+  ): Promise<boolean> => {
+    try {
+      const data = await getContactPreferences({
+        workspace_id: params.wid,
+        email: params.email,
+        email_hmac: params.email_hmac
+      })
+      const { lists, subscriptions: refreshed } = listsFromPreferences(data)
+      setNotificationData(data)
+      setAllLists((prev) => {
+        const byId = new Map(lists.map((list) => [list.id, list]))
+        const kept = prev.map((list) => byId.get(list.id) ?? list)
+        return [...kept, ...lists.filter((list) => !prev.some((p) => p.id === list.id))]
+      })
+      setSubscriptions(refreshed)
+      return refreshed[listId] ?? false
+    } catch (err) {
+      console.error('Failed to reload preferences after subscribing:', err)
+      setSubscriptions((prev) => ({ ...prev, [listId]: true }))
+      setAllLists((prev) =>
+        prev.map((list) => (list.id === listId ? { ...list, status: 'active' } : list))
+      )
+      return true
+    }
+  }
+
   const subscribe = async (listId: string) => {
+    // Put back on failure: a pending row stays pending, it does not become unsubscribed
+    const previousStatus = allLists.find((list) => list.id === listId)?.status
+    const wasSubscribed = subscriptions[listId] ?? false
     try {
       // Clear any previous confirmation result (e.g., from unsubscribe action)
       setConfirmationResult(null)
@@ -474,27 +484,39 @@ function App() {
 
         // Call API to subscribe to list
         // Include email_hmac from URL params for private list authentication
-        await subscribeToLists({
+        const response = await subscribeToLists({
           workspace_id: params.wid,
           contact: { ...notificationData.contact, email_hmac: params.email_hmac },
           list_ids: [listId]
         })
+        if (!response.success) {
+          throw new Error('Subscribe was not successful')
+        }
 
-        toast.success(t('successSubscribed'), {
-          style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
-          duration: 3000
-        })
+        // The list's own toggle answers a question the page asked about it, once the
+        // server accepted the request: on a failure the question stays
+        setPendingConfirmListId((pending) => (pending === listId ? null : pending))
+        setPendingUnsubscribeListId((pending) => (pending === listId ? null : pending))
+
+        if (await reloadAfterSubscribe(params, listId)) {
+          toast.success(t('successSubscribed'), {
+            style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
+            duration: 3000
+          })
+        } else {
+          toast.error(t('failedSubscribe'))
+        }
       }
     } catch (err) {
       // Revert local state on error
       setSubscriptions((prev) => ({
         ...prev,
-        [listId]: false
+        [listId]: wasSubscribed
       }))
 
       // Revert list status
       setAllLists((prev) =>
-        prev.map((list) => (list.id === listId ? { ...list, status: 'unsubscribed' } : list))
+        prev.map((list) => (list.id === listId ? { ...list, status: previousStatus } : list))
       )
 
       console.error('Failed to subscribe:', err)
@@ -507,8 +529,8 @@ function App() {
 
   const unsubscribe = async (listId: string) => {
     try {
-      // The list's own toggle answers a pending unsubscribe confirmation for it
-      setPendingUnsubscribeListId((pending) => (pending === listId ? null : pending))
+      // Clear any previous confirmation result, as subscribe does
+      setConfirmationResult(null)
 
       // Set processing state
       setProcessingLists((prev) => ({ ...prev, [listId]: true }))
@@ -532,13 +554,20 @@ function App() {
         }
 
         // Call API to unsubscribe from list
-        await unsubscribeOneClick({
+        const response = await unsubscribeOneClick({
           wid: params.wid,
           email: params.email,
           email_hmac: params.email_hmac,
           lids: [listId],
           mid: params.mid
         })
+        if (!response.success) {
+          throw new Error('Unsubscribe was not successful')
+        }
+
+        // The list's own toggle answers a pending unsubscribe question for it, once the
+        // server accepted the request: on a failure the question stays
+        setPendingUnsubscribeListId((pending) => (pending === listId ? null : pending))
 
         toast.success(t('successUnsubscribed'), {
           style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
@@ -599,6 +628,44 @@ function App() {
     } finally {
       setProcessingLists((prev) => ({ ...prev, [listId]: false }))
     }
+  }
+
+  const confirmSubscription = async (listId: string) => {
+    const params = parseNotificationCenterParams()
+    if (!params) {
+      return
+    }
+
+    setProcessingLists((prev) => ({ ...prev, [listId]: true }))
+
+    try {
+      // The contact is named by the link alone, so the write leaves their other fields as
+      // they are
+      const response = await subscribeToLists({
+        workspace_id: params.wid,
+        contact: { id: '', email: params.email, email_hmac: params.email_hmac },
+        list_ids: [listId]
+      })
+      if (!response.success) {
+        throw new Error('Subscription was not confirmed')
+      }
+    } catch (err) {
+      console.error('Failed to confirm subscription:', err)
+      setConfirmationResult({ success: false, messageKey: 'confirmSubscriptionFailed' })
+      setProcessingLists((prev) => ({ ...prev, [listId]: false }))
+      return
+    }
+
+    const active = await reloadAfterSubscribe(params, listId)
+
+    setPendingConfirmListId(null)
+    focusConfirmationResultRef.current = true
+    setConfirmationResult(
+      active
+        ? { success: true, messageKey: 'confirmSubscriptionSuccess', listId }
+        : { success: false, messageKey: 'confirmSubscriptionFailed' }
+    )
+    setProcessingLists((prev) => ({ ...prev, [listId]: false }))
   }
 
   // Records the contact's own tracking choice. Only the kinds in the update change.
@@ -737,6 +804,10 @@ function App() {
         name: ''
       })
     : undefined
+  // The confirmation link is only offered for a list the page shows
+  const pendingConfirmList: List | undefined = pendingConfirmListId
+    ? allLists.find((list) => list.id === pendingConfirmListId)
+    : undefined
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -846,34 +917,33 @@ function App() {
                 </div>
               )}
 
-              {/* Unsubscribe confirmation (List-Unsubscribe header link opened in a browser) */}
+              {/* Unsubscribe confirmation: the email's unsubscribe link, or the
+                  List-Unsubscribe header link opened in a browser */}
               {pendingUnsubscribeList && (
-                <div
-                  className="mb-6 p-4 rounded-sm border border-gray-300 bg-gray-50"
-                  data-testid="confirm-unsubscribe"
-                >
-                  {pendingUnsubscribeList.name && (
-                    <div className="font-medium">{pendingUnsubscribeList.name}</div>
-                  )}
-                  <p className="mt-1 text-sm text-gray-700">{t('confirmUnsubscribePrompt')}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => confirmUnsubscribe(pendingUnsubscribeList.id)}
-                    disabled={processingLists[pendingUnsubscribeList.id]}
-                    // The list's own row has an "Unsubscribe" button too
-                    aria-label={
-                      pendingUnsubscribeList.name
-                        ? `${t('unsubscribe')}: ${pendingUnsubscribeList.name}`
-                        : t('unsubscribe')
-                    }
-                    className="mt-3 cursor-pointer border-red-500 text-red-500 hover:bg-red-50"
-                  >
-                    {processingLists[pendingUnsubscribeList.id]
-                      ? t('processing')
-                      : t('unsubscribe')}
-                  </Button>
-                </div>
+                <ConfirmCard
+                  listName={pendingUnsubscribeList.name}
+                  prompt={t('confirmUnsubscribePrompt')}
+                  buttonLabel={t('unsubscribe')}
+                  processingLabel={t('processing')}
+                  processing={processingLists[pendingUnsubscribeList.id] ?? false}
+                  tone="danger"
+                  testId="confirm-unsubscribe"
+                  onConfirm={() => confirmUnsubscribe(pendingUnsubscribeList.id)}
+                />
+              )}
+
+              {/* Subscription confirmation: the double opt-in link */}
+              {pendingConfirmList && (
+                <ConfirmCard
+                  listName={pendingConfirmList.name}
+                  prompt={t('confirmSubscriptionPrompt')}
+                  buttonLabel={t('confirmSubscriptionButton')}
+                  processingLabel={t('processing')}
+                  processing={processingLists[pendingConfirmList.id] ?? false}
+                  tone="primary"
+                  testId="confirm-subscription"
+                  onConfirm={() => confirmSubscription(pendingConfirmList.id)}
+                />
               )}
 
               {/* All Lists section with toggles - showing both public and private lists */}

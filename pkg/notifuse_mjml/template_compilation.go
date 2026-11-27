@@ -103,13 +103,21 @@ func (t *TrackingSettings) clicksTracked() bool {
 	return t.EnableTracking && !t.SuppressClicks
 }
 
-// isTrackingPreferenceLink reports whether sourceURL is a link to this
-// endpoint's notification center that opens the tracking preferences
-// (action=tracking) or the tracking opt-out (action=tracking_optout). Those
-// links are left exactly as written: withdrawing consent must not itself be
-// recorded as a click, and the link must reach the notification center without
-// UTM parameters or an identity token.
-func (t *TrackingSettings) isTrackingPreferenceLink(sourceURL string) bool {
+// webVersionTokenRegexp matches the token of a web version link: base64url, or
+// "preview" (see the /v/ route).
+var webVersionTokenRegexp = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+// isOwnPageLink reports whether sourceURL is a link to a page this endpoint
+// serves the contact: the notification center, whatever its action (the
+// unsubscribe, subscription confirmation, preferences and tracking links), the
+// one-click unsubscribe URL and the web version. Those links are left exactly
+// as written, with no click redirect, UTM parameters or identity token. Opening
+// them is not a click on the email's content, and email security scanners open
+// every link of an email: going through the click redirect, they counted as the
+// contact's clicks and opens. Withdrawing consent must not be recorded as a
+// click either. Other pages of the same host, such as a blog served on the
+// workspace's custom domain, are tracked like any other link.
+func (t *TrackingSettings) isOwnPageLink(sourceURL string) bool {
 	if t.Endpoint == "" {
 		return false
 	}
@@ -121,6 +129,9 @@ func (t *TrackingSettings) isTrackingPreferenceLink(sourceURL string) bool {
 	if link == nil {
 		return false
 	}
+	if !strings.EqualFold(link.Scheme, "http") && !strings.EqualFold(link.Scheme, "https") {
+		return false
+	}
 	endpoint, err := url.Parse(t.Endpoint)
 	if err != nil || endpoint.Host == "" {
 		return false
@@ -128,12 +139,15 @@ func (t *TrackingSettings) isTrackingPreferenceLink(sourceURL string) bool {
 	if !strings.EqualFold(link.Host, endpoint.Host) {
 		return false
 	}
-	wantPath := strings.TrimRight(endpoint.Path, "/") + "/notification-center"
-	if strings.TrimRight(link.Path, "/") != wantPath {
-		return false
+	base := strings.TrimRight(endpoint.Path, "/")
+	switch strings.TrimRight(link.Path, "/") {
+	case base + "/notification-center", base + "/unsubscribe-oneclick":
+		return true
 	}
-	action := link.Query().Get("action")
-	return action == "tracking" || action == "tracking_optout"
+	// The token only: "/v/", a token followed by more path, or "/v/../post",
+	// which a browser opens as another page of the host, are not the web version.
+	token, ok := strings.CutPrefix(link.Path, base+"/v/")
+	return ok && webVersionTokenRegexp.MatchString(token)
 }
 
 // IsZero reports whether no field is set. Callers use it to tell "no tracking
@@ -1294,9 +1308,10 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 			return rawValue // Return original link unchanged
 		}
 
-		// The tracking preference and opt-out links reach the notification
-		// center exactly as written; see isTrackingPreferenceLink.
-		if trackingSettings.isTrackingPreferenceLink(originalURL) {
+		// Links to the instance's own pages for the contact (notification
+		// center, one-click unsubscribe, web version) are sent exactly as
+		// written; see isOwnPageLink.
+		if trackingSettings.isOwnPageLink(originalURL) {
 			return rawValue
 		}
 

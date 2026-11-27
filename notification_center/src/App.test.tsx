@@ -45,132 +45,77 @@ describe('Notification Center App', () => {
     vi.clearAllMocks()
   })
 
-  describe('Auto-unsubscribe action', () => {
-    it('should automatically unsubscribe when URL has action=unsubscribe and lid', async () => {
-      const mockUnsubscribe = vi.mocked(notificationCenterApi.unsubscribeOneClick)
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
+  // The email's unsubscribe link. The cases it shares with the List-Unsubscribe header
+  // link run for both actions in the describe that follows.
+  describe('Unsubscribe link in the email (action=unsubscribe)', () => {
+    const linkParams = { ...testData.validParams, action: 'unsubscribe' }
 
-      mockParseParams.mockReturnValue({
-        ...testData.validParams,
-        action: 'unsubscribe',
-      })
-
-      mockURLSearchParams({
-        ...testData.validParams,
-        action: 'unsubscribe',
-      })
-
-      render(<App />)
-
-      await waitFor(() => {
-        expect(mockUnsubscribe).toHaveBeenCalledWith({
-          wid: testData.validParams.wid,
-          email: testData.validParams.email,
-          email_hmac: testData.validParams.email_hmac,
-          lids: [testData.validParams.lid],
-          mid: testData.validParams.mid,
-        })
-      })
+    beforeEach(() => {
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValue({ success: true })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(linkParams)
+      mockURLSearchParams(linkParams)
     })
 
-    it('should show success message after auto-unsubscribe', async () => {
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
-
-      mockParseParams.mockReturnValue({
-        ...testData.validParams,
-        action: 'unsubscribe',
-      })
-
-      mockURLSearchParams({
-        ...testData.validParams,
-        action: 'unsubscribe',
-      })
-
-      render(<App />)
-
-      await waitFor(() => {
-        expect(screen.getByText(/unsubscribed successfully/i)).toBeInTheDocument()
-      })
-    })
-
-    it('should show error message if auto-unsubscribe fails', async () => {
-      const mockUnsubscribe = vi.mocked(notificationCenterApi.unsubscribeOneClick)
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
-
-      mockParseParams.mockReturnValue({
-        ...testData.validParams,
-        action: 'unsubscribe',
-      })
-
-      mockUnsubscribe.mockRejectedValue(new Error('Unsubscribe failed'))
-
-      mockURLSearchParams({
-        ...testData.validParams,
-        action: 'unsubscribe',
-      })
-
-      render(<App />)
-
-      await waitFor(() => {
-        expect(screen.getByText(/failed to unsubscribe/i)).toBeInTheDocument()
-      })
-    })
-
-    it('should not unsubscribe if lid parameter is missing', async () => {
-      const mockUnsubscribe = vi.mocked(notificationCenterApi.unsubscribeOneClick)
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
-
-      const paramsWithoutLid = {
+    it('asks nothing and writes nothing without a list in the link', async () => {
+      const withoutLid = {
         wid: testData.validParams.wid,
         email: testData.validParams.email,
         email_hmac: testData.validParams.email_hmac,
-        lname: testData.validParams.lname,
         mid: testData.validParams.mid,
+        action: 'unsubscribe',
       }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(withoutLid)
+      mockURLSearchParams(withoutLid)
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        render(<App />)
 
-      mockParseParams.mockReturnValue({
-        ...paramsWithoutLid,
-        action: 'unsubscribe',
-      })
-
-      mockURLSearchParams({
-        ...paramsWithoutLid,
-        action: 'unsubscribe',
-      })
-
-      render(<App />)
-
-      await waitFor(() => {
-        expect(mockUnsubscribe).not.toHaveBeenCalled()
-      })
+        expect(await screen.findByText('Newsletter')).toBeInTheDocument()
+        await act(() => vi.runAllTimersAsync())
+        expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
+        expect(notificationCenterApi.unsubscribeOneClick).not.toHaveBeenCalled()
+        expect(notificationCenterApi.updateContactPreferences).not.toHaveBeenCalled()
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
-    // The load performs the URL's action, so nothing the visitor does may re-run it
-    it('runs the URL action only once, even after the visitor changes language', async () => {
+    it('keeps asking, and unsubscribes no one, when the visitor only changes the language', async () => {
       const user = userEvent.setup()
-      const mockUnsubscribe = vi.mocked(notificationCenterApi.unsubscribeOneClick)
-      mockUnsubscribe.mockResolvedValue({ success: true })
-      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue({
-        ...testData.validParams,
-        action: 'unsubscribe',
-      })
-      mockURLSearchParams({ ...testData.validParams, action: 'unsubscribe' })
       render(<App />)
-      await screen.findByText(/unsubscribed successfully/i)
+      await screen.findByTestId('confirm-unsubscribe')
 
       await user.click(screen.getByRole('button', { name: /select language/i }))
       await user.click(screen.getByRole('menuitem', { name: 'Deutsch' }))
       await act(() => Promise.resolve())
 
-      expect(mockUnsubscribe).toHaveBeenCalledTimes(1)
+      expect(notificationCenterApi.unsubscribeOneClick).not.toHaveBeenCalled()
       expect(notificationCenterApi.getContactPreferences).toHaveBeenCalledTimes(1)
+      expect(screen.getByTestId('confirm-unsubscribe')).toBeInTheDocument()
+    })
+
+    // The page reads the contact before anything else: an erased contact gets an error,
+    // with nothing written in between
+    it('writes nothing for a contact the workspace erased', async () => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockRejectedValueOnce(
+        new Error('Contact not found')
+      )
+      render(<App />)
+
+      expect(await screen.findByText('Contact not found')).toBeInTheDocument()
+      expect(notificationCenterApi.unsubscribeOneClick).not.toHaveBeenCalled()
+      expect(screen.queryByText(/unsubscribed successfully/i)).not.toBeInTheDocument()
     })
   })
 
-  // The server redirects a GET on the List-Unsubscribe header URL here. Anti-spam
-  // scanners fetch that URL on their own, so loading the page must never unsubscribe.
-  describe('Confirm-unsubscribe action (List-Unsubscribe header link)', () => {
-    const confirmParams = { ...testData.validParams, action: 'confirm_unsubscribe' }
+  // The email's unsubscribe link lands here, and so does the List-Unsubscribe header URL,
+  // whose GET the server redirects. Email security scanners open every link of an email,
+  // in a real browser too, so loading the page must never unsubscribe.
+  describe.each([
+    ['unsubscribe', "the email's unsubscribe link"],
+    ['confirm_unsubscribe', 'the List-Unsubscribe header link'],
+  ])('Unsubscribe confirmation, action=%s (%s)', (action) => {
+    const confirmParams = { ...testData.validParams, action }
 
     beforeEach(() => {
       // An earlier test leaves unsubscribeOneClick rejecting; clearAllMocks keeps that
@@ -432,6 +377,42 @@ describe('Notification Center App', () => {
       })
       expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
     })
+
+    it("keeps the prompt when the list's own Unsubscribe fails", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockRejectedValueOnce(new Error('boom'))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      const rowToggle = screen
+        .getAllByRole('button', { name: /unsubscribe/i })
+        .find((button) => !prompt.contains(button))
+      await user.click(rowToggle!)
+
+      expect(await screen.findByText(/failed to unsubscribe/i)).toBeInTheDocument()
+      expect(screen.getByTestId('confirm-unsubscribe')).toBeInTheDocument()
+    })
+
+    // A pending contact, or one not on the list, can choose the row's Subscribe instead:
+    // the question about leaving the list is then answered
+    it("dismisses the prompt when the visitor subscribes from the list's row instead", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [],
+      })
+      render(<App />)
+
+      await screen.findByTestId('confirm-unsubscribe')
+      await user.click(screen.getByRole('button', { name: /^subscribe$/i }))
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
+      })
+      expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledTimes(1)
+      expect(notificationCenterApi.unsubscribeOneClick).not.toHaveBeenCalled()
+    })
   })
 
   // The workspace decides who joins a private list: the server refuses a subscribe, so
@@ -472,77 +453,330 @@ describe('Notification Center App', () => {
     })
   })
 
-  describe('Auto-confirm action', () => {
-    it('should automatically subscribe when URL has action=confirm and lid', async () => {
-      const mockSubscribe = vi.mocked(notificationCenterApi.subscribeToLists)
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
+  // The double opt-in confirmation link. A security scanner that opens it must not
+  // confirm the subscription in the contact's place: the visitor clicks.
+  describe('Subscription confirmation link (action=confirm)', () => {
+    const confirmParams = { ...testData.validParams, action: 'confirm' }
+    const contactRow = (listId: string, listName: string, status: string) => ({
+      email: testData.contact.email,
+      list_id: listId,
+      list_name: listName,
+      status,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    })
+    const preferences = (
+      publicLists: Array<{ id: string; name: string }>,
+      contactLists: Array<ReturnType<typeof contactRow>>
+    ) => ({ contact: testData.contact, public_lists: publicLists, contact_lists: contactLists })
+    const newsletter = { id: 'newsletter', name: 'Newsletter' }
 
-      mockParseParams.mockReturnValue({
-        ...testData.validParams,
-        action: 'confirm',
-      })
+    beforeEach(() => {
+      // An earlier test may leave subscribeToLists rejecting; clearAllMocks keeps that
+      vi.mocked(notificationCenterApi.subscribeToLists).mockResolvedValue({ success: true })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(confirmParams)
+      mockURLSearchParams(confirmParams)
+    })
 
-      mockURLSearchParams({
-        ...testData.validParams,
-        action: 'confirm',
-      })
+    it('asks to confirm a pending subscription without subscribing on load', async () => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')])
+      )
+      // Fake timers so the assertion also covers work deferred past the render that shows
+      // the card
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        render(<App />)
 
+        const prompt = await screen.findByTestId('confirm-subscription')
+        expect(within(prompt).getByText('Newsletter')).toBeInTheDocument()
+        expect(within(prompt).getByText(/receive emails from this list/i)).toBeInTheDocument()
+        expect(
+          within(prompt).getByRole('button', { name: 'Confirm subscription: Newsletter' })
+        ).toBeInTheDocument()
+
+        await act(() => vi.runAllTimersAsync())
+        expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+        expect(notificationCenterApi.unsubscribeOneClick).not.toHaveBeenCalled()
+        expect(notificationCenterApi.updateContactPreferences).not.toHaveBeenCalled()
+        expect(screen.queryByText(/subscription confirmed/i)).not.toBeInTheDocument()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('confirms when the visitor clicks, then shows the list as subscribed', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences)
+        .mockResolvedValueOnce(preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')]))
+        .mockResolvedValueOnce(preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'active')]))
       render(<App />)
 
+      const prompt = await screen.findByTestId('confirm-subscription')
+      await user.click(within(prompt).getByRole('button', { name: /confirm subscription/i }))
+
+      expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledTimes(1)
+      expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledWith({
+        workspace_id: testData.validParams.wid,
+        contact: {
+          id: '',
+          email: testData.validParams.email,
+          email_hmac: testData.validParams.email_hmac,
+        },
+        list_ids: [testData.validParams.lid],
+      })
+      const banner = (await screen.findByText(/subscription confirmed successfully/i)).closest(
+        '[role="status"]'
+      )
+      expect(banner).not.toBeNull()
+      expect(banner).toHaveFocus()
+      expect(screen.queryByTestId('confirm-subscription')).not.toBeInTheDocument()
+      // The list's own row reflects the confirmation
+      expect(screen.getByRole('button', { name: /^unsubscribe$/i })).toBeInTheDocument()
+    })
+
+    // The server answers success when it leaves the contact as they were, for example a
+    // bounce kept on a list they were removed from, which the preferences don't show
+    it('says the confirmation failed when the preferences show no subscription after it', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences)
+        .mockResolvedValueOnce(preferences([newsletter], []))
+        .mockResolvedValueOnce(preferences([newsletter], []))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      await user.click(within(prompt).getByRole('button', { name: /confirm subscription/i }))
+
+      const alert = (await screen.findByText(/failed to confirm subscription/i)).closest('[role="alert"]')
+      expect(alert).not.toBeNull()
+      expect(alert).toHaveFocus()
+      expect(screen.queryByTestId('confirm-subscription')).not.toBeInTheDocument()
+      expect(screen.queryByText(/subscription confirmed successfully/i)).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^subscribe$/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^unsubscribe$/i })).not.toBeInTheDocument()
+    })
+
+    it('says the confirmation failed when the server answers that it was not', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')])
+      )
+      vi.mocked(notificationCenterApi.subscribeToLists).mockResolvedValueOnce({ success: false })
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      await user.click(within(prompt).getByRole('button', { name: /confirm subscription/i }))
+
+      expect(await screen.findByText(/failed to confirm subscription/i)).toBeInTheDocument()
+      expect(screen.getByTestId('confirm-subscription')).toBeInTheDocument()
+      expect(notificationCenterApi.getContactPreferences).toHaveBeenCalledTimes(1)
+    })
+
+    // The server accepted the confirmation; the preferences only could not be read back
+    it("trusts the server's answer when the preferences cannot be read again", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences)
+        .mockResolvedValueOnce(preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')]))
+        .mockRejectedValueOnce(new Error('network'))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      await user.click(within(prompt).getByRole('button', { name: /confirm subscription/i }))
+
+      expect(await screen.findByText(/subscription confirmed successfully/i)).toBeInTheDocument()
+      expect(screen.queryByTestId('confirm-subscription')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^unsubscribe$/i })).toBeInTheDocument()
+    })
+
+    it('asks nothing and writes nothing without a list in the link', async () => {
+      const withoutLid = {
+        wid: testData.validParams.wid,
+        email: testData.validParams.email,
+        email_hmac: testData.validParams.email_hmac,
+        action: 'confirm',
+      }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(withoutLid)
+      mockURLSearchParams(withoutLid)
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')])
+      )
+      render(<App />)
+
+      expect(await screen.findByText('Newsletter')).toBeInTheDocument()
+      expect(screen.queryByTestId('confirm-subscription')).not.toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+    })
+
+    it('keeps the prompt and shows an error when the confirmation fails', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')])
+      )
+      vi.mocked(notificationCenterApi.subscribeToLists).mockRejectedValueOnce(new Error('boom'))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      await user.click(within(prompt).getByRole('button', { name: /confirm subscription/i }))
+
+      expect(await screen.findByText(/failed to confirm subscription/i)).toBeInTheDocument()
+      expect(screen.getByTestId('confirm-subscription')).toBeInTheDocument()
+      expect(notificationCenterApi.getContactPreferences).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+      ['is not on the public list', [] as Array<ReturnType<typeof contactRow>>],
+      ['left the public list', [contactRow('newsletter', 'Newsletter', 'unsubscribed')]],
+    ])('asks a contact who %s', async (_case, rows) => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], rows)
+      )
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      expect(within(prompt).getByText('Newsletter')).toBeInTheDocument()
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+    })
+
+    it('tells a subscribed contact, without asking or writing', async () => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'active')])
+      )
+      render(<App />)
+
+      expect(await screen.findByText(/already subscribed to this list/i)).toBeInTheDocument()
+      expect(screen.queryByTestId('confirm-subscription')).not.toBeInTheDocument()
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['bounced on the public list', [newsletter], [contactRow('newsletter', 'Newsletter', 'bounced')]],
+      ['complained on the public list', [newsletter], [contactRow('newsletter', 'Newsletter', 'complained')]],
+      ['not on a private list', [], []],
+      ['unsubscribed from a private list', [], [contactRow('newsletter', 'Newsletter', 'unsubscribed')]],
+    ])('says it cannot confirm, and writes nothing, for a contact %s', async (_case, publicLists, rows) => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences(publicLists, rows)
+      )
+      render(<App />)
+
+      expect(await screen.findByText(/failed to confirm subscription/i)).toBeInTheDocument()
+      expect(screen.queryByTestId('confirm-subscription')).not.toBeInTheDocument()
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+    })
+
+    // The workspace started this double opt-in, so its contact may confirm it, though the
+    // private list's own row offers no Subscribe button
+    it('confirms a pending private list, whose row then offers Unsubscribe', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue({
+        ...confirmParams,
+        lid: 'vip',
+      })
+      vi.mocked(notificationCenterApi.getContactPreferences)
+        .mockResolvedValueOnce(preferences([], [contactRow('vip', 'VIP', 'pending')]))
+        .mockResolvedValueOnce(preferences([], [contactRow('vip', 'VIP', 'active')]))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      expect(within(prompt).getByText('VIP')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'pending' })).toBeDisabled()
+
+      await user.click(within(prompt).getByRole('button', { name: /confirm subscription/i }))
+
+      expect(await screen.findByText(/subscription confirmed successfully/i)).toBeInTheDocument()
+      expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledWith(
+        expect.objectContaining({ list_ids: ['vip'] })
+      )
+      expect(screen.getByRole('button', { name: /^unsubscribe$/i })).toBeEnabled()
+    })
+
+    it("dismisses the prompt once the list's own Subscribe button went through", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')])
+      )
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      const rowButton = screen
+        .getAllByRole('button', { name: /subscri/i })
+        .find((button) => !prompt.contains(button))
+      expect(rowButton).toBeDefined()
+      await user.click(rowButton!)
+
       await waitFor(() => {
-        expect(mockSubscribe).toHaveBeenCalledWith({
-          workspace_id: testData.validParams.wid,
-          contact: {
-            id: '',
-            email: testData.validParams.email,
-            email_hmac: testData.validParams.email_hmac,
-          },
-          list_ids: [testData.validParams.lid],
-        })
+        expect(screen.queryByTestId('confirm-subscription')).not.toBeInTheDocument()
+      })
+      expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledTimes(1)
+    })
+
+    // A contact removed from the list after a bounce: the server keeps the bounce and
+    // still answers success, and the preferences show no subscription
+    it("says so when the row's Subscribe went through but left the contact out", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences)
+        .mockResolvedValueOnce(preferences([newsletter], []))
+        .mockResolvedValueOnce(preferences([newsletter], []))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      const rowButton = screen
+        .getAllByRole('button', { name: /^subscribe$/i })
+        .find((button) => !prompt.contains(button))
+      await user.click(rowButton!)
+
+      expect(await screen.findByText(/failed to subscribe/i)).toBeInTheDocument()
+      expect(screen.queryByText(/successfully subscribed/i)).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^subscribe$/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^unsubscribe$/i })).not.toBeInTheDocument()
+    })
+
+    it("keeps the prompt and the pending status when the row's Subscribe fails", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'pending')])
+      )
+      vi.mocked(notificationCenterApi.subscribeToLists).mockRejectedValueOnce(new Error('boom'))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-subscription')
+      const rowButton = screen
+        .getAllByRole('button', { name: /subscri/i })
+        .find((button) => !prompt.contains(button))
+      await user.click(rowButton!)
+
+      await waitFor(() => {
+        expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledTimes(1)
+      })
+      expect(await screen.findByText('pending')).toBeInTheDocument()
+      expect(screen.getByTestId('confirm-subscription')).toBeInTheDocument()
+    })
+
+    it("clears the 'already subscribed' message when the visitor unsubscribes from the row", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValue({ success: true })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences([newsletter], [contactRow('newsletter', 'Newsletter', 'active')])
+      )
+      render(<App />)
+
+      await screen.findByText(/already subscribed to this list/i)
+      await user.click(screen.getByRole('button', { name: /^unsubscribe$/i }))
+
+      await waitFor(() => {
+        expect(screen.queryByText(/already subscribed to this list/i)).not.toBeInTheDocument()
       })
     })
 
-    it('should show success message after auto-confirm', async () => {
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
-
-      mockParseParams.mockReturnValue({
-        ...testData.validParams,
-        action: 'confirm',
-      })
-
-      mockURLSearchParams({
-        ...testData.validParams,
-        action: 'confirm',
-      })
-
+    it('writes nothing for a contact the workspace erased', async () => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockRejectedValueOnce(
+        new Error('Contact not found')
+      )
       render(<App />)
 
-      await waitFor(() => {
-        expect(screen.getByText(/subscription confirmed successfully/i)).toBeInTheDocument()
-      })
-    })
-
-    it('should show error message if auto-confirm fails', async () => {
-      const mockSubscribe = vi.mocked(notificationCenterApi.subscribeToLists)
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
-
-      mockParseParams.mockReturnValue({
-        ...testData.validParams,
-        action: 'confirm',
-      })
-
-      mockSubscribe.mockRejectedValue(new Error('Subscribe failed'))
-
-      mockURLSearchParams({
-        ...testData.validParams,
-        action: 'confirm',
-      })
-
-      render(<App />)
-
-      await waitFor(() => {
-        expect(screen.getByText(/failed to confirm subscription/i)).toBeInTheDocument()
-      })
+      expect(await screen.findByText('Contact not found')).toBeInTheDocument()
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
     })
   })
 

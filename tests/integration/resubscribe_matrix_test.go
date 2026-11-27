@@ -530,7 +530,8 @@ func TestResubscribeMatrix(t *testing.T) {
 		require.Equal(t, "confirm", query.Get("action"))
 		require.Equal(t, kind.list.ID, query.Get("lid"))
 
-		// What the notification center does with that link (notification_center/src/App.tsx).
+		// What the notification center sends when the visitor clicks Confirm on that link's
+		// page (notification_center/src/App.tsx); loading the page writes nothing.
 		body, err := json.Marshal(map[string]interface{}{
 			"workspace_id": query.Get("wid"),
 			"contact":      map[string]interface{}{"email": query.Get("email"), "email_hmac": query.Get("email_hmac")},
@@ -544,8 +545,9 @@ func TestResubscribeMatrix(t *testing.T) {
 
 var hrefPattern = regexp.MustCompile(`href="([^"]+)"`)
 
-// confirmLinkOf returns the notification-center confirmation URL of an email, following a
-// click-tracking redirect when the link is wrapped.
+// confirmLinkOf returns the notification-center confirmation URL of an email. It leads to
+// the instance's own page, so it is sent as written: a click redirect leading to it fails
+// the test.
 func confirmLinkOf(t *testing.T, client *http.Client, html string) *url.URL {
 	t.Helper()
 	noRedirect := &http.Client{Timeout: client.Timeout, CheckRedirect: func(*http.Request, []*http.Request) error {
@@ -567,11 +569,7 @@ func confirmLinkOf(t *testing.T, client *http.Client, html string) *url.URL {
 		}
 		_ = resp.Body.Close()
 		location := resp.Header.Get("Location")
-		if strings.Contains(location, "action=confirm") {
-			parsed, err := url.Parse(location)
-			require.NoError(t, err)
-			return parsed
-		}
+		require.NotContains(t, location, "action=confirm", "the confirmation link went through the click redirect")
 	}
 	t.Fatalf("no confirmation link in the email")
 	return nil

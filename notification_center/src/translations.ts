@@ -306,6 +306,45 @@ export const translations: TranslationObject = {
     ja: 'このリストの登録はすでに解除されています。',
     pl: 'Jesteś już wypisany z tej listy.'
   },
+  confirmSubscriptionPrompt: {
+    en: 'Do you want to receive emails from this list?',
+    fr: 'Voulez-vous recevoir les e-mails de cette liste ?',
+    es: '¿Desea recibir correos electrónicos de esta lista?',
+    de: 'Möchten Sie E-Mails von dieser Liste erhalten?',
+    zh: '您要接收此列表的电子邮件吗？',
+    hi: 'क्या आप इस सूची से ईमेल प्राप्त करना चाहते हैं?',
+    ar: 'هل تريد تلقي رسائل البريد الإلكتروني من هذه القائمة؟',
+    pt: 'Deseja receber e-mails desta lista?',
+    ru: 'Вы хотите получать письма из этого списка?',
+    ja: 'このリストからのメールを受信しますか？',
+    pl: 'Czy chcesz otrzymywać e-maile z tej listy?'
+  },
+  confirmSubscriptionButton: {
+    en: 'Confirm subscription',
+    fr: "Confirmer l'abonnement",
+    es: 'Confirmar suscripción',
+    de: 'Abonnement bestätigen',
+    zh: '确认订阅',
+    hi: 'सदस्यता की पुष्टि करें',
+    ar: 'تأكيد الاشتراك',
+    pt: 'Confirmar assinatura',
+    ru: 'Подтвердить подписку',
+    ja: '登録を確認する',
+    pl: 'Potwierdź subskrypcję'
+  },
+  alreadySubscribed: {
+    en: 'You are already subscribed to this list.',
+    fr: 'Vous êtes déjà abonné à cette liste.',
+    es: 'Ya está suscrito a esta lista.',
+    de: 'Sie haben diese Liste bereits abonniert.',
+    zh: '您已订阅此列表。',
+    hi: 'आप इस सूची की सदस्यता पहले ही ले चुके हैं।',
+    ar: 'أنت مشترك بالفعل في هذه القائمة.',
+    pt: 'Você já assina esta lista.',
+    ru: 'Вы уже подписаны на этот список.',
+    ja: 'このリストにはすでに登録されています。',
+    pl: 'Jesteś już zapisany na tę listę.'
+  },
   unsubscribedStatus: {
     en: 'Unsubscribed',
     fr: 'Désabonné',

@@ -1201,7 +1201,8 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 		templateData["contact"] = contactData
 
 		// The notification center, its tracking dialog and the one-click tracking opt-out
-		// (which asks for a confirmation before it writes anything). TrackLinks leaves them untouched.
+		// (which asks for a confirmation before it writes anything). TrackLinks sends them,
+		// and the list links below, as written: they are not clicks on the email's content.
 		links := ContactLinks{
 			Endpoint:    req.TrackingSettings.Endpoint,
 			WorkspaceID: req.WorkspaceID,

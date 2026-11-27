@@ -154,17 +154,27 @@ func TestDataRetentionEngagementClock(t *testing.T) {
 		t.Fatalf("no tracked link to %s in the delivered email", prefix)
 		return "", ""
 	}
+	// listAction finds, in the delivered email, the link to the notification center with that
+	// action. Links to the instance's own pages are sent as written, never through the
+	// click redirect.
 	listAction := func(t *testing.T, html, action string) (string, url.Values) {
 		t.Helper()
-		link, target := deliveredLink(t, html, serverURL+"/notification-center")
-		for _, m := range regexp.MustCompile(`href="([^"]*/r/[A-Za-z0-9_-]+)"`).FindAllStringSubmatch(html, -1) {
-			tok, err := trackingtoken.Parse(m[1][strings.LastIndex(m[1], "/")+1:], trackingtoken.PurposeClick)
+		for _, m := range regexp.MustCompile(`href="([^"]*/r/([A-Za-z0-9_-]+))"`).FindAllStringSubmatch(html, -1) {
+			tok, err := trackingtoken.Parse(m[2], trackingtoken.PurposeClick)
 			require.NoError(t, err)
-			if u, err := url.Parse(tok.URL); err == nil && u.Query().Get("action") == action {
-				return m[1], u.Query()
+			require.False(t, strings.HasPrefix(tok.URL, serverURL+"/notification-center"),
+				"a notification center link went through the click redirect: %s", tok.URL)
+		}
+		for _, m := range regexp.MustCompile(`href="([^"]+)"`).FindAllStringSubmatch(html, -1) {
+			link := strings.ReplaceAll(m[1], "&amp;", "&")
+			if !strings.HasPrefix(link, serverURL+"/notification-center?") {
+				continue
+			}
+			if u, err := url.Parse(link); err == nil && u.Query().Get("action") == action {
+				return link, u.Query()
 			}
 		}
-		t.Fatalf("no %s link in the delivered email (first notification center link: %s -> %s)", action, link, target)
+		t.Fatalf("no %s link to the notification center in the delivered email", action)
 		return "", nil
 	}
 
@@ -220,13 +230,28 @@ func TestDataRetentionEngagementClock(t *testing.T) {
 		require.True(t, opened, "the open was recorded")
 		requireNotEngaged(t, confirming)
 
-		// A click on the unsubscribe link: recorded as a click, but it leads back to the
-		// instance, so it is not engagement.
+		// The unsubscribe link leads back to the instance and is sent as written: opening it
+		// records no click and is not engagement. (The page is the widget, which this job
+		// does not build, so only the request matters here, not its answer.)
 		unsubscribeLink, _ := listAction(t, confirmingMsg.HTML, "unsubscribe")
-		resp = clickDelivered(t, unsubscribeLink)
-		require.Less(t, resp.StatusCode, 400)
+		_ = clickDelivered(t, unsubscribeLink)
 		_, clicked := messageState(t, confirming)
-		require.True(t, clicked, "the click was recorded")
+		require.False(t, clicked, "opening the unsubscribe link records no click")
+		requireNotEngaged(t, confirming)
+
+		// An email sent before these links stopped going through the click redirect: its
+		// unsubscribe link records a click, which is still not engagement.
+		key, err := trackingtoken.DeriveKey(workspace.Settings.SecretKey)
+		require.NoError(t, err)
+		var messageID string
+		require.NoError(t, db.QueryRowContext(bg, `SELECT id FROM message_history
+			WHERE contact_email = $1 ORDER BY created_at DESC LIMIT 1`, confirming).Scan(&messageID))
+		legacy, err := trackingtoken.MintClick(key, messageID, workspace.ID, time.Now().Add(-time.Minute).Unix(), unsubscribeLink)
+		require.NoError(t, err)
+		resp = clickDelivered(t, serverURL+"/r/"+legacy)
+		require.Less(t, resp.StatusCode, 400)
+		_, clicked = messageState(t, confirming)
+		require.True(t, clicked, "the click through the redirect was recorded")
 		requireNotEngaged(t, confirming)
 
 		// The confirmation, as the notification center sends it from the confirm link.

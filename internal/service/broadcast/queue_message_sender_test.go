@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -606,7 +607,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			Email: &domain.EmailTemplate{
 				SenderID:         emailSender.ID,
 				Subject:          "Test Subject",
-				VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "<a href=\"{{ unsubscribe_url }}\">Unsubscribe</a> | <a href=\"{{ notification_center_url }}\">Preferences</a>")),
+				VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "<a href=\"https://shop.example.com/sale\">Sale</a> <a href=\"{{ unsubscribe_url }}\">Unsubscribe</a> | <a href=\"{{ notification_center_url }}\">Preferences</a>")),
 			},
 		}
 
@@ -628,10 +629,15 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 				require.Len(t, entries, 1)
 				entry := entries[0]
 
-				// System variables should be rendered in HTML (not raw Liquid)
-				// URLs are now inside encrypted /r/ tracking tokens
-				assert.Contains(t, entry.Payload.HTMLContent, "/r/",
-					"system URLs should be rendered as encrypted tracking redirects")
+				// System variables should be rendered in HTML (not raw Liquid). The
+				// unsubscribe and preferences links lead to the instance's own pages and
+				// are sent as written; the content link goes through the click redirect.
+				assert.Contains(t, entry.Payload.HTMLContent, `href="https://api.example.com/notification-center?action=unsubscribe&email=`,
+					"the unsubscribe link should be a direct link to the notification center")
+				assert.Contains(t, entry.Payload.HTMLContent, `href="https://api.example.com/notification-center?email=`,
+					"the preferences link should be a direct link to the notification center")
+				assert.Equal(t, 1, strings.Count(entry.Payload.HTMLContent, `href="https://api.example.com/r/`),
+					"only the content link should go through the click redirect")
 				// Tracking pixel should be present with encrypted /t/ path and table wrapper
 				assert.Contains(t, entry.Payload.HTMLContent, "/t/",
 					"tracking pixel should use encrypted /t/ path")
