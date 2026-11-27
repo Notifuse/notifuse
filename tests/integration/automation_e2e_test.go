@@ -101,30 +101,39 @@ func waitForEnrollmentViaAPI(t *testing.T, client *testutil.APIClient, automatio
 	return ca
 }
 
-// waitForAutomationComplete polls until contact automation status is "completed"
-func waitForAutomationComplete(t *testing.T, factory *testutil.TestDataFactory, workspaceID, automationID, email string, timeout time.Duration) *domain.ContactAutomation {
-	var ca *domain.ContactAutomation
-	testutil.WaitForCondition(t, func() bool {
-		var err error
-		ca, err = factory.GetContactAutomation(workspaceID, automationID, email)
-		if err != nil || ca == nil {
+// journeyStepsClosed reports whether every step of the journey has been closed. The executor
+// saves a journey's new status before it closes the step that ran (recordStep, then completeStep),
+// so a journey can already read "completed" or "exited" while its last step is still "processing",
+// with no output yet. A test that reads the steps at that moment finds the last one missing.
+func journeyStepsClosed(factory *testutil.TestDataFactory, workspaceID, contactAutomationID string) bool {
+	executions, err := factory.GetNodeExecutions(workspaceID, contactAutomationID)
+	if err != nil {
+		return false
+	}
+	for _, execution := range executions {
+		if execution.Action == domain.NodeActionProcessing {
 			return false
 		}
-		return ca.Status == domain.ContactAutomationStatusCompleted
-	}, timeout, fmt.Sprintf("waiting for automation to complete for %s in automation %s", email, automationID))
-	return ca
+	}
+	return true
 }
 
-// waitForAutomationStatus polls until contact automation reaches the expected status
+// waitForAutomationComplete polls until the journey is "completed" and its last step is closed.
+func waitForAutomationComplete(t *testing.T, factory *testutil.TestDataFactory, workspaceID, automationID, email string, timeout time.Duration) *domain.ContactAutomation {
+	return waitForAutomationStatus(t, factory, workspaceID, automationID, email, domain.ContactAutomationStatusCompleted, timeout)
+}
+
+// waitForAutomationStatus polls until the journey reaches the expected status. For a status that
+// ends the journey, it also waits for the last step to be closed, so the steps can be read next.
 func waitForAutomationStatus(t *testing.T, factory *testutil.TestDataFactory, workspaceID, automationID, email string, expectedStatus domain.ContactAutomationStatus, timeout time.Duration) *domain.ContactAutomation {
 	var ca *domain.ContactAutomation
 	testutil.WaitForCondition(t, func() bool {
 		var err error
 		ca, err = factory.GetContactAutomation(workspaceID, automationID, email)
-		if err != nil || ca == nil {
+		if err != nil || ca == nil || ca.Status != expectedStatus {
 			return false
 		}
-		return ca.Status == expectedStatus
+		return expectedStatus == domain.ContactAutomationStatusActive || journeyStepsClosed(factory, workspaceID, ca.ID)
 	}, timeout, fmt.Sprintf("waiting for status %s for %s in automation %s", expectedStatus, email, automationID))
 	return ca
 }
