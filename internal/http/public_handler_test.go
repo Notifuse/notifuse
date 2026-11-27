@@ -52,7 +52,19 @@ func TestNotificationCenterHandler_RegisterRoutes(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 	assert.NotEqual(t, http.StatusNotFound, rec.Code)
 
+	// Test resubscribe endpoint
+	req = httptest.NewRequest(http.MethodPost, "/resubscribe", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	assert.NotEqual(t, http.StatusNotFound, rec.Code)
+
 	// Test unsubscribe endpoint
+	req = httptest.NewRequest(http.MethodPost, "/unsubscribe", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	assert.NotEqual(t, http.StatusNotFound, rec.Code)
+
+	// Test one-click unsubscribe endpoint
 	req = httptest.NewRequest(http.MethodPost, "/unsubscribe-oneclick", nil)
 	rec = httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)

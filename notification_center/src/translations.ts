@@ -267,6 +267,84 @@ export const translations: TranslationObject = {
     ja: '正常に登録解除されました。',
     pl: 'Zostałeś pomyślnie wypisany.'
   },
+  unsubscribeSuccessFromList: {
+    en: 'You have been unsubscribed from {{listName}}.',
+    fr: 'Vous avez été désabonné de {{listName}}.',
+    es: 'Se ha dado de baja de {{listName}}.',
+    de: 'Sie wurden von {{listName}} abgemeldet.',
+    zh: '您已取消订阅 {{listName}}。',
+    hi: 'आपने {{listName}} से सदस्यता समाप्त कर ली है।',
+    ar: 'تم إلغاء اشتراكك من {{listName}}.',
+    pt: 'Você cancelou a assinatura de {{listName}}.',
+    ru: 'Вы отписались от {{listName}}.',
+    ja: '{{listName}}の登録を解除しました。',
+    pl: 'Zostałeś wypisany z listy {{listName}}.'
+  },
+  clickedByMistake: {
+    en: 'Clicked by mistake?',
+    fr: 'Cliqué par erreur ?',
+    es: '¿Hizo clic por error?',
+    de: 'Versehentlich geklickt?',
+    zh: '不小心点错了？',
+    hi: 'गलती से क्लिक हो गया?',
+    ar: 'هل نقرت عن طريق الخطأ؟',
+    pt: 'Clicou por engano?',
+    ru: 'Нажали по ошибке?',
+    ja: '誤ってクリックしましたか？',
+    pl: 'Kliknięto przez pomyłkę?'
+  },
+  resubscribe: {
+    en: 'Resubscribe',
+    fr: 'Se réabonner',
+    es: 'Volver a suscribirse',
+    de: 'Erneut abonnieren',
+    zh: '重新订阅',
+    hi: 'पुनः सदस्यता लें',
+    ar: 'إعادة الاشتراك',
+    pt: 'Reinscrever-se',
+    ru: 'Подписаться снова',
+    ja: '再登録する',
+    pl: 'Subskrybuj ponownie'
+  },
+  resubscribeSuccess: {
+    en: 'You have been resubscribed successfully.',
+    fr: 'Vous avez été réabonné avec succès.',
+    es: 'Se ha vuelto a suscribir correctamente.',
+    de: 'Sie wurden erfolgreich erneut angemeldet.',
+    zh: '您已成功重新订阅。',
+    hi: 'आपने सफलतापूर्वक पुनः सदस्यता ले ली है।',
+    ar: 'تمت إعادة اشتراكك بنجاح.',
+    pt: 'Você foi reinscrito com sucesso.',
+    ru: 'Вы успешно подписались снова.',
+    ja: '正常に再登録されました。',
+    pl: 'Zostałeś pomyślnie ponownie zapisany.'
+  },
+  resubscribeSuccessToList: {
+    en: 'You have been resubscribed to {{listName}}.',
+    fr: 'Vous avez été réabonné à {{listName}}.',
+    es: 'Se ha vuelto a suscribir a {{listName}}.',
+    de: 'Sie wurden erneut für {{listName}} angemeldet.',
+    zh: '您已重新订阅 {{listName}}。',
+    hi: 'आपने {{listName}} की पुनः सदस्यता ले ली है।',
+    ar: 'تمت إعادة اشتراكك في {{listName}}.',
+    pt: 'Você foi reinscrito em {{listName}}.',
+    ru: 'Вы снова подписались на {{listName}}.',
+    ja: '{{listName}}に再登録しました。',
+    pl: 'Zostałeś ponownie zapisany na listę {{listName}}.'
+  },
+  resubscribeFailed: {
+    en: 'Failed to resubscribe. Please try again.',
+    fr: 'Échec du réabonnement. Veuillez réessayer.',
+    es: 'Error al volver a suscribirse. Por favor, inténtelo de nuevo.',
+    de: 'Erneutes Abonnieren fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    zh: '重新订阅失败。请重试。',
+    hi: 'पुनः सदस्यता लेने में विफल। कृपया पुनः प्रयास करें।',
+    ar: 'فشلت إعادة الاشتراك. يرجى المحاولة مرة أخرى.',
+    pt: 'Falha ao reinscrever-se. Por favor, tente novamente.',
+    ru: 'Не удалось подписаться снова. Пожалуйста, попробуйте ещё раз.',
+    ja: '再登録に失敗しました。もう一度お試しください。',
+    pl: 'Nie udało się ponownie zasubskrybować. Spróbuj ponownie.'
+  },
   unsubscribeFailed: {
     en: 'Failed to unsubscribe',
     fr: 'Échec du désabonnement',
@@ -660,16 +738,24 @@ export function getLanguage(): Language {
   return 'en'
 }
 
-export function getTranslation(key: string, language: Language = getLanguage()): string {
+export function getTranslation(
+  key: string,
+  language: Language = getLanguage(),
+  vars?: Record<string, string>
+): string {
+  let text = key
   if (translations[key] && translations[key][language]) {
-    return translations[key][language] as string
+    text = translations[key][language] as string
+  } else if (translations[key] && translations[key]['en']) {
+    // Fallback to English
+    text = translations[key]['en'] as string
   }
 
-  // Fallback to English
-  if (translations[key] && translations[key]['en']) {
-    return translations[key]['en'] as string
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      text = text.replace(`{{${name}}}`, () => value)
+    }
   }
 
-  // Return key if no translation found
-  return key
+  return text
 }

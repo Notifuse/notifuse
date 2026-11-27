@@ -2139,7 +2139,7 @@ func TestBlogCategorySlugRouteOf(t *testing.T) {
 		},
 		BlogCategorySlugPageTaken: {
 			"visit", "opens", "track",
-			"preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick",
+			"preferences", "subscribe", "resubscribe", "unsubscribe", "unsubscribe-oneclick",
 			"health", "healthz",
 		},
 		BlogCategorySlugFree: {

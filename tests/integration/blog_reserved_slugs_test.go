@@ -49,7 +49,7 @@ func TestBlogReservedCategorySlugs(t *testing.T) {
 	// each of them, not that the domain knows every route the server registers.
 	slugs := []string{
 		"v", "t", "r", "api", "console", "notification-center", "apis",
-		"visit", "opens", "track", "preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick", "health", "healthz",
+		"visit", "opens", "track", "preferences", "subscribe", "resubscribe", "unsubscribe", "unsubscribe-oneclick", "health", "healthz",
 		"webhooks", "tracking",
 	}
 	publishedAt := time.Now().Add(-time.Hour)

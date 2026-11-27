@@ -100,6 +100,65 @@ func (r *contactListRepository) ResubscribeContactToList(ctx context.Context, wo
 	return rows > 0, nil
 }
 
+// RestoreUnsubscribedContactList atomically moves a non-removed unsubscribed row back to
+// active. Putting both status = 'unsubscribed' and deleted_at IS NULL in the UPDATE's own
+// WHERE prevents a concurrent admin removal, bounce, or complaint from being overwritten.
+func (r *contactListRepository) RestoreUnsubscribedContactList(ctx context.Context, workspaceID, email, listID string) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE contact_lists
+		SET status = 'active', updated_at = $1
+		WHERE email = $2 AND list_id = $3
+		AND status = 'unsubscribed'
+		AND deleted_at IS NULL
+	`
+	result, err := workspaceDB.ExecContext(ctx, query, time.Now().UTC(), email, listID)
+	if err != nil {
+		return false, fmt.Errorf("failed to restore unsubscribed contact list: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	return rows > 0, nil
+}
+
+// UnsubscribeActiveOrPendingContactList atomically transitions a non-removed active or
+// pending membership to unsubscribed and reports whether that transition happened. Using
+// a single UPDATE's WHERE clause guarantees undo tokens and private list names are only
+// emitted when a genuine active/pending -> unsubscribed transition occurred.
+func (r *contactListRepository) UnsubscribeActiveOrPendingContactList(ctx context.Context, workspaceID, email, listID string) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE contact_lists
+		SET status = 'unsubscribed', updated_at = $1
+		WHERE email = $2 AND list_id = $3
+		AND status IN ('active', 'pending')
+		AND deleted_at IS NULL
+	`
+	result, err := workspaceDB.ExecContext(ctx, query, time.Now().UTC(), email, listID)
+	if err != nil {
+		return false, fmt.Errorf("failed to unsubscribe active or pending contact list: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	return rows > 0, nil
+}
+
 // BulkAddContactsToLists adds multiple contacts to multiple lists in a single database operation
 // It creates a cross-product of emails x listIDs and inserts them all at once
 func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, workspaceID string, emails []string, listIDs []string, status domain.ContactListStatus) error {

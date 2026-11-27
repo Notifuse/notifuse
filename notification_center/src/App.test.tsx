@@ -35,6 +35,7 @@ vi.mock('./api/notification_center', () => ({
     website_url: 'https://example.com',
   }),
   subscribeToLists: vi.fn().mockResolvedValue({ success: true }),
+  resubscribeToList: vi.fn().mockResolvedValue({ success: true }),
   unsubscribeOneClick: vi.fn().mockResolvedValue({ success: true }),
   updateContactPreferences: vi.fn().mockResolvedValue({ success: true }),
   parseNotificationCenterParams: vi.fn(),
@@ -162,10 +163,10 @@ describe('Notification Center App', () => {
         lids: [testData.validParams.lid],
         mid: testData.validParams.mid,
       })
-      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+      expect(await screen.findByText(/unsubscribed from newsletter/i)).toBeInTheDocument()
       expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
       // The result is announced, and takes the focus the removed button had
-      const banner = screen.getByText(/unsubscribed successfully/i).closest('[role="status"]')
+      const banner = screen.getByText(/unsubscribed from newsletter/i).closest('[role="status"]')
       expect(banner).not.toBeNull()
       expect(banner).toHaveFocus()
       // The list's own row reflects the unsubscribe
@@ -209,7 +210,7 @@ describe('Notification Center App', () => {
       expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
         expect.objectContaining({ lids: ['promotions'] })
       )
-      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+      expect(await screen.findByText(/unsubscribed from promotions/i)).toBeInTheDocument()
       // Newsletter keeps its Unsubscribe toggle; only Promotions flipped to Subscribe
       expect(screen.getAllByRole('button', { name: /^unsubscribe$/i })).toHaveLength(1)
       expect(screen.getAllByRole('button', { name: /^subscribe$/i })).toHaveLength(1)
@@ -293,7 +294,7 @@ describe('Notification Center App', () => {
       expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
         expect.objectContaining({ lids: ['newsletter'] })
       )
-      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+      expect(await screen.findByText(/unsubscribed from newsletter/i)).toBeInTheDocument()
     })
 
     // Marketing emails reach a contact whose double opt-in is still pending, so the header
@@ -324,7 +325,7 @@ describe('Notification Center App', () => {
       expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
         expect.objectContaining({ lids: ['newsletter'] })
       )
-      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+      expect(await screen.findByText(/unsubscribed from newsletter/i)).toBeInTheDocument()
     })
 
     it('asks a contact who is not on the linked private list, without showing its ID', async () => {
@@ -450,6 +451,652 @@ describe('Notification Center App', () => {
       // Translated, not the raw "unsubscribed" status
       expect(screen.getByRole('button', { name: 'Unsubscribed' })).toBeDisabled()
       expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+    })
+
+    it('lets the contact undo a private list unsubscribe during the same session via the undo token', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'vip', name: 'VIP', resubscribe_token: 'tok-vip' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockResolvedValueOnce({
+        success: true,
+        list: { id: 'vip', name: 'VIP' },
+      })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(testData.validParams)
+      mockURLSearchParams(testData.validParams)
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'vip',
+            list_name: 'VIP',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      render(<App />)
+
+      await user.click(await screen.findByRole('button', { name: /^unsubscribe$/i }))
+      const resubButton = await screen.findByRole('button', { name: /^resubscribe$/i })
+      expect(resubButton).toBeEnabled()
+
+      await user.click(resubButton)
+      await waitFor(() => {
+        expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledWith({
+          wid: testData.validParams.wid,
+          email: testData.validParams.email,
+          email_hmac: testData.validParams.email_hmac,
+          lid: 'vip',
+          token: 'tok-vip',
+        })
+      })
+      expect(await screen.findByRole('button', { name: /^unsubscribe$/i })).toBeInTheDocument()
+    })
+
+    it('offers Resubscribe in the unsubscribe confirmation banner for a private list and restores it', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'vip', name: 'VIP Members', resubscribe_token: 'tok-vip-2' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockResolvedValueOnce({
+        success: true,
+        list: { id: 'vip', name: 'VIP Members' },
+      })
+      // Private list absent from /preferences on load (e.g. only returned in unsubscribed_lists):
+      // restoring adds it back to the subscriptions section.
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [],
+      })
+      const params = { ...testData.validParams, lid: 'vip', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      expect(await screen.findByText(/you have been unsubscribed from vip members/i)).toBeInTheDocument()
+      const undo = screen.getByTestId('undo-unsubscribe')
+      expect(within(undo).getByText(/clicked by mistake/i)).toBeInTheDocument()
+
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      await waitFor(() => {
+        expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledWith({
+          wid: params.wid,
+          email: params.email,
+          email_hmac: params.email_hmac,
+          lid: 'vip',
+          token: 'tok-vip-2',
+        })
+      })
+      expect(await screen.findByText(/you have been resubscribed to vip members/i)).toBeInTheDocument()
+      expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+      // The restored private list is back in the subscriptions section
+      expect(screen.getByText('VIP Members')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^unsubscribe$/i })).toBeInTheDocument()
+    })
+
+    it('keeps the private list undo button usable after a transient network error so retrying succeeds', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'vip', name: 'VIP Members', resubscribe_token: 'tok-retry' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce({ success: true, list: { id: 'vip', name: 'VIP Members' } })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'vip',
+            list_name: 'VIP Members',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'vip', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      const undo = await screen.findByTestId('undo-unsubscribe')
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      // Transient error: the token is NOT discarded so the contact can retry
+      await waitFor(() => {
+        expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledTimes(1)
+      })
+      expect(screen.getByTestId('undo-unsubscribe')).toBeInTheDocument()
+
+      await user.click(within(screen.getByTestId('undo-unsubscribe')).getByRole('button', { name: /^resubscribe$/i }))
+      expect(await screen.findByText(/you have been resubscribed to vip members/i)).toBeInTheDocument()
+      expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledTimes(2)
+    })
+
+    it('drops the private list undo button when the server definitively rejects the token (400/409)', async () => {
+      const user = userEvent.setup()
+      const expiredErr = Object.assign(new Error('resubscribe token expired'), { status: 400 })
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'vip', name: 'VIP Members', resubscribe_token: 'tok-expired' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockRejectedValueOnce(expiredErr)
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'vip',
+            list_name: 'VIP Members',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'vip', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      const undo = await screen.findByTestId('undo-unsubscribe')
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+      })
+    })
+
+    it('offers no undo button and discloses no private list name when unsubscribe emitted no token', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+      })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [],
+      })
+      const params = { ...testData.validParams, lid: 'secretvip', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /^unsubscribe$/i }))
+
+      expect(await screen.findByText(/you have been unsubscribed successfully/i)).toBeInTheDocument()
+      expect(screen.queryByText(/secretvip/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+    })
+
+    it('falls back to /subscribe on a public list when the undo token expired (400)', async () => {
+      const user = userEvent.setup()
+      const expiredErr = Object.assign(new Error('resubscribe token expired'), { status: 400 })
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'newsletter', name: 'Newsletter', resubscribe_token: 'tok-expired' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockRejectedValueOnce(expiredErr)
+      vi.mocked(notificationCenterApi.subscribeToLists).mockResolvedValueOnce({ success: true })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter', description: 'Weekly newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'newsletter', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      const undo = await screen.findByTestId('undo-unsubscribe')
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      await waitFor(() => {
+        expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledWith(
+          expect.objectContaining({
+            workspace_id: params.wid,
+            list_ids: ['newsletter'],
+          })
+        )
+      })
+      expect(await screen.findByText(/you have been resubscribed to newsletter/i)).toBeInTheDocument()
+      expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+    })
+
+    it('supports confirm_unsubscribe followed by banner undo on a private list, and clears the banner on manual unsubscribe', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick)
+        .mockResolvedValueOnce({
+          success: true,
+          unsubscribed_lists: [{ id: 'vip', name: 'VIP Members', resubscribe_token: 'tok-confirm' }],
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          unsubscribed_lists: [{ id: 'vip', name: 'VIP Members', resubscribe_token: 'tok-manual' }],
+        })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockResolvedValueOnce({
+        success: true,
+        list: { id: 'vip', name: 'VIP Members' },
+      })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'vip',
+            list_name: 'VIP Members',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'vip', action: 'confirm_unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      const undo = await screen.findByTestId('undo-unsubscribe')
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      const resubText = await screen.findByText(/you have been resubscribed to vip members/i)
+      expect(resubText.closest('[role="status"]')).toHaveFocus()
+
+      // Manual unsubscribe clears the stale resubscribed banner and offers a row Resubscribe button
+      await user.click(screen.getByRole('button', { name: /^unsubscribe$/i }))
+      await waitFor(() => {
+        expect(screen.queryByText(/you have been resubscribed to vip members/i)).not.toBeInTheDocument()
+      })
+      expect(await screen.findByRole('button', { name: /^resubscribe$/i })).toBeEnabled()
+    })
+
+    it('never sends stale tracking consent fields when falling back to /subscribe after token expiration', async () => {
+      const user = userEvent.setup()
+      const expiredErr = Object.assign(new Error('resubscribe token expired'), { status: 400 })
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'newsletter', name: 'Newsletter', resubscribe_token: 'tok-expired' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockRejectedValueOnce(expiredErr)
+      vi.mocked(notificationCenterApi.subscribeToLists).mockResolvedValueOnce({ success: true })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: {
+          ...testData.contact,
+          tracking_opens_consent: 'granted',
+          tracking_clicks_consent: 'granted',
+        },
+        public_lists: [{ id: 'newsletter', name: 'Newsletter', description: 'Weekly newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'newsletter', action: 'confirm_unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+      const undo = await screen.findByTestId('undo-unsubscribe')
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      await waitFor(() => {
+        expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledWith({
+          workspace_id: params.wid,
+          contact: {
+            id: '',
+            email: params.email,
+            email_hmac: params.email_hmac,
+          },
+          list_ids: ['newsletter'],
+        })
+      })
+    })
+
+    it('does not fall back to /subscribe on a public list when /resubscribe returns 409 (e.g. bounced/complained/removed)', async () => {
+      const user = userEvent.setup()
+      const conflictErr = Object.assign(new Error('resubscribe not allowed'), { status: 409 })
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'newsletter', name: 'Newsletter', resubscribe_token: 'tok-conflict' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockRejectedValueOnce(conflictErr)
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'newsletter', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      const undo = await screen.findByTestId('undo-unsubscribe')
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      await waitFor(() => {
+        expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledTimes(1)
+      })
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+      expect(screen.queryByText(/you have been resubscribed/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+    })
+
+    it('preserves a private list undo banner when the visitor toggles another list', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick)
+        .mockResolvedValueOnce({
+          success: true,
+          unsubscribed_lists: [{ id: 'vip', name: 'VIP Members', resubscribe_token: 'tok-vip-keep' }],
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          unsubscribed_lists: [{ id: 'newsletter', name: 'Newsletter', resubscribe_token: 'tok-nl' }],
+        })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockResolvedValueOnce({
+        success: true,
+        list: { id: 'vip', name: 'VIP Members' },
+      })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'vip',
+            list_name: 'VIP Members',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'vip', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+      expect(await screen.findByTestId('undo-unsubscribe')).toBeInTheDocument()
+
+      // Toggle a DIFFERENT list (Newsletter): VIP Members undo banner must remain usable
+      await user.click(screen.getByRole('button', { name: /^unsubscribe$/i }))
+      await waitFor(() => {
+        expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledTimes(2)
+      })
+      const undo = screen.getByTestId('undo-unsubscribe')
+      expect(undo).toBeInTheDocument()
+
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+      expect(await screen.findByText(/you have been resubscribed to vip members/i)).toBeInTheDocument()
+    })
+
+    it('clears the banner undo button too when a 409 rejection happens from the private list row', async () => {
+      const user = userEvent.setup()
+      const conflictErr = Object.assign(new Error('resubscribe not allowed'), { status: 409 })
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'vip', name: 'VIP Members', resubscribe_token: 'tok-vip-409' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockRejectedValueOnce(conflictErr)
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'vip',
+            list_name: 'VIP Members',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'vip', action: 'confirm_unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+      expect(await screen.findByTestId('undo-unsubscribe')).toBeInTheDocument()
+
+      // Click Resubscribe on the list ROW (not the banner)
+      const rowResub = screen
+        .getAllByRole('button', { name: /^resubscribe$/i })
+        .find((btn) => !screen.getByTestId('undo-unsubscribe').contains(btn))
+      expect(rowResub).toBeDefined()
+      await user.click(rowResub!)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+      })
+      expect(screen.getByRole('button', { name: 'Unsubscribed' })).toBeDisabled()
+    })
+
+    it('uses /resubscribe from the row on a public list when an undo token exists and keeps it on transient failure', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'newsletter', name: 'Newsletter', resubscribe_token: 'tok-pub-row' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce({ success: true, list: { id: 'newsletter', name: 'Newsletter' } })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(testData.validParams)
+      mockURLSearchParams(testData.validParams)
+
+      render(<App />)
+
+      await user.click(await screen.findByRole('button', { name: /^unsubscribe$/i }))
+      const subBtn = await screen.findByRole('button', { name: /^subscribe$/i })
+      await user.click(subBtn)
+
+      await waitFor(() => {
+        expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledTimes(1)
+      })
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+
+      // Retry succeeds using the preserved undo token
+      await user.click(screen.getByRole('button', { name: /^subscribe$/i }))
+      await waitFor(() => {
+        expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledTimes(2)
+      })
+      expect(await screen.findByRole('button', { name: /^unsubscribe$/i })).toBeInTheDocument()
+    })
+
+    it('clears the banner undo button on 400 invalid token on a public list so clicking again cannot bypass /resubscribe', async () => {
+      const user = userEvent.setup()
+      const invalidErr = Object.assign(new Error('invalid resubscribe token'), { status: 400 })
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'newsletter', name: 'Newsletter', resubscribe_token: 'tok-invalid' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockRejectedValueOnce(invalidErr)
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      const params = { ...testData.validParams, lid: 'newsletter', action: 'confirm_unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+      expect(await screen.findByTestId('undo-unsubscribe')).toBeInTheDocument()
+
+      // Click the row button (which calls /resubscribe because an undo token exists) -> 400 invalid token
+      const rowSub = screen.getByRole('button', { name: /^subscribe$/i })
+      await user.click(rowSub)
+
+      await waitFor(() => {
+        expect(notificationCenterApi.resubscribeToList).toHaveBeenCalledTimes(1)
+      })
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+    })
+
+    it('does not claim resubscribe success on expired-token fallback when /preferences reveals the contact is now bounced or complained', async () => {
+      const user = userEvent.setup()
+      const expiredErr = Object.assign(new Error('resubscribe token expired'), { status: 400 })
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValueOnce({
+        success: true,
+        unsubscribed_lists: [{ id: 'newsletter', name: 'Newsletter', resubscribe_token: 'tok-expired' }],
+      })
+      vi.mocked(notificationCenterApi.resubscribeToList).mockRejectedValueOnce(expiredErr)
+      vi.mocked(notificationCenterApi.subscribeToLists).mockResolvedValueOnce({ success: true })
+      vi.mocked(notificationCenterApi.getContactPreferences)
+        .mockResolvedValueOnce({
+          contact: testData.contact,
+          public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+          contact_lists: [
+            {
+              email: testData.contact.email,
+              list_id: 'newsletter',
+              list_name: 'Newsletter',
+              status: 'active',
+              created_at: '2024-01-01T00:00:00Z',
+              updated_at: '2024-01-01T00:00:00Z',
+            },
+          ],
+        })
+        // After /subscribe returns {success:true}, /preferences shows the bounce kept by the server
+        .mockResolvedValueOnce({
+          contact: testData.contact,
+          public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+          contact_lists: [
+            {
+              email: testData.contact.email,
+              list_id: 'newsletter',
+              list_name: 'Newsletter',
+              status: 'bounced',
+              created_at: '2024-01-01T00:00:00Z',
+              updated_at: '2024-01-01T00:00:00Z',
+            },
+          ],
+        })
+
+      const params = { ...testData.validParams, lid: 'newsletter', action: 'unsubscribe' }
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(params)
+      mockURLSearchParams(params)
+
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      const undo = await screen.findByTestId('undo-unsubscribe')
+      await user.click(within(undo).getByRole('button', { name: /^resubscribe$/i }))
+
+      await waitFor(() => {
+        expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledTimes(1)
+      })
+      expect(screen.queryByText(/you have been resubscribed/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('undo-unsubscribe')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'bounced' })).toBeDisabled()
     })
   })
 

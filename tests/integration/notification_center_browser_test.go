@@ -393,4 +393,154 @@ func TestNotificationCenterLinksBrowserE2E(t *testing.T) {
 			assert.False(t, lastMessage(t, tc.email).clicked, "the confirmation is not a click")
 		}
 	})
+
+	t.Run("unsubscribing offers undo/resubscribe on public and private lists", func(t *testing.T) {
+		publicList, err := factory.CreateList(workspace.ID, testutil.WithListPublic(true), testutil.WithListDoubleOptin(false))
+		require.NoError(t, err)
+		privateList, err := factory.CreateList(workspace.ID, testutil.WithListPublic(false), testutil.WithListDoubleOptin(false))
+		require.NoError(t, err)
+
+		publicUser := newContact(t, "undo-public")
+		privateUser := newContact(t, "undo-private")
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(publicUser),
+			testutil.WithContactListListID(publicList.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(privateUser),
+			testutil.WithContactListListID(privateList.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateSubject("Undo browser "+uuid.New().String()[:8]),
+			testutil.WithCodeModeTemplate(`<mjml><mj-body><mj-section><mj-column><mj-text>`+
+				`<a href="{{ unsubscribe_url }}">Unsubscribe</a> `+
+				`<a href="{{ notification_center_url }}">Preferences</a>`+
+				`</mj-text></mj-column></mj-section></mj-body></mjml>`))
+		require.NoError(t, err)
+
+		sendToList := func(t *testing.T, listID, recipient string) *testutil.MailpitMessage {
+			t.Helper()
+			broadcast, err := factory.CreateBroadcast(workspace.ID,
+				testutil.WithBroadcastTemplateID(template.ID),
+				testutil.WithBroadcastAudience(domain.AudienceSettings{List: listID, ExcludeUnsubscribed: true}))
+			require.NoError(t, err)
+			resp, err := client.ScheduleBroadcast(map[string]interface{}{
+				"workspace_id": workspace.ID, "id": broadcast.ID, "send_now": true,
+			})
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			msg, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 60*time.Second)
+			require.NoError(t, err)
+			return msg
+		}
+
+		privateMsg := sendToList(t, privateList.ID, privateUser)
+		publicMsg := sendToList(t, publicList.ID, publicUser)
+
+		undoButton := `document.querySelector('[data-testid="undo-unsubscribe"] button')`
+		rowButton := func(listID string) string {
+			return `document.querySelector('[data-list-id="` + listID + `"] button')`
+		}
+		buttonText := func(t *testing.T, expr string) string {
+			t.Helper()
+			raw, err := browser.evaluate(`(` + expr + `)?.textContent?.trim() ?? ""`)
+			require.NoError(t, err)
+			var text string
+			require.NoError(t, json.Unmarshal(raw, &text))
+			return text
+		}
+
+		// Private list: email link -> ConfirmCard -> Unsubscribe -> banner Resubscribe -> restored
+		privateNameJSON, err := json.Marshal(privateList.Name)
+		require.NoError(t, err)
+		browser.navigate(t, pageLink(t, privateMsg.HTML, "/notification-center", "unsubscribe"))
+		browser.waitFor(t, "!!"+card("confirm-unsubscribe"), "private unsubscribe confirm card")
+		assert.Equal(t, "active", listStatus(t, privateUser, privateList.ID))
+
+		browser.click(t, cardButton("confirm-unsubscribe"))
+		browser.waitFor(t, `!!`+undoButton+` && document.querySelector('[role="status"]').innerText.includes(`+string(privateNameJSON)+`)`,
+			"private unsubscribe banner with list name and Resubscribe button")
+		eventually(t, "private list unsubscribed", func() bool {
+			return listStatus(t, privateUser, privateList.ID) == "unsubscribed"
+		})
+		assert.True(t, lastMessage(t, privateUser).unsubscribed, "message_history records the unsubscribe")
+
+		unsubBannerText := buttonText(t, `document.querySelector('[role="status"]')`)
+		unsubBannerTextJSON, err := json.Marshal(unsubBannerText)
+		require.NoError(t, err)
+
+		browser.click(t, undoButton)
+		browser.waitFor(t, `!`+undoButton+` && document.querySelector('[role="status"]').innerText.includes(`+string(privateNameJSON)+`) && document.querySelector('[role="status"]').innerText.trim() !== `+string(unsubBannerTextJSON),
+			"private resubscribe confirmation banner")
+		eventually(t, "private list restored via banner undo", func() bool {
+			return listStatus(t, privateUser, privateList.ID) == "active"
+		})
+		assert.True(t, engaged(t, privateUser), "undo resubscribe records engagement")
+		assert.True(t, lastMessage(t, privateUser).unsubscribed, "message_history.unsubscribed_at remains intact after undo")
+		var resubTimelineCount int
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT COUNT(*) FROM contact_timeline WHERE email = $1 AND entity_id = $2 AND kind = 'list.resubscribed'`,
+			privateUser, privateList.ID).Scan(&resubTimelineCount))
+		assert.Equal(t, 1, resubTimelineCount, "contact_timeline records list.resubscribed")
+
+		// Private list manual unsubscribe on the row keeps a session Resubscribe button on the row
+		privateRowBtn := rowButton(privateList.ID)
+		browser.waitFor(t, `!!`+privateRowBtn+` && !`+privateRowBtn+`.disabled`, "private row Unsubscribe button")
+		unsubRowLabelJSON, err := json.Marshal(buttonText(t, privateRowBtn))
+		require.NoError(t, err)
+
+		browser.click(t, privateRowBtn)
+		eventually(t, "private list manually unsubscribed", func() bool {
+			return listStatus(t, privateUser, privateList.ID) == "unsubscribed"
+		})
+		// Row button stays enabled (Resubscribe) with a label different from Unsubscribe
+		browser.waitFor(t, `!!`+privateRowBtn+` && !`+privateRowBtn+`.disabled && `+privateRowBtn+`.textContent.trim() !== `+string(unsubRowLabelJSON),
+			"private row Resubscribe button after manual unsubscribe")
+
+		browser.click(t, privateRowBtn)
+		eventually(t, "private list restored via row undo", func() bool {
+			return listStatus(t, privateUser, privateList.ID) == "active"
+		})
+		browser.waitFor(t, `!!`+privateRowBtn+` && !`+privateRowBtn+`.disabled && `+privateRowBtn+`.textContent.trim() === `+string(unsubRowLabelJSON),
+			"private row back to Unsubscribe after row undo")
+
+		// Leaving the private list again and reloading /notification-center hides it again
+		browser.click(t, privateRowBtn)
+		eventually(t, "private list unsubscribed before reload", func() bool {
+			return listStatus(t, privateUser, privateList.ID) == "unsubscribed"
+		})
+		browser.navigate(t, pageLink(t, privateMsg.HTML, "/notification-center", ""))
+		publicNameJSON, err := json.Marshal(publicList.Name)
+		require.NoError(t, err)
+		browser.waitFor(t, `document.body.innerText.includes(`+string(publicNameJSON)+`)`, "preferences page reloaded")
+		settle(t)
+		assert.NotContains(t, browser.text(), privateList.Name, "previously left private list stays hidden after reload")
+
+		// Public list: email link -> ConfirmCard -> Unsubscribe -> banner Resubscribe -> restored
+		browser.navigate(t, pageLink(t, publicMsg.HTML, "/notification-center", "unsubscribe"))
+		browser.waitFor(t, "!!"+card("confirm-unsubscribe"), "public unsubscribe confirm card")
+		assert.Equal(t, "active", listStatus(t, publicUser, publicList.ID))
+
+		browser.click(t, cardButton("confirm-unsubscribe"))
+		browser.waitFor(t, `!!`+undoButton+` && document.querySelector('[role="status"]').innerText.includes(`+string(publicNameJSON)+`)`,
+			"public unsubscribe banner with list name and Resubscribe button")
+		eventually(t, "public list unsubscribed", func() bool {
+			return listStatus(t, publicUser, publicList.ID) == "unsubscribed"
+		})
+
+		pubBannerTextJSON, err := json.Marshal(buttonText(t, `document.querySelector('[role="status"]')`))
+		require.NoError(t, err)
+		browser.click(t, undoButton)
+		browser.waitFor(t, `!`+undoButton+` && document.querySelector('[role="status"]').innerText.includes(`+string(publicNameJSON)+`) && document.querySelector('[role="status"]').innerText.trim() !== `+string(pubBannerTextJSON),
+			"public resubscribe confirmation banner")
+		eventually(t, "public list restored via banner undo", func() bool {
+			return listStatus(t, publicUser, publicList.ID) == "active"
+		})
+		assert.True(t, lastMessage(t, publicUser).unsubscribed, "public message_history.unsubscribed_at remains intact")
+		require.Empty(t, browser.thrownErrors(), "the page raised an exception")
+	})
 }

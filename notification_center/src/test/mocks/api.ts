@@ -49,6 +49,7 @@ export const mockUnsubscribeResponse: UnsubscribeResponse = {
 export const createMockApiModule = () => ({
   getContactPreferences: vi.fn().mockResolvedValue(mockContactPreferencesResponse),
   subscribeToLists: vi.fn().mockResolvedValue(mockSubscribeResponse),
+  resubscribeToList: vi.fn().mockResolvedValue({ success: true }),
   unsubscribeOneClick: vi.fn().mockResolvedValue(mockUnsubscribeResponse),
   parseNotificationCenterParams: vi.fn(),
 })

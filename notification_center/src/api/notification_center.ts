@@ -165,12 +165,41 @@ export interface UnsubscribeFromListsRequest {
   mid?: string
 }
 
+export interface UnsubscribedListResult {
+  id: string
+  name: string
+  resubscribe_token?: string
+}
+
 export interface UnsubscribeResponse {
   success: boolean
+  unsubscribed_lists?: UnsubscribedListResult[]
 }
 
 export async function unsubscribeOneClick(
   request: UnsubscribeFromListsRequest
 ): Promise<UnsubscribeResponse> {
   return api.post<UnsubscribeResponse>('/unsubscribe', request)
+}
+
+export interface ResubscribeRequest {
+  wid: string
+  email: string
+  email_hmac: string
+  lid: string
+  token: string
+}
+
+export interface ResubscribeResponse {
+  success: boolean
+  list?: {
+    id: string
+    name: string
+  }
+}
+
+export async function resubscribeToList(
+  request: ResubscribeRequest
+): Promise<ResubscribeResponse> {
+  return api.post<ResubscribeResponse>('/resubscribe', request)
 }

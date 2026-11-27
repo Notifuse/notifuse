@@ -763,24 +763,38 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 // 1. API
 // 2. Frontend (authenticated with email and email_hmac)
 func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.UnsubscribeFromListsRequest, hasBearerToken bool) error {
+	_, err := s.unsubscribeFromLists(ctx, payload, hasBearerToken, false)
+	return err
+}
+
+// UnsubscribeFromListsWithResults unsubscribes the contact and returns one entry per list
+// where an active or pending membership (not removed) was actually ended, carrying the list's
+// name and a short-lived undo token. Lists the contact was not on, had already left, was
+// removed from, or was bounced/complained on are omitted so private list names and undo
+// tokens are never disclosed or granted outside a genuine unsubscribe transition.
+func (s *ListService) UnsubscribeFromListsWithResults(ctx context.Context, payload *domain.UnsubscribeFromListsRequest, hasBearerToken bool) ([]domain.UnsubscribedListResult, error) {
+	return s.unsubscribeFromLists(ctx, payload, hasBearerToken, true)
+}
+
+func (s *ListService) unsubscribeFromLists(ctx context.Context, payload *domain.UnsubscribeFromListsRequest, hasBearerToken bool, withUndoResults bool) ([]domain.UnsubscribedListResult, error) {
 	var err error
 
 	workspace, err := s.workspaceRepo.GetByID(ctx, payload.WorkspaceID)
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("Failed to get workspace: %v", err))
-		return fmt.Errorf("failed to get workspace: %w", err)
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
 	}
 
 	var userWorkspace *domain.UserWorkspace
 	if hasBearerToken {
 		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
 		if err != nil {
-			return fmt.Errorf("failed to authenticate user: %w", err)
+			return nil, fmt.Errorf("failed to authenticate user: %w", err)
 		}
 
 		// Check permission for writing lists
 		if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
-			return domain.NewPermissionError(
+			return nil, domain.NewPermissionError(
 				domain.PermissionResourceLists,
 				domain.PermissionTypeWrite,
 				"Insufficient permissions: write access to lists required",
@@ -789,12 +803,12 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 	} else {
 		// verify contact hmac
 		if payload.EmailHMAC == "" {
-			return fmt.Errorf("email_hmac is required")
+			return nil, fmt.Errorf("email_hmac is required")
 		}
 
 		secretKey := workspace.Settings.SecretKey
 		if !domain.VerifyEmailHMAC(payload.Email, payload.EmailHMAC, secretKey) {
-			return fmt.Errorf("invalid email verification")
+			return nil, fmt.Errorf("invalid email verification")
 		}
 	}
 
@@ -802,11 +816,12 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 	lists, err := s.repo.GetLists(ctx, workspace.ID)
 	if err != nil {
 		s.logger.WithField("list_ids", payload.ListIDs).Error(fmt.Sprintf("Failed to get lists: %v", err))
-		return fmt.Errorf("failed to get lists: %w", err)
+		return nil, fmt.Errorf("failed to get lists: %w", err)
 	}
 
 	// Process each list for unsubscription
 	recorded := false
+	var results []domain.UnsubscribedListResult
 	for _, listID := range payload.ListIDs {
 		var list *domain.List
 		for _, l := range lists {
@@ -824,15 +839,47 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 			continue
 		}
 
+		canIssueUndo := false
 		var listRecorded bool
-		listRecorded, err = s.unsubscribeFromList(ctx, workspace.ID, payload.Email, listID, payload.MessageID, time.Time{})
-		if err != nil {
-			s.logger.WithField("email", payload.Email).
-				WithField("list_id", listID).
-				Error(fmt.Sprintf("Failed to unsubscribe from list: %v", err))
-			return fmt.Errorf("failed to unsubscribe from list: %w", err)
+		if withUndoResults && !hasBearerToken {
+			if atomicUnsub, ok := s.contactListRepo.(atomicActivePendingUnsubscriber); ok {
+				transitioned, atomicErr := atomicUnsub.UnsubscribeActiveOrPendingContactList(ctx, workspace.ID, payload.Email, listID)
+				if atomicErr != nil {
+					s.logger.WithField("email", payload.Email).
+						WithField("list_id", listID).
+						Error(fmt.Sprintf("Failed to unsubscribe from list: %v", atomicErr))
+					return nil, fmt.Errorf("failed to unsubscribe from list: %w", atomicErr)
+				}
+				if transitioned {
+					canIssueUndo = true
+					listRecorded = true
+				}
+			}
+		}
+
+		if !listRecorded {
+			listRecorded, err = s.unsubscribeFromList(ctx, workspace.ID, payload.Email, listID, payload.MessageID, time.Time{})
+			if err != nil {
+				s.logger.WithField("email", payload.Email).
+					WithField("list_id", listID).
+					Error(fmt.Sprintf("Failed to unsubscribe from list: %v", err))
+				return nil, fmt.Errorf("failed to unsubscribe from list: %w", err)
+			}
 		}
 		recorded = recorded || listRecorded
+
+		if canIssueUndo && listRecorded {
+			token, tokenErr := domain.MintResubscribeToken(workspace.Settings.SecretKey, workspace.ID, payload.Email, list.ID)
+			if tokenErr != nil {
+				s.logger.WithField("list_id", listID).Warn(fmt.Sprintf("Failed to mint resubscribe token: %v", tokenErr))
+			} else {
+				results = append(results, domain.UnsubscribedListResult{
+					ID:               list.ID,
+					Name:             list.Name,
+					ResubscribeToken: token,
+				})
+			}
+		}
 	}
 
 	// Update message history with unsubscribe event if MessageID is provided
@@ -860,7 +907,89 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 		}
 	}
 
-	return nil
+	return results, nil
+}
+
+// atomicActivePendingUnsubscriber is implemented by the Postgres ContactListRepository so
+// undo tokens and private list names are emitted only when an atomic UPDATE transitioned a
+// non-removed active/pending row to unsubscribed.
+type atomicActivePendingUnsubscriber interface {
+	UnsubscribeActiveOrPendingContactList(ctx context.Context, workspaceID, email, listID string) (bool, error)
+}
+
+// atomicUnsubscribeRestorer is implemented by the Postgres ContactListRepository so
+// undo-resubscribe checks deleted_at IS NULL and status = 'unsubscribed' atomically inside
+// the UPDATE statement. ResubscribeWithToken fails closed if the repository does not provide it.
+type atomicUnsubscribeRestorer interface {
+	RestoreUnsubscribedContactList(ctx context.Context, workspaceID, email, listID string) (bool, error)
+}
+
+// ResubscribeWithToken restores a contact's membership on a single list (public or private)
+// using the short-lived undo token returned when they unsubscribed. It verifies both the
+// contact's email_hmac and the list-scoped undo token, refuses rows removed by the workspace
+// or marked bounced/complained, and updates the engagement clock.
+func (s *ListService) ResubscribeWithToken(ctx context.Context, payload *domain.ResubscribeRequest) (*domain.ContactList, error) {
+	workspace, err := s.workspaceRepo.GetByID(ctx, payload.WorkspaceID)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to get workspace: %v", err))
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	secretKey := workspace.Settings.SecretKey
+	if !domain.VerifyEmailHMAC(payload.Email, payload.EmailHMAC, secretKey) {
+		return nil, fmt.Errorf("invalid email verification")
+	}
+
+	if err := domain.VerifyResubscribeToken(secretKey, workspace.ID, payload.Email, payload.ListID, payload.Token); err != nil {
+		return nil, err
+	}
+
+	list, err := s.repo.GetListByID(ctx, workspace.ID, payload.ListID)
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspace.ID, payload.Email, payload.ListID)
+	if err != nil {
+		var notFound *domain.ErrContactListNotFound
+		if errors.As(err, &notFound) {
+			return nil, domain.ErrResubscribeNotAllowed
+		}
+		return nil, fmt.Errorf("failed to check existing subscription: %w", err)
+	}
+	if existing.DeletedAt != nil {
+		return nil, domain.ErrResubscribeNotAllowed
+	}
+	if existing.Status == domain.ContactListStatusActive {
+		return membershipResult(existing, list.Name), nil
+	}
+	if existing.Status != domain.ContactListStatusUnsubscribed {
+		return nil, domain.ErrResubscribeNotAllowed
+	}
+
+	now := time.Now().UTC()
+	contactList := &domain.ContactList{
+		Email:     payload.Email,
+		ListID:    list.ID,
+		ListName:  list.Name,
+		Status:    domain.ContactListStatusActive,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	restorer, ok := s.contactListRepo.(atomicUnsubscribeRestorer)
+	if !ok {
+		return nil, fmt.Errorf("contact list repository does not support atomic undo restoration")
+	}
+	written, err := restorer.RestoreUnsubscribedContactList(ctx, workspace.ID, payload.Email, list.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resubscribe to list: %w", err)
+	}
+	if !written {
+		return nil, domain.ErrResubscribeNotAllowed
+	}
+
+	s.engagement.Touch(ctx, workspace.ID, payload.Email, time.Now())
+	return membershipResult(contactList, list.Name), nil
 }
 
 // UnsubscribeFromMessageList records an opt-out an email provider reported for an email,
