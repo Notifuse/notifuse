@@ -4,113 +4,131 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
-- **Feature**: After unsubscribing from a list in the notification center, the confirmation banner names the list and offers **Resubscribe** to undo a mistaken click. On a private list, the undo uses a short-lived signed token (30 minutes) and also stays available on the list's row during the same session after a manual unsubscribe, while private lists left earlier remain hidden on the preferences page. Re-subscribing records a `list.resubscribed` event in the contact timeline and webhooks.
+### Before you upgrade
 
-- **Fix**: The unsubscribe link of an email (`{{ unsubscribe_url }}`) and the double opt-in confirmation link (`{{ confirm_subscription_url }}`) open a page that asks the contact to click. Email security scanners open every link of an email in a browser, so they unsubscribed and confirmed contacts on their own (#704).
+- With several Notifuse nodes, stop all but one before upgrading. In each workspace, the upgrade clears the empty and duplicate `external_id` keys of the message history and builds a unique index on it. Sending waits meanwhile. If a send already holds the table, the upgrade gives up after 5 seconds and runs again at the next start, so plan it outside a large send.
 
-- **Improvement**: Links in emails to the notification center and the web version no longer go through click tracking. Opening them no longer counts as a click or an open and no longer starts automations triggered by a click; unsubscribes are still counted.
+- `lists.subscribe` no longer brings back a contact who unsubscribed from a list: it leaves them unsubscribed and sends nothing. If your integration re-subscribes contacts on purpose, add `resubscribe: true`. `contactLists.updateStatus` answers 409 to a status change out of an opt-out unless it carries the same flag.
 
-- **Feature**: A broadcast's results now list its recipients under the funnel. Clicking a step (**Opened**, **Clicked**, **Bounces**…) shows who reached it, latest first, and `messages.list` gains `order_by` and `order` to sort by one of a message's dates.
+- The file manager lists, uploads and deletes files through the API, and the browser sends each upload straight to the bucket through a short-lived signed URL, so the storage credentials stay on the server. Members see the files with any access to Templates or the Blog, and need write access to one of them to upload or delete; only owners change the storage settings. The bucket's endpoint must now be reachable from the Notifuse server as well as from browsers, its CORS rules need only `GET` and `PUT`, and a selfhost_s3 server must run v1.4 or later. The server refuses an endpoint on a private address unless `FILE_STORAGE_ALLOW_PRIVATE_HOSTS=true`, which a bucket on your own network (MinIO, selfhost_s3) needs.
 
-- **Feature**: Custom branding, with an Agency or Enterprise licence. In **System Settings** → **Branding**, the root user sets the instance's name, logo and icon, and can hide the Help menu. The console and the system emails then show this identity in place of Notifuse's.
+- `analytics.query` no longer returns the generated SQL and its values (`meta.query`, `meta.params`) or `meta.executionTime`, which was always 0. `analytics.schemas` no longer returns the SQL of each measure and dimension.
 
-- **Fix**: The analytics measures for sending and completed broadcasts (`count_sending`, `completed_broadcasts_count`) looked for statuses broadcasts never have, so they returned 0. The recipient measures failed with an error and now count the emails queued by processed broadcasts, leaving out those sent before 21.0, which recorded no count. `count_with_ab_test` counts every broadcast with A/B testing on.
+- Some API calls answer differently. `broadcasts.delete` answers 409 for a broadcast that is scheduled, paused, in an A/B test or still has queued emails. A refused action on a broadcast, blog post, segment, automation or transactional notification answers 409, 404 or 400 instead of 500. `analytics.query` returns at most 50,000 rows, stops after 60 seconds and answers 413 to a body over 1 MiB. See Fixes below.
 
-- **Fix**: The contacts analytics schema no longer lists `count_active`, `count_unsubscribed`, `count_bounced` and `count_with_source`. They read columns the contacts table doesn't have, so every query on them failed.
+### Features
 
-- **Fix**: In the `automation_node_executions` analytics schema, `count_skipped` now counts skipped emails, where it always returned 0. `count_completed` leaves them out, along with the steps that recorded an error, which the new `count_errors` counts. `count_failed` counts each failed attempt once. A failure recorded from 45.0 on carries the type of the step that failed; earlier ones keep `trigger`.
+- Claude, ChatGPT, Cursor and other MCP clients can read and work in a workspace at `<API_ENDPOINT>/mcp`. They connect with an API key and get exactly its access; claude.ai and ChatGPT ask for the key on a Notifuse connection page. Owners turn MCP off per workspace and see the connections in **Settings** → **AI** → **MCP**, and `MCP_ENABLED=false` turns it off for the instance.
 
-- **Fix**: The `email_queue` analytics measure `count_retryable` no longer counts emails given up on after one attempt. The new `count_paused` counts the emails of paused broadcasts.
+- Two-factor authentication with an authenticator app, and ten single-use recovery codes. Each person turns it on in **Account security**, from the account menu. The root user can require it for the whole instance in **System settings** → **Security**, or with `REQUIRE_TWO_FACTOR=true`, and can reset it for someone who lost their phone. Sign-ins through single sign-on and API keys are not affected.
 
-- **Change**: `analytics.query` no longer returns the generated SQL and its values (`meta.query`, `meta.params`) or `meta.executionTime`, which was always 0. `analytics.schemas` no longer returns the SQL of each measure and dimension.
+- Data retention deletes old data on a schedule. In **Settings** → **Data retention**, a workspace owner sets how long to keep inactive contacts, message history, the contact timeline, custom events, automation history, web analytics and provider events, and the root user can set defaults for every workspace. A change that deletes more waits 7 days and the owners get an email. The segment condition "will be deleted as inactive within N days" lets an automation ask those contacts to stay before they go. Setting a policy needs an Enterprise licence.
 
-- **Fix**: The web analytics `page_entry_type` dimension, the contact timeline and segments no longer count the first page of each browser tab as a landing page. In the timeline and segments, pages recorded before 45.0 keep the old value.
+- When a contact is deleted, the lists they unsubscribed from, bounced on or complained about are kept for 3 years as a keyed hash of their address, with nothing else. If the address comes back through an import, an upsert or a form, those statuses are put back, so a deleted contact is not mailed again against an opt-out. `contacts.delete` takes `forget_opt_outs: true` to keep nothing, and the console's delete confirmation offers the same choice.
 
-- **Feature**: Claude, ChatGPT, Cursor and other MCP clients can read and work in a workspace at `<API_ENDPOINT>/mcp`. They connect with an API key and get exactly its access; claude.ai and ChatGPT ask for the key on a Notifuse connection page. Owners turn MCP off per workspace and see the connections in **Settings** → **AI** → **MCP**, and `MCP_ENABLED=false` turns it off for the instance.
+- Custom branding, with an Agency or Enterprise licence. In **System Settings** → **Branding**, the root user sets the instance's name, logo and icon, and can hide the Help menu. The console and the system emails then show this identity in place of Notifuse's.
 
-- **Change**: The AI models (Anthropic, OpenAI, Gemini) and Firecrawl moved from **Settings** → **Integrations** to **Settings** → **AI** → **Assistant**.
+- SMTP integrations can sign their emails with DKIM. Add the sending domain in **Settings** → **Domains** and publish the TXT record shown: signing starts once Notifuse finds it.
 
-- **Fix**: More of the console now shows in its language. The email editor's block names (in the structure tree, the breadcrumb, the block library and the settings panel), the email AI assistant's step lines, the web analytics dimensions, fields and measures, country names, the automation canvas cards and the automation save errors were in English in every language. The preview's **Open** button on a broadcast now reads as a verb in French, and a contact's last activity shows the provider event as a translated status (**Delivered**) instead of `Email · delivered`.
+- A broadcast's results now list its recipients under the funnel. Clicking a step (**Opened**, **Clicked**, **Bounces**…) shows who reached it, latest first, and `messages.list` gains `order_by` and `order` to sort by one of a message's dates.
 
-- **Feature**: Data retention deletes old data on a schedule. In **Settings** → **Data retention**, a workspace owner sets how long to keep inactive contacts, message history, the contact timeline, custom events, automation history, web analytics and provider events, and the root user can set defaults for every workspace. A change that deletes more waits 7 days and the owners get an email. The segment condition "will be deleted as inactive within N days" lets an automation ask those contacts to stay before they go. Setting a policy needs an Enterprise licence.
+- The web analytics dashboard opens with an Automated traffic card. It counts the sessions that load a page and never send a second signal, which is how crawlers, AI agents and headless browsers behave. The card shows their share of all sessions, its change since the comparison period, and the landing pages, browsers and countries they come from. The new Traffic Type dimension (`human` or `automated`) filters any report, and `analytics.query` gains the `automated_sessions` and `automated_share` measures. The demo workspace now has automated traffic too, with one overnight crawl.
 
-- **Feature**: Two-factor authentication with an authenticator app, and ten single-use recovery codes. Each person turns it on in **Account security**, from the account menu. The root user can require it for the whole instance in **System settings** → **Security**, or with `REQUIRE_TWO_FACTOR=true`, and can reset it for someone who lost their phone. Sign-ins through single sign-on and API keys are not affected.
+- `lists.subscribe` and `contactLists.updateStatus` accept `resubscribe: true` to bring back a contact who unsubscribed from a list: they become active with no confirmation email, and the audit log records it. Without the flag, `lists.subscribe` now leaves an unsubscribed contact unsubscribed and sends nothing, where it used to set them to pending with a confirmation email and make them active on a second call. If your integration re-subscribes contacts on purpose, add the flag. In the console, a list row on the contact page offers Re-subscribe, which can also clear a bounce once the address works again.
 
-- **Fix**: An expired session now answers 401 and a refused one 403 on every workspace route. Some routes answered 500 or 502, and the contact timeline and message history answered 401 to a database error, which signed the console out.
+- After unsubscribing from a list in the notification center, the confirmation banner names the list and offers **Resubscribe** to undo a mistaken click. On a private list, the undo uses a short-lived signed token (30 minutes) and also stays available on the list's row during the same session after a manual unsubscribe, while private lists left earlier remain hidden on the preferences page. Re-subscribing records a `list.resubscribed` event in the contact timeline and webhooks.
 
-- **Change**: The file manager lists, uploads and deletes files through the API, and the browser sends each upload straight to the bucket through a short-lived signed URL, so the storage credentials stay on the server. Members see the files with any access to Templates or the Blog, and need write access to one of them to upload or delete; only owners change the storage settings. The bucket's endpoint must now be reachable from the Notifuse server as well as from browsers, its CORS rules need only `GET` and `PUT`, and a selfhost_s3 server must run v1.4 or later. The server refuses an endpoint on a private address unless `FILE_STORAGE_ALLOW_PRIVATE_HOSTS=true`, which a bucket on your own network (MinIO, selfhost_s3) needs.
+### Improvements
 
-- **Feature**: The web analytics dashboard opens with an Automated traffic card. It counts the sessions that load a page and never send a second signal, which is how crawlers, AI agents and headless browsers behave. The card shows their share of all sessions, its change since the comparison period, and the landing pages, browsers and countries they come from. The new Traffic Type dimension (`human` or `automated`) filters any report, and `analytics.query` gains the `automated_sessions` and `automated_share` measures. The demo workspace now has automated traffic too, with one overnight crawl.
+- Links in emails to the notification center and the web version no longer go through click tracking. Opening them no longer counts as a click or an open and no longer starts automations triggered by a click; unsubscribes are still counted.
 
-- **Improvement**: TimeScore, Bounce Rate, scroll depth, pages per session and median page duration now leave automated traffic out, while Sessions and pageviews still count it. The per-page measures `page_duration` and `page_scroll` still include it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
+- TimeScore, Bounce Rate, scroll depth, pages per session and median page duration now leave automated traffic out, while Sessions and pageviews still count it. The per-page measures `page_duration` and `page_scroll` still include it. A site that crawlers or agents visit often gets a higher TimeScore and a lower Bounce Rate than before, past periods included, because the rule applies when a report is read.
 
-- **Feature**: `lists.subscribe` and `contactLists.updateStatus` accept `resubscribe: true` to bring back a contact who unsubscribed from a list: they become active with no confirmation email, and the audit log records it. Without the flag, `lists.subscribe` now leaves an unsubscribed contact unsubscribed and sends nothing, where it used to set them to pending with a confirmation email and make them active on a second call. If your integration re-subscribes contacts on purpose, add the flag. In the console, a list row on the contact page offers Re-subscribe, which can also clear a bounce once the address works again.
+- The live web analytics view finds active sessions through a new index on `web_sessions` instead of reading the month's sessions every 10 seconds. Visits keep being recorded during the upgrade: the web analytics maintenance builds the index in the background a few minutes after Notifuse starts, one monthly partition at a time.
 
-- **Feature**: SMTP integrations can sign their emails with DKIM. Add the sending domain in **Settings** → **Domains** and publish the TXT record shown: signing starts once Notifuse finds it.
+- The AI models (Anthropic, OpenAI, Gemini) and Firecrawl moved from **Settings** → **Integrations** to **Settings** → **AI** → **Assistant**.
 
-- **Fix**: Two `transactional.send` calls with the same `external_id` that arrive together no longer both send. One email goes out, and both calls get its message ID. On upgrade, an `external_id` held by several messages stays with the oldest one, and an empty `external_id` counts as no key. With several Notifuse nodes, stop the others before upgrading: the upgrade briefly locks the message history and gives up after 5 seconds.
+### Security
 
-- **Fix**: Segments could stop updating on their own. After four failed runs in a row, the task that recomputes a workspace's segments as contacts change, or the one that rebuilds date-based segments each morning, stopped for good, and segments then changed only on a manual rebuild. These tasks now keep retrying, and the first task run after the upgrade restarts any that stopped or were deleted.
+- `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
 
-- **Fix**: SMTP senders on an internationalized domain (`news@bücher.de`) now go out in ASCII form. Notifuse sent raw UTF-8, which strict mail servers refuse.
+### Fixes
 
-- **Fix**: Nothing re-subscribes a contact who opted out of a list any more. An automation's add-to-list step and `contactLists.updateStatus` could set an unsubscribed contact back to active, and the console could also revive a bounced or complained one. The add-to-list step now leaves them as they are and says so in its output, and a status change out of an opt-out returns 409. A form post with the address of a contact who unsubscribed no longer sets them to pending: it only sends the list's confirmation email, whose link brings them back.
+- The unsubscribe link of an email (`{{ unsubscribe_url }}`) and the double opt-in confirmation link (`{{ confirm_subscription_url }}`) open a page that asks the contact to click. Email security scanners open every link of an email in a browser, so they unsubscribed and confirmed contacts on their own (#704).
 
-- **Feature**: When a contact is deleted, the lists they unsubscribed from, bounced on or complained about are kept for 3 years as a keyed hash of their address, with nothing else. If the address comes back through an import, an upsert or a form, those statuses are put back, so a deleted contact is not mailed again against an opt-out. `contacts.delete` takes `forget_opt_outs: true` to keep nothing, and the console's delete confirmation offers the same choice.
+- Two `transactional.send` calls with the same `external_id` that arrive together no longer both send. One email goes out, and both calls get its message ID. On upgrade, an `external_id` held by several messages stays with the oldest one, and an empty `external_id` counts as no key. With several Notifuse nodes, stop the others before upgrading: the upgrade briefly locks the message history and gives up after 5 seconds.
 
-- **Fix**: Deleting a contact now erases what it left behind: their automation journeys and the log of the "once" automations they entered, the cc, bcc, subject, attachments and error texts of their messages, the bounce diagnostics of their webhook events, and the webhook deliveries that carry their address (the `contact.deleted` and `segment.left` deliveries the deletion sends are kept). Attachment files only they received are deleted. The step statistics of automations no longer count deleted contacts.
+- Two calls that create the same contact at the same time, such as two `contacts.upsert` or `transactional.send` calls for a new address, no longer fail with a 500 on the second one. The second call now updates the contact the first one created.
 
-- **Fix**: A custom event sent with capitals in its address (`Bob@Example.com`) is now stored under the lowercase address, like contacts, so it reaches the contact's timeline, segments and automations, and is erased with the contact. The API returns the lowercase address. Events stored before 45.0 keep their case, and listing events by address finds them as well as the new ones.
+- Segments could stop updating on their own. After four failed runs in a row, the task that recomputes a workspace's segments as contacts change, or the one that rebuilds date-based segments each morning, stopped for good, and segments then changed only on a manual rebuild. These tasks now keep retrying, and the first task run after the upgrade restarts any that stopped or were deleted.
 
-- **Fix**: The Japanese console now uses one word for each thing: contacts are コンタクト on every screen (some said 連絡先), goals ゴール, integrations 連携, unsubscribing 購読解除, the SMTP bridge SMTPリレー, web analytics Webアナリティクス and telemetry テレメトリー, and Japanese text no longer puts a space before or after a Latin word or a number. Three labels that shared one translation now have their own: sending a broadcast now reads 今すぐ (it read 現在, "current"), the source of an incoming webhook reads 送信元 (it used the web traffic source's 流入元), and the region in the web analytics settings reads 地域 (it used the AWS region's リージョン).
+- Nothing re-subscribes a contact who opted out of a list any more. An automation's add-to-list step and `contactLists.updateStatus` could set an unsubscribed contact back to active, and the console could also revive a bounced or complained one. The add-to-list step now leaves them as they are and says so in its output, and a status change out of an opt-out returns 409. A form post with the address of a contact who unsubscribed no longer sets them to pending: it only sends the list's confirmation email, whose link brings them back.
 
-- **Fix**: The Gmail app on iOS no longer shows a broken-image icon at the bottom of emails with open tracking. The tracking pixel was a PNG with truncated pixel data, which Gmail could not display; it is now a valid transparent PNG. Opens were recorded correctly all along.
+- Deleting a contact now erases what it left behind: their automation journeys and the log of the "once" automations they entered, the cc, bcc, subject, attachments and error texts of their messages, the bounce diagnostics of their webhook events, and the webhook deliveries that carry their address (the `contact.deleted` and `segment.left` deliveries the deletion sends are kept). Attachment files only they received are deleted. The step statistics of automations no longer count deleted contacts.
 
-- **Fix**: The API no longer answers 500 when a broadcast, blog post, segment, automation or transactional notification refuses a request. An action the object's status does not allow, such as scheduling a broadcast that is no longer a draft or publishing a published post, answers 409 with that status; an ID or slug already taken answers 409; an unknown object answers 404; an invalid segment answers 400. Two pauses, resumes or cancellations of the same broadcast sent at the same time no longer both go through.
+- A custom event sent with capitals in its address (`Bob@Example.com`) is now stored under the lowercase address, like contacts, so it reaches the contact's timeline, segments and automations, and is erased with the contact. The API returns the lowercase address. Events stored before 45.0 keep their case, and listing events by address finds them as well as the new ones.
 
-- **Fix**: Deleting a broadcast whose emails were still queued let them go out after the broadcast was gone, or left paused ones in the queue for good. `broadcasts.delete` now answers 409 for such a broadcast, and for one that is paused or in an A/B test, and asks you to cancel it first. A scheduled broadcast also answers 409 until you unschedule it, which removes its send task.
+- SMTP senders on an internationalized domain (`news@bücher.de`) now go out in ASCII form. Notifuse sent raw UTF-8, which strict mail servers refuse.
 
-- **Security**: `automations.get` and `automations.list` no longer return the secret of webhook nodes to members and API keys that cannot edit automations. The secret is the token Notifuse sends to the webhook's URL.
+- The Gmail app on iOS no longer shows a broken-image icon at the bottom of emails with open tracking. The tracking pixel was a PNG with truncated pixel data, which Gmail could not display; it is now a valid transparent PNG. Opens were recorded correctly all along.
 
-- **Fix**: `broadcasts.list` no longer repeats or skips broadcasts created at the same instant when it pages: they are ordered by creation date, then by ID.
+- The API no longer answers 500 when a broadcast, blog post, segment, automation or transactional notification refuses a request. An action the object's status does not allow, such as scheduling a broadcast that is no longer a draft or publishing a published post, answers 409 with that status; an ID or slug already taken answers 409; an unknown object answers 404; an invalid segment answers 400. Two pauses, resumes or cancellations of the same broadcast sent at the same time no longer both go through.
 
-- **Fix**: `contacts.list` no longer answers 500 when asked for the page after a contact whose email contains `~`. The cursor joins a date and an email with that character, and the email's own `~` broke it.
+- Deleting a broadcast whose emails were still queued let them go out after the broadcast was gone, or left paused ones in the queue for good. `broadcasts.delete` now answers 409 for such a broadcast, and for one that is paused or in an A/B test, and asks you to cancel it first. A scheduled broadcast also answers 409 until you unschedule it, which removes its send task.
 
-- **Fix**: A `lists.subscribe` call that leaves the contact unsubscribed, bounced or complained on every list it names no longer updates the contact. Before, it saved the contact fields from the request and changed `updated_at` even though it subscribed no one.
+- An expired session now answers 401 and a refused one 403 on every workspace route. Some routes answered 500 or 502, and the contact timeline and message history answered 401 to a database error, which signed the console out.
 
-- **Fix**: Transactional emails and double opt-in confirmations now record their template version in the message history, as broadcasts and automations do. It was always 0, which left their template's name out of the contact timeline.
+- `broadcasts.list` no longer repeats or skips broadcasts created at the same instant when it pages: they are ordered by creation date, then by ID.
 
-- **Fix**: An analytics query with a granularity and a date range given as a date and time (`2026-11-20 08:30:00`) or in RFC 3339 no longer fails with `failed to parse start date`. An hourly series that ends on a date now runs to the last hour of that day.
+- `contacts.list` no longer answers 500 when asked for the page after a contact whose email contains `~`. The cursor joins a date and an email with that character, and the email's own `~` broke it.
 
-- **Fix**: An analytics time series with more than 50,000 periods (years by the hour, for example) now answers 400. The server used to build every period in memory first, so one request could use up its memory.
+- A `lists.subscribe` call that leaves the contact unsubscribed, bounced or complained on every list it names no longer updates the contact. Before, it saved the contact fields from the request and changed `updated_at` even though it subscribed no one.
 
-- **Fix**: On an analytics time series with a date range, `order`, `offset` and `limit` now apply after the empty periods are filled. Rows cut by the limit used to come back as zeros, the order was lost, and the offset started again from the first period. A series grouped by a dimension reads only the groups that hold the requested rows, and answers 400 if those groups still hold more than 50,000 rows.
+- Transactional emails and double opt-in confirmations now record their template version in the message history, as broadcasts and automations do. It was always 0, which left their template's name out of the contact timeline.
 
-- **Fix**: `analytics.query` returns at most 50,000 rows and stops a query after 60 seconds. A query without a limit that would return more answers 400, and a request body over 1 MiB answers 413.
+- More of the console now shows in its language. The email editor's block names (in the structure tree, the breadcrumb, the block library and the settings panel), the email AI assistant's step lines, the web analytics dimensions, fields and measures, country names, the automation canvas cards and the automation save errors were in English in every language. The preview's **Open** button on a broadcast now reads as a verb in French, and a contact's last activity shows the provider event as a translated status (**Delivered**) instead of `Email · delivered`.
 
-- **Fix**: `analytics.query` answers 400 with what to change where it answered 500 with the database's error: a dimension in `timeDimensions` that is not a time, an operator the dimension's type does not take (`contains` on a number), text compared with a number, a value the column cannot read. The `Local` timezone is refused, and an empty timezone means UTC.
+- The Japanese console now uses one word for each thing: contacts are コンタクト on every screen (some said 連絡先), goals ゴール, integrations 連携, unsubscribing 購読解除, the SMTP bridge SMTPリレー, web analytics Webアナリティクス and telemetry テレメトリー, and Japanese text no longer puts a space before or after a Latin word or a number. Three labels that shared one translation now have their own: sending a broadcast now reads 今すぐ (it read 現在, "current"), the source of an incoming webhook reads 送信元 (it used the web traffic source's 流入元), and the region in the web analytics settings reads 地域 (it used the AWS region's リージョン).
 
-- **Fix**: `analytics.query` refuses a measure in `filters` and says to put it in `having`. Such a filter used to fail, or for some measures compare the raw column and return a wrong number.
+- The analytics measures for sending and completed broadcasts (`count_sending`, `completed_broadcasts_count`) looked for statuses broadcasts never have, so they returned 0. The recipient measures failed with an error and now count the emails queued by processed broadcasts, leaving out those sent before 21.0, which recorded no count. `count_with_ab_test` counts every broadcast with A/B testing on.
 
-- **Fix**: The `contains`, `startsWith` and `endsWith` analytics filters and their negations match `_` and `%` as written. A filter on `spring_sale` also matched `springXsale`.
+- The contacts analytics schema no longer lists `count_active`, `count_unsubscribed`, `count_bounced` and `count_with_source`. They read columns the contacts table doesn't have, so every query on them failed.
 
-- **Fix**: On a PostgreSQL server whose time zone is not UTC, web analytics reports in UTC placed sessions and goals in the server's hours and days (`hour_of_day`, `day_of_week`, `day` and the like). The **Traffic by day and hour** heatmap was shifted by the server's offset.
+- In the `automation_node_executions` analytics schema, `count_skipped` now counts skipped emails, where it always returned 0. `count_completed` leaves them out, along with the steps that recorded an error, which the new `count_errors` counts. `count_failed` counts each failed attempt once. A failure recorded from 45.0 on carries the type of the step that failed; earlier ones keep `trigger`.
 
-- **Fix**: The `set` and `notSet` analytics filters on `contact_email` now find identified and anonymous visitors. They matched every session and no session.
+- The `email_queue` analytics measure `count_retryable` no longer counts emails given up on after one attempt. The new `count_paused` counts the emails of paused broadcasts.
 
-- **Fix**: The analytics date filters (`inDateRange`, `notInDateRange`, `beforeDate`, `afterDate`) now read dates in the query's timezone, and a date as the end of a range covers that whole day. They read dates in the database's time zone and stopped at the start of the end date.
+- The web analytics `page_entry_type` dimension, the contact timeline and segments no longer count the first page of each browser tab as a landing page. In the timeline and segments, pages recorded before 45.0 keep the old value.
 
-- **Fix**: In an analytics time series, a period with no data now gives medians, rates and averages `null` instead of 0. Counts and sums still give 0.
+- An analytics query with a granularity and a date range given as a date and time (`2026-11-20 08:30:00`) or in RFC 3339 no longer fails with `failed to parse start date`. An hourly series that ends on a date now runs to the last hour of that day.
 
-- **Fix**: A date range that ends on a date now includes the last millisecond of that day. An hourly series over a single day with no data now has all the day's hours instead of one, and on the day the clocks go forward it no longer shows the skipped hour as an empty one.
+- An analytics time series with more than 50,000 periods (years by the hour, for example) now answers 400. The server used to build every period in memory first, so one request could use up its memory.
 
-- **Fix**: Web analytics goal value totals no longer drift on large sums: 100,000 goals of 19.99 added up to 1,999,836.6 instead of 1,999,000.
+- On an analytics time series with a date range, `order`, `offset` and `limit` now apply after the empty periods are filled. Rows cut by the limit used to come back as zeros, the order was lost, and the offset started again from the first period. A series grouped by a dimension reads only the groups that hold the requested rows, and answers 400 if those groups still hold more than 50,000 rows.
 
-- **Improvement**: The live web analytics view finds active sessions through a new index on `web_sessions` instead of reading the month's sessions every 10 seconds. Visits keep being recorded during the upgrade: the web analytics maintenance builds the index in the background a few minutes after Notifuse starts, one monthly partition at a time.
+- `analytics.query` returns at most 50,000 rows and stops a query after 60 seconds. A query without a limit that would return more answers 400, and a request body over 1 MiB answers 413.
 
-- **Fix**: An analytics query can sort by its time dimension, and several `order` keys sort in the order the query lists them. Sorting by a dimension the query does not group by answers 400 instead of 500.
+- `analytics.query` answers 400 with what to change where it answered 500 with the database's error: a dimension in `timeDimensions` that is not a time, an operator the dimension's type does not take (`contains` on a number), text compared with a number, a value the column cannot read. The `Local` timezone is refused, and an empty timezone means UTC.
 
-- **Fix**: An analytics query with more than one time dimension answers 400. The gap filling dropped rows when there were two.
+- `analytics.query` refuses a measure in `filters` and says to put it in `having`. Such a filter used to fail, or for some measures compare the raw column and return a wrong number.
+
+- The `contains`, `startsWith` and `endsWith` analytics filters and their negations match `_` and `%` as written. A filter on `spring_sale` also matched `springXsale`.
+
+- On a PostgreSQL server whose time zone is not UTC, web analytics reports in UTC placed sessions and goals in the server's hours and days (`hour_of_day`, `day_of_week`, `day` and the like). The **Traffic by day and hour** heatmap was shifted by the server's offset.
+
+- The `set` and `notSet` analytics filters on `contact_email` now find identified and anonymous visitors. They matched every session and no session.
+
+- The analytics date filters (`inDateRange`, `notInDateRange`, `beforeDate`, `afterDate`) now read dates in the query's timezone, and a date as the end of a range covers that whole day. They read dates in the database's time zone and stopped at the start of the end date.
+
+- In an analytics time series, a period with no data now gives medians, rates and averages `null` instead of 0. Counts and sums still give 0.
+
+- A date range that ends on a date now includes the last millisecond of that day. An hourly series over a single day with no data now has all the day's hours instead of one, and on the day the clocks go forward it no longer shows the skipped hour as an empty one.
+
+- Web analytics goal value totals no longer drift on large sums: 100,000 goals of 19.99 added up to 1,999,836.6 instead of 1,999,000.
+
+- An analytics query can sort by its time dimension, and several `order` keys sort in the order the query lists them. Sorting by a dimension the query does not group by answers 400 instead of 500.
+
+- An analytics query with more than one time dimension answers 400. The gap filling dropped rows when there were two.
 
 ## [44.0] - 2026-11-19
 
