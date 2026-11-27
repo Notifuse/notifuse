@@ -90,8 +90,8 @@ func (h *NotificationCenterHandler) handleGetPreferences(w http.ResponseWriter, 
 		return
 	}
 
-	// Note: Confirmation action is now handled by the frontend via AJAX
-	// The frontend will detect action=confirm and make a POST request to /subscribe
+	// Reading the preferences writes nothing. On the double opt-in link (action=confirm),
+	// the page asks the visitor, and POSTs /subscribe only when they click.
 
 	// Get notification center data for the contact
 	response, err := h.service.GetContactPreferences(r.Context(), req.WorkspaceID, req.Email, req.EmailHMAC)
@@ -283,10 +283,11 @@ func (h *NotificationCenterHandler) handleUnsubscribeOneClick(w http.ResponseWri
 	// A GET or HEAD never unsubscribes - see redirectOneClickToConfirmation.
 	var req domain.UnsubscribeFromListsRequest
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-		// Backward-compat shim for the SPA (see above). A link-prefetcher/scanner cannot
-		// reach here: it does not run the widget's JS and so never builds this JSON body,
-		// so the RFC 8058 token gate is unnecessary for this shape - and email_hmac still
-		// gates the actual unsubscribe in the service.
+		// Backward-compat shim for the SPA (see above). The widget sends this body only
+		// when the visitor clicks, never on load: email security scanners do run its JS
+		// in a real browser, and its pages ask before anything is written. The RFC 8058
+		// token gate does not apply to this shape; email_hmac gates the actual
+		// unsubscribe in the service.
 		if err := req.FromJSONBody(io.LimitReader(r.Body, maxUnsubscribeBodyBytes)); err != nil {
 			h.logger.WithField("error", err.Error()).Error("Invalid notification center unsubscribe request")
 			WriteJSONError(w, "Invalid request", http.StatusBadRequest)

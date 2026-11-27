@@ -410,6 +410,10 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		// Enable email tracking so we can verify encrypted /t/ and /r/ URLs
 		err = factory.EnableEmailTracking(workspace.ID)
 		require.NoError(t, err)
+		// The harness runs with an empty API endpoint, which leaves the links relative.
+		// Point the workspace at the live server so links to the instance's own pages are
+		// absolute and recognised as such, as they are in production.
+		require.NoError(t, factory.SetWorkspaceCustomEndpointURL(workspace.ID, suite.ServerManager.GetURL()))
 
 		// Create list with a specific name to verify list.name variable
 		listName := fmt.Sprintf("Subscribers-%s", uuid.New().String()[:8])
@@ -437,7 +441,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		template, err := factory.CreateTemplate(workspace.ID,
 			testutil.WithTemplateName("System Vars Template"),
 			testutil.WithTemplateSubject(fmt.Sprintf("Newsletter - %s", uniqueID)),
-			testutil.WithTemplateEmailContent(`Hello {{ contact.first_name }}! <a href="{{ unsubscribe_url }}">Unsubscribe</a> | <a href="{{ notification_center_url }}">Manage Preferences</a>`))
+			testutil.WithTemplateEmailContent(`Hello {{ contact.first_name }}! <a href="https://shop.example.com/sale">Sale</a> <a href="{{ unsubscribe_url }}">Unsubscribe</a> | <a href="{{ notification_center_url }}">Manage Preferences</a>`))
 		require.NoError(t, err)
 		t.Log("Created template with system variables: unsubscribe_url, notification_center_url")
 
@@ -490,9 +494,14 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		t.Logf("Email HTML (first 500 chars): %s", truncateString(msg.HTML, 500))
 
 		// Assert system variables are rendered (not empty or raw Liquid)
-		// URLs are wrapped in encrypted /r/ tracking tokens
-		assert.Contains(t, msg.HTML, "/r/",
-			"system URLs should be rendered as encrypted tracking redirects")
+		// The unsubscribe and preferences links lead to the instance's own pages and are
+		// sent as written; the content link goes through the encrypted click redirect
+		assert.Regexp(t, `href="[^"]*/notification-center\?action=unsubscribe[^"]*"`, msg.HTML,
+			"the unsubscribe link should be a direct link to the notification center")
+		assert.Regexp(t, `href="[^"]*/notification-center\?email=[^"]*"`, msg.HTML,
+			"the preferences link should be a direct link to the notification center")
+		assert.Equal(t, 1, strings.Count(msg.HTML, "/r/"),
+			"only the content link should go through the click redirect")
 		// Tracking pixel should be present with encrypted /t/ path and table wrapper
 		assert.Contains(t, msg.HTML, "/t/",
 			"tracking pixel should use encrypted /t/ path")
@@ -529,7 +538,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		assert.Contains(t, clickParts[0], workspace.ID, "Click messageID should contain workspace ID")
 		assert.Equal(t, workspace.ID, clickParts[1], "Click workspaceID should match")
 		assert.NotEmpty(t, clickParts[2], "Click timestamp should not be empty")
-		assert.NotEmpty(t, clickParts[3], "Click destination URL should not be empty")
+		assert.Contains(t, clickParts[3], "https://shop.example.com/sale", "The click redirect should lead to the content link")
 		t.Logf("Decrypted click: mid=%s, wid=%s, ts=%s, url=%s", clickParts[0], clickParts[1], clickParts[2], clickParts[3])
 
 		// Verify contact variable still works alongside system variables

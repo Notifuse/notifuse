@@ -1864,7 +1864,7 @@ func (a *App) InitHandlers() error {
 		a.logger)
 	rootHandler := httpHandler.NewRootHandler(
 		"console/dist",
-		"notification_center/dist",
+		resolveStaticDir(notificationCenterRelPath),
 		a.logger,
 		a.config.APIEndpoint,
 		a.config.Version,

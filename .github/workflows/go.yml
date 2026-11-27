@@ -253,14 +253,113 @@ jobs:
           fi
           echo "All $(wc -l < expected.txt) tests of this shard started."
 
+  # The notification center opened in a real browser, on the real server serving the
+  # built widget (tests/integration/notification_center_browser_test.go). Email security
+  # scanners open every link of an email and run its JavaScript, so the test reads the
+  # database to check that opening a link writes nothing until the visitor clicks. It has
+  # its own job because it needs Node to build the widget and Chrome to open it; the
+  # shards above skip it.
+  browser-e2e:
+    name: Browser E2E (notification center)
+    # Pinned to the image that ships Google Chrome, as the console's e2e job is pinned
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: notifuse_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd "pg_isready -U notifuse_test -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+
+      mailpit:
+        image: axllent/mailpit:latest
+        options: >-
+          --health-cmd "wget --quiet --tries=1 --spider http://localhost:8025/ || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: notification_center/package-lock.json
+
+      # The server serves notification_center/dist; the test fails loudly without it
+      - name: Build the notification center
+        working-directory: ./notification_center
+        run: |
+          npm ci
+          npm run build
+
+      - name: Check that Chrome is installed
+        run: google-chrome --version
+
+      - name: Run the browser test
+        env:
+          INTEGRATION_TESTS: true
+          BROWSER_E2E: true
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 5433
+          TEST_DB_USER: notifuse_test
+          TEST_DB_PASSWORD: test_password
+          ENVIRONMENT: test
+          DB_HOST: localhost
+          DB_PORT: 5433
+          DB_USER: notifuse_test
+          DB_PASSWORD: test_password
+          DB_NAME: notifuse_test_integration
+          DB_PREFIX: notifuse_test
+          DB_SSLMODE: disable
+        # A named shell turns on pipefail, so tee does not hide a failure
+        shell: bash
+        run: |
+          set -o pipefail
+          echo "SECRET_KEY=UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==" >> .env.test
+          echo "ROOT_EMAIL=admin@example.com" >> .env.test
+          for i in {1..30}; do
+            if curl -f http://localhost:8025/ > /dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          go test -tags integration,licdev -count=1 -v -timeout 15m \
+            -run '^TestNotificationCenterLinksBrowserE2E$' ./tests/integration/ 2>&1 | tee browser-e2e.txt
+          # A skipped test passes too: require that it ran and passed
+          grep -q '^--- PASS: TestNotificationCenterLinksBrowserE2E ' browser-e2e.txt
+
   # One check to read and to require, whatever the number of shards.
   integration-tests-result:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: integration-tests
+    needs: [integration-tests, browser-e2e]
     if: always()
     steps:
-      - name: Every shard passed
+      - name: Every shard and the browser test passed
         run: |
           echo "shards: ${{ needs.integration-tests.result }}"
+          echo "browser test: ${{ needs.browser-e2e.result }}"
           test "${{ needs.integration-tests.result }}" = "success"
+          test "${{ needs.browser-e2e.result }}" = "success"

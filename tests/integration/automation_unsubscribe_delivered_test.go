@@ -201,8 +201,9 @@ func TestAutomationUnsubscribeAsDelivered(t *testing.T) {
 	}
 
 	// widgetUnsubscribe sends the request the notification center sends from its page's
-	// own parameters, on load for action=unsubscribe and on the confirmation button for
-	// action=confirm_unsubscribe (notification_center/src/App.tsx).
+	// own parameters when the visitor clicks the confirmation button, for action=unsubscribe
+	// (the email's link) and action=confirm_unsubscribe (the header link opened in a
+	// browser). Loading the page writes nothing (notification_center/src/App.tsx).
 	widgetUnsubscribe := func(t *testing.T, page url.Values) {
 		t.Helper()
 		payload, err := json.Marshal(map[string]interface{}{
@@ -270,6 +271,8 @@ func TestAutomationUnsubscribeAsDelivered(t *testing.T) {
 	t.Run("contact not on the list: the in-body link records the opt-out", func(t *testing.T) {
 		email, msg := deliver(t, automation, false)
 		link := deliveredLinkHref(t, msg.HTML, "Unsubscribe")
+		// It leads to the instance's own page, so it is sent as written
+		require.NotContains(t, link, "/r/", "the in-body unsubscribe link went through the click redirect")
 
 		// Open the link as a browser does, following any redirect
 		pageResp, err := (&http.Client{Timeout: 10 * time.Second}).Get(link)

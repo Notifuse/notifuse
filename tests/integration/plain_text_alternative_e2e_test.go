@@ -296,23 +296,25 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 
 		assertTextMirrorsHTML(t, parts)
 		require.Contains(t, parts.text, "Unsubscribe (")
-		// The text's unsubscribe link, tracked or not, leads to this list's unsubscribe page.
+		// The text's unsubscribe link is this list's unsubscribe page itself: links to the
+		// instance's own pages are sent as written, never through the click redirect.
 		var destinations []string
 		for _, u := range plainTextURLRe.FindAllString(parts.text, -1) {
 			if m := regexp.MustCompile(`/r/([A-Za-z0-9_-]+)`).FindStringSubmatch(u); m != nil {
 				tok, err := trackingtoken.Parse(m[1], trackingtoken.PurposeClick)
 				require.NoError(t, err)
-				u = tok.URL
+				assert.NotContains(t, tok.URL, "/notification-center", "an unsubscribe link went through the click redirect")
+				continue
 			}
 			destinations = append(destinations, u)
 		}
 		found := false
 		for _, d := range destinations {
-			if strings.Contains(d, "lid="+list.ID) && strings.Contains(d, "action=unsubscribe") {
+			if strings.Contains(d, "/notification-center?") && strings.Contains(d, "lid="+list.ID) && strings.Contains(d, "action=unsubscribe") {
 				found = true
 			}
 		}
-		assert.True(t, found, "the text links to the list's unsubscribe page: %v", destinations)
+		assert.True(t, found, "the text links directly to the list's unsubscribe page: %v", destinations)
 	})
 
 	t.Run("templates.compile returns the text version", func(t *testing.T) {

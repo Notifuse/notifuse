@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - unreleased
 
+- **Fix**: The unsubscribe link of an email (`{{ unsubscribe_url }}`) and the double opt-in confirmation link (`{{ confirm_subscription_url }}`) open a page that asks the contact to click. Email security scanners open every link of an email in a browser, so they unsubscribed and confirmed contacts on their own (#704).
+
+- **Improvement**: Links in emails to the notification center and the web version no longer go through click tracking. Opening them no longer counts as a click or an open and no longer starts automations triggered by a click; unsubscribes are still counted.
+
 - **Feature**: A broadcast's results now list its recipients under the funnel. Clicking a step (**Opened**, **Clicked**, **Bounces**…) shows who reached it, latest first, and `messages.list` gains `order_by` and `order` to sort by one of a message's dates.
 
 - **Feature**: Custom branding, with an Agency or Enterprise licence. In **System Settings** → **Branding**, the root user sets the instance's name, logo and icon, and can hide the Help menu. The console and the system emails then show this identity in place of Notifuse's.

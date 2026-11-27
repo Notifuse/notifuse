@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -27,20 +28,20 @@ const webVersionMJML = `<mjml><mj-body><mj-section><mj-column>` +
 	`<mj-button href="https://shop.example.com/sale">Shop</mj-button>` +
 	`</mj-column></mj-section></mj-body></mjml>`
 
-// deliveredWebVersionLink returns the web version link of a delivered email: the click
-// redirect wrapping it when clicks are tracked, and its destination, the /v/ URL with the
-// UTM parameters the send appended.
-func deliveredWebVersionLink(t *testing.T, html string) (clickLink, destination string) {
+// deliveredWebVersionLink returns the web version link of a delivered email. It leads to
+// the instance's own page, so it is sent as written: no click redirect, no UTM parameters.
+func deliveredWebVersionLink(t *testing.T, html string) string {
 	t.Helper()
 	for _, m := range deliveredClickLinkRe.FindAllStringSubmatch(html, -1) {
 		tok, err := trackingtoken.Parse(m[2], trackingtoken.PurposeClick)
 		require.NoError(t, err)
-		if strings.Contains(tok.URL, "/v/") {
-			return m[1], tok.URL
-		}
+		require.NotContains(t, tok.URL, "/v/", "the web version link went through the click redirect")
+	}
+	if m := regexp.MustCompile(`href="([^"]*/v/[^"]+)"`).FindStringSubmatch(html); m != nil {
+		return strings.ReplaceAll(m[1], "&amp;", "&")
 	}
 	t.Fatalf("no web version link in the delivered email: %s", html)
-	return "", ""
+	return ""
 }
 
 func getWebVersion(t *testing.T, link string) (*http.Response, string) {
@@ -171,8 +172,9 @@ func TestWebVersion(t *testing.T) {
 
 		msg, err := testutil.WaitForMailpitMessageByRecipient(t, camille, 30*time.Second)
 		require.NoError(t, err)
-		clickLink, destination := deliveredWebVersionLink(t, msg.HTML)
+		destination := deliveredWebVersionLink(t, msg.HTML)
 		require.True(t, strings.HasPrefix(destination, serverURL+"/v/"), destination)
+		assert.NotContains(t, destination, "utm_", "the web version link is sent as written")
 		viewTok, err := trackingtoken.Parse(strings.SplitN(strings.TrimPrefix(destination, serverURL+"/v/"), "?", 2)[0], trackingtoken.PurposeView)
 		require.NoError(t, err)
 
@@ -233,16 +235,11 @@ func TestWebVersion(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, updateResp.StatusCode, string(updateBody))
 		assert.Contains(t, string(updateBody), "already used by another workspace")
 
-		// The tracked link in the email redirects to the web version.
-		redirect := clickDelivered(t, clickLink)
-		assert.Equal(t, http.StatusSeeOther, redirect.StatusCode)
-		assert.Equal(t, destination, redirect.Header.Get("Location"))
-
 		// A first name carrying markup reaches the page escaped, as text (Liquid
 		// outputs are escaped in the HTML of emails), and the page is sandboxed too.
 		attackerMsg, err := testutil.WaitForMailpitMessageByRecipient(t, attacker, 30*time.Second)
 		require.NoError(t, err)
-		_, attackerDestination := deliveredWebVersionLink(t, attackerMsg.HTML)
+		attackerDestination := deliveredWebVersionLink(t, attackerMsg.HTML)
 		resp, body = getWebVersion(t, attackerDestination)
 		require.Equal(t, http.StatusOK, resp.StatusCode, body)
 		assert.Contains(t, body, `&lt;img src=x onerror=alert(1)`)
@@ -278,7 +275,7 @@ func TestWebVersion(t *testing.T) {
 		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email), testutil.WithContactName("Erin", "Doe"))
 		require.NoError(t, err)
 		msg := sendBroadcastTo(t, template, email)
-		_, destination := deliveredWebVersionLink(t, msg.HTML)
+		destination := deliveredWebVersionLink(t, msg.HTML)
 
 		resp, body := getWebVersion(t, destination)
 		require.Equal(t, http.StatusOK, resp.StatusCode, body)
@@ -302,7 +299,7 @@ func TestWebVersion(t *testing.T) {
 
 		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 		require.NoError(t, err)
-		_, destination := deliveredWebVersionLink(t, msg.HTML)
+		destination := deliveredWebVersionLink(t, msg.HTML)
 		resp, body := getWebVersion(t, destination)
 		require.Equal(t, http.StatusOK, resp.StatusCode, body)
 		assert.Contains(t, body, "Hello Alex, welcome aboard.")
