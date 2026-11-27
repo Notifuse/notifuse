@@ -13,6 +13,7 @@ import {
   type BrandNameError
 } from '../brand/brandingValidation'
 import type { SystemSettingsData } from '../../types/settings'
+import signinBackground from '../../assets/signin-background.jpg'
 
 const { Title, Text } = Typography
 
@@ -22,6 +23,7 @@ export interface StoredBranding {
   logoUrl: string
   iconUrl: string
   hideHelpMenu: boolean
+  backgroundUrl: string
 }
 
 interface BrandingSettingsProps {
@@ -52,11 +54,13 @@ export function BrandingSettings({
   const logoUrl = trimmed(Form.useWatch('branding_logo_url', form))
   const iconUrl = trimmed(Form.useWatch('branding_icon_url', form))
   const hideHelpMenu = Form.useWatch('branding_hide_help_menu', form) === true
+  const backgroundUrl = trimmed(Form.useWatch('branding_background_url', form))
 
   // The URL whose preview failed to load. The error stays under the field but never blocks the
   // save: the administrator's own browser may be the one that cannot reach the image.
   const [failedLogo, setFailedLogo] = useState('')
   const [failedIcon, setFailedIcon] = useState('')
+  const [failedBackground, setFailedBackground] = useState('')
 
   const nameMessages: Record<BrandNameError, string> = {
     too_long: t`Use at most ${MAX_BRAND_NAME_CODE_POINTS} characters.`,
@@ -105,10 +109,16 @@ export function BrandingSettings({
       branding_name: '',
       branding_logo_url: '',
       branding_icon_url: '',
-      branding_hide_help_menu: false
+      branding_hide_help_menu: false,
+      branding_background_url: ''
     })
     onBrandingEdited?.()
-    void form.validateFields(['branding_name', 'branding_logo_url', 'branding_icon_url'])
+    void form.validateFields([
+      'branding_name',
+      'branding_logo_url',
+      'branding_icon_url',
+      'branding_background_url'
+    ])
   }
 
   const clearButton = (field: keyof SystemSettingsData, label: string, value: string) => (
@@ -124,15 +134,25 @@ export function BrandingSettings({
   )
 
   const preview = previewBranding({ name, logoUrl, iconUrl })
+  // The background drawn in the preview: the URL being edited once it is valid and has not failed
+  // to load, the Notifuse photo when the field is empty, the plain page colour otherwise, as on the
+  // sign-in page.
+  const backgroundPreview =
+    backgroundUrl === ''
+      ? signinBackground
+      : !validateBrandingUrl(backgroundUrl) && failedBackground !== backgroundUrl
+        ? backgroundUrl
+        : ''
 
   const imageField = (
-    field: 'branding_logo_url' | 'branding_icon_url',
+    field: 'branding_logo_url' | 'branding_icon_url' | 'branding_background_url',
     label: string,
     help: string,
     storedValue: string,
     failed: string,
     setFailed: (url: string) => void,
-    value: string
+    value: string,
+    placeholder = 'https://cdn.example.com/brand.png'
   ) => (
     <Form.Item
       label={label}
@@ -150,7 +170,7 @@ export function BrandingSettings({
       }
     >
       <Input
-        placeholder="https://cdn.example.com/brand.png"
+        placeholder={placeholder}
         readOnly={clearOnly(storedValue, value)}
         disabled={textLocked(storedValue, value)}
         addonAfter={clearButton(field, label, value)}
@@ -269,6 +289,21 @@ export function BrandingSettings({
         </Col>
       </Row>
 
+      <Row gutter={16}>
+        <Col span={24}>
+          {imageField(
+            'branding_background_url',
+            t`Background image URL`,
+            t`A large landscape image works best. Shown behind the sign-in, invitation and workspace pages.`,
+            stored.backgroundUrl,
+            failedBackground,
+            setFailedBackground,
+            backgroundUrl,
+            'https://cdn.example.com/background.jpg'
+          )}
+        </Col>
+      </Row>
+
       <div className="mb-2 flex items-center justify-between">
         <Text strong>{t`Preview`}</Text>
         <Button size="small" onClick={resetIdentity}>
@@ -290,6 +325,22 @@ export function BrandingSettings({
             className="size-4 shrink-0 object-contain"
           />
           <span className="truncate">{`Console | ${preview.name}`}</span>
+        </div>
+        <div
+          className="relative flex h-[72px] w-[120px] items-center justify-center overflow-hidden rounded-md bg-canvas"
+          aria-label={t`Sign-in page`}
+        >
+          {backgroundPreview ? (
+            <img
+              key={backgroundPreview}
+              src={backgroundPreview}
+              alt=""
+              referrerPolicy="no-referrer"
+              data-testid="branding-preview-background"
+              className="absolute inset-0 size-full object-cover"
+            />
+          ) : null}
+          <div className="relative h-9 w-11 rounded-sm bg-surface" />
         </div>
       </div>
     </section>

@@ -71,7 +71,7 @@ func TestSetupService_Initialize_KeepsAStoredBrand(t *testing.T) {
 	defer ctrl.Finish()
 
 	settingRepo := NewMockSettingRepository()
-	stored := `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true}`
+	stored := `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true,"background_url":"https://cdn.example.com/bg.jpg"}`
 	settingRepo.settings[InstanceBrandingSettingKey] = stored
 	settingService := NewSettingService(settingRepo, nil)
 	userRepo := domainmocks.NewMockUserRepository(ctrl)
@@ -92,4 +92,5 @@ func TestSetupService_Initialize_KeepsAStoredBrand(t *testing.T) {
 	assert.Equal(t, "Acme", got.Name)
 	assert.Equal(t, "https://cdn.example.com/l.png", got.LogoURL)
 	assert.True(t, got.HideHelpMenu)
+	assert.Equal(t, "https://cdn.example.com/bg.jpg", got.BackgroundURL)
 }

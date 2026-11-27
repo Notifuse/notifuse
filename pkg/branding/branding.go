@@ -1,5 +1,6 @@
 // Package branding holds the identity an instance shows instead of Notifuse's: a name, a main
-// logo URL, an icon URL and a switch that hides the Help menu.
+// logo URL, an icon URL, a background image URL for the sign-in pages and a switch that hides the
+// Help menu.
 //
 // It validates and normalises those values and resolves what each surface shows. It does no I/O
 // and knows nothing of licensing: whether a stored identity may be shown is decided by the caller,
@@ -45,10 +46,11 @@ const (
 
 // API field names, used in validation errors so a form can put each error under its field.
 const (
-	FieldName         = "branding_name"
-	FieldLogoURL      = "branding_logo_url"
-	FieldIconURL      = "branding_icon_url"
-	FieldHideHelpMenu = "branding_hide_help_menu"
+	FieldName          = "branding_name"
+	FieldLogoURL       = "branding_logo_url"
+	FieldIconURL       = "branding_icon_url"
+	FieldHideHelpMenu  = "branding_hide_help_menu"
+	FieldBackgroundURL = "branding_background_url"
 )
 
 // Branding is the stored identity. The zero value is the default identity.
@@ -57,6 +59,10 @@ type Branding struct {
 	LogoURL      string `json:"logo_url"`
 	IconURL      string `json:"icon_url"`
 	HideHelpMenu bool   `json:"hide_help_menu"`
+	// BackgroundURL replaces the photo behind the sign-in, invitation and workspace pages. Like
+	// HideHelpMenu it is independent of the identity: it neither makes the brand custom nor needs a
+	// name. omitempty keeps the stored JSON, and so the Revision, of a brand without one as it was.
+	BackgroundURL string `json:"background_url,omitempty"`
 }
 
 // FieldError is a validation failure tied to one API field.
@@ -79,11 +85,12 @@ func (b Branding) Normalize() Branding {
 	b.Name = strings.TrimSpace(b.Name)
 	b.LogoURL = strings.TrimSpace(b.LogoURL)
 	b.IconURL = strings.TrimSpace(b.IconURL)
+	b.BackgroundURL = strings.TrimSpace(b.BackgroundURL)
 	return b
 }
 
 // IsCustom reports whether the identity replaces Notifuse's: any of the name, logo or icon is set.
-// HideHelpMenu alone does not make an identity custom.
+// HideHelpMenu and BackgroundURL alone do not make an identity custom.
 func (b Branding) IsCustom() bool {
 	n := b.Normalize()
 	return n.Name != "" || n.LogoURL != "" || n.IconURL != ""
@@ -99,6 +106,9 @@ func (b Branding) Validate() error {
 	}
 	if err := ValidateURL(b.IconURL); err != nil {
 		return &FieldError{Field: FieldIconURL, Message: err.Error()}
+	}
+	if err := ValidateURL(b.BackgroundURL); err != nil {
+		return &FieldError{Field: FieldBackgroundURL, Message: err.Error()}
 	}
 	if b.Name == "" && (b.LogoURL != "" || b.IconURL != "") {
 		return &FieldError{Field: FieldName, Message: "a brand name is required when a logo or an icon is set"}
@@ -128,6 +138,11 @@ func (b Branding) ValidateChanged(stored Branding) error {
 	if b.IconURL != stored.IconURL {
 		if err := ValidateURL(b.IconURL); err != nil {
 			return &FieldError{Field: FieldIconURL, Message: err.Error()}
+		}
+	}
+	if b.BackgroundURL != stored.BackgroundURL {
+		if err := ValidateURL(b.BackgroundURL); err != nil {
+			return &FieldError{Field: FieldBackgroundURL, Message: err.Error()}
 		}
 	}
 	if b.Name == "" && (b.LogoURL != "" || b.IconURL != "") {
@@ -315,7 +330,7 @@ func validLabel(label string) bool {
 }
 
 // Revision is a SHA-256 of the canonical JSON of the normalised identity, hex-encoded. Two
-// identities that differ in any of the four fields have different revisions.
+// identities that differ in any of the five fields have different revisions.
 func (b Branding) Revision() string {
 	data, _ := json.Marshal(b.Normalize()) // a struct of strings and a bool always marshals
 	sum := sha256.Sum256(data)
@@ -360,6 +375,9 @@ type Resolved struct {
 	IconURL string `json:"icon_url"`
 	// HideHelpMenu hides the Help menu. It is independent of Custom.
 	HideHelpMenu bool `json:"hide_help_menu"`
+	// BackgroundURL is the image behind the sign-in, invitation and workspace pages, empty for the
+	// Notifuse photo. It is independent of Custom.
+	BackgroundURL string `json:"background_url"`
 	// SplashLogoSrc is the image the loading screen shows: the Notifuse logo in default mode, the
 	// configured logo in custom mode, or empty when the name is shown as text instead.
 	SplashLogoSrc string `json:"splash_logo_src"`
@@ -379,9 +397,10 @@ func Resolve(b Branding) Resolved {
 	b.LogoURL = displayableURL(b.LogoURL)
 	b.IconURL = displayableURL(b.IconURL)
 	r := Resolved{
-		Custom:       b.IsCustom(),
-		HideHelpMenu: b.HideHelpMenu,
-		Revision:     revision,
+		Custom:        b.IsCustom(),
+		HideHelpMenu:  b.HideHelpMenu,
+		BackgroundURL: displayableURL(b.BackgroundURL),
+		Revision:      revision,
 	}
 	if !r.Custom {
 		r.Name = DefaultName

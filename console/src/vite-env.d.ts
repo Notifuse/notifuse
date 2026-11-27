@@ -35,6 +35,9 @@ declare global {
     logo_url: string
     icon_url: string
     hide_help_menu: boolean
+    // The image behind the sign-in, invitation and workspace pages; empty for the Notifuse photo.
+    // Absent from a config.js served by an earlier 45.0 build.
+    background_url?: string
     splash_logo_src: string
     favicon_src: string
     revision: string

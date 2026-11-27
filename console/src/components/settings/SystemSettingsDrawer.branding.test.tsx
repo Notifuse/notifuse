@@ -71,6 +71,7 @@ function settings(overrides: Partial<SystemSettingsData> = {}): SystemSettingsDa
     branding_logo_url: '',
     branding_icon_url: '',
     branding_hide_help_menu: false,
+    branding_background_url: '',
     ...overrides
   }
 }
@@ -132,12 +133,18 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
     Modal.destroyAll()
   })
 
-  it('shows the stored values and saves the four keys with the rest of the settings', async () => {
-    mockGet({ branding_name: 'Acme', branding_logo_url: 'https://cdn.example.com/l.png', branding_hide_help_menu: true })
+  it('shows the stored values and saves the five keys with the rest of the settings', async () => {
+    mockGet({
+      branding_name: 'Acme',
+      branding_logo_url: 'https://cdn.example.com/l.png',
+      branding_hide_help_menu: true,
+      branding_background_url: 'https://cdn.example.com/bg.jpg'
+    })
     await openDrawer(renderDrawer({ entitlements: grant(['branding']) }))
 
     expect(screen.getByLabelText('Brand name')).toHaveValue('Acme')
     expect(screen.getByLabelText('Main logo URL')).toHaveValue('https://cdn.example.com/l.png')
+    expect(screen.getByLabelText('Background image URL')).toHaveValue('https://cdn.example.com/bg.jpg')
 
     await saveAndConfirm()
     await waitFor(() => expect(settingsApi.update).toHaveBeenCalled())
@@ -147,8 +154,52 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
       branding_logo_url: 'https://cdn.example.com/l.png',
       branding_icon_url: '',
       branding_hide_help_menu: true,
+      branding_background_url: 'https://cdn.example.com/bg.jpg',
       audit_logs_retention_days: 90
     })
+  })
+
+  it('sends an empty background to a server that never stored one', async () => {
+    const older: Partial<SystemSettingsData> = settings()
+    delete older.branding_background_url
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: older as SystemSettingsData, env_overrides: {} })
+    await openDrawer(renderDrawer({ entitlements: grant(['branding']) }))
+
+    await saveAndConfirm()
+    await waitFor(() => expect(settingsApi.update).toHaveBeenCalled())
+    expect(vi.mocked(settingsApi.update).mock.calls[0][0]).toMatchObject({ branding_background_url: '' })
+  })
+
+  it('accepts a background without a brand name, and refuses an http one under the field', async () => {
+    mockGet()
+    await openDrawer(renderDrawer({ entitlements: grant(['branding']) }))
+
+    const field = screen.getByLabelText('Background image URL')
+    fireEvent.change(field, { target: { value: 'http://cdn.example.com/bg.jpg' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Use an absolute https:// URL.')).toBeInTheDocument()
+
+    fireEvent.change(field, { target: { value: 'https://cdn.example.com/bg.jpg' } })
+    await saveAndConfirm()
+    await waitFor(() => expect(settingsApi.update).toHaveBeenCalled())
+    expect(vi.mocked(settingsApi.update).mock.calls[0][0]).toMatchObject({
+      branding_name: '',
+      branding_background_url: 'https://cdn.example.com/bg.jpg'
+    })
+  })
+
+  it('previews the background being edited, and the Notifuse photo when it is empty', async () => {
+    mockGet()
+    await openDrawer(renderDrawer({ entitlements: grant(['branding']) }))
+
+    const preview = screen.getByTestId('branding-preview')
+    expect(within(preview).getByTestId('branding-preview-background').getAttribute('src')).not.toContain('cdn.example.com')
+
+    fireEvent.change(screen.getByLabelText('Background image URL'), { target: { value: 'https://cdn.example.com/bg.jpg' } })
+    await waitFor(() =>
+      expect(within(preview).getByTestId('branding-preview-background')).toHaveAttribute('src', 'https://cdn.example.com/bg.jpg')
+    )
+    expect(within(preview).getByTestId('branding-preview-background')).toHaveAttribute('referrerpolicy', 'no-referrer')
   })
 
   it('refuses an image without a name before the restart dialog', async () => {
@@ -173,13 +224,19 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
     expect(await screen.findByText('Use an absolute https:// URL.')).toBeInTheDocument()
   })
 
-  it('resets the four fields with one button', async () => {
-    mockGet({ branding_name: 'Acme', branding_icon_url: 'https://cdn.example.com/i.png', branding_hide_help_menu: true })
+  it('resets the five fields with one button', async () => {
+    mockGet({
+      branding_name: 'Acme',
+      branding_icon_url: 'https://cdn.example.com/i.png',
+      branding_hide_help_menu: true,
+      branding_background_url: 'https://cdn.example.com/bg.jpg'
+    })
     await openDrawer(renderDrawer({ entitlements: grant(['branding']) }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Reset branding' }))
     expect(screen.getByLabelText('Brand name')).toHaveValue('')
     expect(screen.getByLabelText('Brand icon URL')).toHaveValue('')
+    expect(screen.getByLabelText('Background image URL')).toHaveValue('')
     expect(screen.getByRole('switch', { name: 'Hide help menu' })).not.toBeChecked()
   })
 
@@ -200,6 +257,7 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
 
       expect(screen.getByText('Custom branding requires a Notifuse Agency licence.')).toBeInTheDocument()
       expect(screen.getByLabelText('Main logo URL')).toBeDisabled()
+      expect(screen.getByLabelText('Background image URL')).toBeDisabled()
       expect(screen.getByLabelText('Brand name')).toHaveAttribute('readonly')
       expect(screen.getByRole('switch', { name: 'Hide help menu' })).toBeDisabled()
 
@@ -230,6 +288,15 @@ describe('SystemSettingsDrawer — Branding', { timeout: 20000 }, () => {
       expect(field).not.toBeDisabled()
       fireEvent.click(screen.getByRole('button', { name: 'Clear Brand name' }))
       await waitFor(() => expect(screen.getByLabelText('Brand name')).toHaveValue(''))
+    })
+
+    it('lets a stored background be cleared only', async () => {
+      mockGet({ branding_background_url: 'https://cdn.example.com/bg.jpg' })
+      await openDrawer(renderDrawer({ entitlements: grant(['rbac']), refresh: vi.fn() }))
+
+      expect(screen.getByLabelText('Background image URL')).toHaveAttribute('readonly')
+      fireEvent.click(screen.getByRole('button', { name: 'Clear Background image URL' }))
+      await waitFor(() => expect(screen.getByLabelText('Background image URL')).toHaveValue(''))
     })
 
     it('lets a ticked Hide help menu be unticked', async () => {

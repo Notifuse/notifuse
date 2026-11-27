@@ -67,6 +67,14 @@ func TestRootHandler_ConfigJS_InstanceBranding(t *testing.T) {
 		assert.Equal(t, branding.DefaultName, instanceBrandingFromConfigJS(t, serve(h, http.MethodGet, "/config.js").Body.String()).Name)
 	})
 
+	t.Run("carries the background URL, quotes and parentheses escaped as JSON", func(t *testing.T) {
+		bg := `https://cdn.example.com/bg.jpg?a="b"&c=(d)`
+		h := brandingRootHandler(t, "console_test", fixedBranding(branding.Branding{BackgroundURL: bg}))
+		got := instanceBrandingFromConfigJS(t, serve(h, http.MethodGet, "/config.js").Body.String())
+		assert.Equal(t, bg, got.BackgroundURL)
+		assert.False(t, got.Custom, "a background alone keeps the Notifuse identity")
+	})
+
 	t.Run("escapes brand text so it cannot close the script", func(t *testing.T) {
 		h := brandingRootHandler(t, "console_test", fixedBranding(branding.Branding{Name: `</script><script>alert(1)</script> & "x"`}))
 		body := serve(h, http.MethodGet, "/config.js").Body.String()

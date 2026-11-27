@@ -58,25 +58,27 @@ type SystemConfig struct {
 	// Instance branding, stored together under InstanceBrandingSettingKey. Kept as flat
 	// fields so the settings.update audit row records one change per field. SetSystemConfig
 	// always writes them, so a caller passes the stored values for the fields it leaves alone.
-	BrandingName         string
-	BrandingLogoURL      string
-	BrandingIconURL      string
-	BrandingHideHelpMenu bool
+	BrandingName          string
+	BrandingLogoURL       string
+	BrandingIconURL       string
+	BrandingHideHelpMenu  bool
+	BrandingBackgroundURL string
 	// BrandingUnreadable is set by GetSystemConfig when the stored brand is not readable JSON:
-	// the four fields above are then empty, and the rest of the settings load normally.
+	// the five fields above are then empty, and the rest of the settings load normally.
 	BrandingUnreadable bool `json:"-"`
 	// KeepStoredBranding makes SetSystemConfig leave the stored brand row exactly as it is,
 	// for a save that does not touch the brand while that row is unreadable.
 	KeepStoredBranding bool `json:"-"`
 }
 
-// brandingFrom reads the four branding fields of a config, normalised.
+// brandingFrom reads the five branding fields of a config, normalised.
 func brandingFrom(c *SystemConfig) branding.Branding {
 	return branding.Branding{
-		Name:         c.BrandingName,
-		LogoURL:      c.BrandingLogoURL,
-		IconURL:      c.BrandingIconURL,
-		HideHelpMenu: c.BrandingHideHelpMenu,
+		Name:          c.BrandingName,
+		LogoURL:       c.BrandingLogoURL,
+		IconURL:       c.BrandingIconURL,
+		HideHelpMenu:  c.BrandingHideHelpMenu,
+		BackgroundURL: c.BrandingBackgroundURL,
 	}.Normalize()
 }
 
@@ -169,7 +171,8 @@ func (s *SettingService) checkBrandingWrite(ctx context.Context, next branding.B
 		return nextValue != "" && nextValue != storedValue
 	}
 	if widens(next.Name, stored.Name) || widens(next.LogoURL, stored.LogoURL) ||
-		widens(next.IconURL, stored.IconURL) || (next.HideHelpMenu && !stored.HideHelpMenu) {
+		widens(next.IconURL, stored.IconURL) || widens(next.BackgroundURL, stored.BackgroundURL) ||
+		(next.HideHelpMenu && !stored.HideHelpMenu) {
 		return domain.NewFeatureNotLicensedError(domain.FeatureBranding)
 	}
 	return nil
@@ -213,6 +216,7 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 	config.BrandingLogoURL = instanceBranding.LogoURL
 	config.BrandingIconURL = instanceBranding.IconURL
 	config.BrandingHideHelpMenu = instanceBranding.HideHelpMenu
+	config.BrandingBackgroundURL = instanceBranding.BackgroundURL
 
 	// Load root email
 	if setting, err := s.repo.Get(ctx, "root_email"); err == nil {

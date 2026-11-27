@@ -2031,7 +2031,7 @@ msgstr "900 - Schwarz"
 msgid "A branch condition is required..."
 msgstr "Eine Verzweigungsbedingung ist erforderlich..."
 
-#: src/components/settings/BrandingSettings.tsx:217
+#: src/components/settings/BrandingSettings.tsx:237
 msgid "A brand name is required when a logo or an icon is set."
 msgstr "Ein Markenname ist erforderlich, sobald ein Logo oder ein Symbol gesetzt ist."
 
@@ -2139,6 +2139,10 @@ msgstr "ein Header des Datenfeeds pro Empfänger hat keinen Namen oder Wert"
 #: src/components/settings/MCPSettings.tsx:406
 msgid "A key with full access lets the assistant send emails, change templates and delete contacts."
 msgstr "Ein Schlüssel mit Vollzugriff erlaubt dem Assistenten, E-Mails zu senden, Vorlagen zu ändern und Kontakte zu löschen."
+
+#: src/components/settings/BrandingSettings.tsx:297
+msgid "A large landscape image works best. Shown behind the sign-in, invitation and workspace pages."
+msgstr "Ein großes Bild im Querformat eignet sich am besten. Wird hinter der Anmelde-, der Einladungs- und der Arbeitsbereichsseite angezeigt."
 
 #: src/components/templates/gallery/labels.ts:17
 msgid "A limited offer: a visual, a promo code and featured products."
@@ -2268,11 +2272,11 @@ msgstr "Eine Versandbenachrichtigung mit dem Versanddienstleister und dem Link z
 msgid "A square image, shown next to the workspace name"
 msgstr "Ein quadratisches Bild, neben dem Namen des Arbeitsbereichs angezeigt"
 
-#: src/components/settings/BrandingSettings.tsx:263
+#: src/components/settings/BrandingSettings.tsx:283
 msgid "A square PNG works best. Shown in the folded menu and as the browser icon."
 msgstr "Ein quadratisches PNG eignet sich am besten. Wird im eingeklappten Menü und als Browser-Symbol angezeigt."
 
-#: src/components/settings/BrandingSettings.tsx:252
+#: src/components/settings/BrandingSettings.tsx:272
 msgid "A transparent PNG works best. Shown in the menu, on the sign-in page and while the console loads."
 msgstr "Ein transparentes PNG eignet sich am besten. Wird im Menü, auf der Anmeldeseite und beim Laden der Konsole angezeigt."
 
@@ -3340,7 +3344,7 @@ msgstr "MCP-Verbindungen erlauben"
 msgid "Allowed domains"
 msgstr "Erlaubte Domains"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:731
+#: src/components/settings/SystemSettingsDrawer.tsx:735
 #: src/components/setup/SsoPanel.tsx:165
 #: src/components/setup/SsoPanel.tsx:178
 msgid "Allowed email domains"
@@ -3697,7 +3701,7 @@ msgstr "API-Dokumentation"
 msgid "API endpoint"
 msgstr "API-Endpunkt"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:336
+#: src/components/settings/SystemSettingsDrawer.tsx:340
 msgid "API Endpoint"
 msgstr "API-Endpunkt"
 
@@ -3817,7 +3821,7 @@ msgstr "Gilt für jedes Symbol; der eigene Rahmen eines Symbols hat Vorrang."
 msgid "Applies to every icon; an icon's own settings win."
 msgstr "Gilt für jedes Symbol; die eigenen Einstellungen eines Symbols haben Vorrang."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:790
+#: src/components/settings/SystemSettingsDrawer.tsx:794
 msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
 msgstr "Gilt für jeden Workspace ohne eigene Aufbewahrung sowie für Einträge auf Deployment-Ebene wie Anmeldungen. 0 behält jeden Eintrag für immer."
 
@@ -4122,7 +4126,7 @@ msgstr "Mindestens eine Domain ist erforderlich, wenn die automatische Erstellun
 msgid "At least one operation is required"
 msgstr "Mindestens eine Operation ist erforderlich"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:132
+#: src/components/settings/SystemSettingsDrawer.tsx:135
 #: src/components/setup/AdministratorPanel.tsx:37
 msgid "At least one root email is required"
 msgstr "Mindestens eine Root-E-Mail ist erforderlich"
@@ -4188,7 +4192,7 @@ msgstr "Audit-Eintrag"
 #: src/components/logs/labels.ts:24
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
 #: src/components/settings/SettingsSidebar.tsx:65
-#: src/components/settings/SystemSettingsDrawer.tsx:784
+#: src/components/settings/SystemSettingsDrawer.tsx:788
 #: src/pages/LogsPage.tsx:94
 msgid "Audit log"
 msgstr "Audit-Log"
@@ -4298,7 +4302,7 @@ msgstr "Auto"
 msgid "Auto-create accounts on first sign-in"
 msgstr "Konten bei der ersten Anmeldung automatisch erstellen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:721
+#: src/components/settings/SystemSettingsDrawer.tsx:725
 msgid "Auto-create users"
 msgstr "Benutzer automatisch erstellen"
 
@@ -4608,6 +4612,10 @@ msgstr "Hintergrundfarbe"
 #~ msgid "Background Image"
 #~ msgstr "Hintergrundbild"
 
+#: src/components/settings/BrandingSettings.tsx:296
+msgid "Background image URL"
+msgstr "URL des Hintergrundbilds"
+
 #: src/components/email_builder/ui/fields/BackgroundFields.tsx:292
 msgid "Background position"
 msgstr "Hintergrundposition"
@@ -4649,7 +4657,7 @@ msgstr "Basis-URL"
 #~ msgid "Base URL (Optional)"
 #~ msgstr "Basis-URL (Optional)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:587
+#: src/components/settings/SystemSettingsDrawer.tsx:591
 msgid "Base64 encoded TLS certificate"
 msgstr "Base64-kodiertes TLS-Zertifikat"
 
@@ -4657,7 +4665,7 @@ msgstr "Base64-kodiertes TLS-Zertifikat"
 #~ msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 #~ msgstr "Base64-kodiertes TLS-Zertifikat. Ausführen: cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:602
+#: src/components/settings/SystemSettingsDrawer.tsx:606
 msgid "Base64 encoded TLS private key"
 msgstr "Base64-kodierter privater TLS-Schlüssel"
 
@@ -5211,16 +5219,16 @@ msgstr "Verzweigung"
 msgid "Branch Logic"
 msgstr "Verzweigungslogik"
 
-#: src/components/settings/BrandingSettings.tsx:262
+#: src/components/settings/BrandingSettings.tsx:282
 msgid "Brand icon URL"
 msgstr "URL des Markensymbols"
 
-#: src/components/settings/BrandingSettings.tsx:200
-#: src/components/settings/BrandingSettings.tsx:231
+#: src/components/settings/BrandingSettings.tsx:220
+#: src/components/settings/BrandingSettings.tsx:251
 msgid "Brand name"
 msgstr "Markenname"
 
-#: src/components/settings/BrandingSettings.tsx:176
+#: src/components/settings/BrandingSettings.tsx:196
 msgid "Branding"
 msgstr "Branding"
 
@@ -5262,11 +5270,11 @@ msgstr "Breakpoint-Breite"
 #~ msgid "Breakpoint Width"
 #~ msgstr "Breakpoint-Breite"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:542
+#: src/components/settings/SystemSettingsDrawer.tsx:546
 msgid "Bridge Domain"
 msgstr "Relay-Domain"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:556
+#: src/components/settings/SystemSettingsDrawer.tsx:560
 msgid "Bridge Port"
 msgstr "Relay-Port"
 
@@ -5490,7 +5498,7 @@ msgstr "Durchsuchen, filtern und exportieren Sie das Log unter Logs → Audit-Lo
 msgid "Browser"
 msgstr "Browser"
 
-#: src/components/settings/BrandingSettings.tsx:285
+#: src/components/settings/BrandingSettings.tsx:320
 msgid "Browser tab"
 msgstr "Browser-Tab"
 
@@ -5591,7 +5599,7 @@ msgstr "Schaltflächenhöhe"
 msgid "Button label"
 msgstr "Schaltflächentext"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:693
+#: src/components/settings/SystemSettingsDrawer.tsx:697
 msgid "Button Label"
 msgstr "Schaltflächenbeschriftung"
 
@@ -5745,7 +5753,7 @@ msgstr "Im Browser nicht testbar"
 #: src/components/settings/integrations/TestEmailModal.tsx:68
 #: src/components/settings/integrations/useIntegrationActions.ts:109
 #: src/components/settings/MCPSettings.tsx:220
-#: src/components/settings/SystemSettingsDrawer.tsx:212
+#: src/components/settings/SystemSettingsDrawer.tsx:216
 #: src/components/settings/WebhookDetail.tsx:348
 #: src/components/settings/WebhookDetail.tsx:578
 #: src/components/settings/WebhookDetail.tsx:597
@@ -6134,7 +6142,7 @@ msgstr "Kanäle"
 msgid "Check for updates"
 msgstr "Nach Updates suchen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:772
+#: src/components/settings/SystemSettingsDrawer.tsx:776
 msgid "Check for Updates"
 msgstr "Nach Updates suchen"
 
@@ -6327,7 +6335,7 @@ msgstr "claude.ai und ChatGPT brauchen sie."
 #: src/components/contacts/InlineEditableField.tsx:306
 #: src/components/email_builder/ui/fields/ColorField.tsx:175
 #: src/components/file_manager/FileExplorer.tsx:764
-#: src/components/settings/BrandingSettings.tsx:122
+#: src/components/settings/BrandingSettings.tsx:132
 msgid "Clear"
 msgstr "Leeren"
 
@@ -6335,7 +6343,7 @@ msgstr "Leeren"
 msgid "Clear {ariaLabel}"
 msgstr "{ariaLabel} leeren"
 
-#: src/components/settings/BrandingSettings.tsx:120
+#: src/components/settings/BrandingSettings.tsx:130
 msgid "Clear {label}"
 msgstr "{label} leeren"
 
@@ -6584,7 +6592,7 @@ msgstr "Klicks wurden nicht erfasst"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:650
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:666
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:668
-#: src/components/settings/SystemSettingsDrawer.tsx:646
+#: src/components/settings/SystemSettingsDrawer.tsx:650
 #: src/components/setup/SsoPanel.tsx:78
 msgid "Client ID"
 msgstr "Client-ID"
@@ -6602,7 +6610,7 @@ msgid "Client secret"
 msgstr "Client Secret"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:675
-#: src/components/settings/SystemSettingsDrawer.tsx:656
+#: src/components/settings/SystemSettingsDrawer.tsx:660
 msgid "Client Secret"
 msgstr "Client Secret"
 
@@ -6810,7 +6818,7 @@ msgstr "Spalten, die wie ein Kontaktfeld heißen, werden automatisch zugeordnet.
 msgid "Comma-separated values"
 msgstr "Kommagetrennte Werte"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:742
+#: src/components/settings/SystemSettingsDrawer.tsx:746
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Kommagetrennt. Nur diese Domains dürfen Konten automatisch erstellen."
 
@@ -6818,7 +6826,7 @@ msgstr "Kommagetrennt. Nur diese Domains dürfen Konten automatisch erstellen."
 msgid "Common ports: 587 (STARTTLS), 465 (implicit TLS), 25 (unencrypted)."
 msgstr "Übliche Ports: 587 (STARTTLS), 465 (implizites TLS), 25 (unverschlüsselt)."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:414
+#: src/components/settings/SystemSettingsDrawer.tsx:418
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Gängige Ports: 587 (TLS), 465 (SSL), 25 (unverschlüsselt)"
 
@@ -8720,7 +8728,7 @@ msgstr "Benutzerdefinierte Schriftart"
 msgid "Custom header"
 msgstr "Benutzerdefinierter Header"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:507
+#: src/components/settings/SystemSettingsDrawer.tsx:511
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr "Benutzerdefinierter Hostname, der im SMTP-Befehl EHLO/HELO verwendet wird. Leer lassen, um den Standard zu verwenden."
 
@@ -9057,7 +9065,7 @@ msgstr "Standard für Marketing"
 msgid "Default periods for every workspace. A workspace that sets its own period keeps it. A default that deletes more waits 7 days, and the owners of the workspaces it reaches get an email."
 msgstr "Standardzeiträume für jeden Workspace. Ein Workspace mit eigenem Zeitraum behält ihn. Ein Standardwert, der mehr löscht, wartet 7 Tage, und die Inhaber der betroffenen Workspaces erhalten eine E-Mail."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:788
+#: src/components/settings/SystemSettingsDrawer.tsx:792
 msgid "Default retention (days)"
 msgstr "Standard-Aufbewahrung (Tage)"
 
@@ -10795,7 +10803,7 @@ msgstr "Editor-Modus"
 msgid "EHLO hostname"
 msgstr "EHLO-Hostname"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:505
+#: src/components/settings/SystemSettingsDrawer.tsx:509
 msgid "EHLO Hostname"
 msgstr "EHLO-Hostname"
 
@@ -11295,7 +11303,7 @@ msgstr "Diese Regel aktivieren?"
 msgid "Enable this translation to edit it."
 msgstr "Aktivieren Sie diese Übersetzung, um sie zu bearbeiten."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:428
+#: src/components/settings/SystemSettingsDrawer.tsx:432
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "TLS-Verschlüsselung für SMTP-Verbindung aktivieren"
 
@@ -11319,8 +11327,8 @@ msgstr "Webhook aktivieren"
 #: src/components/settings/BlogSettings.tsx:241
 #: src/components/settings/Integrations.tsx:299
 #: src/components/settings/integrations/providerDetails.ts:54
-#: src/components/settings/SystemSettingsDrawer.tsx:532
-#: src/components/settings/SystemSettingsDrawer.tsx:617
+#: src/components/settings/SystemSettingsDrawer.tsx:536
+#: src/components/settings/SystemSettingsDrawer.tsx:621
 #: src/components/settings/WebAnalyticsSettings.tsx:216
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
@@ -12517,7 +12525,7 @@ msgstr "Laden der Kampagnen fehlgeschlagen"
 msgid "Failed to load contact lists"
 msgstr "Laden der Kontaktlisten fehlgeschlagen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:105
+#: src/components/settings/SystemSettingsDrawer.tsx:108
 msgid "Failed to load settings"
 msgstr "Laden der Einstellungen fehlgeschlagen"
 
@@ -12642,7 +12650,7 @@ msgstr "Speichern der Integration fehlgeschlagen"
 msgid "Failed to save LLM integration"
 msgstr "Speichern der LLM-Integration fehlgeschlagen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:263
+#: src/components/settings/SystemSettingsDrawer.tsx:267
 msgid "Failed to save settings"
 msgstr "Speichern der Einstellungen fehlgeschlagen"
 
@@ -12862,7 +12870,7 @@ msgstr "Beitragsbild"
 #~ msgid "Featured Image URL"
 #~ msgstr "Beitragsbild-URL"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:759
+#: src/components/settings/SystemSettingsDrawer.tsx:763
 msgid "Features"
 msgstr "Funktionen"
 
@@ -13205,7 +13213,7 @@ msgstr "Nach dem Speichern der Vorlage festgelegt"
 #~ msgid "Flow Stats: {0}"
 #~ msgstr "Flow-Statistiken: {0}"
 
-#: src/components/settings/BrandingSettings.tsx:282
+#: src/components/settings/BrandingSettings.tsx:317
 msgid "Folded menu"
 msgstr "Eingeklapptes Menü"
 
@@ -13459,7 +13467,7 @@ msgstr "Von console.anthropic.com"
 msgid "From email"
 msgstr "Absender-E-Mail"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:472
+#: src/components/settings/SystemSettingsDrawer.tsx:476
 msgid "From Email"
 msgstr "Von E-Mail"
 
@@ -13479,7 +13487,7 @@ msgstr "Von Google AI Studio"
 msgid "From name"
 msgstr "Absendername"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:488
+#: src/components/settings/SystemSettingsDrawer.tsx:492
 msgid "From Name"
 msgstr "Von Name"
 
@@ -13604,7 +13612,7 @@ msgstr "gemini-4-argon oder eine benutzerdefinierte Modell-ID"
 
 #: src/components/settings/GeneralSettings.tsx:156
 #: src/components/settings/SettingsSidebar.tsx:54
-#: src/components/settings/SystemSettingsDrawer.tsx:309
+#: src/components/settings/SystemSettingsDrawer.tsx:313
 msgid "General"
 msgstr "Allgemein"
 
@@ -14133,7 +14141,7 @@ msgstr "Ausblenden"
 msgid "Hide done steps"
 msgstr "Erledigte Schritte ausblenden"
 
-#: src/components/settings/BrandingSettings.tsx:237
+#: src/components/settings/BrandingSettings.tsx:257
 msgid "Hide help menu"
 msgstr "Hilfemenü ausblenden"
 
@@ -15116,7 +15124,7 @@ msgstr "Integrationen"
 msgid "Invalid display condition"
 msgstr "Ungültige Anzeigebedingung"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:476
+#: src/components/settings/SystemSettingsDrawer.tsx:480
 msgid "Invalid email"
 msgstr "Ungültige E-Mail-Adresse"
 
@@ -15125,7 +15133,7 @@ msgid "Invalid email format"
 msgstr "Ungültiges E-Mail-Format"
 
 #. placeholder {0}: invalid.join(', ')
-#: src/components/settings/SystemSettingsDrawer.tsx:137
+#: src/components/settings/SystemSettingsDrawer.tsx:140
 #: src/components/setup/AdministratorPanel.tsx:20
 msgid "Invalid email: {0}"
 msgstr "Ungültige E-Mail-Adresse: {0}"
@@ -15370,7 +15378,7 @@ msgstr "isoliert"
 msgid "isolation requested but not provisioned"
 msgstr "Isolierung angefordert, aber nicht bereitgestellt"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:627
+#: src/components/settings/SystemSettingsDrawer.tsx:631
 #: src/components/setup/SsoPanel.tsx:66
 msgid "Issuer URL"
 msgstr "Issuer-URL"
@@ -15905,7 +15913,7 @@ msgstr "Leer lassen für einen Server, der E-Mails ohne Anmeldung annimmt"
 msgid "Leave empty for full container width"
 msgstr "Leer lassen für volle Container-Breite"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:677
+#: src/components/settings/SystemSettingsDrawer.tsx:681
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "Leer lassen, um sie aus dem API-Endpunkt abzuleiten. Nur setzen, wenn der Callback über einen Proxy oder eine eigene Domain erreicht wird."
 
@@ -16774,7 +16782,7 @@ msgstr "Mailjet schreibt Abmeldelinks um und kann daher nur transaktionale E-Mai
 #~ msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 #~ msgstr "Hauptlogo für Ihren Blog. Empfohlene Größe: 200x50px oder ähnliches Seitenverhältnis"
 
-#: src/components/settings/BrandingSettings.tsx:251
+#: src/components/settings/BrandingSettings.tsx:271
 msgid "Main logo URL"
 msgstr "URL des Hauptlogos"
 
@@ -17505,8 +17513,8 @@ msgstr "Meistbesuchte Seiten"
 msgid "Moved block {blockId} to {newParentId}"
 msgstr "Block {blockId} nach {newParentId} verschoben"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:631
-#: src/components/settings/SystemSettingsDrawer.tsx:673
+#: src/components/settings/SystemSettingsDrawer.tsx:635
+#: src/components/settings/SystemSettingsDrawer.tsx:677
 #: src/components/setup/SsoPanel.tsx:70
 msgid "Must be a valid https URL"
 msgstr "Muss eine gültige https-URL sein"
@@ -19622,7 +19630,7 @@ msgstr "Integrationen öffnen"
 msgid "Open its page"
 msgstr "Seite öffnen"
 
-#: src/components/settings/BrandingSettings.tsx:279
+#: src/components/settings/BrandingSettings.tsx:314
 msgid "Open menu"
 msgstr "Geöffnetes Menü"
 
@@ -19881,9 +19889,9 @@ msgstr "optional"
 #: src/components/analytics/GetStartedChecklist.tsx:367
 #: src/components/analytics/GetStartedChecklist.tsx:387
 #: src/components/contacts/csv-import/ColumnsStep.tsx:215
-#: src/components/settings/SystemSettingsDrawer.tsx:450
-#: src/components/settings/SystemSettingsDrawer.tsx:463
-#: src/components/settings/SystemSettingsDrawer.tsx:518
+#: src/components/settings/SystemSettingsDrawer.tsx:454
+#: src/components/settings/SystemSettingsDrawer.tsx:467
+#: src/components/settings/SystemSettingsDrawer.tsx:522
 #: src/components/setup/SmtpPanel.tsx:195
 #: src/components/setup/SmtpPanel.tsx:204
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
@@ -20522,7 +20530,7 @@ msgstr "Telefon"
 msgid "Phone Number"
 msgstr "Telefonnummer"
 
-#: src/layouts/MainLayout.tsx:37
+#: src/layouts/MainLayout.tsx:71
 msgid "Photo by Sean Oulashin"
 msgstr "Foto von Sean Oulashin"
 
@@ -20951,8 +20959,8 @@ msgstr "Port"
 #~ msgid "Port for the SMTP bridge server (default: 587)"
 #~ msgstr "Port für den SMTP-Relay-Server (Standard: 587)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:410
-#: src/components/settings/SystemSettingsDrawer.tsx:563
+#: src/components/settings/SystemSettingsDrawer.tsx:414
+#: src/components/settings/SystemSettingsDrawer.tsx:567
 msgid "Port must be 1-65535"
 msgstr "Der Port muss zwischen 1 und 65535 liegen"
 
@@ -21096,7 +21104,7 @@ msgstr "Drücken Sie Enter zum Bestätigen, Escape zum Abbrechen"
 #: src/components/file_manager/FileExplorer.tsx:1154
 #: src/components/segment/SegmentCountCard.tsx:132
 #: src/components/seo/SeoPreview.tsx:36
-#: src/components/settings/BrandingSettings.tsx:273
+#: src/components/settings/BrandingSettings.tsx:308
 #: src/components/templates/TemplateSelectorInput.tsx:244
 #: src/components/templates/TemplateSelectorInput.tsx:292
 #: src/components/templates/TemplateSelectorModal.tsx:368
@@ -22019,7 +22027,7 @@ msgstr "Wiederherstellungscodes kopiert"
 msgid "Red"
 msgstr "Rot"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:671
+#: src/components/settings/SystemSettingsDrawer.tsx:675
 #: src/components/setup/SsoPanel.tsx:101
 #: src/components/setup/SsoPanel.tsx:107
 #: src/components/setup/SsoPanel.tsx:114
@@ -22375,7 +22383,7 @@ msgstr "Mitglied entfernen"
 msgid "Remove sender {0}"
 msgstr "Absender {0} entfernen"
 
-#: src/components/settings/BrandingSettings.tsx:69
+#: src/components/settings/BrandingSettings.tsx:73
 msgid "Remove the backslashes from this URL."
 msgstr "Entfernen Sie die Backslashes aus dieser URL."
 
@@ -22383,11 +22391,11 @@ msgstr "Entfernen Sie die Backslashes aus dieser URL."
 msgid "Remove the condition"
 msgstr "Bedingung entfernen"
 
-#: src/components/settings/BrandingSettings.tsx:67
+#: src/components/settings/BrandingSettings.tsx:71
 msgid "Remove the control characters from this URL."
 msgstr "Entfernen Sie die Steuerzeichen aus dieser URL."
 
-#: src/components/settings/BrandingSettings.tsx:63
+#: src/components/settings/BrandingSettings.tsx:67
 msgid "Remove the control or invisible characters."
 msgstr "Entfernen Sie die Steuer- oder unsichtbaren Zeichen."
 
@@ -22395,15 +22403,15 @@ msgstr "Entfernen Sie die Steuer- oder unsichtbaren Zeichen."
 msgid "Remove the display condition?"
 msgstr "Anzeigebedingung entfernen?"
 
-#: src/components/settings/BrandingSettings.tsx:70
+#: src/components/settings/BrandingSettings.tsx:74
 msgid "Remove the part after # from this URL."
 msgstr "Entfernen Sie den Teil nach # aus dieser URL."
 
-#: src/components/settings/BrandingSettings.tsx:68
+#: src/components/settings/BrandingSettings.tsx:72
 msgid "Remove the spaces from this URL."
 msgstr "Entfernen Sie die Leerzeichen aus dieser URL."
 
-#: src/components/settings/BrandingSettings.tsx:72
+#: src/components/settings/BrandingSettings.tsx:76
 msgid "Remove the user name or password from this URL."
 msgstr "Entfernen Sie den Benutzernamen oder das Passwort aus dieser URL."
 
@@ -22473,7 +22481,7 @@ msgstr "Hat das Mitglied <0>{target}</0> entfernt"
 msgid "Removes the contacts and their history. Cannot be undone."
 msgstr "Entfernt die Kontakte und ihren Verlauf. Kann nicht rückgängig gemacht werden."
 
-#: src/components/settings/BrandingSettings.tsx:240
+#: src/components/settings/BrandingSettings.tsx:260
 msgid "Removes the Help menu, whose links lead to Notifuse, from the sidebar."
 msgstr "Entfernt das Hilfemenü, dessen Links zu Notifuse führen, aus der Seitenleiste."
 
@@ -22671,10 +22679,10 @@ msgid "Require two-factor authentication for everyone"
 msgstr "Zwei-Faktor-Authentifizierung für alle verlangen"
 
 #: src/components/contacts/csv-import/ColumnsStep.tsx:87
-#: src/components/settings/SystemSettingsDrawer.tsx:338
-#: src/components/settings/SystemSettingsDrawer.tsx:391
-#: src/components/settings/SystemSettingsDrawer.tsx:405
-#: src/components/settings/SystemSettingsDrawer.tsx:475
+#: src/components/settings/SystemSettingsDrawer.tsx:342
+#: src/components/settings/SystemSettingsDrawer.tsx:395
+#: src/components/settings/SystemSettingsDrawer.tsx:409
+#: src/components/settings/SystemSettingsDrawer.tsx:479
 msgid "Required"
 msgstr "Erforderlich"
 
@@ -22687,19 +22695,19 @@ msgstr "Erforderlich"
 msgid "Required to create the notification"
 msgstr "Erforderlich, um die Benachrichtigung zu erstellen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:736
+#: src/components/settings/SystemSettingsDrawer.tsx:740
 msgid "Required when auto-create is enabled"
 msgstr "Erforderlich, wenn die automatische Erstellung aktiviert ist"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:544
-#: src/components/settings/SystemSettingsDrawer.tsx:581
-#: src/components/settings/SystemSettingsDrawer.tsx:596
+#: src/components/settings/SystemSettingsDrawer.tsx:548
+#: src/components/settings/SystemSettingsDrawer.tsx:585
+#: src/components/settings/SystemSettingsDrawer.tsx:600
 msgid "Required when bridge is enabled"
 msgstr "Erforderlich, wenn das Relay aktiviert ist"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:630
-#: src/components/settings/SystemSettingsDrawer.tsx:648
-#: src/components/settings/SystemSettingsDrawer.tsx:658
+#: src/components/settings/SystemSettingsDrawer.tsx:634
+#: src/components/settings/SystemSettingsDrawer.tsx:652
+#: src/components/settings/SystemSettingsDrawer.tsx:662
 msgid "Required when SSO is enabled"
 msgstr "Erforderlich, wenn SSO aktiviert ist"
 
@@ -22749,7 +22757,7 @@ msgstr "Eine Sendeaufgabe zurücksetzen, sodass eine Kampagne von vorn erneut ve
 msgid "Reset an integration sync task so it re-runs from the start"
 msgstr "Eine Integrations-Synchronisierungsaufgabe zurücksetzen, damit sie von vorn ausgeführt wird"
 
-#: src/components/settings/BrandingSettings.tsx:275
+#: src/components/settings/BrandingSettings.tsx:310
 msgid "Reset branding"
 msgstr "Branding zurücksetzen"
 
@@ -22825,7 +22833,7 @@ msgstr "Antwort"
 msgid "Responsive breakpoint"
 msgstr "Responsiver Breakpoint"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:203
+#: src/components/settings/SystemSettingsDrawer.tsx:207
 msgid "Restart Server?"
 msgstr "Server neu starten?"
 
@@ -23072,7 +23080,7 @@ msgstr "Administrator"
 msgid "Root email"
 msgstr "Root-E-Mail"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:313
+#: src/components/settings/SystemSettingsDrawer.tsx:317
 msgid "Root Email"
 msgstr "Root-E-Mail"
 
@@ -23334,13 +23342,13 @@ msgstr "Sandbox-Modus"
 #: src/components/settings/Integrations.tsx:400
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:855
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:996
-#: src/components/settings/SystemSettingsDrawer.tsx:295
+#: src/components/settings/SystemSettingsDrawer.tsx:299
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 msgid "Save"
 msgstr "Speichern"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:211
+#: src/components/settings/SystemSettingsDrawer.tsx:215
 msgid "Save & Restart"
 msgstr "Speichern & neu starten"
 
@@ -23532,7 +23540,7 @@ msgstr "Gespeichert. Die Änderung, die mehr löscht, tritt in 7 Tagen in Kraft.
 msgid "Saved. The defaults that delete more take effect in 7 days."
 msgstr "Gespeichert. Die Standardwerte, die mehr löschen, treten in 7 Tagen in Kraft."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:193
+#: src/components/settings/SystemSettingsDrawer.tsx:197
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Das Speichern der Einstellungen startet den Server neu. Sie müssen sich erneut anmelden."
 
@@ -23615,7 +23623,7 @@ msgstr "Hat den Newsletter <0>{target}</0> geplant"
 msgid "Scheduled today"
 msgstr "Heute geplant"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:706
+#: src/components/settings/SystemSettingsDrawer.tsx:710
 #: src/components/setup/SsoPanel.tsx:136
 msgid "Scopes"
 msgstr "Scopes"
@@ -24825,15 +24833,15 @@ msgstr "Server"
 #~ msgid "Server is restarting with new configuration..."
 #~ msgstr "Server wird mit neuer Konfiguration neu gestartet..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:219
+#: src/components/settings/SystemSettingsDrawer.tsx:223
 msgid "Server is restarting..."
 msgstr "Server wird neu gestartet..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:248
+#: src/components/settings/SystemSettingsDrawer.tsx:252
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Server-Neustart-Timeout. Bitte aktualisieren Sie die Seite manuell."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:235
+#: src/components/settings/SystemSettingsDrawer.tsx:239
 msgid "Server restarted successfully!"
 msgstr "Server erfolgreich neu gestartet!"
 
@@ -24976,7 +24984,7 @@ msgstr "Von {integrationName} festgelegt. Bearbeiten Sie die Vorlage selbst, um 
 msgid "Set by environment"
 msgstr "Durch die Umgebung festgelegt"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:146
+#: src/components/settings/SystemSettingsDrawer.tsx:149
 msgid "Set by environment variable"
 msgstr "Durch Umgebungsvariable festgelegt"
 
@@ -25364,7 +25372,7 @@ msgstr "In Beitragslisten angezeigt und als Beschreibung, wenn keine Meta-Beschr
 msgid "Shown in the assistant's model picker"
 msgstr "Wird in der Modellauswahl des Assistenten angezeigt"
 
-#: src/components/settings/BrandingSettings.tsx:203
+#: src/components/settings/BrandingSettings.tsx:223
 msgid "Shown in the browser tab, in the menu when there is no logo, and in the emails this instance sends."
 msgstr "Wird im Browser-Tab angezeigt, im Menü, wenn kein Logo gesetzt ist, und in den E-Mails, die diese Instanz sendet."
 
@@ -25409,7 +25417,7 @@ msgstr "Anmelden"
 msgid "Sign in again"
 msgstr "Erneut anmelden"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:301
+#: src/components/settings/SystemSettingsDrawer.tsx:305
 msgid "Sign in again to change system settings"
 msgstr "Melden Sie sich erneut an, um die Systemeinstellungen zu ändern"
 
@@ -25441,7 +25449,7 @@ msgstr "Melden Sie sich erneut an, um die Zwei-Faktor-Authentifizierung zurückz
 msgid "Sign in with {rootEmail}."
 msgstr "Melden Sie sich mit {rootEmail} an."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:699
+#: src/components/settings/SystemSettingsDrawer.tsx:703
 #: src/components/setup/SsoPanel.tsx:97
 #: src/pages/SignInPage.tsx:353
 msgid "Sign in with SSO"
@@ -25454,6 +25462,10 @@ msgstr "Mich von meinen anderen Sitzungen abmelden"
 #: src/components/logs/labels.ts:6
 msgid "Sign-in"
 msgstr "Anmeldung"
+
+#: src/components/settings/BrandingSettings.tsx:331
+msgid "Sign-in page"
+msgstr "Anmeldeseite"
 
 #: src/components/segment/segmentLabels.ts:276
 msgid "Sign-up"
@@ -25672,7 +25684,7 @@ msgstr "SMTP"
 msgid "SMTP bridge"
 msgstr "SMTP-Bridge"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:528
+#: src/components/settings/SystemSettingsDrawer.tsx:532
 msgid "SMTP Bridge"
 msgstr "SMTP-Relay"
 
@@ -25700,11 +25712,11 @@ msgstr "SMTP-Relay-Server zur Weiterleitung transaktionaler E-Mails"
 #~ msgid "SMTP connection successful!"
 #~ msgstr "SMTP-Verbindung erfolgreich!"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:165
+#: src/components/settings/SystemSettingsDrawer.tsx:168
 msgid "SMTP connection test failed"
 msgstr "SMTP-Verbindungstest fehlgeschlagen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:163
+#: src/components/settings/SystemSettingsDrawer.tsx:166
 msgid "SMTP connection test successful"
 msgstr "SMTP-Verbindungstest erfolgreich"
 
@@ -25724,7 +25736,7 @@ msgstr "SMTP-Anleitungen:"
 msgid "SMTP host"
 msgstr "SMTP-Host"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:389
+#: src/components/settings/SystemSettingsDrawer.tsx:393
 msgid "SMTP Host"
 msgstr "SMTP-Host"
 
@@ -25732,7 +25744,7 @@ msgstr "SMTP-Host"
 msgid "SMTP host is required"
 msgstr "SMTP-Host ist erforderlich"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:457
+#: src/components/settings/SystemSettingsDrawer.tsx:461
 msgid "SMTP Password"
 msgstr "SMTP-Passwort"
 
@@ -25740,7 +25752,7 @@ msgstr "SMTP-Passwort"
 msgid "SMTP port"
 msgstr "SMTP-Port"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:402
+#: src/components/settings/SystemSettingsDrawer.tsx:406
 msgid "SMTP Port"
 msgstr "SMTP-Port"
 
@@ -25778,7 +25790,7 @@ msgstr "SMTP-Benutzer"
 #~ msgid "SMTP User"
 #~ msgstr "SMTP-Benutzer"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:444
+#: src/components/settings/SystemSettingsDrawer.tsx:448
 msgid "SMTP Username"
 msgstr "SMTP-Benutzername"
 
@@ -25989,7 +26001,7 @@ msgstr "Aufteilen"
 msgid "SQL Arguments:"
 msgstr "SQL-Argumente:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:612
+#: src/components/settings/SystemSettingsDrawer.tsx:616
 msgid "SSO (OpenID Connect)"
 msgstr "SSO (OpenID Connect)"
 
@@ -26613,12 +26625,12 @@ msgstr "Systemschriften"
 #~ msgid "System Fonts"
 #~ msgstr "Systemschriften"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:276
-#: src/components/settings/SystemSettingsDrawer.tsx:287
+#: src/components/settings/SystemSettingsDrawer.tsx:280
+#: src/components/settings/SystemSettingsDrawer.tsx:291
 msgid "System Settings"
 msgstr "Systemeinstellungen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:375
+#: src/components/settings/SystemSettingsDrawer.tsx:379
 msgid "System SMTP"
 msgstr "System-SMTP"
 
@@ -26693,7 +26705,7 @@ msgstr "Die Grenze für Teammitglieder ist erreicht. Bitte aktualisieren Sie Ihr
 msgid "Technical performance insights"
 msgstr "Einblicke in die technische Performance"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:763
+#: src/components/settings/SystemSettingsDrawer.tsx:767
 msgid "Telemetry"
 msgstr "Telemetrie"
 
@@ -26974,7 +26986,7 @@ msgstr "Test abgeschlossen"
 msgid "Test connection"
 msgstr "Verbindung testen"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:383
+#: src/components/settings/SystemSettingsDrawer.tsx:387
 msgid "Test Connection"
 msgstr "Verbindung testen"
 
@@ -27259,7 +27271,7 @@ msgstr "Die Adresse, die Sie Ihrem Assistenten geben."
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "Der KI-Assistent: Chat über die konfigurierte LLM-Integration des Arbeitsbereichs und die serverseitigen Tools, die er aufrufen darf."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:197
+#: src/components/settings/SystemSettingsDrawer.tsx:201
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "Der API-Endpunkt hat sich geändert. Nach dem Neustart ist die Konsole erreichbar unter:"
 
@@ -27844,7 +27856,7 @@ msgstr "Die Antwort wurde abgeschnitten, weil das Token-Limit erreicht wurde. Ve
 msgid "The rows sent so far stay imported. Drop the same file again to resume where it stopped."
 msgstr "Die bisher gesendeten Zeilen bleiben importiert. Legen Sie dieselbe Datei erneut ab, um dort fortzufahren, wo angehalten wurde."
 
-#: src/components/settings/BrandingSettings.tsx:189
+#: src/components/settings/BrandingSettings.tsx:209
 msgid "The saved branding cannot be read"
 msgstr "Das gespeicherte Branding kann nicht gelesen werden"
 
@@ -28205,7 +28217,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden. Zur Bestätigung ge
 msgid "This address has a % not followed by two hexadecimal digits. The server cannot read it and stores an empty landing domain and path, as filled here."
 msgstr "Diese Adresse enthält ein %, auf das keine zwei Hexadezimalziffern folgen. Der Server kann sie nicht lesen und speichert eine leere Landingpage-Domain und einen leeren Landingpage-Pfad, wie hier ausgefüllt."
 
-#: src/components/settings/BrandingSettings.tsx:75
+#: src/components/settings/BrandingSettings.tsx:79
 msgid "This address is private or reserved. Use a public one."
 msgstr "Diese Adresse ist privat oder reserviert. Verwenden Sie eine öffentliche."
 
@@ -28382,7 +28394,7 @@ msgstr "Diese ID wird in URLs und API-Anfragen verwendet. Sie darf nur Kleinbuch
 #~ msgid "This ID will be used when triggering the notification via API"
 #~ msgstr "Diese ID wird beim Auslösen der Benachrichtigung über die API verwendet"
 
-#: src/components/settings/BrandingSettings.tsx:180
+#: src/components/settings/BrandingSettings.tsx:200
 msgid "This identity applies to the whole instance and to everyone who uses it."
 msgstr "Diese Identität gilt für die gesamte Instanz und für alle, die sie nutzen."
 
@@ -28391,7 +28403,7 @@ msgstr "Diese Identität gilt für die gesamte Instanz und für alle, die sie nu
 msgid "This image couldn't be loaded"
 msgstr "Dieses Bild konnte nicht geladen werden"
 
-#: src/components/settings/BrandingSettings.tsx:146
+#: src/components/settings/BrandingSettings.tsx:166
 msgid "This image did not load in your browser. You can still save it."
 msgstr "Dieses Bild wurde in Ihrem Browser nicht geladen. Sie können es trotzdem speichern."
 
@@ -28684,11 +28696,11 @@ msgstr "Dieses Token wird nur einmal angezeigt und kann nicht erneut abgerufen w
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Dieses Token wird nur einmal angezeigt. Bitte speichern Sie es an einem sicheren Ort. Es kann nicht erneut abgerufen werden."
 
-#: src/components/settings/BrandingSettings.tsx:79
+#: src/components/settings/BrandingSettings.tsx:83
 msgid "This URL is not valid."
 msgstr "Diese URL ist ungültig."
 
-#: src/components/settings/BrandingSettings.tsx:66
+#: src/components/settings/BrandingSettings.tsx:70
 msgid "This URL is too long."
 msgstr "Diese URL ist zu lang."
 
@@ -28957,7 +28969,7 @@ msgstr "TLS"
 msgid "TLS certificate (Base64)"
 msgstr "TLS-Zertifikat (Base64)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:579
+#: src/components/settings/SystemSettingsDrawer.tsx:583
 msgid "TLS Certificate (Base64)"
 msgstr "TLS-Zertifikat (Base64)"
 
@@ -28969,7 +28981,7 @@ msgstr "TLS-Zertifikat ist erforderlich"
 #~ msgid "TLS Enabled"
 #~ msgstr "TLS aktiviert"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:594
+#: src/components/settings/SystemSettingsDrawer.tsx:598
 msgid "TLS Key (Base64)"
 msgstr "TLS-Schlüssel (Base64)"
 
@@ -29005,7 +29017,7 @@ msgstr "Um einen Block ohne Ziehen einzufügen, verwenden Sie seine Schaltfläch
 msgid "to prevent duplicate sends"
 msgstr "um doppeltes Senden zu verhindern"
 
-#: src/components/settings/BrandingSettings.tsx:190
+#: src/components/settings/BrandingSettings.tsx:210
 msgid "To replace it, save new branding values or clear them. Saving other settings leaves it as it is."
 msgstr "Um es zu ersetzen, speichern Sie neue Branding-Werte oder leeren Sie sie. Das Speichern anderer Einstellungen lässt es unverändert."
 
@@ -30188,7 +30200,7 @@ msgid "Use"
 msgstr "Verwenden"
 
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:109
-#: src/components/settings/SystemSettingsDrawer.tsx:798
+#: src/components/settings/SystemSettingsDrawer.tsx:802
 msgid "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS} and {AUDIT_LOG_MAX_RETENTION_DAYS}"
 msgstr "0 für unbegrenzt, oder ein Wert zwischen {AUDIT_LOG_MIN_RETENTION_DAYS} und {AUDIT_LOG_MAX_RETENTION_DAYS}"
 
@@ -30200,7 +30212,7 @@ msgstr "0 für unbegrenzt, oder ein Wert zwischen {AUDIT_LOG_MIN_RETENTION_DAYS}
 msgid "Use a different email"
 msgstr "Andere E-Mail verwenden"
 
-#: src/components/settings/BrandingSettings.tsx:78
+#: src/components/settings/BrandingSettings.tsx:82
 msgid "Use a public domain name."
 msgstr "Verwenden Sie einen öffentlichen Domainnamen."
 
@@ -30213,7 +30225,7 @@ msgstr "Stattdessen einen Wiederherstellungscode verwenden"
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Verwenden Sie einen Mandanten, den Sie selbst verwalten. Erfordert einen in AWS damit verknüpften Konfigurationssatz."
 
-#: src/components/settings/BrandingSettings.tsx:71
+#: src/components/settings/BrandingSettings.tsx:75
 msgid "Use an absolute https:// URL."
 msgstr "Verwenden Sie eine absolute https://-URL."
 
@@ -30225,7 +30237,7 @@ msgstr "Andere E-Mail verwenden"
 msgid "Use Anyway"
 msgstr "Trotzdem verwenden"
 
-#: src/components/settings/BrandingSettings.tsx:62
+#: src/components/settings/BrandingSettings.tsx:66
 msgid "Use at most {MAX_BRAND_NAME_CODE_POINTS} characters."
 msgstr "Verwenden Sie höchstens {MAX_BRAND_NAME_CODE_POINTS} Zeichen."
 
@@ -30261,7 +30273,7 @@ msgstr "Pfadstil-URLs verwenden (Bucket im Pfad statt Subdomain)"
 #~ msgid "Use recipient timezone"
 #~ msgstr "Empfänger-Zeitzone verwenden"
 
-#: src/components/settings/BrandingSettings.tsx:76
+#: src/components/settings/BrandingSettings.tsx:80
 msgid "Use the ASCII form of the domain (it starts with xn--)."
 msgstr "Verwenden Sie die ASCII-Form der Domain (sie beginnt mit xn--)."
 
@@ -30278,7 +30290,7 @@ msgstr "Automatische Version verwenden?"
 msgid "Use the default ({0})"
 msgstr "Standard verwenden ({0})"
 
-#: src/components/settings/BrandingSettings.tsx:73
+#: src/components/settings/BrandingSettings.tsx:77
 msgid "Use the default HTTPS port."
 msgstr "Verwenden Sie den Standard-HTTPS-Port."
 
@@ -30315,7 +30327,7 @@ msgstr "Diese Vorlage verwenden"
 #~ msgstr "Dieses Theme verwenden"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:595
-#: src/components/settings/SystemSettingsDrawer.tsx:427
+#: src/components/settings/SystemSettingsDrawer.tsx:431
 #: src/components/setup/SmtpPanel.tsx:180
 #: src/components/setup/SmtpPanel.tsx:184
 msgid "Use TLS"
@@ -31785,11 +31797,11 @@ msgstr "Schreiben umfasst dauerhaftes Löschen und massenhaftes Überschreiben: 
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Schreiben Sie MJML-Markup mit Liquid-Template-Tags. Dieser Inhalt wird direkt in die E-Mail eingefügt und vor der MJML-Kompilierung von der Liquid-Engine verarbeitet. Verwenden Sie For-Schleifen, Bedingungen und Variablen, um dynamische strukturelle Inhalte zu erzeugen."
 
-#: src/components/settings/BrandingSettings.tsx:77
+#: src/components/settings/BrandingSettings.tsx:81
 msgid "Write the IPv4 address as four numbers from 0 to 255."
 msgstr "Schreiben Sie die IPv4-Adresse als vier Zahlen von 0 bis 255."
 
-#: src/components/settings/BrandingSettings.tsx:74
+#: src/components/settings/BrandingSettings.tsx:78
 msgid "Write the IPv6 address in its short form, without a zone."
 msgstr "Schreiben Sie die IPv6-Adresse in ihrer Kurzform, ohne Zone."
 

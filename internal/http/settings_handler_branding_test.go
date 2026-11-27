@@ -63,7 +63,7 @@ func getSettings(t *testing.T, handler *SettingsHandler) SystemSettingsResponse 
 func TestSettingsHandler_Get_ReturnsBrandingAndRetention(t *testing.T) {
 	handler, repo, _ := brandingSettingsHandler(t, true)
 	ctx := context.Background()
-	_ = repo.Set(ctx, service.InstanceBrandingSettingKey, `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true}`)
+	_ = repo.Set(ctx, service.InstanceBrandingSettingKey, `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true,"background_url":"https://cdn.example.com/bg.jpg"}`)
 	_ = repo.Set(ctx, domain.AuditLogsRetentionSettingKey, "90")
 
 	got := getSettings(t, handler).Settings
@@ -71,18 +71,19 @@ func TestSettingsHandler_Get_ReturnsBrandingAndRetention(t *testing.T) {
 	assert.Equal(t, "https://cdn.example.com/l.png", got.BrandingLogoURL)
 	assert.Equal(t, "", got.BrandingIconURL)
 	assert.True(t, got.BrandingHideHelpMenu)
+	assert.Equal(t, "https://cdn.example.com/bg.jpg", got.BrandingBackgroundURL)
 	assert.Equal(t, 90, got.AuditLogsRetentionDays, "the stored retention is returned, so a form that saves what it shows keeps it")
 }
 
 func TestSettingsHandler_Update_SavesBrandingAndAnswersTheRestartIdentity(t *testing.T) {
 	handler, repo, shutdowner := brandingSettingsHandler(t, true)
 
-	w, audit := postBrandingSettings(t, handler, `{"branding_name":" Acme ","branding_logo_url":"https://cdn.example.com/l.png","branding_hide_help_menu":true}`)
+	w, audit := postBrandingSettings(t, handler, `{"branding_name":" Acme ","branding_logo_url":"https://cdn.example.com/l.png","branding_hide_help_menu":true,"branding_background_url":"https://cdn.example.com/bg.jpg"}`)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 
 	var resp SettingsUpdateResponse
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	saved := branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", HideHelpMenu: true}
+	saved := branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", HideHelpMenu: true, BackgroundURL: "https://cdn.example.com/bg.jpg"}
 	assert.Equal(t, "boot-before-restart", resp.BootID)
 	assert.Equal(t, saved.Revision(), resp.BrandingRevision)
 
@@ -91,7 +92,7 @@ func TestSettingsHandler_Update_SavesBrandingAndAnswersTheRestartIdentity(t *tes
 	assert.Equal(t, saved, stored)
 
 	event, _ := audit.Finalize(http.StatusOK)
-	for _, field := range []string{"BrandingName", "BrandingLogoURL", "BrandingHideHelpMenu"} {
+	for _, field := range []string{"BrandingName", "BrandingLogoURL", "BrandingHideHelpMenu", "BrandingBackgroundURL"} {
 		assert.Contains(t, event.Changes, field, "one audit change per branding field")
 	}
 	assert.NotContains(t, event.Changes, "BrandingIconURL", "an unchanged field is not reported")
@@ -101,7 +102,7 @@ func TestSettingsHandler_Update_SavesBrandingAndAnswersTheRestartIdentity(t *tes
 
 func TestSettingsHandler_Update_AbsentBrandingKeysKeepTheStoredValues(t *testing.T) {
 	handler, repo, _ := brandingSettingsHandler(t, false)
-	stored := `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true}`
+	stored := `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true,"background_url":"https://cdn.example.com/bg.jpg"}`
 	_ = repo.Set(context.Background(), service.InstanceBrandingSettingKey, stored)
 
 	// An SMTP-only save on an unlicensed instance: the brand is carried over, unchanged.
@@ -110,14 +111,14 @@ func TestSettingsHandler_Update_AbsentBrandingKeysKeepTheStoredValues(t *testing
 
 	got, err := branding.Decode([]byte(repo.settings[service.InstanceBrandingSettingKey]))
 	require.NoError(t, err)
-	assert.Equal(t, branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", HideHelpMenu: true}, got)
+	assert.Equal(t, branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", HideHelpMenu: true, BackgroundURL: "https://cdn.example.com/bg.jpg"}, got)
 }
 
 func TestSettingsHandler_Update_EmptyStringClearsABrandingField(t *testing.T) {
 	handler, repo, _ := brandingSettingsHandler(t, false)
-	_ = repo.Set(context.Background(), service.InstanceBrandingSettingKey, `{"name":"Acme","logo_url":"https://cdn.example.com/l.png"}`)
+	_ = repo.Set(context.Background(), service.InstanceBrandingSettingKey, `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","background_url":"https://cdn.example.com/bg.jpg"}`)
 
-	w, _ := postBrandingSettings(t, handler, `{"branding_name":"","branding_logo_url":""}`)
+	w, _ := postBrandingSettings(t, handler, `{"branding_name":"","branding_logo_url":"","branding_background_url":""}`)
 	require.Equal(t, http.StatusOK, w.Code, "clearing needs no licence: %s", w.Body.String())
 
 	got, err := branding.Decode([]byte(repo.settings[service.InstanceBrandingSettingKey]))
@@ -141,6 +142,9 @@ func TestSettingsHandler_Update_RefusesBeforeSavingOrRestarting(t *testing.T) {
 		{"an http logo", true, `{"branding_name":"Acme","branding_logo_url":"http://cdn.example.com/l.png"}`, http.StatusBadRequest},
 		{"a brand without the licence", false, `{"branding_name":"Acme"}`, http.StatusPaymentRequired},
 		{"the help switch without the licence", false, `{"branding_hide_help_menu":true}`, http.StatusPaymentRequired},
+		{"a null background", true, `{"branding_background_url":null}`, http.StatusBadRequest},
+		{"an http background", true, `{"branding_background_url":"http://cdn.example.com/bg.jpg"}`, http.StatusBadRequest},
+		{"a background without the licence", false, `{"branding_background_url":"https://cdn.example.com/bg.jpg"}`, http.StatusPaymentRequired},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

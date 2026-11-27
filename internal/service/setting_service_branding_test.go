@@ -55,9 +55,17 @@ func saveConfig(name, logo, icon string, hide bool) *SystemConfig {
 	}
 }
 
+// withBackground sets the sign-in background of a save built by saveConfig.
+func withBackground(cfg *SystemConfig, url string) *SystemConfig {
+	cfg.BrandingBackgroundURL = url
+	return cfg
+}
+
 const (
-	storedAcme = `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true}`
-	acmeLogo   = "https://cdn.example.com/l.png"
+	storedAcme   = `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true}`
+	acmeLogo     = "https://cdn.example.com/l.png"
+	acmeBg       = "https://cdn.example.com/bg.jpg"
+	storedAcmeBg = `{"name":"Acme","logo_url":"https://cdn.example.com/l.png","icon_url":"","hide_help_menu":true,"background_url":"https://cdn.example.com/bg.jpg"}`
 )
 
 func TestSettingService_GetInstanceBranding(t *testing.T) {
@@ -106,6 +114,13 @@ func TestSettingService_GetSystemConfig_Branding(t *testing.T) {
 		assert.Equal(t, acmeLogo, cfg.BrandingLogoURL)
 		assert.Equal(t, "", cfg.BrandingIconURL)
 		assert.True(t, cfg.BrandingHideHelpMenu)
+		assert.Empty(t, cfg.BrandingBackgroundURL, "a brand saved before the background existed has none")
+	})
+
+	t.Run("carries the stored background", func(t *testing.T) {
+		cfg, err := NewSettingService(installedRepoWithBranding(storedAcmeBg), nil).GetSystemConfig(ctx, testSecretKey)
+		require.NoError(t, err)
+		assert.Equal(t, acmeBg, cfg.BrandingBackgroundURL)
 	})
 
 	t.Run("an unreadable row is flagged, and the other settings still load", func(t *testing.T) {
@@ -137,6 +152,18 @@ func TestSettingService_SetSystemConfig_BrandingRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, branding.Branding{Name: "Acme", LogoURL: acmeLogo, HideHelpMenu: true}, got, "stored normalised")
 
+	assert.JSONEq(t, storedAcme, repo.settings[InstanceBrandingSettingKey], "without a background, the row is written as 45.0 wrote it")
+
+	require.NoError(t, svc.SetSystemConfig(ctx, withBackground(saveConfig("Acme", acmeLogo, "", true), " "+acmeBg+" "), testSecretKey))
+	got, err = svc.GetInstanceBranding(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, acmeBg, got.BackgroundURL, "the background is stored normalised")
+
+	require.NoError(t, svc.SetSystemConfig(ctx, withBackground(saveConfig("", "", "", false), acmeBg), testSecretKey))
+	got, err = svc.GetInstanceBranding(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, branding.Branding{BackgroundURL: acmeBg}, got, "a background needs no name")
+
 	require.NoError(t, svc.SetSystemConfig(ctx, saveConfig("", "", "", false), testSecretKey))
 	got, err = svc.GetInstanceBranding(ctx)
 	require.NoError(t, err)
@@ -152,6 +179,7 @@ func TestSettingService_SetSystemConfig_BrandingValidation(t *testing.T) {
 		"an http logo":            saveConfig("Acme", "http://cdn.example.com/l.png", "", false),
 		"an icon on a private IP": saveConfig("Acme", "", "https://10.0.0.1/i.png", false),
 		"a name with a newline":   saveConfig("Ac\nme", "", "", false),
+		"an http background":      withBackground(saveConfig("", "", "", false), "http://cdn.example.com/bg.jpg"),
 	}
 	for name, cfg := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -178,6 +206,8 @@ func TestSettingService_SetSystemConfig_BrandingLicence(t *testing.T) {
 		{"changing the name", storedAcme, saveConfig("Acme Labs", acmeLogo, "", true)},
 		{"replacing the logo", storedAcme, saveConfig("Acme", "https://cdn.example.com/m.png", "", true)},
 		{"ticking Hide help menu", "", saveConfig("", "", "", true)},
+		{"setting a background", "", withBackground(saveConfig("", "", "", false), acmeBg)},
+		{"replacing the background", storedAcmeBg, withBackground(saveConfig("Acme", acmeLogo, "", true), "https://cdn.example.com/other.jpg")},
 	}
 	for _, tc := range refused {
 		t.Run("refuses "+tc.name, func(t *testing.T) {
@@ -203,6 +233,8 @@ func TestSettingService_SetSystemConfig_BrandingLicence(t *testing.T) {
 		{"clearing the logo and name together", storedAcme, saveConfig("", "", "", true)},
 		{"unticking Hide help menu", storedAcme, saveConfig("Acme", acmeLogo, "", false)},
 		{"resetting everything", storedAcme, saveConfig("", "", "", false)},
+		{"sending the stored background back unchanged", storedAcmeBg, withBackground(saveConfig("Acme", acmeLogo, "", true), acmeBg)},
+		{"clearing the background", storedAcmeBg, saveConfig("Acme", acmeLogo, "", true)},
 	}
 	for _, tc := range allowed {
 		t.Run("allows "+tc.name, func(t *testing.T) {

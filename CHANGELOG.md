@@ -26,7 +26,7 @@ All notable changes to this project will be documented in this file.
 
 - When a contact is deleted, the lists they unsubscribed from, bounced on or complained about are kept for 3 years as a keyed hash of their address, with nothing else. If the address comes back through an import, an upsert or a form, those statuses are put back, so a deleted contact is not mailed again against an opt-out. `contacts.delete` takes `forget_opt_outs: true` to keep nothing, and the console's delete confirmation offers the same choice.
 
-- Custom branding, with an Agency or Enterprise licence. In **System Settings** → **Branding**, the root user sets the instance's name, logo and icon, and can hide the Help menu. The console and the system emails then show this identity in place of Notifuse's.
+- Custom branding, with an Agency or Enterprise licence. In **System Settings** → **Branding**, the root user sets the instance's name, logo, icon and sign-in background image, and can hide the Help menu. The console and the system emails then show this identity in place of Notifuse's.
 
 - SMTP integrations can sign their emails with DKIM. Add the sending domain in **Settings** → **Domains** and publish the TXT record shown: signing starts once Notifuse finds it.
 

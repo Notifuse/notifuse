@@ -444,6 +444,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		systemConfig.BrandingLogoURL = stored.LogoURL
 		systemConfig.BrandingIconURL = stored.IconURL
 		systemConfig.BrandingHideHelpMenu = stored.HideHelpMenu
+		systemConfig.BrandingBackgroundURL = stored.BackgroundURL
 	} else {
 		systemConfig.KeepStoredBranding = true
 	}

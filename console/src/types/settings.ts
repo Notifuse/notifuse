@@ -37,6 +37,7 @@ export interface SystemSettingsData {
   branding_logo_url?: string
   branding_icon_url?: string
   branding_hide_help_menu?: boolean
+  branding_background_url?: string
 }
 
 export interface SystemTwoFactorSettings {

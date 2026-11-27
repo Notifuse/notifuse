@@ -15,13 +15,14 @@ type switchableEntitlements struct{ grant domain.Entitlements }
 func (s *switchableEntitlements) Entitlements() domain.Entitlements { return s.grant }
 
 func TestBrandingService_Effective(t *testing.T) {
-	stored := branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", IconURL: "https://cdn.example.com/i.png", HideHelpMenu: true}
+	stored := branding.Branding{Name: "Acme", LogoURL: "https://cdn.example.com/l.png", IconURL: "https://cdn.example.com/i.png", HideHelpMenu: true, BackgroundURL: "https://cdn.example.com/bg.jpg"}
 	defaults := branding.Resolve(branding.Branding{})
 
 	t.Run("shows the stored brand while an active licence covers it", func(t *testing.T) {
 		svc := NewBrandingService(stored, brandingGrant(domain.LicenseStateActive, domain.FeatureBranding))
 		assert.Equal(t, branding.Resolve(stored), svc.Effective())
 		assert.Equal(t, "Acme", svc.Name())
+		assert.Equal(t, "https://cdn.example.com/bg.jpg", svc.Effective().BackgroundURL)
 	})
 
 	t.Run("keeps showing it during the grace period", func(t *testing.T) {
@@ -42,6 +43,7 @@ func TestBrandingService_Effective(t *testing.T) {
 				assert.Empty(t, got.LogoURL)
 				assert.Empty(t, got.IconURL)
 				assert.False(t, got.HideHelpMenu, "hiding the Help menu is part of the brand")
+				assert.Empty(t, got.BackgroundURL, "the background is part of the brand: the Notifuse photo comes back")
 				assert.Equal(t, defaults.SplashLogoSrc, got.SplashLogoSrc)
 				assert.Equal(t, defaults.FaviconSrc, got.FaviconSrc)
 			})
@@ -80,5 +82,15 @@ func TestBrandingService_Effective(t *testing.T) {
 		got := svc.Effective()
 		assert.False(t, got.Custom)
 		assert.True(t, got.HideHelpMenu)
+	})
+
+	t.Run("a background alone is shown without a custom identity, and only with the licence", func(t *testing.T) {
+		bgOnly := branding.Branding{BackgroundURL: "https://cdn.example.com/bg.jpg"}
+		got := NewBrandingService(bgOnly, brandingGrant(domain.LicenseStateActive, domain.FeatureBranding)).Effective()
+		assert.False(t, got.Custom)
+		assert.Equal(t, branding.DefaultName, got.Name)
+		assert.Equal(t, "https://cdn.example.com/bg.jpg", got.BackgroundURL)
+
+		assert.Empty(t, NewBrandingService(bgOnly, nil).Effective().BackgroundURL)
 	})
 }
